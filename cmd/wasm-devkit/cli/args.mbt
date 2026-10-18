@@ -7,7 +7,7 @@ pub fn version() -> String {
 pub let help : String =
   #|wasm-devkit: WIT and WAC syntax tools
   #|
-  #|Usage: wasm-devkit <parse|ast|cst|tokens|print|format> [FILE|-] [OPTIONS]
+  #|Usage: wasm-devkit <parse|verify|ast|cst|tokens|print|format> [FILE|-] [OPTIONS]
   #|       wasm-devkit --help | --version
   #|
   #|Language: inferred from .wit/.wac, or --language wit|wac (required for stdin).
@@ -21,9 +21,10 @@ pub let help : String =
   #|  --write              Update a named file after successful formatting
   #|  --                   Treat the next argument as a filename
   #|
+  #|verify checks supported semantics; unsupported constructs fail explicitly.
   #|parse reports syntax validity; ast/cst/tokens inspect immutable flat arenas.
   #|print emits canonical AST source; format retains comments and token spelling.
-  #|Exit codes: 0 success, 1 syntax errors or formatting differences, 2 usage/I/O.
+  #|Exit codes: 0 success, 1 syntax/semantic errors or formatting differences, 2 usage/I/O.
   #|Diagnostic line/column values are 1-based and count UTF-16 code units.
   #|
 
@@ -36,6 +37,7 @@ pub(all) enum Language {
 ///|
 pub(all) enum Command {
   Parse
+  Verify
   Ast
   Cst
   Tokens
@@ -71,6 +73,7 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
   }
   let command : Command = match args[0] {
     "parse" | "check" => Parse
+    "verify" => Verify
     "ast" => Ast
     "cst" => Cst
     "tokens" => Tokens

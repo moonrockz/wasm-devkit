@@ -1,0 +1,70 @@
+///|
+/// Compare identical fixture bytes against pinned semantic reference CLIs.
+/// Usage: test-semantics.mbtx WASM_TOOLS_1_262_0 WAC_0_12_0
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/async@0.22.5/process",
+  "moonbitlang/core/env",
+}
+
+///|
+async fn main {
+  guard @env.args()[1:] is [wasm_tools, wac] else {
+    fail("Usage: test-semantics.mbtx WASM_TOOLS_1_262_0 WAC_0_12_0")
+  }
+  for
+    (tool, version) in [
+      (wasm_tools, "wasm-tools 1.262.0"),
+      (wac, "wac-cli 0.12.0"),
+    ] {
+    let (code, out, _) = @process.collect_output(tool, ["--version"])
+    if code != 0 ||
+      (!out.text().has_prefix(version + " ") && out.text().trim() != version) {
+      fail("Expected " + version + ", got " + out.text())
+    }
+  }
+  let mut count = 0
+  for line in @fs.read_file("tests/semantic/manifest.tsv").text().split("\n") {
+    if line.is_empty() || line.has_prefix("#") {
+      continue
+    }
+    let fields = line.split("\t").map(StringView::to_owned).to_array()
+    guard fields.length() == 3 else {
+      fail("invalid semantic fixture manifest row")
+    }
+    let path = "tests/semantic/" + fields[0]
+    let expected = match fields[1] {
+      "true" => 0
+      "false" => 1
+      _ => fail("acceptance must be true or false")
+    }
+    if !path.has_suffix(".wit") && !path.has_suffix(".wac") {
+      fail("unknown fixture language")
+    }
+    let (hash_code, digest, hash_error) = @process.collect_output("node", [
+      "--input-type=module", "-e", "import {createHash} from 'node:crypto'; import {readFileSync} from 'node:fs'; console.log(createHash('sha256').update(readFileSync(process.argv[1])).digest('hex'))",
+      path,
+    ])
+    if hash_code != 0 || digest.text().trim() != fields[2] {
+      fail(path + ": fixture hash mismatch " + hash_error.text())
+    }
+    let (tool, args) = if path.has_suffix(".wit") {
+      (wasm_tools, ["component", "wit", path])
+    } else {
+      (wac, ["resolve", "--deps-dir", "tests/semantic/deps", path])
+    }
+    let (code, _, error) = @process.collect_output(tool, args)
+    if code != expected {
+      fail(path + ": reference acceptance mismatch: " + error.text())
+    }
+    let (code, _, error) = @process.collect_output("moon", [
+      "run", "cmd/wasm-devkit", "--target", "wasm", "--quiet", "--", "verify", path,
+    ])
+    if code != expected {
+      fail(path + ": verifier acceptance mismatch: " + error.text())
+    }
+    count += 1
+  }
+  println("\{count} semantic fixture comparisons passed")
+}

@@ -28,6 +28,7 @@ pub fn Action::to_repr(Self) -> @debug.Repr
 
 pub(all) enum Command {
   Parse
+  Verify
   Ast
   Cst
   Tokens

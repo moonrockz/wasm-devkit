@@ -27,7 +27,7 @@ async fn main {
   let wac = dir + "/sample.wac"
   let invalid = dir + "/invalid.wit"
   let malformed = dir + "/malformed.wit"
-  @fs.write_file(wit, "//keep\ninterface i {type t=u8;}")
+  @fs.write_file(wit, "//keep\npackage a:b; interface i {type t=u8;}")
   @fs.write_file(
     wac, "package a:b; let x = new a:b { ... }; export (x).run as \"run\";",
   )
@@ -65,6 +65,20 @@ async fn main {
       assert_false(text.is_empty())
     }
   }
+  let semantic_wac = dir + "/semantic.wac"
+  let semantic_bad = dir + "/semantic-bad.wit"
+  @fs.write_file(
+    semantic_wac, "package a:b; import f: func(); let x = f; export x as \"x\";",
+  )
+  @fs.write_file(semantic_bad, "interface api { type t = missing; }")
+  let _ = run(["verify", wit], 0, wit)
+  let _ = run(["verify", semantic_wac], 0, wit)
+  let _ = run(["verify", "--language", "wit"], 0, wit)
+  let _ = run(["verify", semantic_bad], 1, wit)
+  let _ = run(["check", semantic_bad], 0, wit)
+  let _ = run(["verify", dir + "/missing.wit"], 2, wit)
+  let _ = run(["verify", malformed], 2, wit)
+  let _ = run(["verify"], 2, wit)
   let (stdin_wit, _) = run(["parse", "--language", "wit"], 0, wit)
   assert_true(stdin_wit.contains("<stdin>: valid wit"))
   let (stdin_wac, _) = run(["print", "-", "--language", "wac"], 0, wac)

@@ -1,0 +1,13 @@
+import {
+  "moonrockz/wac/ast",
+  "moonrockz/wac/parser",
+  "moonrockz/wac/span",
+  "moonbitlang/core/debug",
+}
+
+import {
+  "moonrockz/wac/span",
+  "moonrockz/wac/verifier",
+  "moonrockz/wac/parser",
+  "moonrockz/wac/ast",
+} for "test"

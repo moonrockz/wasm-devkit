@@ -1,0 +1,13 @@
+import {
+  "moonrockz/wit/ast",
+  "moonrockz/wit/parser",
+  "moonrockz/wit/span",
+  "moonbitlang/core/debug",
+}
+
+import {
+  "moonrockz/wit/span",
+  "moonrockz/wit/verifier",
+  "moonrockz/wit/parser",
+  "moonrockz/wit/ast",
+} for "test"

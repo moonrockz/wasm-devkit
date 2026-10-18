@@ -175,3 +175,14 @@ and native through `moonbitlang/async`. `mise run test:cli -- wasm` and
 `mise run test:cli -- native` exercise real files, redirected stdin, stdout/stderr, status
 codes and formatter writes. `mise run test:cli -- --binary PATH` checks a packaged executable;
 `--moonx VERSION` checks the published registry package.
+
+## Semantic verification
+
+Run `wasm-devkit verify api.wit` or `wasm-devkit verify app.wac` to check the current
+local semantic profile. Stdin requires `--language wit` or `--language wac`.
+Exit status is 0 for a fully verified supported model, 1 for syntax/semantic errors
+or unsupported constructs, and 2 for invalid arguments or I/O errors.
+
+`parse` and its `check` alias retain their syntax-only behavior. Verification does
+not modify source files or execute components. See the library verifier guides for
+the current profile. Dependency resolution and remaining semantics are tracked in issue #5.

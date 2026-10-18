@@ -1,0 +1,69 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonrockz/wit/verifier"
+
+import {
+  "moonbitlang/core/debug",
+  "moonrockz/wit/ast",
+  "moonrockz/wit/parser",
+  "moonrockz/wit/span",
+}
+
+// Values
+pub fn verify(@parser.Parse, source_id? : String, source~ : String) -> Result[Verified, ReadOnlyArray[Diagnostic]]
+
+pub fn verify_ast(@ast.Tree, source_id? : String, source~ : String) -> Result[Verified, ReadOnlyArray[Diagnostic]]
+
+// Errors
+
+// Types and methods
+pub(all) struct Binding {
+  name : String
+  scope : Int
+  node : Int
+  target : Int
+} derive(Eq, @debug.Debug)
+pub fn Binding::equal(Self, Self) -> Bool
+pub fn Binding::not_equal(Self, Self) -> Bool
+pub fn Binding::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Diagnostic {
+  code : String
+  message : String
+  primary : Label
+  related : ReadOnlyArray[Label]
+} derive(Eq, @debug.Debug)
+pub fn Diagnostic::equal(Self, Self) -> Bool
+pub fn Diagnostic::not_equal(Self, Self) -> Bool
+pub fn Diagnostic::render(Self) -> String
+pub fn Diagnostic::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Label {
+  location : Location
+  message : String
+} derive(Eq, @debug.Debug)
+pub fn Label::equal(Self, Self) -> Bool
+pub fn Label::not_equal(Self, Self) -> Bool
+pub fn Label::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Location {
+  source : String
+  span : @span.Span
+} derive(Eq, @debug.Debug)
+pub fn Location::equal(Self, Self) -> Bool
+pub fn Location::not_equal(Self, Self) -> Bool
+pub fn Location::to_repr(Self) -> @debug.Repr
+
+pub struct Verified {
+  source_id : String
+  source_text : String
+  tree : @ast.Tree
+  bindings : ReadOnlyArray[Binding]
+}
+pub fn Verified::ast(Self) -> @ast.Tree
+pub fn Verified::declarations(Self) -> ReadOnlyArray[Binding]
+pub fn Verified::source(Self) -> String
+pub fn Verified::text(Self) -> String
+
+// Type aliases
+
+// Traits

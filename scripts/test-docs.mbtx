@@ -79,7 +79,7 @@ fn guides() -> Array[String] {
     for
       package_name in [
         "span", "diagnostic", "scanner", "ast", "cst", "parser", "traversal", "printer",
-        "formatter",
+        "formatter", "verifier",
       ] {
       result.push(
         "pkgs/" + language + "/src/" + package_name + "/README.mbt.md",
@@ -185,7 +185,7 @@ test "incomplete or ambiguous documentation setup fails verification" {
     )
     is Err(_),
   )
-  assert_eq(guides().length(), 21)
+  assert_eq(guides().length(), 23)
   assert_eq(
     module_version("name = \"example\"\nversion = \"1.2.3\"\n"),
     Some("1.2.3"),

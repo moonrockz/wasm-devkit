@@ -1,0 +1,2 @@
+package example:app;
+interface api { type a = b; type b = u8; run: func(value: a) -> b; }

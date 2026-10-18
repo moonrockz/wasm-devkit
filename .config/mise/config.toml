@@ -177,3 +177,7 @@ run = "moonx scripts/verify-cli.mbtx"
 [tasks."test:docs"]
 description = "Run README recipes with their documented imports (args: targets; default: all four)"
 run = "moonx scripts/test-docs.mbtx"
+
+[tasks."test:semantics"]
+description = "Compare semantic fixtures with pinned reference CLIs (args: wasm-tools-1.262.0 wac-0.12.0 paths)"
+run = "moonx scripts/test-semantics.mbtx"

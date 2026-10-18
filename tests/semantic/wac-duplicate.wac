@@ -1,0 +1,3 @@
+package example:app;
+type a = u8;
+type a = u16;

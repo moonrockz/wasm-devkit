@@ -110,3 +110,35 @@ test "printing rejects original syntax errors and feature switches are explicit"
   assert_eq(result.exit_code, 0)
   assert_true(result.stdout.contains("(a: u8)"))
 }
+
+///|
+test "verify distinguishes syntax and semantics without changing check" {
+  for
+    (language, good, bad) in [
+      (
+        "wit", "package example:app; interface api { type t = u8; }", "package example:app; interface api { type t = missing; }",
+      ),
+      (
+        "wac", "package a:b; import f: func(); let x = f; export x as \"x\";", "package a:b; let x = f; import f: func();",
+      ),
+    ] {
+    let verify = options(["verify", "--language", language])
+    let good = @cli.execute(verify, good)
+    assert_eq(good.exit_code, 0)
+    assert_true(good.stdout.contains("verified"))
+    assert_true(good.write_text is None)
+    assert_eq(
+      @cli.execute(options(["check", "--language", language]), bad).exit_code,
+      0,
+    )
+    let bad = @cli.execute(verify, bad)
+    assert_eq(bad.exit_code, 1)
+    assert_true(bad.stderr.contains("<stdin>:1:"))
+    assert_true(bad.stderr.contains("-S005"))
+    assert_eq(bad.stdout, "")
+  }
+  assert_eq(options(["verify", "a.wit"]).language, Wit)
+  assert_eq(options(["verify", "a.wac"]).language, Wac)
+  assert_true(@cli.arguments(["verify", "a.wit", "--write"]) is Err(_))
+  assert_eq(@cli.execute(options(["verify", "a.wit"]), "?").exit_code, 1)
+}

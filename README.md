@@ -67,6 +67,15 @@ available for invalid input, and the CST always reconstructs the original text.
 | Apply source edits while retaining comments | [WIT editor recipe](pkgs/wit/README.mbt.md#edit-one-token-and-retain-comments), [WAC editor recipe](pkgs/wac/README.mbt.md#edit-one-token-and-retain-comments) |
 | Work from a terminal or check formatting in CI | [CLI scenarios](cmd/wasm-devkit/README.md#scenarios) |
 
+## Semantic verification
+
+`wasm-devkit verify api.wit` and `wasm-devkit verify app.wac` check the current local
+semantic profile. Syntax acceptance remains available through `parse` and `check`.
+See the [WIT verifier](pkgs/wit/src/verifier/README.mbt.md) and
+[WAC verifier](pkgs/wac/src/verifier/README.mbt.md) for checked examples and exact scope.
+Unsupported semantic constructs fail explicitly. Full dependency and component verification
+is being implemented under [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
+
 ## Status
 
 WIT source positions, structured diagnostics, a lossless scanner, typed immutable ASTs/CSTs,
@@ -140,7 +149,7 @@ mise run clean
 ## Documentation checks
 
 `mise run test` executes checked API comments and package README examples.
-`mise run test:docs` additionally compiles all 21 library guides using exactly their
+`mise run test:docs` additionally compiles all 23 library guides using exactly their
 documented imports, including the root and module READMEs outside package source directories.
 Both commands run on wasm, wasm-gc, js and native by default.
 

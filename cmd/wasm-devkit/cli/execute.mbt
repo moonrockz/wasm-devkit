@@ -86,6 +86,32 @@ fn wit_execute(options : Options, source : String, label : String) -> Output {
   let valid = parsed.is_valid()
   let code = if valid { 0 } else { 1 }
   match options.command {
+    Verify =>
+      match @wit_verifier.verify(parsed, source_id=label, source~) {
+        Ok(_) => output(label + ": verified wit\n", "", 0)
+        Err(diagnostics) => {
+          let out = StringBuilder()
+          let text = @wit_span.Source::new(source)
+          for diagnostic in diagnostics {
+            let p = diagnostic.primary.location
+            let position = text.position(p.span.start)
+            let coordinates = match position {
+              Some(p) => "\{p.line+1}:\{p.column+1}"
+              None => "?:?"
+            }
+            out.write_string(
+              "\{p.source}:\{coordinates}: error \{diagnostic.code}: \{diagnostic.message}\n",
+            )
+            for label in diagnostic.related {
+              let p = label.location
+              out.write_string(
+                "\{p.source}:[\{p.span.start},\{p.span.end}): \{label.message}\n",
+              )
+            }
+          }
+          output("", out.to_string(), 1)
+        }
+      }
     Parse =>
       output(if valid { label + ": valid wit\n" } else { "" }, errors, code)
     Ast => {
@@ -204,6 +230,32 @@ fn wac_execute(options : Options, source : String, label : String) -> Output {
   let valid = parsed.is_valid()
   let code = if valid { 0 } else { 1 }
   match options.command {
+    Verify =>
+      match @wac_verifier.verify(parsed, source_id=label, source~) {
+        Ok(_) => output(label + ": verified wac\n", "", 0)
+        Err(diagnostics) => {
+          let out = StringBuilder()
+          let text = @wac_span.Source::new(source)
+          for diagnostic in diagnostics {
+            let p = diagnostic.primary.location
+            let position = text.position(p.span.start)
+            let coordinates = match position {
+              Some(p) => "\{p.line+1}:\{p.column+1}"
+              None => "?:?"
+            }
+            out.write_string(
+              "\{p.source}:\{coordinates}: error \{diagnostic.code}: \{diagnostic.message}\n",
+            )
+            for label in diagnostic.related {
+              let p = label.location
+              out.write_string(
+                "\{p.source}:[\{p.span.start},\{p.span.end}): \{label.message}\n",
+              )
+            }
+          }
+          output("", out.to_string(), 1)
+        }
+      }
     Parse =>
       output(if valid { label + ": valid wac\n" } else { "" }, errors, code)
     Ast => {
