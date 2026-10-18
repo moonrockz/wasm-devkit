@@ -2,8 +2,13 @@
 
 WIT language tooling for MoonBit.
 
-**Scaffold only.** Only `version()` is implemented. The packages below reserve boundaries;
-they do not provide language tooling yet, and this module has not been published.
+Source positions, structured diagnostics and lossless lexical analysis are implemented.
+ASTs, CSTs, parsing, traversal, printing and formatting remain unimplemented.
+This module has not been published.
+
+`@scanner.scan(source)` returns immutable tokens and diagnostics. `Scan::to_source()`
+reconstructs the exact input. Lexical success does not imply syntactic validity.
+See the scanner package for the lexical profile and diagnostic codes.
 
 ## Scope
 
@@ -17,9 +22,9 @@ The syntax parser must not perform I/O.
 
 | Package | Intended responsibility |
 |---------|-------------------------|
-| `span` | Source text, positions and documented Unicode offset units |
-| `diagnostic` | Stable codes, severity, source labels and recovery details |
-| `scanner` | Lossless tokens, comments and whitespace |
+| `span` | Implemented: source text, UTF-16 positions, checked slices and span containment |
+| `diagnostic` | Implemented: codes, severity, immutable source labels and recovery details |
+| `scanner` | Implemented: lossless tokens, comments, whitespace and lexical diagnostics |
 | `ast` | Immutable typed nodes and child collections |
 | `cst` | Immutable lossless concrete structure, including malformed input |
 | `parser` | Recovering source-to-AST/CST parsing with diagnostics |
@@ -27,7 +32,13 @@ The syntax parser must not perform I/O.
 | `printer` | Stack-safe canonical AST-to-source emission |
 | `formatter` | Stack-safe CST formatting that preserves comments and meaning |
 
-## Validation to implement
+## Validation
+
+The lexical layer has acceptance examples, 2,400 seeded property cases per target,
+exact token/span reconstruction laws and a 30,000-level nested comment stress case.
+Tests also exercise malformed UTF-16 and string escapes. All run on wasm, wasm-gc, js and native.
+
+Remaining validation for the syntax frontend and later packages:
 
 - Upstream valid and invalid fixtures pinned to the reference linked in the root README.
 - Exact scanner/CST reconstruction, including Unicode, comments and malformed text.

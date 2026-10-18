@@ -5,9 +5,14 @@ A MoonBit monorepo for WebAssembly language tooling, created from the
 
 ## Status
 
-The workspace, module boundaries, task scripts, CI, hooks and library release workflow are set up.
-**Language tooling is not implemented yet.** Each module currently exposes only its development version.
-No parser, printer or formatter is available, and nothing has been published to mooncakes.io.
+WIT source positions, structured diagnostics and a lossless scanner are implemented.
+The scanner retains trivia and malformed text, validates WebAssembly string names and Unicode
+source restrictions, and handles nested comments without recursion. Property tests and a 30,000-level
+comment stress test run on wasm, wasm-gc, js and native.
+
+WIT ASTs, CSTs, parsing, traversal, printing and formatting are still pending.
+WAC remains a scaffold exposing only its development version. No CLI is available yet,
+and nothing has been published to mooncakes.io.
 
 | Module | Path | Intended capabilities |
 |--------|------|-----------------------|
@@ -15,10 +20,11 @@ No parser, printer or formatter is available, and nothing has been published to 
 | `moonrockz/wac` | [pkgs/wac](pkgs/wac) | WAC scanner, AST, lossless CST, recovering parser, immutable stack-safe traversal, printer and formatter |
 
 Both modules reserve `span`, `diagnostic`, `scanner`, `ast`, `cst`, `parser`, `traversal`,
-`printer` and `formatter` packages. Those packages contain documentation and manifests only.
+`printer` and `formatter` packages. Only WIT's first three packages have implementations.
 Each language will be independently consumable. WAC also gets an AST for typed traversal and printing.
 
-Add future modules under `pkgs/` and executables under `apps/`, then register them in `moon.work`.
+Add future libraries under `pkgs/`. The planned CLI will live under `cmd/` and support
+moonx and mise installation. Register new modules in `moon.work`.
 Keep external reference clones in ignored local scratch space. Their histories and implementation
 code are not part of the published modules.
 
@@ -91,7 +97,7 @@ The Smithy database and tasks are not reused.
 ## Releases
 
 Version `0.0.0` marks the unpublished scaffold. All modules share the root version.
-The first release will be `0.0.1` or a deliberately selected later version after language tooling is ready.
+The first release will be `0.1.0`, after both languages and the CLI are ready.
 
 Run `mise run release:prepare -- X.Y.Z` on clean main. This creates a local release branch,
 updates versions and prepends a changelog section. Replace its highlights placeholder before

@@ -1,1 +1,7 @@
-// Reserved WIT span package. No implementation yet.
+import {
+  "moonbitlang/core/debug",
+}
+
+import {
+  "moonrockz/wit/span",
+} for "test"
