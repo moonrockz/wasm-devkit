@@ -1,0 +1,141 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonrockz/wac/ast"
+
+import {
+  "moonbitlang/core/debug",
+  "moonrockz/wac/span",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) enum Data {
+  File(directive~ : Int?, statements~ : ReadOnlyArray[Int])
+  Package(path~ : Int, targets~ : Int?)
+  Path(namespaces~ : ReadOnlyArray[String], segments~ : ReadOnlyArray[String], version~ : String?)
+  Interface(name~ : String, items~ : ReadOnlyArray[Int])
+  World(name~ : String, items~ : ReadOnlyArray[Int])
+  Resource(name~ : String, methods~ : ReadOnlyArray[Int], has_body~ : Bool)
+  Alias(name~ : String, ty~ : Int)
+  Record(name~ : String, fields~ : ReadOnlyArray[Int])
+  Flags(name~ : String, cases~ : ReadOnlyArray[Int])
+  Enum(name~ : String, cases~ : ReadOnlyArray[Int])
+  Variant(name~ : String, cases~ : ReadOnlyArray[Int])
+  Function(name~ : String, signature~ : Int, is_static~ : Bool)
+  Constructor(params~ : ReadOnlyArray[Int])
+  Signature(asynchronous~ : Bool, params~ : ReadOnlyArray[Int], result~ : Int?)
+  NamedResults(params~ : ReadOnlyArray[Int])
+  Import(binding~ : String, renamed~ : Int?, ty~ : Int)
+  WorldImport(name~ : String?, target~ : Int)
+  WorldExport(name~ : String?, target~ : Int)
+  Use(path~ : Int, names~ : ReadOnlyArray[Int])
+  Include(path~ : Int, renames~ : ReadOnlyArray[Int])
+  Rename(name~ : String, renamed~ : String?)
+  Field(name~ : String, ty~ : Int)
+  Case(name~ : String, payload~ : Int?)
+  Parameter(name~ : String, ty~ : Int)
+  PrimitiveType(name~ : String)
+  NamedType(name~ : String)
+  ListType(element~ : Int)
+  TupleType(elements~ : ReadOnlyArray[Int])
+  OptionType(payload~ : Int)
+  ResultType(ok~ : Int?, error~ : Int?)
+  BorrowType(resource~ : Int)
+  FutureType(payload~ : Int?)
+  StreamType(payload~ : Int?)
+  Let(name~ : String, expression~ : Int)
+  Export(expression~ : Int, renamed~ : Int?, spread~ : Bool)
+  Name(value~ : String, quoted~ : Bool)
+  Expression(primary~ : Int, postfix~ : ReadOnlyArray[Int])
+  Reference(name~ : String)
+  Group(expression~ : Int)
+  New(component~ : Int, arguments~ : ReadOnlyArray[Int])
+  InferredArgument(name~ : String)
+  SpreadArgument(name~ : String)
+  NamedArgument(name~ : Int, value~ : Int)
+  FillArgument
+  Access(name~ : String, quoted~ : Bool)
+  Error(text~ : String, recovered~ : ReadOnlyArray[Int])
+} derive(Eq, @debug.Debug)
+pub fn Data::children(Self) -> ReadOnlyArray[Int]
+pub fn Data::equal(Self, Self) -> Bool
+pub fn Data::kind(Self) -> Kind
+pub fn Data::map_children(Self, (Int) -> Int) -> Self
+pub fn Data::not_equal(Self, Self) -> Bool
+pub fn Data::to_repr(Self) -> @debug.Repr
+
+pub(all) enum Kind {
+  File
+  Package
+  Path
+  Interface
+  World
+  Resource
+  Alias
+  Record
+  Flags
+  Enum
+  Variant
+  Function
+  Constructor
+  Signature
+  NamedResults
+  Import
+  WorldImport
+  WorldExport
+  Use
+  Include
+  Rename
+  Field
+  Case
+  Parameter
+  PrimitiveType
+  NamedType
+  ListType
+  TupleType
+  OptionType
+  ResultType
+  BorrowType
+  FutureType
+  StreamType
+  Let
+  Export
+  Name
+  Expression
+  Reference
+  Group
+  New
+  InferredArgument
+  SpreadArgument
+  NamedArgument
+  FillArgument
+  Access
+  Error
+} derive(Eq, @debug.Debug)
+pub fn Kind::equal(Self, Self) -> Bool
+pub fn Kind::not_equal(Self, Self) -> Bool
+pub fn Kind::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Node {
+  data : Data
+  span : @span.Span
+} derive(Eq, @debug.Debug)
+pub fn Node::equal(Self, Self) -> Bool
+pub fn Node::not_equal(Self, Self) -> Bool
+pub fn Node::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Tree {
+  nodes : ReadOnlyArray[Node]
+} derive(Eq, @debug.Debug)
+pub fn Tree::equal(Self, Self) -> Bool
+pub fn Tree::equivalent(Self, Self) -> Bool
+pub fn Tree::not_equal(Self, Self) -> Bool
+pub fn Tree::root(Self) -> Int?
+pub fn Tree::to_repr(Self) -> @debug.Repr
+pub fn Tree::validate(Self) -> Bool
+
+// Type aliases
+
+// Traits

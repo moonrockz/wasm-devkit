@@ -1,1 +1,4 @@
-// Reserved WAC diagnostic package. No implementation yet.
+import {
+  "moonbitlang/core/debug",
+  "moonrockz/wac/span",
+}

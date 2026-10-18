@@ -2,8 +2,9 @@
 
 WAC language tooling for MoonBit.
 
-**Scaffold only.** Only `version()` is implemented. The packages below reserve boundaries;
-they do not provide language tooling yet, and this module has not been published.
+Source positions, structured diagnostics, a lossless scanner, typed immutable ASTs/CSTs and
+a recovering parser are implemented. Traversal, printing and formatting remain reserved.
+This development module has not been published.
 
 ## Scope
 
@@ -15,7 +16,7 @@ The syntax parser must not perform I/O.
 
 ## Packages
 
-| Package | Intended responsibility |
+| Package | Responsibility |
 |---------|-------------------------|
 | `span` | Source text, positions and documented Unicode offset units |
 | `diagnostic` | Stable codes, severity, source labels and recovery details |
@@ -27,14 +28,15 @@ The syntax parser must not perform I/O.
 | `printer` | Stack-safe canonical AST-to-source emission |
 | `formatter` | Stack-safe CST formatting that preserves comments and meaning |
 
-## Validation to implement
+## Validation
 
 - Upstream valid and invalid fixtures pinned to the reference linked in the root README.
 - Exact scanner/CST reconstruction, including Unicode, comments and malformed text.
 - Diagnostic recovery, progress through arbitrary input and no-panic properties.
-- Deep nesting across parsing, traversal, printing and formatting on every target.
-- Equivalent traversal event order with prune/stop behavior.
-- Immutable trees and rewrites leaving original trees unchanged.
-- Printer structural round trips and formatter semantic preservation/idempotence.
+- Deep types, groups and instantiations on every target.
+
+Traversal event laws, immutable rewrites, printer round trips and formatter laws will be
+added with those implementations. The [parser profile](src/parser/README.mbt.md) documents
+the pinned corpus and WIT grammar differences.
 
 See root Beads epic `wasm-devkit-p5m` for implementation work.
