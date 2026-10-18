@@ -1,0 +1,1 @@
+package example:app;interface data{type out=result<u8,string>;}interface api{use data.{out};resource r{constructor()->out;}}

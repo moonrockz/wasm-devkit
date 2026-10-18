@@ -79,6 +79,20 @@ async fn main {
   let _ = run(["verify", dir + "/missing.wit"], 2, wit)
   let _ = run(["verify", malformed], 2, wit)
   let _ = run(["verify"], 2, wit)
+  let resource_api = dir + "/resources.wit"
+  let resource_source = "package example:resources;interface files{resource file{constructor(path:string)->result<file,string>;read:async func()->list<u8>;open:static func(path:string)->file;}}world app{import files;}"
+  @fs.write_file(resource_api, resource_source)
+  let _ = run(["verify", resource_api], 0, wit)
+  let _ = run(["verify", "--language", "wit", "--base", dir], 0, resource_api)
+  assert_eq(@fs.read_file(resource_api).text(), resource_source)
+  let invalid_resource = dir + "/invalid-resource.wit"
+  let invalid_resource_source = "package example:resources;interface files{resource file{constructor()->own<file>;}}"
+  @fs.write_file(invalid_resource, invalid_resource_source)
+  let _ = run(["check", invalid_resource], 0, wit)
+  let (_, resource_error) = run(["verify", invalid_resource], 1, wit)
+  assert_true(resource_error.contains("WIT-S007"))
+  assert_true(resource_error.contains(invalid_resource + ":1:"))
+  assert_eq(@fs.read_file(invalid_resource).text(), invalid_resource_source)
   let (stdin_wit, _) = run(["parse", "--language", "wit"], 0, wit)
   assert_true(stdin_wit.contains("<stdin>: valid wit"))
   let (stdin_wac, _) = run(["print", "-", "--language", "wac"], 0, wac)

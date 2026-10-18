@@ -212,6 +212,29 @@ does not fall back to a versioned package.
 WAC dependency providers and encoded WIT packages remain explicit unsupported errors
 while the remaining issue #5 tasks are implemented. Source files are never rewritten.
 
+### Verify a resource API
+
+Save this source as `files.wit` and run `wasm-devkit verify files.wit`.
+
+```wit
+package example:files;
+interface files {
+  resource file {
+    constructor(path: string) -> result<file, string>;
+    read: async func() -> list<u8>;
+    open: static func(path: string) -> file;
+  }
+}
+world app { import files; }
+```
+
+Methods receive an implicit borrowed receiver, and resource-valued parameters and
+results mean owned handles. A constructor's declared return must be a result with
+the constructed resource as its direct success type. Changing its return to
+`own<file>` keeps the syntax valid but makes `verify` exit with status 1 and
+`WIT-S007` at the constructor result. Borrowed handles anywhere in a function
+result also fail verification. Source files remain unchanged.
+
 ### Select and inspect WIT worlds
 
 ```shell

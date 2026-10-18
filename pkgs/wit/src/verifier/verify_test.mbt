@@ -66,8 +66,8 @@ test "cyclic aliases non-types and duplicate parameters cannot verify" {
 test "unsupported semantics syntax recovery and malformed ASTs fail closed" {
   for
     source in [
-      "package example:app; interface api { resource r { constructor(); } }", "world app {}",
-      "package example:app; interface api { type a = ; }",
+      "package example:app; interface api { @since(version = 1.0.0) resource r; }",
+      "world app {}", "package example:app; interface api { type a = ; }",
     ] {
     assert_true(verify(source) is Err(_))
   }

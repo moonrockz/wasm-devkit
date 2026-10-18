@@ -102,7 +102,11 @@ fn verify_handles(
     }
   }
   for id, node in tree.nodes {
-    if node.data is Signature(result=Some(result), ..) && borrowed[result] >= 0 {
+    let result = match node.data {
+      Signature(result~, ..) | Constructor(result~, ..) => result
+      _ => None
+    }
+    if result is Some(result) && borrowed[result] >= 0 {
       let d = prepared_error(
         prepared, id, "WIT-S007", "a function result cannot contain a borrowed handle",
       )

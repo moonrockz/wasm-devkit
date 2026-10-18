@@ -35,28 +35,31 @@ fn SemanticArena::new(
   resources : ReadOnlyArray[Int32],
 ) -> SemanticArena {
   let scopes = lexical_owners(prepared.tree)
+  let origins = prepared.origins.iter().to_array()
   let types = resolved_types(
-    prepared.tree,
-    prepared.origins.map(o => o.location),
-    references,
-    scopes,
-    resources,
-  )
-  let functions = model_functions(prepared)
+      prepared.tree,
+      prepared.origins.map(o => o.location),
+      references,
+      scopes,
+      resources,
+    )
+    .iter()
+    .to_array()
+  let functions = model_functions(prepared, scopes, types, origins)
   let interfaces = model_interfaces(prepared, functions)
   let arena : SemanticArena = {
     types: Map([]),
     functions: Map([]),
     interfaces: Map([]),
     owners: Map([]),
-    origins: prepared.origins.iter().to_array(),
+    origins,
     type_order: [],
     function_order: [],
     interface_order: [],
   }
   for ty in types {
     arena.types[ty.id] = ty
-    arena.owners[ty.id] = scopes[ty.id]
+    arena.owners[ty.id] = ty.scope
     arena.type_order.push(ty.id)
   }
   for function in functions {
@@ -184,10 +187,20 @@ fn SemanticArena::copy_function(
   let original = self.functions[id]
   let fresh = self.allocate(id)
   let replace = fn(id : Int32) { mapping.get(id).unwrap_or(id) }
+  let kind = remap_function_kind(original.kind, replace)
+  let name = match function_resource(kind) {
+    Some(resource) =>
+      match self.types[resource].name {
+        Some(resource_name) => remap_function_name(name, kind, resource_name)
+        None => name
+      }
+    None => name
+  }
   let copied = {
     ..original,
     id: fresh,
     name,
+    kind,
     params: original.params.map(param => { ..param, ty: replace(param.ty), }),
     result: original.result.map(replace),
   }
@@ -236,7 +249,7 @@ fn SemanticArena::copy_world(
   for side in [imports, exports] {
     let copied = []
     for item in side {
-      let name = if !item.by_id &&
+      let mut name = if !item.by_id &&
         replacements.get(item.name) is Some((name, _)) {
         name
       } else {
@@ -244,8 +257,11 @@ fn SemanticArena::copy_world(
       }
       let kind : WorldItemKind = match item.kind {
         Type(id) => Type(mapping.get(id).unwrap_or(id))
-        Function(id) =>
-          Function(self.copy_function(id, owner, name, mapping).id)
+        Function(id) => {
+          let function = self.copy_function(id, owner, name, mapping)
+          name = function.name
+          Function(function.id)
+        }
         Interface(id) => {
           let original = self.interfaces[id]
           if original.name is Some(_) {

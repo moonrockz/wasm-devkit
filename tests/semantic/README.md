@@ -56,3 +56,8 @@ Handle fixtures compare forward resource aliases, owned/borrowed parameters,
 shorthand resource values, invalid handle targets and borrowed results hidden in
 aliases, records, variants, futures and streams. Include cases exercise handles
 to fresh local resources and preserved resources from named interfaces.
+
+Resource-function cases cover implicit receivers, ordinary/static/async functions,
+constructor default and fallible results, direct-resource success restrictions,
+strong component-name collisions, duplicate constructors and resource renaming
+through world includes. Accessors remain outside the implemented semantic profile.

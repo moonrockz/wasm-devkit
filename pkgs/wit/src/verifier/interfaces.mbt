@@ -1,7 +1,16 @@
 ///|
+pub(all) enum FunctionKind {
+  Freestanding
+  Method(Int32)
+  Static(Int32)
+  Constructor(Int32)
+} derive(Eq, Debug)
+
+///|
 pub(all) struct ResolvedFunction {
   id : Int32
   name : String
+  kind : FunctionKind
   params : ReadOnlyArray[TypeMember]
   result : Int32?
   asynchronous : Bool
@@ -50,8 +59,26 @@ pub fn Resolution::functions(
 }
 
 ///|
-fn model_functions(prepared : Prepared) -> ReadOnlyArray[ResolvedFunction] {
+fn model_functions(
+  prepared : Prepared,
+  scopes : ReadOnlyArray[Int32],
+  types : Array[ResolvedType],
+  origins : Array[Origin],
+) -> ReadOnlyArray[ResolvedFunction] {
   let result : Array[ResolvedFunction] = []
+  let resource_members = resource_members(prepared.tree)
+  let handle = fn(kind : TypeKind, at : Int32) {
+    let id = origins.length()
+    origins.push(prepared.origins[at])
+    types.push({
+      id,
+      scope: scopes[at],
+      name: None,
+      kind,
+      location: prepared.origins[at].location,
+    })
+    id
+  }
   for id, node in prepared.tree.nodes {
     let signature = match node.data {
       Function(name~, signature~, ..) => Some((name, signature))
@@ -63,6 +90,26 @@ fn model_functions(prepared : Prepared) -> ReadOnlyArray[ResolvedFunction] {
       prepared.tree.nodes[signature].data
       is Signature(result=output, asynchronous~, ..) {
       let members : Array[TypeMember] = []
+      let kind : FunctionKind = match resource_members.get(id) {
+        Some(resource) =>
+          if node.data is Function(is_static=true, ..) {
+            Static(resource)
+          } else {
+            let ty = handle(Borrow(resource), signature)
+            members.push({
+              name: "self",
+              ty,
+              location: prepared.origins[signature].location,
+            })
+            Method(resource)
+          }
+        None => Freestanding
+      }
+      let name = match resource_members.get(id) {
+        Some(resource) =>
+          resource_function_name(prepared.tree, resource, id).unwrap_or(name)
+        None => name
+      }
       if prepared.tree.nodes[signature].data is Signature(params=parameters, ..) {
         for parameter in parameters {
           if prepared.tree.nodes[parameter].data is Parameter(name~, ty~) {
@@ -77,9 +124,35 @@ fn model_functions(prepared : Prepared) -> ReadOnlyArray[ResolvedFunction] {
       result.push({
         id: signature,
         name,
+        kind,
         params: ReadOnlyArray::from_array(members),
         result: output,
         asynchronous,
+        location: prepared.origins[id].location,
+      })
+    }
+    if node.data is Constructor(params~, result=output, ..) &&
+      resource_members.get(id) is Some(resource) {
+      let parameters : Array[TypeMember] = []
+      for parameter in params {
+        if prepared.tree.nodes[parameter].data is Parameter(name~, ty~) {
+          parameters.push({
+            name,
+            ty,
+            location: prepared.origins[parameter].location,
+          })
+        }
+      }
+      result.push({
+        id,
+        name: resource_function_name(prepared.tree, resource, id).unwrap(),
+        kind: Constructor(resource),
+        params: ReadOnlyArray::from_array(parameters),
+        result: match output {
+          Some(id) => Some(id)
+          None => Some(handle(Own(resource), id))
+        },
+        asynchronous: false,
         location: prepared.origins[id].location,
       })
     }
@@ -125,6 +198,17 @@ fn model_interfaces(
           by_id.get(signature) is Some(function) {
           signatures.push(function)
         }
+        if node.data is Resource(methods~, ..) {
+          for func_id in methods {
+            let function_id = match prepared.tree.nodes[func_id].data {
+              Function(signature~, ..) => signature
+              _ => func_id
+            }
+            if by_id.get(function_id) is Some(function) {
+              signatures.push(function)
+            }
+          }
+        }
       }
       result.push({
         id,
@@ -154,3 +238,9 @@ pub extend ResolvedInterface with Eq::{equal, not_equal}
 
 ///|
 pub extend ResolvedInterface with @debug.Debug::{to_repr}
+
+///|
+pub extend FunctionKind with Eq::{equal, not_equal}
+
+///|
+pub extend FunctionKind with @debug.Debug::{to_repr}

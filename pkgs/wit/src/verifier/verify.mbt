@@ -3,6 +3,7 @@ priv enum Role {
   Root
   Top
   Member
+  ResourceMember
   Type
   Signature
   Parameter
@@ -88,7 +89,7 @@ fn verify_prepared(
     let key = if scope_id < prepared.identities.length() {
       name
     } else {
-      strong_name(name)
+      component_name_key(name)
     }
     if names.get(key) is Some(first) {
       let d = prepared_error(
@@ -127,6 +128,13 @@ fn verify_prepared(
         for member_id in members {
           if declaration(tree.nodes[member_id].data) is Some(name) {
             register(scope_id, name, member_id)
+          }
+          if tree.nodes[member_id].data is Resource(methods~, ..) {
+            for func_id in methods {
+              if resource_function_name(tree, member_id, func_id) is Some(name) {
+                register(scope_id, name, func_id)
+              }
+            }
           }
           if tree.nodes[member_id].data is Use(names~, ..) {
             for selector in names {
@@ -427,12 +435,31 @@ fn verify_prepared(
         }
       }
       (Member, Resource(methods~, attributes~, ..)) => {
-        if !methods.is_empty() || !attributes.is_empty() {
-          bad(
-            id, "WIT-S003", "resource methods and attributes are not yet supported",
-          )
+        if !attributes.is_empty() {
+          bad(id, "WIT-S003", "resource attributes are not yet supported")
         }
         aliases.push(id)
+        let owner = scope_owners[scope]
+        for func_id in methods {
+          if tree.nodes[owner].data is World(..) &&
+            resource_function_name(tree, id, func_id) is Some(name) {
+            let function_id = match tree.nodes[func_id].data {
+              Function(signature~, ..) => signature
+              _ => func_id
+            }
+            world_entry(
+              owner,
+              true,
+              name,
+              Function(function_id),
+              func_id,
+              false,
+            )
+          }
+        }
+        for i = methods.length() - 1; i >= 0; i = i - 1 {
+          pending.push((methods[i], ResourceMember, scope))
+        }
       }
       (Member, Alias(ty~, attributes~, ..)) => {
         if !attributes.is_empty() {
@@ -500,19 +527,52 @@ fn verify_prepared(
           pending.push((ty, Type, scope))
         }
       }
-      (Member, Function(signature~, attributes~, is_static~, ..)) => {
-        if is_static || !attributes.is_empty() {
-          bad(
-            id, "WIT-S003", "resource methods and attributes are not yet supported",
-          )
+      (Member, Function(signature~, attributes~, is_static~, ..))
+      | (ResourceMember, Function(signature~, attributes~, is_static~, ..)) => {
+        if is_static && role is Member {
+          bad(id, "WIT-S001", "static functions require a resource")
+        }
+        if !attributes.is_empty() {
+          bad(id, "WIT-S003", "function attributes are not yet supported")
+        }
+        if role is ResourceMember &&
+          !is_static &&
+          tree.nodes[signature].data is Signature(params~, ..) {
+          for parameter in params {
+            if tree.nodes[parameter].data is Parameter(name~, ..) &&
+              strong_name(name) == "self" {
+              let d = prepared_error(
+                prepared, parameter, "WIT-S004", "parameter conflicts with the implicit self receiver",
+              )
+              errors.push({
+                ..d,
+                related: [
+                  {
+                    location: prepared.origins[signature].location,
+                    message: "implicit receiver declared by this method",
+                  },
+                ],
+              })
+            }
+          }
         }
         pending.push((signature, Signature, scope))
       }
-      (Signature, Signature(params~, result~, flavor~, asynchronous~)) => {
-        if flavor != Func || asynchronous {
-          bad(
-            id, "WIT-S003", "accessors and async functions are not yet supported",
-          )
+      (ResourceMember, Constructor(params~, result~, attributes~)) => {
+        if !attributes.is_empty() {
+          bad(id, "WIT-S003", "constructor attributes are not yet supported")
+        }
+        duplicates(params, "parameter")
+        if result is Some(result) {
+          pending.push((result, Type, scope))
+        }
+        for i = params.length() - 1; i >= 0; i = i - 1 {
+          pending.push((params[i], Parameter, scope))
+        }
+      }
+      (Signature, Signature(params~, result~, flavor~, ..)) => {
+        if flavor != Func {
+          bad(id, "WIT-S003", "accessors are not yet supported")
         }
         duplicates(params, "parameter")
         if result is Some(result) {
@@ -672,6 +732,7 @@ fn verify_prepared(
   }
   let resources = resource_roots(tree, edges)
   verify_handles(prepared, edges, resources, errors)
+  verify_constructors(prepared, edges, errors)
   if !errors.is_empty() {
     return Err(dependency_chains(prepared, package_edges, errors))
   }

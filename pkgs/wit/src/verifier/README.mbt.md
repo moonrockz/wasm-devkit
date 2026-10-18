@@ -7,8 +7,9 @@ filesystem, network or subprocess I/O. `Parse::is_valid()` still checks syntax;
 ## Current profile
 
 The local type profile supports complete package headers, interfaces/worlds, aliases,
-records, flags, enums, variants, opaque resources, owned/borrowed handles, scalar/composite types and synchronous free interface
-functions. WIT names may refer forward within an interface or world. Recursive type
+records, flags, enums, variants, resources, owned/borrowed handles, scalar/composite
+types, constructors and ordinary/static methods. Free functions and methods may be
+synchronous or asynchronous. WIT names may refer forward within an interface or world. Recursive type
 graphs, empty aggregates/tuples, duplicate members and more than 32 flags are rejected.
 Local member names and named world keys must be strongly unique. Canonicalization
 folds ASCII case and removes hyphens, so `a-b`, `ab` and `AB` conflict.
@@ -28,7 +29,7 @@ inline interfaces, function/interface imports and exports, and include-with rena
 Their transitive interface dependencies remain runtime imports and require no component
 implementation.
 
-Resource methods, encoded packages and attributes still fail explicitly
+Accessors, encoded packages and attributes still fail explicitly
 under `WIT-S003`. Their implementation
 continues under [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
 A successful result covers the entire supported input. An unsupported or unresolved
@@ -136,6 +137,41 @@ Handle resolution, borrow analysis and include copying use explicit work stacks.
 An included world or anonymous interface receives fresh local resource IDs, and
 its handles point to those fresh IDs. Handles to resources from named interfaces
 retain their original nominal target.
+
+`ResolvedFunction::kind` distinguishes freestanding functions, methods, static
+functions and constructors. Resource-associated kinds carry their nominal resource
+ID. `asynchronous` records the signature's async marker. Method parameters include
+the leading `self: borrow<R>` receiver; an explicit parameter canonically named
+`self` conflicts with that receiver. Static functions have no implicit receiver.
+Mangled names follow the reference's `[method]R.name`, `[static]R.name` and
+`[constructor]R` forms. Strong-name checks drop method/static annotations and
+collapse `R.R` to the resource name, so a resource cannot define a method with
+its own canonical name.
+
+Constructors implicitly return `own<R>`. A declared return must directly name a
+result type whose success type directly names `R`, including `own<R>`. Aliases
+of `R` cannot replace that direct success type. One typedef whose definition is
+a result is allowed as the return; further typedef aliases are not. Borrowed
+handles in the error type still violate the function-result rule.
+
+```mbt check
+///|
+test "verify a resource API with fallible construction and an async method" {
+  let source = "package example:app;interface files{resource file{constructor(path:string)->result<file,string>;read:async func()->list<u8>;open:static func(path:string)->file;}}"
+  let model = @verifier.verify(@parser.parse(source), source~).unwrap()
+  let resource = model.types().filter(t => t.kind is Resource)[0].id
+  let functions = model.interfaces()[0].functions
+  assert_eq(functions[0].kind, Constructor(resource))
+  assert_eq(functions[1].kind, Method(resource))
+  assert_eq(functions[1].params[0].name, "self")
+  assert_true(functions[1].asynchronous)
+  assert_eq(functions[2].kind, Static(resource))
+}
+```
+
+World resource definitions implicitly import their associated functions. Includes
+freshen the resource, constructor/method kinds and receiver/result handles together.
+An include-with resource rename also updates its associated mangled function names.
 
 ## Resolve a supplied package closure
 
