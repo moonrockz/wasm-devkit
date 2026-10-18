@@ -6,17 +6,17 @@ It performs no package resolution or composition evaluation.
 
 ## Install
 
-Run version `0.1.0` without installing:
+Run version `0.1.1` without installing:
 
 ```shell
-moonx moonrockz/wasm-devkit@0.1.0 --help
-moonx moonrockz/wasm-devkit@0.1.0 parse example.wit
+moonx moonrockz/wasm-devkit@0.1.1 --help
+moonx moonrockz/wasm-devkit@0.1.1 parse example.wit
 ```
 
 Install the native release with [mise's GitHub backend](https://mise.jdx.dev/dev-tools/backends/github.html):
 
 ```shell
-mise use github:moonrockz/wasm-devkit@0.1.0
+mise use github:moonrockz/wasm-devkit@0.1.1
 mise exec -- wasm-devkit --version
 ```
 
@@ -40,8 +40,8 @@ interface greeter{hello: func(name: string)->string;}
 ```
 
 ```shell
-moonx moonrockz/wasm-devkit@0.1.0 parse hello.wit
-moonx moonrockz/wasm-devkit@0.1.0 format hello.wit
+moonx moonrockz/wasm-devkit@0.1.1 parse hello.wit
+moonx moonrockz/wasm-devkit@0.1.1 format hello.wit
 ```
 
 Parsing writes `hello.wit: valid wit`. Formatting writes this source to stdout:
@@ -70,10 +70,10 @@ export app.run as "run";
 ```
 
 ```shell
-moonx moonrockz/wasm-devkit@0.1.0 parse app.wac
-moonx moonrockz/wasm-devkit@0.1.0 ast app.wac
-moonx moonrockz/wasm-devkit@0.1.0 cst app.wac
-moonx moonrockz/wasm-devkit@0.1.0 tokens app.wac
+moonx moonrockz/wasm-devkit@0.1.1 parse app.wac
+moonx moonrockz/wasm-devkit@0.1.1 ast app.wac
+moonx moonrockz/wasm-devkit@0.1.1 cst app.wac
+moonx moonrockz/wasm-devkit@0.1.1 tokens app.wac
 ```
 
 Parsing writes `app.wac: valid wac`. The inspection commands show typed node fields,
@@ -85,9 +85,9 @@ imports and bindings or preserve grouping during a rewrite.
 ### Enforce formatting in CI and apply it locally
 
 ```shell
-moonx moonrockz/wasm-devkit@0.1.0 format --check hello.wit
-moonx moonrockz/wasm-devkit@0.1.0 format --write hello.wit
-moonx moonrockz/wasm-devkit@0.1.0 format --check hello.wit
+moonx moonrockz/wasm-devkit@0.1.1 format --check hello.wit
+moonx moonrockz/wasm-devkit@0.1.1 format --write hello.wit
+moonx moonrockz/wasm-devkit@0.1.1 format --check hello.wit
 ```
 
 The compact input above first returns status `1` because layout differs. `--write` updates
@@ -100,13 +100,13 @@ when your project uses four spaces.
 In a POSIX shell:
 
 ```shell
-cat hello.wit | moonx moonrockz/wasm-devkit@0.1.0 format --language wit
+cat hello.wit | moonx moonrockz/wasm-devkit@0.1.1 format --language wit
 ```
 
 In PowerShell:
 
 ```powershell
-Get-Content -Raw hello.wit | moonx moonrockz/wasm-devkit@0.1.0 format --language wit
+Get-Content -Raw hello.wit | moonx moonrockz/wasm-devkit@0.1.1 format --language wit
 ```
 
 Stdin needs `--language` because it has no extension. `--write` needs a named file.
@@ -118,8 +118,8 @@ interface arrays { type words = list<u8, 16>; }
 ```
 
 ```shell
-moonx moonrockz/wasm-devkit@0.1.0 parse --all-features proposals.wit
-moonx moonrockz/wasm-devkit@0.1.0 format --all-features proposals.wit
+moonx moonrockz/wasm-devkit@0.1.1 parse --all-features proposals.wit
+moonx moonrockz/wasm-devkit@0.1.1 format --all-features proposals.wit
 ```
 
 For WAC, save this as `callbacks.wac` and use `--all-features` with the `.wac` file:

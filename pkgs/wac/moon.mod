@@ -1,6 +1,6 @@
 name = "moonrockz/wac"
 
-version = "0.1.0"
+version = "0.1.1"
 
 description = "WAC language tooling for MoonBit"
 

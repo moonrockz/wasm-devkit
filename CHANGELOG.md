@@ -6,6 +6,22 @@ is 0.x, a minor release can contain breaking changes.
 
 <!-- git-cliff: end of header -->
 
+## [0.1.1] - 2026-10-18
+
+This patch release adds scenario-based documentation for both libraries: 86 executable
+API-comment examples and 98 README recipes with complete imports. The guides cover parsing,
+Unicode spans and diagnostics, lossless tokens and trees, traversal, immutable rewrites,
+printing and comment-preserving formatting, including invalid-input behavior and feature profiles.
+
+The CLI guide includes complete WIT and WAC inputs, stdin usage and formatter check/write
+workflows. README recipes now run in CI on wasm, wasm-gc, JavaScript and native. Library
+behavior and public signatures are unchanged.
+
+### 📚 Documentation
+
+- Add tested WIT and WAC usage recipes by @DamianReeves
+
+**Full changelog**: https://github.com/moonrockz/wasm-devkit/compare/v0.1.0...v0.1.1
 
 ## [0.1.0] - 2026-10-18
 
