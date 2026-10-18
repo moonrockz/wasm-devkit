@@ -6,7 +6,7 @@ It performs no package resolution or composition evaluation.
 
 ## Install
 
-The first release is planned as `0.1.0`. After publication, run without installing:
+Run version `0.1.0` without installing:
 
 ```shell
 moonx moonrockz/wasm-devkit@0.1.0 --help
