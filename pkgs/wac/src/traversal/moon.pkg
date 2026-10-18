@@ -1,1 +1,12 @@
-// Reserved WAC traversal package. No implementation yet.
+import {
+  "moonrockz/wac/ast",
+  "moonrockz/wac/cst",
+  "moonrockz/wac/span",
+  "moonrockz/wac/parser",
+  "moonbitlang/core/debug",
+}
+
+import {
+  "moonrockz/wac/traversal",
+  "moonbitlang/core/quickcheck",
+} for "test"

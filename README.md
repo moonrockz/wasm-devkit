@@ -15,7 +15,7 @@ comment stress test run on wasm, wasm-gc, js and native.
 The WIT parser has a documented grammar
 profile, 68 pinned specification examples and all 321 WIT files from a pinned upstream parser corpus.
 WAC has a lossless scanner, typed immutable AST/CST and recovering parser, tested against
-all 163 files in its pinned reference corpus. WAC traversal, printing and formatting are pending.
+all 163 files in its pinned reference corpus. WAC immutable traversal and rewrites are implemented; printing and formatting are pending.
 No CLI is available yet,
 and nothing has been published to mooncakes.io.
 
@@ -25,8 +25,8 @@ and nothing has been published to mooncakes.io.
 | `moonrockz/wac` | [pkgs/wac](pkgs/wac) | WAC scanner, AST, lossless CST, recovering parser, immutable stack-safe traversal, printer and formatter |
 
 Both modules reserve `span`, `diagnostic`, `scanner`, `ast`, `cst`, `parser`, `traversal`,
-`printer` and `formatter` packages. All WIT packages and the WAC frontend are implemented for their documented grammar profiles.
-WAC traversal, printer and formatter packages remain reserved.
+`printer` and `formatter` packages. All WIT packages and the WAC frontend/traversal packages are implemented for their documented grammar profiles.
+WAC printer and formatter packages remain reserved.
 Each language will be independently consumable. WAC also gets an AST for typed traversal and printing.
 
 Add future libraries under `pkgs/`. The planned CLI will live under `cmd/` and support

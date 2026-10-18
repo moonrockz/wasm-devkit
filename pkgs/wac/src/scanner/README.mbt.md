@@ -7,7 +7,8 @@ is one zero-width EOF token. Whitespace, line comments and nested block comments
 
 The baseline is the [pinned WAC parser](../parser/fixtures/README.md). Package names and paths
 are atomic tokens, including their optional version. Trivia cannot split their components.
-SemVer validation belongs to parsing. Each hyphen-separated identifier word starts with
+SemVer validation belongs to parsing. A declaration such as `p: u8` needs separation
+after the colon; contiguous `p:u8` is a package-name token. Each hyphen-separated identifier word starts with
 an ASCII letter and uses one letter case, with optional digits after that first letter.
 Percent-prefixed keywords are identifiers. Unlike WIT, a word cannot begin with a digit
 after a hyphen. `own`, `map`, `get` and `set` are ordinary identifiers.

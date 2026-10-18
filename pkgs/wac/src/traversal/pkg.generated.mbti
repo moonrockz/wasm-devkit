@@ -1,0 +1,131 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonrockz/wac/traversal"
+
+import {
+  "moonbitlang/core/debug",
+  "moonrockz/wac/ast",
+  "moonrockz/wac/cst",
+  "moonrockz/wac/parser",
+  "moonrockz/wac/span",
+}
+
+// Values
+pub fn events(Syntax, decide? : (Event) -> Control) -> ReadOnlyArray[Event]?
+
+pub fn[A] fold(Syntax, A, (A, Event) -> (A, Control)) -> (A, Report)?
+
+pub fn[A] reduce(Syntax, (View, ReadOnlyArray[A]) -> A, decide? : (Event) -> Control) -> Reduction[A]?
+
+pub fn rewrite(@ast.Tree, (View, @ast.Node) -> Edit, decide? : (Event) -> Control) -> Result[Rewritten, RewriteError]
+
+pub fn rewrite_cst(@cst.Tree, ReadOnlyArray[TextEdit], features? : @parser.Features) -> Result[@parser.Parse, RewriteError]
+
+pub fn walk(Syntax, (Event) -> Control) -> Report?
+
+// Errors
+
+// Types and methods
+pub(all) enum Control {
+  Continue
+  Prune
+  Stop
+} derive(Eq, @debug.Debug)
+pub fn Control::equal(Self, Self) -> Bool
+pub fn Control::not_equal(Self, Self) -> Bool
+pub fn Control::to_repr(Self) -> @debug.Repr
+
+pub struct Cursor {
+  // private fields
+}
+pub fn Cursor::ast_node(Self) -> @ast.Node?
+pub fn Cursor::child(Self, Int) -> Self?
+pub fn Cursor::concrete_node(Self) -> @cst.Node?
+pub fn Cursor::next_preorder(Self, control? : Control) -> Self?
+pub fn Cursor::next_sibling(Self) -> Self?
+pub fn Cursor::parent(Self) -> Self?
+pub fn Cursor::previous_sibling(Self) -> Self?
+pub fn Cursor::reader(Self, decide? : (Event) -> Control) -> Reader
+pub fn Cursor::root(Syntax) -> Self?
+pub fn Cursor::view(Self) -> View
+
+pub(all) enum Edit {
+  Keep
+  Replace(@ast.Data)
+  Subtree(@ast.Tree)
+}
+
+pub(all) struct Event {
+  phase : Phase
+  view : View
+} derive(Eq, @debug.Debug)
+pub fn Event::equal(Self, Self) -> Bool
+pub fn Event::not_equal(Self, Self) -> Bool
+pub fn Event::to_repr(Self) -> @debug.Repr
+
+pub(all) enum Phase {
+  Enter
+  Leave
+} derive(Eq, @debug.Debug)
+pub fn Phase::equal(Self, Self) -> Bool
+pub fn Phase::not_equal(Self, Self) -> Bool
+pub fn Phase::to_repr(Self) -> @debug.Repr
+
+pub struct Reader {
+  // private fields
+}
+pub fn Reader::iter(Self) -> Iter[Event]
+pub fn Reader::new(Syntax, decide? : (Event) -> Control) -> Self?
+pub fn Reader::next(Self) -> Event?
+pub fn Reader::report(Self) -> Report
+
+pub(all) struct Reduction[A] {
+  value : A?
+  report : Report
+}
+
+pub(all) struct Report {
+  events : Int
+  stopped : Bool
+} derive(Eq, @debug.Debug)
+pub fn Report::equal(Self, Self) -> Bool
+pub fn Report::not_equal(Self, Self) -> Bool
+pub fn Report::to_repr(Self) -> @debug.Repr
+
+pub(all) enum RewriteError {
+  InvalidTree
+  InvalidReplacement(Int)
+  InvalidTextEdit(Int)
+} derive(Eq, @debug.Debug)
+pub fn RewriteError::equal(Self, Self) -> Bool
+pub fn RewriteError::not_equal(Self, Self) -> Bool
+pub fn RewriteError::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Rewritten {
+  tree : @ast.Tree
+  report : Report
+}
+
+pub(all) enum Syntax {
+  Ast(@ast.Tree)
+  Cst(@cst.Tree)
+}
+
+pub(all) struct TextEdit {
+  span : @span.Span
+  text : String
+}
+
+pub(all) struct View {
+  index : Int
+  kind : @ast.Kind
+  span : @span.Span
+  depth : Int
+  parent : Int?
+} derive(Eq, @debug.Debug)
+pub fn View::equal(Self, Self) -> Bool
+pub fn View::not_equal(Self, Self) -> Bool
+pub fn View::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

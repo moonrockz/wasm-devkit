@@ -3,7 +3,8 @@
 WAC language tooling for MoonBit.
 
 Source positions, structured diagnostics, a lossless scanner, typed immutable ASTs/CSTs and
-a recovering parser are implemented. Traversal, printing and formatting remain reserved.
+a recovering parser, immutable traversal and rewrites are implemented. Printing and formatting
+remain reserved.
 This development module has not been published.
 
 ## Scope
@@ -35,8 +36,8 @@ The syntax parser must not perform I/O.
 - Diagnostic recovery, progress through arbitrary input and no-panic properties.
 - Deep types, groups and instantiations on every target.
 
-Traversal event laws, immutable rewrites, printer round trips and formatter laws will be
-added with those implementations. The [parser profile](src/parser/README.mbt.md) documents
+Traversal tests cover canonical event order, prune/stop, cursors, immutable rewrites and
+all 46 node kinds. Printer round trips and formatter laws will be added with those implementations. The [parser profile](src/parser/README.mbt.md) documents
 the pinned corpus and WIT grammar differences.
 
 See root Beads epic `wasm-devkit-p5m` for implementation work.
