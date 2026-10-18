@@ -8,6 +8,9 @@ returns its index or `None` for a manually constructed empty arena.
 [Node fields](nodes.md) is the language's node-kind/field table. `Data::kind()` gives the
 discriminant; `Data::children()` returns immutable child indices in source field order.
 Parser acceptance tests exercise every kind, including recovery nodes.
+`Data::map_children(replace)` remaps only direct references while preserving named fields,
+list lengths, optional shapes and scalar metadata. Traversal tests check every kind
+against `children()` and identity mapping.
 
 Names omit the identifier's leading `%`; case is retained. `Path` separates namespaces,
 slash-delimited segments and an optional checked semantic version. `Attribute::value`

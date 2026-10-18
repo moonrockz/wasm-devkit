@@ -1,1 +1,12 @@
-// Reserved WIT traversal package. No implementation yet.
+import {
+  "moonrockz/wit/ast",
+  "moonrockz/wit/cst",
+  "moonrockz/wit/span",
+  "moonrockz/wit/parser",
+  "moonbitlang/core/debug",
+}
+
+import {
+  "moonrockz/wit/traversal",
+  "moonbitlang/core/quickcheck",
+} for "test"

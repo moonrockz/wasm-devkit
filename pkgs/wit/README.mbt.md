@@ -2,8 +2,9 @@
 
 WIT language tooling for MoonBit.
 
-Source positions, structured diagnostics, lossless lexical analysis, typed immutable ASTs/CSTs
-and recovering syntax parsing are implemented. Traversal, printing and formatting remain unimplemented.
+Source positions, structured diagnostics, lossless lexical analysis, typed immutable ASTs/CSTs,
+recovering syntax parsing, immutable traversal and rewrites are implemented.
+Printing and formatting remain unimplemented.
 This module has not been published.
 
 `@scanner.scan(source)` returns immutable tokens and diagnostics. `Scan::to_source()`
@@ -33,7 +34,7 @@ The syntax parser must not perform I/O.
 | `ast` | Implemented: typed immutable nodes, named child fields and structural validation |
 | `cst` | Implemented: lossless grammar hierarchy, token ranges and subtree reconstruction |
 | `parser` | Implemented: recovering grammar parser and explicit proposal switches |
-| `traversal` | Explicit-stack walks, folds, reductions, events, cursors and immutable rewrites |
+| `traversal` | Implemented: AST/CST walks, folds, reductions, events, immutable cursors and rewrites |
 | `printer` | Stack-safe canonical AST-to-source emission |
 | `formatter` | Stack-safe CST formatting that preserves comments and meaning |
 
@@ -48,11 +49,12 @@ The parser adds 68 pinned specification examples and 321 upstream WIT files with
 2,000 nested packages per target. AST/CST validation checks postorder references,
 unique parents, child order and span containment.
 
-Remaining validation for the syntax frontend and later packages:
+Traversal adds 800 seeded equivalence/rewrite cases per target and a 16,000-level
+stress case for readers, cursors, reductions, AST rewrites and CST source edits.
 
-- Deep nesting across traversal, printing and formatting on every target.
-- Equivalent traversal event order with prune/stop behavior.
-- Immutable trees and rewrites leaving original trees unchanged.
+Remaining validation for later packages:
+
+- Deep nesting across printing and formatting on every target.
 - Printer structural round trips and formatter semantic preservation/idempotence.
 
 See root Beads epic `wasm-devkit-p5m` for implementation work.

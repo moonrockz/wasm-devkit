@@ -452,3 +452,115 @@ pub extend Tree with Eq::{equal, not_equal}
 
 ///|
 pub extend Tree with @debug.Debug::{to_repr}
+
+///|
+/// Replace direct child references without descending into the tree. Named fields
+/// and immutable list/optional shapes are preserved. The caller owns ID validation.
+pub fn Data::map_children(self : Data, replace : (Int32) -> Int32) -> Data {
+  match self {
+    File(items~) => File(items=items.map(replace))
+    Package(attributes~, path~, items~, nested~) =>
+      Package(
+        attributes=attributes.map(replace),
+        path=replace(path),
+        items=items.map(replace),
+        nested~,
+      )
+    Interface(name~, attributes~, items~) =>
+      Interface(
+        name~,
+        attributes=attributes.map(replace),
+        items=items.map(replace),
+      )
+    World(name~, attributes~, items~) =>
+      World(name~, attributes=attributes.map(replace), items=items.map(replace))
+    Resource(name~, attributes~, methods~, has_body~) =>
+      Resource(
+        name~,
+        attributes=attributes.map(replace),
+        methods=methods.map(replace),
+        has_body~,
+      )
+    Alias(name~, attributes~, ty~) =>
+      Alias(name~, attributes=attributes.map(replace), ty=replace(ty))
+    Record(name~, attributes~, fields~) =>
+      Record(
+        name~,
+        attributes=attributes.map(replace),
+        fields=fields.map(replace),
+      )
+    Flags(name~, attributes~, cases~) =>
+      Flags(name~, attributes=attributes.map(replace), cases=cases.map(replace))
+    Enum(name~, attributes~, cases~) =>
+      Enum(name~, attributes=attributes.map(replace), cases=cases.map(replace))
+    Variant(name~, attributes~, cases~) =>
+      Variant(
+        name~,
+        attributes=attributes.map(replace),
+        cases=cases.map(replace),
+      )
+    Function(name~, attributes~, signature~, is_static~) =>
+      Function(
+        name~,
+        attributes=attributes.map(replace),
+        signature=replace(signature),
+        is_static~,
+      )
+    Constructor(attributes~, params~, result~) =>
+      Constructor(
+        attributes=attributes.map(replace),
+        params=params.map(replace),
+        result=result.map(replace),
+      )
+    Signature(flavor~, asynchronous~, params~, result~) =>
+      Signature(
+        flavor~,
+        asynchronous~,
+        params=params.map(replace),
+        result=result.map(replace),
+      )
+    Import(name~, attributes~, target~) =>
+      Import(name~, attributes=attributes.map(replace), target=replace(target))
+    Export(name~, attributes~, target~) =>
+      Export(name~, attributes=attributes.map(replace), target=replace(target))
+    Use(attributes~, path~, names~, renamed~) =>
+      Use(
+        attributes=attributes.map(replace),
+        path=replace(path),
+        names=names.map(replace),
+        renamed~,
+      )
+    Include(attributes~, path~, renames~) =>
+      Include(
+        attributes=attributes.map(replace),
+        path=replace(path),
+        renames=renames.map(replace),
+      )
+    Attribute(name~, field~, value~) => Attribute(name~, field~, value~)
+    Path(namespaces~, segments~, version~) =>
+      Path(namespaces~, segments~, version~)
+    Rename(name~, renamed~) => Rename(name~, renamed~)
+    Field(name~, attributes~, ty~) =>
+      Field(name~, attributes=attributes.map(replace), ty=replace(ty))
+    Case(name~, attributes~, payload~) =>
+      Case(
+        name~,
+        attributes=attributes.map(replace),
+        payload=payload.map(replace),
+      )
+    Parameter(name~, ty~) => Parameter(name~, ty=replace(ty))
+    PrimitiveType(name~) => PrimitiveType(name~)
+    NamedType(name~) => NamedType(name~)
+    ListType(element~, length~) => ListType(element=replace(element), length~)
+    TupleType(elements~) => TupleType(elements=elements.map(replace))
+    OptionType(payload~) => OptionType(payload=replace(payload))
+    ResultType(ok~, error~) =>
+      ResultType(ok=ok.map(replace), error=error.map(replace))
+    OwnType(resource~) => OwnType(resource=replace(resource))
+    BorrowType(resource~) => BorrowType(resource=replace(resource))
+    FutureType(payload~) => FutureType(payload=payload.map(replace))
+    StreamType(payload~) => StreamType(payload=payload.map(replace))
+    MapType(key~, value~) => MapType(key=replace(key), value=replace(value))
+    Error(text~, recovered~) => Error(text~, recovered=recovered.map(replace))
+  }
+}

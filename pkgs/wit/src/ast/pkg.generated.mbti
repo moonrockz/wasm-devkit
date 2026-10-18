@@ -51,6 +51,7 @@ pub(all) enum Data {
 pub fn Data::children(Self) -> ReadOnlyArray[Int]
 pub fn Data::equal(Self, Self) -> Bool
 pub fn Data::kind(Self) -> Kind
+pub fn Data::map_children(Self, (Int) -> Int) -> Self
 pub fn Data::not_equal(Self, Self) -> Bool
 pub fn Data::to_repr(Self) -> @debug.Repr
 
