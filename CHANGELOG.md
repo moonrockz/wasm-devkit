@@ -40,11 +40,3 @@ plus property laws and deep-input cases on wasm, wasm-gc, js and native.
 ### ⚙️ Maintenance
 
 - Bootstrap wasm-devkit workspace by @DamianReeves
-
-
-
-## [unreleased]
-
-- Bootstrap the MoonBit workspace and WIT/WAC module boundaries from the Smithy template.
-- Retain pinned tools, task scripts, hooks and CI with independent tracking and library releases.
-- Define lossless syntax, immutable stack-safe traversal, printer and formatter requirements.
