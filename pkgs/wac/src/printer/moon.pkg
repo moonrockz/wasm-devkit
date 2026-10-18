@@ -1,1 +1,12 @@
-// Reserved WAC printer package. No implementation yet.
+import {
+  "moonrockz/wac/ast",
+  "moonrockz/wac/parser",
+  "moonrockz/wac/scanner",
+  "moonrockz/wac/internal/layout",
+  "moonbitlang/core/debug",
+}
+
+import {
+  "moonrockz/wac/printer",
+  "moonbitlang/core/quickcheck",
+} for "test"
