@@ -1,0 +1,117 @@
+///|
+/// Build and smoke-test the host native CLI, then produce a mise-compatible archive.
+/// Usage: build-cli.mbtx [linux-x64|macos-arm64|windows-x64]
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/async@0.22.5/process",
+  "moonbitlang/async@0.22.5/stdio",
+  "moonbitlang/core/env",
+}
+
+///|
+fn platform(os : String, arch : String) -> String? {
+  match (os, arch) {
+    ("Linux", "x86_64") => Some("linux-x64")
+    ("Darwin", "arm64") => Some("macos-arm64")
+    ("Windows_NT", "AMD64") => Some("windows-x64")
+    _ => None
+  }
+}
+
+///|
+async fn captured(program : String, args : Array[String]) -> String {
+  let (code, out, err) = @process.collect_output(program, args, extra_env={
+    "COPYFILE_DISABLE": "1",
+  })
+  if code != 0 {
+    fail(program + ": " + err.text())
+  }
+  out.text().trim().to_owned()
+}
+
+///|
+async fn main {
+  let (os, arch) = if @env.get_env_var("OS") == Some("Windows_NT") {
+    ("Windows_NT", @env.get_env_var("PROCESSOR_ARCHITECTURE").unwrap_or(""))
+  } else {
+    (captured("uname", ["-s"]), captured("uname", ["-m"]))
+  }
+  guard platform(os, arch) is Some(host) else {
+    fail("unsupported release host: " + os + "/" + arch)
+  }
+  match @env.args()[1:] {
+    [] => ()
+    [requested] if requested == host => ()
+    _ => fail("build:cli must name the actual host platform, " + host)
+  }
+  let mut version = ""
+  for line in @fs.read_file("moon.mod").text().split("\n") {
+    if line.has_prefix("version = \"") {
+      version = line[11:].split("\"").to_array()[0].to_owned()
+    }
+  }
+  if version.is_empty() {
+    fail("root version is missing")
+  }
+  let code = @process.run(
+    "moon",
+    ["build", "cmd/wasm-devkit", "--target", "native", "--release"],
+    stdout=@stdio.stdout,
+    stderr=@stdio.stderr,
+  )
+  if code != 0 {
+    fail("native CLI build failed")
+  }
+  let stage = "dist/stage/" + host
+  @fs.mkdir(stage + "/bin", recursive=true, allow_exist=true)
+  let name = if host == "windows-x64" {
+    "wasm-devkit.exe"
+  } else {
+    "wasm-devkit"
+  }
+  let binary = stage + "/bin/" + name
+  @fs.write_file(
+    binary,
+    @fs.read_file(
+      "_build/native/release/build/moonrockz/wasm-devkit/wasm-devkit.exe",
+    ),
+  )
+  if host != "windows-x64" {
+    @fs.chmod(binary, 0o755)
+  }
+  assert_eq(captured(binary, ["--version"]), "wasm-devkit " + version)
+  let smoke = @process.run(
+    "moonx",
+    ["scripts/test-cli.mbtx", "--binary", binary],
+    stdout=@stdio.stdout,
+    stderr=@stdio.stderr,
+  )
+  if smoke != 0 {
+    fail("packaged CLI smoke checks failed")
+  }
+  @fs.write_file(stage + "/LICENSE", @fs.read_file("LICENSE"))
+  @fs.write_file(
+    stage + "/README.md",
+    @fs.read_file("cmd/wasm-devkit/README.md"),
+  )
+  let archive = "dist/wasm-devkit-v" + version + "-" + host + ".tar.gz"
+  captured("tar", ["-czf", archive, "-C", stage, "bin", "LICENSE", "README.md"])
+  |> ignore
+  let digest = captured("node", [
+    "--input-type=module", "-e", "import {createHash} from 'node:crypto'; import {readFileSync} from 'node:fs'; console.log(createHash('sha256').update(readFileSync(process.argv[1])).digest('hex'))",
+    archive,
+  ])
+  let basename = "wasm-devkit-v" + version + "-" + host + ".tar.gz"
+  @fs.write_file(archive + ".sha256", digest + "  " + basename + "\n")
+  println("Packaged " + archive)
+}
+
+///|
+test "release archive labels must match supported host pairs" {
+  assert_eq(platform("Linux", "x86_64"), Some("linux-x64"))
+  assert_eq(platform("Darwin", "arm64"), Some("macos-arm64"))
+  assert_eq(platform("Windows_NT", "AMD64"), Some("windows-x64"))
+  assert_eq(platform("Darwin", "x86_64"), None)
+  assert_eq(platform("Linux", "arm64"), None)
+}

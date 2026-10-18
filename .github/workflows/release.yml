@@ -24,7 +24,7 @@ env:
 
 jobs:
   validate:
-    name: Validate libraries and release notes
+    name: Validate libraries, CLI and release notes
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
@@ -65,10 +65,51 @@ jobs:
       - run: moon build --target native --release
       - run: moon test --target native
 
+
+  cli:
+    name: CLI (${{ matrix.platform }})
+    needs: [validate]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-latest, platform: linux-x64}
+          - {os: macos-latest, platform: macos-arm64}
+          - {os: windows-latest, platform: windows-x64}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+      - uses: ./.github/actions/setup
+        if: runner.os != 'Windows'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: hustcer/setup-moonbit@v1
+        if: runner.os == 'Windows'
+        with:
+          version: '0.10.15+943464bfa'
+          core-version: '0.10.15+943464bfa'
+      - uses: actions/setup-node@v4
+        if: runner.os == 'Windows'
+        with:
+          node-version: '24.14.1'
+      - run: moon update
+      - run: moonx scripts/test-cli.mbtx wasm
+      - run: moonx scripts/build-cli.mbtx ${{ matrix.platform }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wasm-devkit-${{ matrix.platform }}
+          path: |
+            dist/wasm-devkit-*.tar.gz
+            dist/wasm-devkit-*.sha256
+          if-no-files-found: error
+
   publish:
-    name: Publish libraries and GitHub release
+    name: Publish libraries, CLI and GitHub release
     if: ${{ !inputs.dry_run }}
-    needs: [validate, windows]
+    needs: [validate, windows, cli]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -90,8 +131,22 @@ jobs:
           MOONCAKES_USER_TOKEN: ${{ secrets.MOONCAKES_USER_TOKEN }}
         run: mise run release:credentials
       - run: mise run release:publish
+      - name: Verify moonx installation
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: mise run release:verify-cli -- moonx "$RELEASE_VERSION"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wasm-devkit-*
+          path: dist
+          merge-multiple: true
       - name: Create the GitHub release at the validated commit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_VERSION: ${{ inputs.version }}
         run: mise run release:github -- "$RELEASE_VERSION"
+      - name: Verify native mise installation
+        env:
+          MISE_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: mise run release:verify-cli -- mise "$RELEASE_VERSION"

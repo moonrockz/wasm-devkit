@@ -7,7 +7,7 @@ implementation status. Do not claim scaffold packages implement their documented
 
 - mise pins every tool in `.config/mise/config.toml`. Run `mise trust` and `mise install` once.
 - Keep the MoonBit version and all platform URLs in sync.
-- `moon.work` lists all members. Libraries go under `pkgs/`, executables under `apps/`.
+- `moon.work` lists all members. Libraries go under `pkgs/`, the wasm-devkit executable under `cmd/wasm-devkit/`.
 - Write automation in cross-platform MoonBit `scripts/*.mbtx`, with mise tasks invoking `moonx`.
 - Pin third-party imports. Use `moonbitlang/async` for processes, files and stdio,
   `moonbitlang/core/env` for arguments/environment and `moonbitlang/x/sys` for nonzero exits.
@@ -59,7 +59,8 @@ do not add it to the tracked .gitignore. Commit reader-facing documentation inte
 - After merging, manually dispatch `release.yml` with that version and `dry_run=true`.
   A separate dispatch with `dry_run=false` publishes immutable mooncakes.io versions.
 - The workflow checks out main and verifies the requested version and notes before publication.
-- `scripts/publish.mbtx` publishes only WIT and WAC with transient retries and duplicate handling.
+- `scripts/publish.mbtx` publishes WIT, WAC and the CLI in dependency order with transient retries
+  and duplicate handling.
   Keep its module list in sync with moon.work and the README.
 - Validation precedes publication. GitHub release creation follows successful publication.
 - Rerun failed jobs on transient failures. Never replace tags or published versions.

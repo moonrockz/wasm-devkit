@@ -21,6 +21,7 @@ import {
 let publish_list : Array[(String, String)] = [
   ("pkgs/wit", "moonrockz/wit"),
   ("pkgs/wac", "moonrockz/wac"),
+  ("cmd/wasm-devkit", "moonrockz/wasm-devkit"),
 ]
 
 ///|

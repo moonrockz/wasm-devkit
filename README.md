@@ -17,8 +17,8 @@ profile, 68 pinned specification examples and all 321 WIT files from a pinned up
 WAC has a lossless scanner, typed immutable AST/CST and recovering parser, tested against
 all 163 files in its pinned reference corpus. WAC immutable traversal, rewrites, canonical printing and comment-preserving formatting
 are implemented.
-No CLI is available yet,
-and nothing has been published to mooncakes.io.
+The CLI under `cmd/wasm-devkit` supports both languages, files/stdin, inspection, printing
+and formatter check/write modes. Nothing has been published to mooncakes.io yet.
 
 | Module | Path | Intended capabilities |
 |--------|------|-----------------------|
@@ -29,8 +29,8 @@ Both modules reserve `span`, `diagnostic`, `scanner`, `ast`, `cst`, `parser`, `t
 `printer` and `formatter` packages. Both languages implement all packages for their documented grammar profiles.
 Each language will be independently consumable. WAC also gets an AST for typed traversal and printing.
 
-Add future libraries under `pkgs/`. The planned CLI will live under `cmd/` and support
-moonx and mise installation. Register new modules in `moon.work`.
+Add future libraries under `pkgs/`. The [CLI](cmd/wasm-devkit/README.md) lives under `cmd/`
+and is packaged for moonx and native mise installation. Register new modules in `moon.work`.
 Keep external reference clones in ignored local scratch space. Their histories and implementation
 code are not part of the published modules.
 
@@ -44,6 +44,9 @@ mise install
 mise run hooks:install
 mise run check
 mise run test:scripts
+mise run test:cli -- wasm
+mise run test:cli -- native
+mise run build:cli
 ```
 
 MoonBit, Node.js, yamllint, lefthook, Zig and git-cliff are pinned in
@@ -112,7 +115,8 @@ workflow with that version and `dry_run=true` first. Publishing requires a separ
 `dry_run=false` and the `MOONCAKES_USER_TOKEN` repository or organization secret.
 
 The library workflow validates all four targets and task scripts, publishes only `moonrockz/wit`
-and `moonrockz/wac`, then creates the GitHub release. There are no inherited CLI assets.
+and `moonrockz/wac`, followed by `moonrockz/wasm-devkit`. Native CLI archives are built on
+Linux x64, macOS arm64 and Windows x64 for mise installation.
 See [AGENTS.md](AGENTS.md) and the release-manager skill for the exact sequence.
 
 ## License

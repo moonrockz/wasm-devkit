@@ -1,0 +1,91 @@
+///|
+/// Exercise the real CLI over files and redirected stdin.
+/// Usage: test-cli.mbtx [wasm|native|--binary PATH|--moonx VERSION]
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/async@0.22.5/process",
+  "moonbitlang/core/env",
+}
+
+///|
+async fn main {
+  let args = @env.args()[1:]
+  let (program, prefix) = match args {
+    [] =>
+      ("moon", ["run", "cmd/wasm-devkit", "--target", "wasm", "--quiet", "--"])
+    ["wasm"] | ["native"] =>
+      ("moon", ["run", "cmd/wasm-devkit", "--target", args[0], "--quiet", "--"])
+    ["--binary", path] => (path, [])
+    ["--moonx", version] => ("moonx", ["moonrockz/wasm-devkit@" + version])
+    _ =>
+      fail("Usage: test-cli.mbtx [wasm|native|--binary PATH|--moonx VERSION]")
+  }
+  let dir = ".dev/cli-smoke"
+  @fs.mkdir(dir, recursive=true, allow_exist=true)
+  let wit = dir + "/sample.wit"
+  let wac = dir + "/sample.wac"
+  let invalid = dir + "/invalid.wit"
+  let malformed = dir + "/malformed.wit"
+  @fs.write_file(wit, "//keep\ninterface i {type t=u8;}")
+  @fs.write_file(
+    wac, "package a:b; let x = new a:b { ... }; export (x).run as \"run\";",
+  )
+  @fs.write_file(invalid, "interface i { type t = list<; }")
+  @fs.write_file(malformed, b"\xff")
+  let run = async fn(
+    command : Array[String],
+    expected : Int32,
+    input : String,
+  ) -> (String, String) {
+    let argv = prefix.copy()
+    argv.append(command)
+    let (code, out, err) = @process.collect_output(
+      program,
+      argv,
+      stdin=@process.redirect_from_file(input),
+    )
+    if code != expected {
+      fail(
+        "CLI \{command.join(" ")}: expected \{expected}, got \{code}: \{err.text()}",
+      )
+    }
+    (out.text(), err.text())
+  }
+  let (version, _) = run(["--version"], 0, wit)
+  assert_true(version.has_prefix("wasm-devkit "))
+  let (help, _) = run(["--help"], 0, wit)
+  assert_true(help.contains("--check"))
+  for file in [wit, wac] {
+    let (out, err) = run(["parse", file], 0, wit)
+    assert_true(out.contains(": valid "))
+    assert_eq(err, "")
+    for command in ["ast", "cst", "tokens", "print", "format"] {
+      let (text, _) = run([command, file], 0, wit)
+      assert_false(text.is_empty())
+    }
+  }
+  let (stdin_wit, _) = run(["parse", "--language", "wit"], 0, wit)
+  assert_true(stdin_wit.contains("<stdin>: valid wit"))
+  let (stdin_wac, _) = run(["print", "-", "--language", "wac"], 0, wac)
+  assert_true(stdin_wac.contains("export (x).run as \"run\";"))
+  let (bad, error) = run(["parse", invalid], 1, wit)
+  assert_eq(bad, "")
+  assert_true(error.contains("WIT-P001"))
+  assert_true(error.contains(invalid + ":1:"))
+  let (bad, error) = run(["format", invalid, "--write"], 1, wit)
+  assert_eq(bad, "")
+  assert_false(error.is_empty())
+  assert_eq(@fs.read_file(invalid).text(), "interface i { type t = list<; }")
+  let _ = run(["format", wit, "--check"], 1, wit)
+  let (expected, _) = run(["format", wit], 0, wit)
+  let _ = run(["format", wit, "--write"], 0, wit)
+  assert_eq(@fs.read_file(wit).text(), expected)
+  assert_true(expected.contains("//keep"))
+  let _ = run(["format", wit, "--check"], 0, wit)
+  let _ = run(["parse", dir + "/missing.wit"], 2, wit)
+  let _ = run(["parse", malformed], 2, wit)
+  let _ = run(["parse"], 2, wit)
+  let _ = run(["format", "--language", "wit", "--write"], 2, wit)
+  println("CLI smoke checks passed")
+}

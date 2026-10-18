@@ -1,0 +1,78 @@
+///|
+/// Verify a published CLI using moonx or mise, retrying registry/CDN readiness only.
+/// Usage: verify-cli.mbtx moonx|mise X.Y.Z
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async/process",
+  "moonbitlang/async/stdio",
+  "moonbitlang/core/env",
+}
+
+///|
+fn transient(text : String) -> Bool {
+  let text = text.to_lower()
+  if ["401", "403", "409"].any(word => text.contains(word)) {
+    return false
+  }
+  [
+    "prebuilt wasm asset does not exist", "timed out", "timeout", "connection reset",
+    "502", "503", "504", "404",
+  ].any(word => text.contains(word))
+}
+
+///|
+async fn main {
+  guard @env.args()[1:] is [mode, version] &&
+    (mode == "moonx" || mode == "mise") else {
+    fail("Usage: verify-cli.mbtx moonx|mise X.Y.Z")
+  }
+  let tool = "github:moonrockz/wasm-devkit@" + version
+  let (program, args) = if mode == "moonx" {
+    ("moonx", ["scripts/test-cli.mbtx", "--moonx", version])
+  } else {
+    (
+      "mise",
+      [
+        "exec", tool, "--", "moonx", "scripts/test-cli.mbtx", "--binary", "wasm-devkit",
+      ],
+    )
+  }
+  for attempt, delay in [0, 5000, 20000, 60000] {
+    if delay > 0 {
+      @async.sleep(delay)
+    }
+    let (code, out, err) = @process.collect_output(program, args)
+    if code == 0 {
+      @stdio.stdout.write(out)
+      let (version_code, text, version_error) = if mode == "moonx" {
+        @process.collect_output("moonx", [
+          "moonrockz/wasm-devkit@" + version,
+          "--version",
+        ])
+      } else {
+        @process.collect_output("mise", [
+          "exec", tool, "--", "wasm-devkit", "--version",
+        ])
+      }
+      if version_code != 0 ||
+        text.text().trim().to_owned() != "wasm-devkit " + version {
+        fail("installed version differs: " + text.text() + version_error.text())
+      }
+      return
+    }
+    let message = err.text() + out.text()
+    if attempt == 3 || !transient(message) {
+      fail(message)
+    }
+    println("Waiting for published CLI readiness before retry")
+  }
+}
+
+///|
+test "only transient publication failures are retried" {
+  assert_true(transient("prebuilt wasm asset does not exist"))
+  assert_true(transient("HTTP 503"))
+  assert_true(transient("asset HTTP 404"))
+  assert_false(transient("HTTP 403 and 503"))
+  assert_false(transient("CLI parse test failed"))
+}

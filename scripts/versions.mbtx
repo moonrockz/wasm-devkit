@@ -29,6 +29,7 @@ let usage : String = "Usage: versions.mbtx check [X.Y.Z] | set X.Y.Z"
 /// The text ends with the opening quote. Only a string with this text before it counts, so another
 /// version-like string in the same file (for example a specification version) is not touched.
 let version_files : Array[(String, String)] = [
+  ("cmd/wasm-devkit/cli/args.mbt", "pub fn version() -> String {\n  \""),
   ("pkgs/wac/src/lib.mbt", "pub fn version() -> String {\n  \""),
   ("pkgs/wit/src/lib.mbt", "pub fn version() -> String {\n  \""),
 ]

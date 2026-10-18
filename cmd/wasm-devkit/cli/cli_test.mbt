@@ -1,0 +1,112 @@
+///|
+fn options(args : ArrayView[String]) -> @cli.Options raise {
+  guard @cli.arguments(args) is Ok(Run(options)) else {
+    fail("expected runnable arguments")
+  }
+  options
+}
+
+///|
+test "language inference stdin explicit paths and option validation" {
+  assert_eq(options(["parse", "a.wit"]).language, Wit)
+  assert_eq(options(["ast", "a.wac"]).language, Wac)
+  assert_eq(options(["parse", "--language", "wit"]).path, "-")
+  assert_eq(
+    options(["parse", "--language", "wac", "--", "--file"]).path,
+    "--file",
+  )
+  assert_true(@cli.arguments([]) is Ok(Help))
+  assert_true(@cli.arguments(["--version"]) is Ok(Version))
+  for
+    args in [
+      ["parse"],
+      ["parse", "a.txt"],
+      ["parse", "a.wit", "b.wit"],
+      ["parse", "a.wit", "--write"],
+      ["format", "a.wit", "--write", "--check"],
+      ["format", "--language", "wit", "--write"],
+      ["parse", "--language", "other"],
+      ["format", "a.wit", "--indent", "9"],
+      ["format", "a.wit", "--indent"],
+      ["parse", "a.wit", "--unknown"],
+      ["unknown"],
+    ] {
+    assert_true(@cli.arguments(args[:]) is Err(_))
+  }
+}
+
+///|
+test "WIT and WAC parsing diagnostics use source coordinates and useful exit codes" {
+  let good = @cli.execute(options(["parse", "a.wit"]), "interface i {}")
+  assert_eq(good.exit_code, 0)
+  assert_eq(good.stdout, "a.wit: valid wit\n")
+  let wac = @cli.execute(
+    options(["parse", "a.wac"]),
+    "package a:b; let x = host;",
+  )
+  assert_eq(wac.exit_code, 0)
+  let bad = @cli.execute(options(["parse", "--language", "wit"]), "\n?")
+  assert_eq(bad.exit_code, 1)
+  assert_true(bad.stderr.contains("<stdin>:2:1: error WIT-L001"))
+  assert_eq(bad.stdout, "")
+}
+
+///|
+test "inspection preserves recovered AST CST and token data" {
+  for command in ["ast", "cst", "tokens"] {
+    for language in ["wit", "wac"] {
+      let result = @cli.execute(
+        options([command, "--language", language]),
+        "???; //raw",
+      )
+      assert_eq(result.exit_code, 1)
+      assert_true(result.stderr.contains("error"))
+      assert_false(result.stdout.is_empty())
+      if command == "cst" || command == "tokens" {
+        assert_true(result.stdout.contains("//raw"))
+      }
+    }
+  }
+}
+
+///|
+test "format check write and stdout modes leave source decisions to the executable" {
+  let source = "package a:b;let x=host; //tail"
+  let display = @cli.execute(options(["format", "a.wac"]), source)
+  assert_eq(display.exit_code, 0)
+  assert_true(display.stdout.contains("//tail"))
+  let check = @cli.execute(options(["format", "a.wac", "--check"]), source)
+  assert_eq(check.exit_code, 1)
+  assert_eq(check.stdout, "")
+  assert_true(check.write_text is None)
+  let clean = @cli.execute(
+    options(["format", "a.wac", "--check"]),
+    display.stdout,
+  )
+  assert_eq(clean.exit_code, 0)
+  let write = @cli.execute(options(["format", "a.wac", "--write"]), source)
+  assert_eq(write.write_text, Some(display.stdout))
+  assert_eq(write.stdout, "")
+  let bad = @cli.execute(
+    options(["format", "a.wac", "--write"]),
+    "package a:b;let x=",
+  )
+  assert_eq(bad.exit_code, 1)
+  assert_true(bad.write_text is None)
+}
+
+///|
+test "printing rejects original syntax errors and feature switches are explicit" {
+  assert_eq(
+    @cli.execute(options(["print", "a.wit"]), "interface i {type t = u8}").exit_code,
+    1,
+  )
+  let source = "package a:b; type f = func() -> (a: u8);"
+  assert_eq(@cli.execute(options(["print", "a.wac"]), source).exit_code, 1)
+  let result = @cli.execute(
+    options(["print", "a.wac", "--all-features"]),
+    source,
+  )
+  assert_eq(result.exit_code, 0)
+  assert_true(result.stdout.contains("(a: u8)"))
+}
