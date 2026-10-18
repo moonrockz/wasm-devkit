@@ -1,0 +1,193 @@
+///|
+/// Run README MoonBit examples with only the imports documented on each page.
+/// Source doc comments and package README doctests also run through `mise run test`.
+/// Usage: test-docs.mbtx [wasm|wasm-gc|js|native ...]; default: all four.
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/async@0.22.5/process",
+  "moonbitlang/async@0.22.5/stdio",
+  "moonbitlang/core/env",
+  "moonbitlang/x@0.5.5/sys",
+}
+
+///|
+struct Examples {
+  imports : String
+  tests : Array[String]
+}
+
+///|
+/// Ignore source-language and shell fences. Each guide declares one test import group.
+fn extract(text : String) -> Result[Examples, String] {
+  let imports = []
+  let tests = []
+  let block = []
+  let mut mode = ""
+  for line in text.split("\n") {
+    let line = line.to_owned()
+    if mode == "" {
+      if line == "```moon.pkg" {
+        mode = "imports"
+      } else if line == "```mbt check" {
+        mode = "test"
+      } else if line.has_prefix("```") {
+        mode = "ignore"
+      }
+    } else if line == "```" {
+      if mode == "imports" {
+        imports.push(block.join("\n"))
+      } else if mode == "test" {
+        tests.push(block.join("\n"))
+      }
+      block.clear()
+      mode = ""
+    } else if mode != "ignore" {
+      block.push(line)
+    }
+  }
+  if mode != "" {
+    return Err("unclosed Markdown fence")
+  }
+  if tests.is_empty() {
+    return Err("no checked MoonBit examples")
+  }
+  if imports.length() != 1 {
+    return Err("expected exactly one moon.pkg import block")
+  }
+  Ok({ imports: imports[0], tests, })
+}
+
+///|
+fn module_version(text : String) -> String? {
+  for line in text.split("\n") {
+    if line.has_prefix("version = \"") {
+      let value = line[11:]
+      if value.find("\"") is Some(end) {
+        return Some(value[:end].to_owned())
+      }
+    }
+  }
+  None
+}
+
+///|
+fn guides() -> Array[String] {
+  let result = ["README.md"]
+  for language in ["wit", "wac"] {
+    result.push("pkgs/" + language + "/README.mbt.md")
+    for
+      package_name in [
+        "span", "diagnostic", "scanner", "ast", "cst", "parser", "traversal", "printer",
+        "formatter",
+      ] {
+      result.push(
+        "pkgs/" + language + "/src/" + package_name + "/README.mbt.md",
+      )
+    }
+  }
+  result
+}
+
+///|
+async fn main {
+  let supported = ["wasm", "wasm-gc", "js", "native"]
+  let requested = @env.args()[1:].to_owned()
+  let targets = if requested.is_empty() { supported } else { requested }
+  for target in targets {
+    if !supported.contains(target) {
+      fail("Unsupported documentation test target: " + target)
+    }
+  }
+  guard module_version(@fs.read_file("moon.mod").text()) is Some(version) else {
+    fail("root version missing")
+  }
+  // Only this generated source directory is replaced; build caches remain available.
+  let scratch = ".dev/documentation-examples"
+  let generated = scratch + "/generated"
+  if @fs.exists(generated) {
+    @fs.rmdir(generated, recursive=true)
+  }
+  @fs.mkdir(generated, recursive=true, allow_exist=true)
+  @fs.write_file(
+    scratch + "/moon.work",
+    "members = [\".\", \"../../pkgs/wit\", \"../../pkgs/wac\"]\n",
+  )
+  @fs.write_file(
+    scratch + "/moon.mod",
+    "name = \"wasm-devkit/documentation-examples\"\nversion = \"" +
+    version +
+    "\"\nsource = \"generated\"\nimport {\n  \"moonrockz/wit@" +
+    version +
+    "\",\n  \"moonrockz/wac@" +
+    version +
+    "\",\n}\n",
+  )
+  let packages = []
+  let mut count = 0
+  let pages = guides()
+  for i, path in pages {
+    let examples = match extract(@fs.read_file(path).text()) {
+      Ok(examples) => examples
+      Err(message) => fail(path + ": " + message)
+    }
+    let relative = "generated/page_\{i}"
+    let directory = scratch + "/" + relative
+    @fs.mkdir(directory, allow_exist=true)
+    @fs.write_file(directory + "/moon.pkg", examples.imports + "\n")
+    let text = StringBuilder()
+    text.write_string("# Checked examples from " + path + "\n\n")
+    for example in examples.tests {
+      text.write_string("```mbt check\n" + example + "\n```\n\n")
+      count += 1
+    }
+    @fs.write_file(directory + "/README.mbt.md", text.to_string())
+    packages.push(relative)
+  }
+  for target in targets {
+    println(
+      "Checking \{count} README examples from \{pages.length()} guides on \{target}",
+    )
+    let args = ["-C", scratch, "test"]
+    args.append(packages)
+    args.append(["--deny-warn", "--target", target])
+    let status = @process.run(
+      "moon",
+      args,
+      stdout=@stdio.stdout,
+      stderr=@stdio.stderr,
+    )
+    if status != 0 {
+      @sys.exit(if status > 0 { status } else { 1 })
+    }
+  }
+  println("README examples passed with their documented imports")
+}
+
+///|
+test "extract preserves checked examples and their exact import group" {
+  let source = "# Guide\n```moon.pkg\nimport { \"moonrockz/wit/parser\" } for \"test\"\n```\n```wit\nnot MoonBit\n```\n```mbt check\ntest { assert_true(true) }\n```\n```shell\nnot MoonBit either\n```\n```mbt check\ntest { assert_false(false) }\n```\n"
+  let parsed = extract(source).unwrap()
+  assert_eq(parsed.imports, "import { \"moonrockz/wit/parser\" } for \"test\"")
+  assert_eq(parsed.tests, [
+    "test { assert_true(true) }", "test { assert_false(false) }",
+  ])
+}
+
+///|
+test "incomplete or ambiguous documentation setup fails verification" {
+  assert_true(extract("```mbt check\ntest {}") is Err(_))
+  assert_true(extract("```mbt check\ntest {}\n```") is Err(_))
+  assert_true(extract("```moon.pkg\nimport {}\n```\n") is Err(_))
+  assert_true(
+    extract(
+      "```moon.pkg\nimport {}\n```\n```moon.pkg\nimport {}\n```\n```mbt check\ntest {}\n```",
+    )
+    is Err(_),
+  )
+  assert_eq(guides().length(), 21)
+  assert_eq(
+    module_version("name = \"example\"\nversion = \"1.2.3\"\n"),
+    Some("1.2.3"),
+  )
+}

@@ -7,4 +7,5 @@ import {
 
 import {
   "moonrockz/wit/cst",
+  "moonrockz/wit/parser",
 } for "test"

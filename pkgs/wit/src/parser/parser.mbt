@@ -8,6 +8,21 @@ pub(all) struct Features {
 }
 
 ///|
+///
+/// Enable only the grammar extension your source needs.
+///
+/// Example imports: `moonrockz/wit/parser` as `@parser`.
+///
+/// ```mbt check
+/// test "Features::default: Enable only the grammar extension your source needs" {
+///   let source = "interface api { type bytes = list<u8, 16>; }"
+///   assert_false(@parser.parse(source).is_valid())
+///   let features = { ..@parser.Features::default(), fixed_lists: true, }
+///   let parsed = @parser.parse(source, features~)
+///   assert_true(parsed.is_valid())
+///   assert_eq(parsed.cst.to_source(), source)
+/// }
+/// ```
 pub fn Features::default() -> Features {
   {
     nested_names: false,
@@ -18,6 +33,20 @@ pub fn Features::default() -> Features {
 }
 
 ///|
+///
+/// Read a corpus with all supported extensions.
+///
+/// Example imports: `moonrockz/wit/parser` as `@parser`.
+///
+/// ```mbt check
+/// test "Features::all: Read a corpus with all supported extensions" {
+///   let source = "interface api { type bytes = list<u8, 16>; }"
+///   let parsed = @parser.parse(source, features=@parser.Features::all())
+///   assert_true(parsed.is_valid())
+///   // The feature profile is a parsing choice, not a semantic resolver.
+///   assert_true(parsed.ast.validate())
+/// }
+/// ```
 pub fn Features::all() -> Features {
   {
     nested_names: true,
@@ -29,6 +58,40 @@ pub fn Features::all() -> Features {
 
 ///|
 /// AST and CST indices correspond one-to-one. Both arenas are postorder.
+///
+/// A file API combines shared record data, a resource constructor and method, an owned
+/// resource result and a world export. Read typed fields to find the declarations your tool needs.
+///
+/// Example import: `moonrockz/wit/parser` as `@parser`.
+///
+/// ```mbt check
+/// test "Parse: Inspect a resource-based API and its world" {
+///   let source =
+///     #|package example:files;
+///     #|interface files {
+///     #|  record metadata { size: u64 }
+///     #|  resource file {
+///     #|    constructor(path: string);
+///     #|    stat: func() -> metadata;
+///     #|  }
+///     #|  open: func(path: string) -> result<own<file>, string>;
+///     #|}
+///     #|world app { export files; }
+///   let parsed = @parser.parse(source)
+///   assert_true(parsed.is_valid())
+///   assert_eq(parsed.cst.to_source(), source)
+///   let resources = parsed.ast.nodes.filter(node => node.data.kind() == Resource)
+///   assert_eq(resources.length(), 1)
+///   guard resources[0].data is Resource(name~, methods~, has_body~, ..) else {
+///     fail("expected typed resource data")
+///   }
+///   assert_eq(name, "file")
+///   assert_true(has_body)
+///   assert_eq(methods.length(), 2)
+///   assert_true(parsed.ast.nodes.any(node => node.data.kind() == World))
+///   assert_true(parsed.ast.nodes.any(node => node.data.kind() == Record))
+/// }
+/// ```
 pub(all) struct Parse {
   ast : @ast.Tree
   cst : @cst.Tree
@@ -36,6 +99,24 @@ pub(all) struct Parse {
 }
 
 ///|
+///
+/// Inspect diagnostics while retaining invalid input.
+///
+/// Example imports: `moonrockz/wit/parser` as `@parser`.
+///
+/// ```mbt check
+/// test "Parse::is_valid: Inspect diagnostics while retaining invalid input" {
+///   let source = "interface broken { type missing = ; } interface later {}"
+///   let parsed = @parser.parse(source)
+///   assert_false(parsed.is_valid())
+///   assert_false(parsed.diagnostics.is_empty())
+///   assert_eq(parsed.cst.to_source(), source)
+///   assert_true(parsed.ast.validate() && parsed.cst.validate())
+///   assert_true(
+///     parsed.ast.nodes.any(node => node.data is Interface(name="later", ..)),
+///   )
+/// }
+/// ```
 pub fn Parse::is_valid(self : Parse) -> Bool {
   !self.diagnostics.any(d => d.severity == Error)
 }
@@ -1086,6 +1167,23 @@ fn State::ty(self : State) -> Unit {
 ///|
 /// Pure recovering syntax parse. Every grammar continuation is a Task, so input
 /// nesting consumes heap work-stack entries rather than the language call stack.
+///
+/// Parse a complete WIT document.
+///
+/// Example imports: `moonrockz/wit/parser` as `@parser`.
+///
+/// ```mbt check
+/// test "parse: Parse a complete WIT document" {
+///   let source = "interface api { f: func(value: u8) -> string; g: func(); type bytes = list<u8>; }"
+///   let parsed = @parser.parse(source)
+///   assert_true(parsed.is_valid())
+///   assert_true(parsed.diagnostics.is_empty())
+///   assert_true(parsed.ast.validate())
+///   assert_true(parsed.cst.validate())
+///   assert_eq(parsed.cst.to_source(), source)
+///   assert_eq(parsed.ast.nodes.length(), parsed.cst.nodes.length())
+/// }
+/// ```
 pub fn parse(
   text : String,
   features~ : Features = Features::default(),

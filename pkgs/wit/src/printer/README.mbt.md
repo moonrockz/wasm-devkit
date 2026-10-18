@@ -1,5 +1,57 @@
 # WIT printer
 
+[Module scenario guide](../../README.mbt.md#scenario-recipes) · [API contracts](#api-contracts)
+
+## Recipes
+
+These executable examples use the following `moon.pkg` test imports. Add the module
+with `moon add moonrockz/wit@0.1.0`, then copy a recipe into `example_test.mbt`
+and run `moon test`. Application code uses the same imports without `for "test"`.
+
+If your package already has a test import group, merge these entries into it.
+
+```moon.pkg
+import {
+  "moonrockz/wit/printer",
+  "moonrockz/wit/parser",
+  "moonrockz/wit/ast",
+} for "test"
+```
+
+### Emit canonical source and check a structural round trip
+
+```mbt check
+///|
+test "README: Emit canonical source and check a structural round trip" {
+  let parsed = @parser.parse("interface api { type byte = u8; }")
+  assert_true(parsed.is_valid())
+  let printed = @printer.print(parsed.ast, indent_width=4).unwrap()
+  let again = @parser.parse(printed)
+  assert_true(again.is_valid())
+  assert_true(parsed.ast.equivalent(again.ast))
+  assert_eq(@printer.print(again.ast, indent_width=4), Ok(printed))
+  assert_true(printed.contains("    type byte = u8;"))
+}
+```
+
+### Reject a fragment or invalid printer options
+
+```mbt check
+///|
+test "README: Reject a fragment or invalid printer options" {
+  let fragment : @ast.Tree = {
+    nodes: [{ data: PrimitiveType(name="u8"), span: { start: 0, end: 2, }, }],
+  }
+  assert_true(fragment.validate())
+  assert_eq(@printer.print(fragment), Err(InvalidRoot))
+  assert_eq(@printer.print(fragment, indent_width=9), Err(InvalidOptions))
+  let empty : @ast.Tree = { nodes: [], }
+  assert_eq(@printer.print(empty), Err(InvalidTree))
+}
+```
+
+## API contracts
+
 `print(tree, indent_width=2)` returns canonical WIT source for a complete file AST.
 It returns `Result[String, PrintError]` and never returns partial output.
 All syntax descent uses an explicit command stack. The printer supports every

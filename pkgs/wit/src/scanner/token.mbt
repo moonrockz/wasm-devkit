@@ -34,6 +34,23 @@ pub(all) enum TokenKind {
 } derive(Eq, Debug)
 
 ///|
+///
+/// Filter trivia without changing token locations.
+///
+/// Example imports: `moonrockz/wit/scanner` as `@scanner`.
+///
+/// ```mbt check
+/// test "TokenKind::is_trivia: Filter trivia without changing token locations" {
+///   let scanned = @scanner.scan("/* note */ name")
+///   let significant = scanned.tokens.filter(token => {
+///     !token.kind.is_trivia() && token.kind != Eof
+///   })
+///   assert_eq(significant.length(), 1)
+///   assert_eq(significant[0].text, "name")
+///   assert_eq(significant[0].span.start, 11)
+///   assert_eq(scanned.to_source(), "/* note */ name")
+/// }
+/// ```
 pub fn TokenKind::is_trivia(self : TokenKind) -> Bool {
   self is (Whitespace | LineComment | BlockComment)
 }
@@ -55,6 +72,22 @@ pub(all) struct Scan {
 } derive(Eq, Debug)
 
 ///|
+///
+/// Keep comments and malformed tokens for an editor.
+///
+/// Example imports: `moonrockz/wit/scanner` as `@scanner`.
+///
+/// ```mbt check
+/// test "Scan::to_source: Keep comments and malformed tokens for an editor" {
+///   let source = "/* note */ ?"
+///   let scanned = @scanner.scan(source)
+///   assert_eq(scanned.to_source(), source)
+///   assert_eq(scanned.tokens[0].kind, BlockComment)
+///   assert_true(scanned.tokens.any(token => token.kind == Invalid))
+///   assert_false(scanned.diagnostics.is_empty())
+///   assert_eq(scanned.tokens[scanned.tokens.length() - 1].kind, Eof)
+/// }
+/// ```
 pub fn Scan::to_source(self : Scan) -> String {
   let out = StringBuilder()
   for token in self.tokens {

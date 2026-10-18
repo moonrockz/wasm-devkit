@@ -1,6 +1,34 @@
 ///|
 /// Replace uses rewritten child IDs from the candidate node. Subtree imports a
 /// standalone tree; imported spans are anchored at the replaced source position.
+///
+/// Replace a leaf with a standalone immutable fragment.
+///
+/// Example imports: `moonrockz/wac/ast` as `@ast`, `moonrockz/wac/parser` as `@parser`, `moonrockz/wac/traversal` as `@traversal`.
+///
+/// ```mbt check
+/// test "Edit: Replace a leaf with a standalone immutable fragment" {
+///   let parsed = @parser.parse(
+///     "package demo:app; interface api { type byte = u8; }",
+///   )
+///   let fragment : @ast.Tree = {
+///     nodes: [
+///       { data: PrimitiveType(name="bool"), span: { start: 0, end: 0, }, },
+///       { data: OptionType(payload=0), span: { start: 0, end: 0, }, },
+///     ],
+///   }
+///   let changed = @traversal.rewrite(parsed.ast, (_view, node) => {
+///     if node.data == PrimitiveType(name="u8") {
+///       Subtree(fragment)
+///     } else {
+///       Keep
+///     }
+///   }).unwrap()
+///   assert_true(changed.tree.validate())
+///   assert_eq(changed.tree.nodes.length(), parsed.ast.nodes.length() + 1)
+///   assert_eq(fragment.nodes[1].span, { start: 0, end: 0, })
+/// }
+/// ```
 pub(all) enum Edit {
   Keep
   Replace(@ast.Data)
@@ -8,6 +36,8 @@ pub(all) enum Edit {
 }
 
 ///|
+/// Reject an invalid input arena, a replacement that breaks tree invariants, or an invalid text edit range.
+/// Invalid syntax after a valid text edit is returned in the successful Parse value instead.
 pub(all) enum RewriteError {
   InvalidTree
   InvalidReplacement(Int32)
@@ -15,6 +45,39 @@ pub(all) enum RewriteError {
 } derive(Eq, Debug)
 
 ///|
+/// A validated immutable output tree and event report. A stopped rewrite returns the original tree.
+///
+/// The replacement fragment adds a node before its parent is edited. The parent callback
+/// uses the candidate's output child ID. Looking that ID up in the original arena would be
+/// incorrect. Imported fragments are copied as supplied; the callback does not revisit their nodes.
+///
+/// Example imports: `moonrockz/wac/parser` as `@parser`, `moonrockz/wac/ast` as `@ast`, `moonrockz/wac/traversal` as `@traversal`.
+///
+/// ```mbt check
+/// test "Rewritten: Compose rewrites using candidate child IDs" {
+///   let original = @parser.parse(
+///       "package demo:app; interface api { type wrapped = option<u8>; }",
+///     ).ast
+///   let fragment : @ast.Tree = {
+///     nodes: [
+///       { data: PrimitiveType(name="bool"), span: { start: 0, end: 0, }, },
+///       { data: OptionType(payload=0), span: { start: 0, end: 0, }, },
+///     ],
+///   }
+///   let changed = @traversal.rewrite(original, (_view, candidate) => {
+///     match candidate.data {
+///       PrimitiveType(name="u8") => Subtree(fragment)
+///       OptionType(payload~) => Replace(ListType(element=payload))
+///       _ => Keep
+///     }
+///   }).unwrap()
+///   let expected = @parser.parse(
+///       "package demo:app; interface api { type wrapped = list<option<bool>>; }",
+///     ).ast
+///   assert_true(changed.tree.equivalent(expected))
+///   assert_true(original.nodes.any(node => node.data == PrimitiveType(name="u8")))
+/// }
+/// ```
 pub(all) struct Rewritten {
   tree : @ast.Tree
   report : Report
@@ -87,6 +150,34 @@ fn compact(nodes : Array[@ast.Node], root : Int32) -> @ast.Tree? {
 /// whose direct child IDs already refer to rewritten output. Pruned descendants
 /// are copied unchanged, and the pruned root is still editable. Stop cancels the
 /// transaction and returns the original tree. Invalid edits return an error.
+///
+/// Change a type without mutating the parsed tree.
+///
+/// Example imports: `moonrockz/wac/parser` as `@parser`, `moonrockz/wac/traversal` as `@traversal`.
+///
+/// ```mbt check
+/// test "rewrite: Change a type without mutating the parsed tree" {
+///   let parsed = @parser.parse(
+///     "package demo:app; interface api { type byte = u8; }",
+///   )
+///   let changed = @traversal.rewrite(parsed.ast, (_view, node) => {
+///     match node.data {
+///       PrimitiveType(name="u8") => Replace(PrimitiveType(name="u64"))
+///       _ => Keep
+///     }
+///   }).unwrap()
+///   assert_true(changed.tree.validate())
+///   assert_true(
+///     parsed.ast.nodes.any(node => node.data == PrimitiveType(name="u8")),
+///   )
+///   assert_false(
+///     changed.tree.nodes.any(node => node.data == PrimitiveType(name="u8")),
+///   )
+///   assert_true(
+///     changed.tree.nodes.any(node => node.data == PrimitiveType(name="u64")),
+///   )
+/// }
+/// ```
 pub fn rewrite(
   tree : @ast.Tree,
   edit : (View, @ast.Node) -> Edit,
@@ -150,6 +241,28 @@ pub fn rewrite(
 }
 
 ///|
+///
+/// Distinguish bad edit ranges from invalid edited syntax.
+///
+/// Example imports: `moonrockz/wac/parser` as `@parser`, `moonrockz/wac/traversal` as `@traversal`.
+///
+/// ```mbt check
+/// test "TextEdit: Distinguish bad edit ranges from invalid edited syntax" {
+///   let parsed = @parser.parse(
+///     "package demo:app; interface api { type byte = u8; }",
+///   )
+///   let bad_range = @traversal.rewrite_cst(parsed.cst, [
+///     { span: { start: -1, end: 0, }, text: "", },
+///   ])
+///   assert_true(bad_range is Err(InvalidTextEdit(0)))
+///   let damaged = @traversal.rewrite_cst(parsed.cst, [
+///     { span: { start: 0, end: 0, }, text: "?", },
+///   ]).unwrap()
+///   // Applying a valid edit succeeds even when the new document is invalid.
+///   assert_false(damaged.is_valid())
+///   assert_true(damaged.cst.to_source().has_prefix("?"))
+/// }
+/// ```
 pub(all) struct TextEdit {
   span : @span.Span
   text : String
@@ -160,6 +273,28 @@ pub(all) struct TextEdit {
 /// tree. Invalid syntax is returned with diagnostics, while malformed edit ranges
 /// return Err. The original CST remains unchanged. Equal-position insertions use
 /// their collection order. Callers choose the same syntax profile as parsing.
+///
+/// Apply an editor change while preserving surrounding comments.
+///
+/// Example imports: `moonrockz/wac/parser` as `@parser`, `moonrockz/wac/traversal` as `@traversal`.
+///
+/// ```mbt check
+/// test "rewrite_cst: Apply an editor change while preserving surrounding comments" {
+///   let source = "// keep\npackage demo:app; interface api { type byte = u8; }"
+///   let parsed = @parser.parse(source)
+///   let byte_type = parsed.ast.nodes
+///     .iter()
+///     .find_first(node => node.data == PrimitiveType(name="u8"))
+///     .unwrap()
+///   let changed = @traversal.rewrite_cst(parsed.cst, [
+///     { span: byte_type.span, text: "u64", },
+///   ]).unwrap()
+///   assert_true(changed.is_valid())
+///   assert_true(changed.cst.to_source().contains("type byte = u64;"))
+///   assert_true(changed.cst.to_source().has_prefix("// keep\n"))
+///   assert_eq(parsed.cst.to_source(), source)
+/// }
+/// ```
 pub fn rewrite_cst(
   tree : @cst.Tree,
   edits : ReadOnlyArray[TextEdit],

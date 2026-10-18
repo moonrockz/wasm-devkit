@@ -6,16 +6,76 @@ pub(all) struct Features {
 }
 
 ///|
+///
+/// Enable only the grammar extension your source needs.
+///
+/// Example imports: `moonrockz/wac/parser` as `@parser`.
+///
+/// ```mbt check
+/// test "Features::default: Enable only the grammar extension your source needs" {
+///   let source = "package demo:app; type callback = func() -> (value: u8);"
+///   assert_false(@parser.parse(source).is_valid())
+///   let features : @parser.Features = { named_results: true, }
+///   let parsed = @parser.parse(source, features~)
+///   assert_true(parsed.is_valid())
+///   assert_eq(parsed.cst.to_source(), source)
+/// }
+/// ```
 pub fn Features::default() -> Features {
   { named_results: false, }
 }
 
 ///|
+///
+/// Read a corpus with all supported extensions.
+///
+/// Example imports: `moonrockz/wac/parser` as `@parser`.
+///
+/// ```mbt check
+/// test "Features::all: Read a corpus with all supported extensions" {
+///   let source = "package demo:app; type callback = func() -> (value: u8);"
+///   let parsed = @parser.parse(source, features=@parser.Features::all())
+///   assert_true(parsed.is_valid())
+///   // The feature profile is a parsing choice, not a semantic resolver.
+///   assert_true(parsed.ast.validate())
+/// }
+/// ```
 pub fn Features::all() -> Features {
   { named_results: true, }
 }
 
 ///|
+///
+/// The target world and component packages stay as syntax references. Spreads, fill arguments,
+/// quoted names and explicit grouping remain distinct nodes for indexing and later semantic tooling.
+///
+/// Example import: `moonrockz/wac/parser` as `@parser`.
+///
+/// ```mbt check
+/// test "Parse: Inspect a target world and composition expression structure" {
+///   let source =
+///     #|package example:app targets example:types/app;
+///     #|interface host-api { log: func(message: string); }
+///     #|world app-world { import host: host-api; export run: func(); }
+///     #|import host as "example:host/log@1.0.0": host-api;
+///     #|let provider = new example:provider { host };
+///     #|let app = new example:service { ...provider, "log": host.log, ... };
+///     #|export (app)["run"] as "run";
+///   let parsed = @parser.parse(source)
+///   assert_true(parsed.is_valid())
+///   assert_eq(parsed.cst.to_source(), source)
+///   let kinds = parsed.ast.nodes.map(node => node.data.kind())
+///   assert_true(kinds.contains(World))
+///   assert_true(kinds.contains(SpreadArgument))
+///   assert_true(kinds.contains(FillArgument))
+///   assert_true(kinds.contains(Group))
+///   assert_true(kinds.contains(Access))
+///   assert_eq(kinds.filter(kind => kind == New).length(), 2)
+///   assert_true(
+///     parsed.ast.nodes.any(node => node.data is Access(name="run", quoted=true)),
+///   )
+/// }
+/// ```
 pub(all) struct Parse {
   ast : @ast.Tree
   cst : @cst.Tree
@@ -23,6 +83,24 @@ pub(all) struct Parse {
 }
 
 ///|
+///
+/// Inspect diagnostics while retaining invalid input.
+///
+/// Example imports: `moonrockz/wac/parser` as `@parser`.
+///
+/// ```mbt check
+/// test "Parse::is_valid: Inspect diagnostics while retaining invalid input" {
+///   let source = "package demo:app; interface broken { type missing = ; } interface later {}"
+///   let parsed = @parser.parse(source)
+///   assert_false(parsed.is_valid())
+///   assert_false(parsed.diagnostics.is_empty())
+///   assert_eq(parsed.cst.to_source(), source)
+///   assert_true(parsed.ast.validate() && parsed.cst.validate())
+///   assert_true(
+///     parsed.ast.nodes.any(node => node.data is Interface(name="later", ..)),
+///   )
+/// }
+/// ```
 pub fn Parse::is_valid(self : Parse) -> Bool {
   !self.diagnostics.any(d => d.severity == Error)
 }
@@ -989,6 +1067,23 @@ fn State::argument(self : State) -> Unit {
 
 ///|
 /// Pure recovering parse; all input-controlled grammar nesting uses heap tasks.
+///
+/// Parse a complete WAC document.
+///
+/// Example imports: `moonrockz/wac/parser` as `@parser`.
+///
+/// ```mbt check
+/// test "parse: Parse a complete WAC document" {
+///   let source = "package demo:app; interface api { f: func(value: u8) -> string; g: func(); type bytes = list<u8>; }"
+///   let parsed = @parser.parse(source)
+///   assert_true(parsed.is_valid())
+///   assert_true(parsed.diagnostics.is_empty())
+///   assert_true(parsed.ast.validate())
+///   assert_true(parsed.cst.validate())
+///   assert_eq(parsed.cst.to_source(), source)
+///   assert_eq(parsed.ast.nodes.length(), parsed.cst.nodes.length())
+/// }
+/// ```
 pub fn parse(
   text : String,
   features~ : Features = Features::default(),

@@ -1,6 +1,28 @@
 ///|
 /// Node references are postorder arena indices. Every child precedes its parent.
 /// Named fields identify semantic roles; strings and child collections are immutable.
+///
+/// Inspect typed fields instead of reparsing source text.
+///
+/// Example imports: `moonrockz/wit/ast` as `@ast`, `moonrockz/wit/parser` as `@parser`.
+///
+/// ```mbt check
+/// test "Data: Inspect typed fields instead of reparsing source text" {
+///   let parsed = @parser.parse("interface api { type byte = u8; }")
+///   assert_true(parsed.is_valid())
+///   let tree : @ast.Tree = parsed.ast
+///   let mut alias_count = 0
+///   for node in tree.nodes {
+///     if node.data is Alias(name~, ty~, ..) {
+///       alias_count += 1
+///       assert_eq(name, "byte")
+///       assert_eq(tree.nodes[ty].data, PrimitiveType(name="u8"))
+///       assert_true(node.span.contains(tree.nodes[ty].span))
+///     }
+///   }
+///   assert_eq(alias_count, 1)
+/// }
+/// ```
 pub(all) enum Data {
   File(items~ : ReadOnlyArray[Int32])
   Package(
@@ -155,11 +177,47 @@ pub(all) struct Node {
 ///|
 /// Immutable arena. Parser output is a tree rooted at the final node.
 /// Call validate() after constructing an arena by hand.
+///
+/// Build an immutable replacement fragment.
+///
+/// Example imports: `moonrockz/wit/ast` as `@ast`.
+///
+/// ```mbt check
+/// test "Tree: Build an immutable replacement fragment" {
+///   let nodes : Array[@ast.Node] = [
+///     { data: PrimitiveType(name="u8"), span: { start: 0, end: 2, }, },
+///     { data: OptionType(payload=0), span: { start: 0, end: 4, }, },
+///   ]
+///   let tree : @ast.Tree = { nodes: ReadOnlyArray::from_array(nodes), }
+///   nodes[0] = { data: PrimitiveType(name="bool"), span: { start: 0, end: 2, }, }
+///   assert_true(tree.validate())
+///   assert_eq(tree.root(), Some(1))
+///   assert_eq(tree.nodes[0].data, PrimitiveType(name="u8"))
+///   let empty : @ast.Tree = { nodes: [], }
+///   assert_eq(empty.root(), None)
+///   assert_false(empty.validate())
+/// }
+/// ```
 pub(all) struct Tree {
   nodes : ReadOnlyArray[Node]
 } derive(Eq, Debug)
 
 ///|
+///
+/// Inspect direct children and their typed role.
+///
+/// Example imports: `moonrockz/wit/ast` as `@ast`.
+///
+/// ```mbt check
+/// test "Data::kind: Inspect direct children and their typed role" {
+///   let data : @ast.Data = OptionType(payload=3)
+///   assert_eq(data.kind(), OptionType)
+///   assert_eq(data.children(), [3])
+///   let remapped = data.map_children(id => id + 10)
+///   assert_eq(remapped, OptionType(payload=13))
+///   assert_eq(data.children(), [3])
+/// }
+/// ```
 pub fn Data::kind(self : Data) -> Kind {
   match self {
     File(items=_) => File
@@ -202,6 +260,21 @@ pub fn Data::kind(self : Data) -> Kind {
 
 ///|
 /// Children in source field order. This method never descends into another node.
+///
+/// Inspect direct children and their typed role.
+///
+/// Example imports: `moonrockz/wit/ast` as `@ast`.
+///
+/// ```mbt check
+/// test "Data::children: Inspect direct children and their typed role" {
+///   let data : @ast.Data = OptionType(payload=3)
+///   assert_eq(data.kind(), OptionType)
+///   assert_eq(data.children(), [3])
+///   let remapped = data.map_children(id => id + 10)
+///   assert_eq(remapped, OptionType(payload=13))
+///   assert_eq(data.children(), [3])
+/// }
+/// ```
 pub fn Data::children(self : Data) -> ReadOnlyArray[Int32] {
   let out = []
   match self {
@@ -386,6 +459,27 @@ pub fn Data::children(self : Data) -> ReadOnlyArray[Int32] {
 }
 
 ///|
+///
+/// Build an immutable replacement fragment.
+///
+/// Example imports: `moonrockz/wit/ast` as `@ast`.
+///
+/// ```mbt check
+/// test "Tree::root: Build an immutable replacement fragment" {
+///   let nodes : Array[@ast.Node] = [
+///     { data: PrimitiveType(name="u8"), span: { start: 0, end: 2, }, },
+///     { data: OptionType(payload=0), span: { start: 0, end: 4, }, },
+///   ]
+///   let tree : @ast.Tree = { nodes: ReadOnlyArray::from_array(nodes), }
+///   nodes[0] = { data: PrimitiveType(name="bool"), span: { start: 0, end: 2, }, }
+///   assert_true(tree.validate())
+///   assert_eq(tree.root(), Some(1))
+///   assert_eq(tree.nodes[0].data, PrimitiveType(name="u8"))
+///   let empty : @ast.Tree = { nodes: [], }
+///   assert_eq(empty.root(), None)
+///   assert_false(empty.validate())
+/// }
+/// ```
 pub fn Tree::root(self : Tree) -> Int32? {
   if self.nodes.is_empty() {
     None
@@ -397,6 +491,23 @@ pub fn Tree::root(self : Tree) -> Int32? {
 ///|
 /// Validate range bounds, postorder edges, containment and exactly one parent
 /// per non-root node. Linear in arena size; no recursive validation or destruction.
+///
+/// Reject an arena with an unowned node.
+///
+/// Example imports: `moonrockz/wit/ast` as `@ast`.
+///
+/// ```mbt check
+/// test "Tree::validate: Reject an arena with an unowned node" {
+///   let tree : @ast.Tree = {
+///     nodes: [
+///       { data: PrimitiveType(name="u8"), span: { start: 0, end: 2, }, },
+///       { data: PrimitiveType(name="u16"), span: { start: 0, end: 3, }, },
+///     ],
+///   }
+///   // Node 0 is not a child of the final root node.
+///   assert_false(tree.validate())
+/// }
+/// ```
 pub fn Tree::validate(self : Tree) -> Bool {
   guard !self.nodes.is_empty() else { return false }
   let parents = Array::make(self.nodes.length(), 0)
@@ -456,6 +567,21 @@ pub extend Tree with @debug.Debug::{to_repr}
 ///|
 /// Replace direct child references without descending into the tree. Named fields
 /// and immutable list/optional shapes are preserved. The caller owns ID validation.
+///
+/// Inspect direct children and their typed role.
+///
+/// Example imports: `moonrockz/wit/ast` as `@ast`.
+///
+/// ```mbt check
+/// test "Data::map_children: Inspect direct children and their typed role" {
+///   let data : @ast.Data = OptionType(payload=3)
+///   assert_eq(data.kind(), OptionType)
+///   assert_eq(data.children(), [3])
+///   let remapped = data.map_children(id => id + 10)
+///   assert_eq(remapped, OptionType(payload=13))
+///   assert_eq(data.children(), [3])
+/// }
+/// ```
 pub fn Data::map_children(self : Data, replace : (Int32) -> Int32) -> Data {
   match self {
     File(items~) => File(items=items.map(replace))
@@ -568,6 +694,20 @@ pub fn Data::map_children(self : Data, replace : (Int32) -> Int32) -> Data {
 ///|
 /// Structural equality ignoring all source locations and arena numbering. Valid
 /// trees are compared with an explicit pair stack, without recursive descent.
+///
+/// Compare trees across formatting changes.
+///
+/// Example imports: `moonrockz/wit/parser` as `@parser`.
+///
+/// ```mbt check
+/// test "Tree::equivalent: Compare trees across formatting changes" {
+///   let compact = @parser.parse("interface api { type byte = u8; }").ast
+///   let spaced = @parser.parse("interface api {  type byte = u8;  }").ast
+///   assert_true(compact.equivalent(spaced))
+///   let changed = @parser.parse("interface api { type byte = u64; }").ast
+///   assert_false(compact.equivalent(changed))
+/// }
+/// ```
 pub fn Tree::equivalent(self : Tree, other : Tree) -> Bool {
   guard self.validate() &&
     other.validate() &&

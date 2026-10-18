@@ -224,6 +224,22 @@ fn package_end(text : String, first_end : Int32) -> (Int32, Bool) {
 }
 
 ///|
+///
+/// Keep comments and malformed tokens for an editor.
+///
+/// Example imports: `moonrockz/wac/scanner` as `@scanner`.
+///
+/// ```mbt check
+/// test "scan: Keep comments and malformed tokens for an editor" {
+///   let source = "/* note */ ?"
+///   let scanned = @scanner.scan(source)
+///   assert_eq(scanned.to_source(), source)
+///   assert_eq(scanned.tokens[0].kind, BlockComment)
+///   assert_true(scanned.tokens.any(token => token.kind == Invalid))
+///   assert_false(scanned.diagnostics.is_empty())
+///   assert_eq(scanned.tokens[scanned.tokens.length() - 1].kind, Eof)
+/// }
+/// ```
 pub fn scan(text : String) -> Scan {
   let tokens = []
   let diagnostics = []

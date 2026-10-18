@@ -13,6 +13,8 @@ implementation status. Do not claim scaffold packages implement their documented
   `moonbitlang/core/env` for arguments/environment and `moonbitlang/x/sys` for nonzero exits.
 - `@env.args()[0]` is the script binary. Arguments begin at index 1.
 - Prefer compiler, formatter, linter and focused tests for mechanical issues.
+- Put runnable doc examples in `mbt check` fences. README recipes include one `moon.pkg`
+  import block; `mise run test:docs` checks that setup on all four targets.
 - Run `mise run format` before committing MoonBit code.
 - `mise run lint`, `mise run validate` and `mise run test` must pass before pushing.
 - `mise run check` adds all-target builds. Run `mise run test:scripts` after task changes.

@@ -2,3 +2,7 @@ import {
   "moonbitlang/core/debug",
   "moonrockz/wac/span",
 }
+
+import {
+  "moonrockz/wac/diagnostic",
+} for "test"

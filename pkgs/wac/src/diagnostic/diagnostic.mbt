@@ -1,10 +1,12 @@
 ///|
+/// Classify a diagnostic independently of its code. A warning does not make `Parse::is_valid` false.
 pub(all) enum Severity {
   Error
   Warning
 } derive(Eq, Debug)
 
 ///|
+/// Associate a message with a UTF-16 source range. Related labels can point to earlier declarations.
 pub(all) struct Label {
   span : @span.Span
   message : String
@@ -21,6 +23,27 @@ pub(all) enum Recovery {
 ///|
 /// Diagnostic codes are stable strings, independent of rendered messages.
 /// All labels use UTF-16 offsets in the input source.
+///
+/// Connect a duplicate declaration to its original.
+///
+/// Example imports: `moonrockz/wac/diagnostic` as `@diagnostic`, `moonrockz/wac/span` as `@span`.
+///
+/// ```mbt check
+/// test "Diagnostic: Connect a duplicate declaration to its original" {
+///   let primary : @span.Span = { start: 10, end: 14, }
+///   let base = @diagnostic.Diagnostic::error(
+///     "APP-DUPLICATE", "duplicate name", primary,
+///   )
+///   let diagnostic : @diagnostic.Diagnostic = {
+///     ..base,
+///     severity: Warning,
+///     related: [{ span: { start: 0, end: 4, }, message: "first declared here", }],
+///   }
+///   assert_eq(diagnostic.related.length(), 1)
+///   assert_eq(diagnostic.related[0].message, "first declared here")
+///   assert_true(base.related.is_empty())
+/// }
+/// ```
 pub(all) struct Diagnostic {
   code : String
   severity : Severity
@@ -31,6 +54,26 @@ pub(all) struct Diagnostic {
 } derive(Eq, Debug)
 
 ///|
+///
+/// Attach an application diagnostic to source.
+///
+/// Example imports: `moonrockz/wac/diagnostic` as `@diagnostic`, `moonrockz/wac/span` as `@span`.
+///
+/// ```mbt check
+/// test "Diagnostic::error: Attach an application diagnostic to source" {
+///   let span : @span.Span = { start: 0, end: 4, }
+///   let diagnostic = @diagnostic.Diagnostic::error(
+///     "APP-001",
+///     "unknown import",
+///     span,
+///     recovery=SkipToken,
+///   )
+///   assert_eq(diagnostic.code, "APP-001")
+///   assert_eq(diagnostic.severity, Error)
+///   assert_eq(diagnostic.primary.span, span)
+///   assert_eq(diagnostic.recovery, SkipToken)
+/// }
+/// ```
 pub fn Diagnostic::error(
   code : String,
   message : String,

@@ -3,6 +3,70 @@
 A MoonBit monorepo for WebAssembly language tooling, created from the
 [moonrockz/smithy](https://github.com/moonrockz/smithy) project template.
 
+## Use the libraries
+
+The modules work independently. Install both to run the two quickstarts below:
+
+```shell
+moon add moonrockz/wit@0.1.0
+moon add moonrockz/wac@0.1.0
+```
+
+The snippets below are executable MoonBit tests. In your MoonBit package, put these imports
+in `moon.pkg`, copy the `test` blocks into `example_test.mbt` beside it, and run
+`moon test --target wasm`. Application functions
+use the same package imports without `for "test"`.
+
+If your package already has a test import group, merge these entries into it.
+
+```moon.pkg
+import {
+  "moonrockz/wit/parser" @wit_parser,
+  "moonrockz/wit/formatter" @wit_formatter,
+  "moonrockz/wac/parser" @wac_parser,
+  "moonrockz/wac/formatter" @wac_formatter,
+} for "test"
+```
+
+### Format a WIT API without losing comments
+
+```mbt check
+test "quickstart: WIT interface formatting" {
+  let source = "// public API\ninterface greeter{hello: func(name: string)->string;}"
+  let parsed = @wit_parser.parse(source)
+  assert_true(parsed.is_valid())
+  assert_eq(parsed.cst.to_source(), source)
+  let formatted = @wit_formatter.format(source).unwrap()
+  assert_eq(formatted, "// public API\ninterface greeter {\n  hello: func(name: string) -> string;\n}\n")
+  assert_true(parsed.ast.equivalent(@wit_parser.parse(formatted).ast))
+}
+```
+
+### Inspect and format a WAC composition
+
+```mbt check
+test "quickstart: WAC composition formatting" {
+  let source = "package demo:app;let app=new demo:service {...};export app.run as \"run\";"
+  let parsed = @wac_parser.parse(source)
+  assert_true(parsed.is_valid())
+  assert_true(parsed.ast.nodes.any(node => node.data is New(..)))
+  let formatted = @wac_formatter.format(source).unwrap()
+  assert_eq(formatted, "package demo:app;\nlet app = new demo:service {\n  ...\n};\nexport app.run as \"run\";\n")
+  assert_eq(@wac_formatter.format(formatted), Ok(formatted))
+}
+```
+
+These operations parse syntax without loading or resolving `demo:service`. Diagnostics remain
+available for invalid input, and the CST always reconstructs the original text.
+
+| What you want to do | Start here |
+|--------------------|------------|
+| Parse WIT, render diagnostics or index an API | [WIT scenario recipes](pkgs/wit/README.mbt.md#scenario-recipes) |
+| Inspect WAC imports, bindings and composition expressions | [WAC scenario recipes](pkgs/wac/README.mbt.md#scenario-recipes) |
+| Walk trees, navigate cursors or perform immutable rewrites | [WIT traversal](pkgs/wit/src/traversal/README.mbt.md#recipes), [WAC traversal](pkgs/wac/src/traversal/README.mbt.md#recipes) |
+| Apply source edits while retaining comments | [WIT editor recipe](pkgs/wit/README.mbt.md#edit-one-token-and-retain-comments), [WAC editor recipe](pkgs/wac/README.mbt.md#edit-one-token-and-retain-comments) |
+| Work from a terminal or check formatting in CI | [CLI scenarios](cmd/wasm-devkit/README.md#scenarios) |
+
 ## Status
 
 WIT source positions, structured diagnostics, a lossless scanner, typed immutable ASTs/CSTs,
@@ -27,7 +91,7 @@ and formatter check/write modes. The first release version is `0.1.0`.
 
 Both modules reserve `span`, `diagnostic`, `scanner`, `ast`, `cst`, `parser`, `traversal`,
 `printer` and `formatter` packages. Both languages implement all packages for their documented grammar profiles.
-Each language will be independently consumable. WAC also gets an AST for typed traversal and printing.
+Each language is independently consumable, with typed ASTs for traversal and printing.
 
 Add future libraries under `pkgs/`. The [CLI](cmd/wasm-devkit/README.md) lives under `cmd/`
 and is packaged for moonx and native mise installation. Register new modules in `moon.work`.
@@ -44,6 +108,7 @@ mise install
 mise run hooks:install
 mise run check
 mise run test:scripts
+mise run test:docs
 mise run test:cli -- wasm
 mise run test:cli -- native
 mise run build:cli
@@ -67,9 +132,27 @@ mise run test                 # wasm, wasm-gc, js and native
 mise run test -- js native
 mise run build
 mise run test:scripts
+mise run test:docs            # README recipes with their documented imports
 mise run test:native-zig
 mise run clean
 ```
+
+## Documentation checks
+
+`mise run test` executes checked API comments and package README examples.
+`mise run test:docs` additionally compiles all 21 library guides using exactly their
+documented imports, including the root and module READMEs outside package source directories.
+Both commands run on wasm, wasm-gc, js and native by default.
+
+Generate API reference pages for each library:
+
+```shell
+moon -C pkgs/wit doc
+moon -C pkgs/wac doc
+```
+
+The generated pages are under `_build/doc`. Target a library module for documentation;
+the workspace root has no source package.
 
 ## Language contracts
 
@@ -83,7 +166,7 @@ Printers emit canonical source from ASTs. Formatters retain comments and meaning
 Printing then parsing preserves AST structure apart from locations; formatting is idempotent.
 
 Parsing returns diagnostics, retains malformed text in the CST, recovers to later constructs and never
-panics. Implementations will test deep inputs, losslessness, immutability, event order and round trips
+panics. Tests cover deep inputs, losslessness, immutability, event order and round trips
 alongside pinned upstream compatibility fixtures.
 
 ## References
