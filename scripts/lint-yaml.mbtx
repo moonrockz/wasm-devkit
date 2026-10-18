@@ -13,8 +13,10 @@ import {
 async fn main {
   println("🔍 Linting YAML files...")
   let code = @process.run(
-    "yamllint", ["--strict", "."],
-    stdout=@stdio.stdout, stderr=@stdio.stderr,
+    "yamllint",
+    ["--strict", "."],
+    stdout=@stdio.stdout,
+    stderr=@stdio.stderr,
   )
   if code != 0 {
     println("❌ YAML lint reported problems.")

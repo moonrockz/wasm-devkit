@@ -14,8 +14,10 @@ import {
 async fn main {
   println("🧹 Cleaning build artifacts...")
   let code = @process.run(
-    "moon", ["clean"],
-    stdout=@stdio.stdout, stderr=@stdio.stderr,
+    "moon",
+    ["clean"],
+    stdout=@stdio.stdout,
+    stderr=@stdio.stderr,
   )
   if code != 0 {
     println("❌ moon clean failed")

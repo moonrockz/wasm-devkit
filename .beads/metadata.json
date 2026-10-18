@@ -2,8 +2,8 @@
   "database": "dolt",
   "backend": "dolt",
   "dolt_mode": "server",
-  "dolt_database": "smithy",
-  "project_id": "30f87bcb-775b-4158-81d9-ebfd0d51caa7",
+  "dolt_database": "wasm_devkit",
+  "project_id": "2e76cb6f-ba32-4da3-92f6-3afaf6ca2cf9",
   "global_dolt_database": "beads_global",
   "global_project_id": "00000000-0000-0000-0000-000000000000"
 }

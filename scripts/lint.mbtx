@@ -13,8 +13,10 @@ import {
 async fn main {
   for task in ["lint:yaml", "lint:moonbit"] {
     let code = @process.run(
-      "mise", ["run", task],
-      stdout=@stdio.stdout, stderr=@stdio.stderr,
+      "mise",
+      ["run", task],
+      stdout=@stdio.stdout,
+      stderr=@stdio.stderr,
     )
     if code != 0 {
       @sys.exit(if code > 0 { code } else { 1 })

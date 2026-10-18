@@ -5,7 +5,7 @@ Feature: One version across the workspace
   Scenario: Read the version
     Given the text:
       """
-      name = "moonrockz/smithy"
+      name = "moonrockz/wac"
 
       version = "0.1.0"
       """
@@ -14,7 +14,7 @@ Feature: One version across the workspace
   Scenario: A file with no version line has no version
     Given the text:
       """
-      name = "moonrockz/smithy"
+      name = "moonrockz/wac"
       """
     Then there is no module version
 
@@ -23,38 +23,38 @@ Feature: One version across the workspace
       """
       # A comment
 
-      name = "moonrockz/smithy"
+      name = "moonrockz/wac"
 
       version = "0.1.0"
 
-      description = "Smithy"
+      description = "WAC"
       """
     When I set the module version to "0.0.1"
     Then the result is:
       """
       # A comment
 
-      name = "moonrockz/smithy"
+      name = "moonrockz/wac"
 
       version = "0.0.1"
 
-      description = "Smithy"
+      description = "WAC"
       """
 
   Scenario: Only sibling imports change
     Given the text:
       """
       import {
-        "moonrockz/smithy-syntax@0.1.0",
+        "moonrockz/wit@0.1.0",
         "moonrockz/expect@0.6.1",
         "moonrockz/moonspec@0.11.0",
       }
       """
-    When I set the imports of "moonrockz/smithy-syntax,moonrockz/smithy" to "0.0.1"
+    When I set the imports of "moonrockz/wit,moonrockz/wac" to "0.0.1"
     Then the result is:
       """
       import {
-        "moonrockz/smithy-syntax@0.0.1",
+        "moonrockz/wit@0.0.1",
         "moonrockz/expect@0.6.1",
         "moonrockz/moonspec@0.11.0",
       }
@@ -76,14 +76,14 @@ Feature: One version across the workspace
       """
 
   Scenario: Mismatches are listed
-    Given a file "pkgs/smithy/moon.mod" with the text:
+    Given a file "pkgs/wac/moon.mod" with the text:
       """
-      name = "moonrockz/smithy"
+      name = "moonrockz/wac"
 
       version = "0.1.0"
       """
     When I look for versions other than "0.0.1"
-    Then the mismatches are "pkgs/smithy/moon.mod: found 0.1.0, expected 0.0.1"
+    Then the mismatches are "pkgs/wac/moon.mod: found 0.1.0, expected 0.0.1"
 
   Scenario: A sibling import and a third-party import in a module
     Given a file "a/moon.mod" with the text:
@@ -107,15 +107,15 @@ Feature: One version across the workspace
     Then the mismatches are "b/moon.mod: found 0.1.0, expected 0.0.1"
 
   Scenario: A version string in a source file
-    Given a file "pkgs/smithy/smithy_test.mbt" with the text:
+    Given a file "pkgs/wac/src/lib_test.mbt" with the text:
       """
-      inspect(@smithy.version(), content="0.1.0")
+      inspect(@wac.version(), content="0.1.0")
       """
     When I look for versions other than "0.0.1"
-    Then the mismatches are "pkgs/smithy/smithy_test.mbt: found 0.1.0, expected 0.0.1"
+    Then the mismatches are "pkgs/wac/src/lib_test.mbt: found 0.1.0, expected 0.0.1"
 
   Scenario: An unrelated version-like string in a version file is left alone
-    Given a file "pkgs/smithy-syntax/src/lib.mbt" with the text:
+    Given a file "pkgs/wit/src/lib.mbt" with the text:
       """
       pub let spec : String = "1.0.0"
 
@@ -126,17 +126,23 @@ Feature: One version across the workspace
     When I look for versions other than "0.1.0"
     Then the mismatches are ""
     When I look for versions other than "0.0.1"
-    Then the mismatches are "pkgs/smithy-syntax/src/lib.mbt: found 0.1.0, expected 0.0.1"
+    Then the mismatches are "pkgs/wit/src/lib.mbt: found 0.1.0, expected 0.0.1"
 
   Scenario: Set changes only the version of a version file
-    Given a file "pkgs/smithy-syntax/src/lib_test.mbt" with the text:
+    Given a file "pkgs/wit/src/lib.mbt" with the text:
       """
-      inspect("1.0.0", content="1.0.0")
-      inspect(@syntax.version(), content="0.1.0")
+      pub let spec : String = "1.0.0"
+
+      pub fn version() -> String {
+        "0.1.0"
+      }
       """
     When I set the versions of the files to "0.0.1"
     Then the result is:
       """
-      inspect("1.0.0", content="1.0.0")
-      inspect(@syntax.version(), content="0.0.1")
+      pub let spec : String = "1.0.0"
+
+      pub fn version() -> String {
+        "0.0.1"
+      }
       """

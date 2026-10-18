@@ -1,5 +1,5 @@
 ///|
-/// Run the published zig-cross tool at one pinned version, independent of Smithy's version.
+/// Run the published zig-cross tool at one pinned version, independent of this workspace's version.
 ///
 /// Usage: `moonx scripts/zig-cross.mbtx <zig-cross args...>`.
 /// The mise tasks `build:cross` and `test:native-zig` share this launcher.

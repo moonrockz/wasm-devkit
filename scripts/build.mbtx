@@ -27,8 +27,10 @@ async fn main {
       moon_args.push("--release")
     }
     let code = @process.run(
-      "moon", moon_args,
-      stdout=@stdio.stdout, stderr=@stdio.stderr,
+      "moon",
+      moon_args,
+      stdout=@stdio.stdout,
+      stderr=@stdio.stderr,
     )
     if code != 0 {
       println("❌ Build failed for \{target}")

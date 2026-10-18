@@ -5,12 +5,13 @@
 import {
   "moonbitlang/async@0.22.5",
   "moonbitlang/async@0.22.5/process",
+  "moonbitlang/async@0.22.5/fs",
   "moonbitlang/async@0.22.5/stdio",
   "moonbitlang/x@0.5.5/sys",
 }
 
 ///|
-async fn moon(args : Array[String]) -> Int {
+async fn moon(args : Array[String]) -> Int32 {
   @process.run("moon", args, stdout=@stdio.stdout, stderr=@stdio.stderr)
 }
 
@@ -21,6 +22,16 @@ async fn main {
   if fmt != 0 {
     println("❌ Formatting issues found. Run 'mise run format' to fix.")
     @sys.exit(if fmt > 0 { fmt } else { 1 })
+  }
+  let scripts = @fs.readdir("scripts", sort=true)
+    .filter(file => file.has_suffix(".mbtx"))
+    .map(file => "scripts/\{file}")
+  let args = ["fmt", "--check"]
+  args.append(scripts)
+  let script_fmt = moon(args)
+  if script_fmt != 0 {
+    eprintln("Task script formatting differs. Run mise run format.")
+    @sys.exit(if script_fmt > 0 { script_fmt } else { 1 })
   }
   println("🔍 Checking MoonBit code...")
   let check = moon(["check", "--deny-warn"])

@@ -10,22 +10,17 @@
 /// `scripts/credentials.mbtx` writes.
 import {
   "moonbitlang/async@0.22.5",
-  "moonbitlang/async@0.22.5/fs",
   "moonbitlang/async@0.22.5/process",
   "moonbitlang/x@0.5.5/sys",
   "moonbitlang/core/env",
-  "moonrockz/moonspec@0.11.0",
-  "moonrockz/expect@0.6.1",
 }
 
 ///|
 /// The packages to publish, with their module names, in dependency order. Add a line for each public
-/// module. `scripts/release.mbtx` keeps the same list, and a scenario checks that the two are equal.
+/// module. Keep this list in sync with moon.work.
 let publish_list : Array[(String, String)] = [
-  ("pkgs/jmespath", "moonrockz/jmespath"),
-  ("pkgs/smithy-syntax", "moonrockz/smithy-syntax"),
-  ("pkgs/smithy", "moonrockz/smithy"),
-  ("apps/smithy", "moonrockz/smithy-cli"),
+  ("pkgs/wit", "moonrockz/wit"),
+  ("pkgs/wac", "moonrockz/wac"),
 ]
 
 ///|
@@ -151,140 +146,25 @@ async fn publish_all() -> Unit {
 }
 
 ///|
-/// Registry metadata can become visible before moonx can fetch the Wasm asset.
-/// Retry that exact availability error with the same bounded network backoff.
-async fn verify_cli(version : String) -> Unit {
-  let (code, out) = with_retry("verify published CLI", () => {
-    output_in(".", "moonx", ["moonrockz/smithy-cli@\{version}", "version"])
-  })
-  if code != 0 {
-    fail_with("the published CLI could not run: \{out.trim()}")
-    return
-  }
-  println(out.trim())
-}
-
-///|
 async fn main {
-  match @env.args()[1:] {
-    [] => publish_all()
-    ["verify-cli", version] => verify_cli(version)
-    _ => fail_with("Usage: publish.mbtx [verify-cli X.Y.Z]")
+  let args = @env.args()[1:]
+  if !args.is_empty() {
+    fail_with("Usage: publish.mbtx")
   }
-}
-
-///|
-/// Scenario state for `features/publish.feature`.
-struct PublishWorld {
-  moon_work : String
-  release_source : String
-  mut exit_code : Int32
-  mut output : String
-}
-
-///|
-/// `moon_work` and `release_source` are the real texts of `moon.work` and `scripts/release.mbtx`. A step
-/// cannot read a file, so the test reads them before the run.
-fn PublishWorld::new(
-  moon_work : String,
-  release_source : String,
-) -> PublishWorld {
-  { moon_work, release_source, exit_code: 0, output: "", }
-}
-
-///|
-fn outcome_name(o : Outcome) -> String {
-  match o {
-    Published => "published"
-    AlreadyPublished => "already published"
-    Transient => "transient"
-    Failed => "failed"
+  let (code, out) = output_in(".", "moonx", ["scripts/release.mbtx", "validate"])
+  if code != 0 {
+    fail_with(out)
   }
+  publish_all()
 }
 
 ///|
-/// The module directories that `moon.work` lists, without a leading `./`.
-fn work_members(text : String) -> Array[String] {
-  let found = []
-  for line in text.split("\n") {
-    let entry = line.trim_start(chars=" \t\r").to_owned()
-    guard entry.has_prefix("\"") else { continue }
-    let rest = entry[1:]
-    guard rest.find("\"") is Some(stop) else { continue }
-    let path = rest[:stop].to_owned()
-    found.push(if path.has_prefix("./") { path[2:].to_owned() } else { path })
+test "publication retries exclude authorization and conflicts" {
+  assert_eq(classify(0, ""), Published)
+  assert_eq(classify(1, duplicated), AlreadyPublished)
+  assert_eq(classify(1, "503 connection reset"), Transient)
+  for code in ["401", "403", "409"] {
+    assert_eq(classify(1, "\{code} timeout"), Failed)
   }
-  found
-}
-
-///|
-/// The text of one entry of the list, as `scripts/release.mbtx` writes it.
-fn list_entry_text(entry : (String, String)) -> String {
-  "(\"\{entry.0}\", \"\{entry.1}\"),"
-}
-
-///|
-impl @moonspec.World for PublishWorld with fn configure(self, setup) {
-  setup.then1("the published modules are {string}", fn(expected : String) raise {
-    @expect.expect(publish_list.map(entry => entry.1).join(", ")).to_equal(
-      expected,
-    )
-  })
-  setup.given2("moon publish exits with {int} and prints {string}", fn(
-    code : Int32,
-    output : String,
-  ) {
-    self.exit_code = code
-    self.output = output
-  })
-  setup.then1("the outcome is {string}", fn(expected : String) raise {
-    @expect.expect(outcome_name(classify(self.exit_code, self.output))).to_equal(
-      expected,
-    )
-  })
-  setup.then3(
-    "a command that exits with {int} and prints {string} is transient: {string}",
-    fn(code : Int32, output : String, expected : String) raise {
-      let actual = if is_transient(code, output) { "yes" } else { "no" }
-      @expect.expect(actual).to_equal(expected)
-    },
-  )
-  setup.then0("every module in the publish list is in moon.work", fn() raise {
-    let members = work_members(self.moon_work)
-    for entry in publish_list {
-      @expect.expect(members.contains(entry.0)).to_equal(true)
-    }
-  })
-  setup.then0("the publish list is the one in release.mbtx", fn() raise {
-    let release = self.release_source
-    guard release.find("let publish_list") is Some(start) else {
-      fail("release.mbtx has no publish_list")
-    }
-    let block = release[start:].to_owned()
-    guard block.find("]\n") is Some(stop) else {
-      fail("release.mbtx publish_list is not closed")
-    }
-    let found : Array[String] = []
-    for line in block[:stop].to_owned().split("\n") {
-      let line = line.trim().to_owned()
-      if line.has_prefix("(\"") {
-        found.push(line)
-      }
-    }
-    let expected : Array[String] = publish_list.map(list_entry_text)
-    @expect.expect(found).to_equal(expected)
-  })
-}
-
-///|
-async test "publish feature" {
-  let moon_work = @fs.read_file("../moon.work").text()
-  let release_source = @fs.read_file("release.mbtx").text()
-  @moonspec.run_or_fail(
-    () => PublishWorld::new(moon_work, release_source),
-    @moonspec.RunOptions::new([
-      @moonspec.FeatureSource::File("features/publish.feature"),
-    ]),
-  )
-  |> ignore
+  assert_eq(classify(1, "invalid module"), Failed)
 }

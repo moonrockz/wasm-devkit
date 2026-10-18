@@ -5,6 +5,7 @@
 import {
   "moonbitlang/async@0.22.5",
   "moonbitlang/async@0.22.5/process",
+  "moonbitlang/async@0.22.5/fs",
   "moonbitlang/async@0.22.5/stdio",
   "moonbitlang/x@0.5.5/sys",
 }
@@ -13,11 +14,27 @@ import {
 async fn main {
   println("🎨 Formatting MoonBit code...")
   let code = @process.run(
-    "moon", ["fmt"],
-    stdout=@stdio.stdout, stderr=@stdio.stderr,
+    "moon",
+    ["fmt"],
+    stdout=@stdio.stdout,
+    stderr=@stdio.stderr,
   )
   if code != 0 {
     @sys.exit(if code > 0 { code } else { 1 })
+  }
+  let scripts = @fs.readdir("scripts", sort=true)
+    .filter(file => file.has_suffix(".mbtx"))
+    .map(file => "scripts/\{file}")
+  let args = ["fmt"]
+  args.append(scripts)
+  let script_code = @process.run(
+    "moon",
+    args,
+    stdout=@stdio.stdout,
+    stderr=@stdio.stderr,
+  )
+  if script_code != 0 {
+    @sys.exit(if script_code > 0 { script_code } else { 1 })
   }
   println("✅ Formatting complete")
 }

@@ -16,8 +16,10 @@ async fn main {
     println("")
     println("=== \{task} ===")
     let code = @process.run(
-      "mise", ["run", task],
-      stdout=@stdio.stdout, stderr=@stdio.stderr,
+      "mise",
+      ["run", task],
+      stdout=@stdio.stdout,
+      stderr=@stdio.stderr,
     )
     if code != 0 {
       println("❌ \{task} failed")

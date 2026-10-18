@@ -3,17 +3,17 @@
 #
 # `mise run release:prepare` prepends the next section to CHANGELOG.md; the
 # Release workflow publishes that section as the GitHub release notes
-# (`mise run release:notes`). See AGENTS.md > Release Process.
+# (`mise run release:notes`). See AGENTS.md for the release process.
 
 [remote.github]
 owner = "moonrockz"
-repo = "smithy"
+repo = "wasm-devkit"
 
 [changelog]
 header = """
 # Changelog
 
-All notable changes to `moonrockz/smithy` are listed here, newest first.
+All notable changes to `moonrockz/wasm-devkit` are listed here, newest first.
 Versions follow [Semantic Versioning](https://semver.org); while the version
 is 0.x, a minor release can contain breaking changes.
 

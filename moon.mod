@@ -1,10 +1,10 @@
-name = "smithy-monorepo"
+name = "wasm-devkit-monorepo"
 
-version = "0.2.0"
+version = "0.0.0"
 
-description = "Smithy for the MoonBit ecosystem: workspace root"
+description = "MoonBit tooling for WebAssembly interfaces and composition: workspace root"
 
-repository = "https://github.com/moonrockz/smithy"
+repository = "https://github.com/moonrockz/wasm-devkit"
 
 license = "Apache-2.0"
 
