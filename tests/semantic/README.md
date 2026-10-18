@@ -6,7 +6,9 @@ No upstream fixture sources are copied here yet.
 
 `manifest.tsv` records acceptance and SHA-256 over the exact source bytes. Each file
 is passed unchanged to the reference semantic resolver and the wasm-devkit CLI.
-There are no dependency files, registry lookups or optional semantic features in this suite.
+There are no dependency files or registry lookups in this suite. The wasm-devkit CLI
+uses `--all-features` to admit the fixed-list grammar. The reference resolvers use
+their default semantic feature sets.
 
 | Language | Reference | Revision | Semantic operation |
 | --- | --- | --- | --- |
@@ -26,3 +28,7 @@ syntax shared by both revisions. The WAC grammar and semantic revisions are iden
 The complete source/dependency corpus, normalized model comparison, binary fixtures,
 feature profiles and justified exclusions remain tracked in Beads
 `wasm-devkit-p5m.8.1.7` and `wasm-devkit-p5m.8.2.7`.
+
+WIT type cases establish the pinned resolver's aggregate constraints, map-key categories,
+fixed-list u32 bounds and lexical representation, forward references and recursive graphs.
+In particular a `string` map key succeeds while an alias to `string` fails at this pin.

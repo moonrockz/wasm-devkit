@@ -38,6 +38,8 @@ pub struct Verified {
   source_text : String
   tree : @ast.Tree
   bindings : ReadOnlyArray[Binding]
+  resolved_types : ReadOnlyArray[ResolvedType]
+  package_identity : PackageIdentity
 }
 
 ///|
@@ -178,3 +180,21 @@ fn identifier(name : String) -> Bool {
   }
   !segment_start
 }
+
+///|
+pub(all) struct PackageIdentity {
+  namespace_name : String
+  name : String
+  version : String?
+} derive(Eq, Debug)
+
+///|
+pub fn Verified::identity(self : Verified) -> PackageIdentity {
+  self.package_identity
+}
+
+///|
+pub extend PackageIdentity with Eq::{equal, not_equal}
+
+///|
+pub extend PackageIdentity with @debug.Debug::{to_repr}

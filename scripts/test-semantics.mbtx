@@ -60,6 +60,7 @@ async fn main {
     }
     let (code, _, error) = @process.collect_output("moon", [
       "run", "cmd/wasm-devkit", "--target", "wasm", "--quiet", "--", "verify", path,
+      "--all-features",
     ])
     if code != expected {
       fail(path + ": verifier acceptance mismatch: " + error.text())
