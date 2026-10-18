@@ -179,10 +179,35 @@ codes and formatter writes. `mise run test:cli -- --binary PATH` checks a packag
 ## Semantic verification
 
 Run `wasm-devkit verify api.wit` or `wasm-devkit verify app.wac` to check the current
-local semantic profile. Stdin requires `--language wit` or `--language wac`.
+local semantic profile. Stdin requires `--language wit` or `--language wac`, plus `--base PATH` for dependency resolution.
 Exit status is 0 for a fully verified supported model, 1 for syntax/semantic errors
 or unsupported constructs, and 2 for invalid arguments or I/O errors.
 
 `parse` and its `check` alias retain their syntax-only behavior. Verification does
 not modify source files or execute components. See the library verifier guides for
 the current profile. Dependency resolution and remaining semantics are tracked in issue #5.
+
+### Resolve a WIT package
+
+```shell
+wasm-devkit verify ./wit --language wit
+wasm-devkit verify ./wit/world.wit
+wasm-devkit verify ./world.wit --deps-dir ./packages
+wasm-devkit verify ./world.wit --dep example:dep@1.0.0=../dep
+cat ./world.wit | wasm-devkit verify --language wit --base ./wit
+```
+
+A WIT directory combines its immediate `*.wit` files. Dependencies come from the
+resolution base's `deps` directory by default. Each direct subdirectory is one
+package; direct `.wit` files are individual packages. Other files are ignored.
+Nested dependency directories are not searched, matching the pinned WIT resolver.
+
+The resolution base defaults to the input directory, or to a file's parent directory.
+`--base` overrides it. Dependency roots and explicit mappings are relative to that
+base; absolute paths are also accepted. Explicit mappings override discovered
+packages with the same declared identity. A mapping must match the loaded package's
+name and optional version. Version references match exactly; an unversioned reference
+does not fall back to a versioned package.
+
+WAC dependency providers and encoded WIT packages remain explicit unsupported errors
+while the remaining issue #5 tasks are implemented. Source files are never rewritten.

@@ -334,3 +334,47 @@ pub extend Output with Eq::{equal, not_equal}
 
 ///|
 pub extend Output with @debug.Debug::{to_repr}
+
+///|
+/// Render every label against its own source. Dependency offsets are never
+/// interpreted through the root file's line table.
+pub fn render_wit_diagnostics(
+  diagnostics : ReadOnlyArray[@wit_verifier.Diagnostic],
+  sources : ReadOnlyArray[(String, String)],
+) -> String {
+  let indexed : Map[String, @wit_span.Source] = Map([])
+  for (id, text) in sources {
+    if !indexed.contains(id) {
+      indexed[id] = @wit_span.Source::new(text)
+    }
+  }
+  let render_location = fn(location : @wit_verifier.Location) {
+    match indexed.get(location.source) {
+      Some(source) =>
+        match source.position(location.span.start) {
+          Some(position) =>
+            "\{location.source}:\{position.line+1}:\{position.column+1}"
+          None =>
+            "\{location.source}:[\{location.span.start},\{location.span.end})"
+        }
+      None => "\{location.source}:[\{location.span.start},\{location.span.end})"
+    }
+  }
+  let out = StringBuilder()
+  for diagnostic in diagnostics {
+    out.write_string(
+      render_location(diagnostic.primary.location) +
+      ": error " +
+      diagnostic.code +
+      ": " +
+      diagnostic.message +
+      "\n",
+    )
+    for label in diagnostic.related {
+      out.write_string(
+        render_location(label.location) + ": " + label.message + "\n",
+      )
+    }
+  }
+  out.to_string()
+}

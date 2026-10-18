@@ -2,7 +2,6 @@
 priv enum Role {
   Root
   Top
-  PackagePath
   Member
   Type
   Signature
@@ -36,35 +35,168 @@ pub fn verify_ast(
   source_id~ : String = "<input>",
   source~ : String,
 ) -> Result[Verified, ReadOnlyArray[Diagnostic]] {
+  let document : Document = {
+    id: source_id,
+    text: source,
+    ast: tree,
+    diagnostics: [],
+  }
+  match resolve({ documents: [document], }) {
+    Ok(result) => Ok(result.model)
+    Err(errors) => Err(errors)
+  }
+}
+
+///|
+fn verify_prepared(
+  prepared : Prepared,
+) -> Result[Resolution, ReadOnlyArray[Diagnostic]] {
+  let tree = prepared.tree
   let errors : Array[Diagnostic] = []
   let bad = fn(id : Int32, code : String, message : String) {
-    let span = if id >= 0 && id < tree.nodes.length() {
-      tree.nodes[id].span
-    } else {
-      { start: 0, end: 0, }
-    }
-    errors.push(error(source_id, span, code, message))
+    errors.push(prepared_error(prepared, id, code, message))
   }
-  guard tree.validate() && !tree.nodes.is_empty() else {
-    bad(-1, "WIT-S001", "invalid AST structure")
-    return Err(ReadOnlyArray::from_array(errors))
+  let scopes : Array[Map[String, Int32]] = []
+  for _ in prepared.identities {
+    scopes.push({})
   }
-  for i, node in tree.nodes {
-    if node.span.start < 0 || node.span.end > source.length() {
-      bad(i, "WIT-S001", "AST location is outside its source")
-    }
-  }
-  if !errors.is_empty() {
-    return Err(ReadOnlyArray::from_array(errors))
-  }
-  let scopes : Array[Map[String, Int32]] = [{}]
   let bindings : Array[Binding] = []
-  let pending : Array[(Int32, Role, Int32)] = [
-    (tree.nodes.length() - 1, Root, 0),
-  ]
+  let pending : Array[(Int32, Role, Int32)] = []
+  for i = prepared.roots.length() - 1; i >= 0; i = i - 1 {
+    let root = prepared.roots[i]
+    pending.push((root, Root, prepared.node_packages[root]))
+  }
   let references : Array[(Int32, Int32)] = []
   let aliases : Array[Int32] = []
-  let mut package_identity : PackageIdentity? = None
+  let owner_scopes : Map[Int32, Int32] = Map([])
+  let scope_owners : Map[Int32, Int32] = Map([])
+  let interface_edges : Array[(Int32, Int32, Int32)] = []
+  let package_edges : Array[(Int32, Int32, Int32)] = []
+  let world_imports : Map[Int32, Array[WorldItem]] = Map([])
+  let world_exports : Map[Int32, Array[WorldItem]] = Map([])
+  let world_import_names : Map[Int32, Map[String, Int32]] = Map([])
+  let world_export_names : Map[Int32, Map[String, Int32]] = Map([])
+  let register = fn(scope_id : Int32, name : String, id : Int32) {
+    if scopes[scope_id].get(name) is Some(first) {
+      let d = prepared_error(
+        prepared,
+        id,
+        "WIT-S004",
+        "duplicate declaration `" + name + "`",
+      )
+      errors.push({
+        ..d,
+        related: [
+          {
+            location: prepared.origins[first].location,
+            message: "first declared here",
+          },
+        ],
+      })
+    } else {
+      scopes[scope_id][name] = id
+      bindings.push({ name, scope: scope_id, node: id, target: id, })
+    }
+  }
+  // Collect package and interface/world scopes before resolving any names.
+  for root in prepared.roots {
+    if tree.nodes[root].data is File(items~) {
+      let package_scope = prepared.node_packages[root]
+      for item in items {
+        match tree.nodes[item].data {
+          Interface(name~, items=members, ..)
+          | World(name~, items=members, ..) => {
+            let scope_id = scopes.length()
+            scopes.push({})
+            owner_scopes[item] = scope_id
+            scope_owners[scope_id] = item
+            if tree.nodes[item].data is World(..) {
+              world_imports[item] = []
+              world_exports[item] = []
+              world_import_names[item] = Map([])
+              world_export_names[item] = Map([])
+            }
+            for member_id in members {
+              if declaration(tree.nodes[member_id].data) is Some(name) {
+                register(scope_id, name, member_id)
+              }
+              if tree.nodes[member_id].data is Use(names~, ..) {
+                for selector in names {
+                  if tree.nodes[selector].data is Rename(name~, renamed~) {
+                    register(scope_id, renamed.unwrap_or(name), selector)
+                    aliases.push(selector)
+                  }
+                }
+              }
+            }
+            register(package_scope, name, item)
+          }
+          _ => ()
+        }
+      }
+    }
+  }
+  let record_path = fn(
+    owner : Int32,
+    path : Int32,
+    target : Int32,
+    external : Bool,
+  ) {
+    interface_edges.push((owner, target, path))
+    if external {
+      package_edges.push(
+        (prepared.node_packages[path], prepared.node_packages[target], path),
+      )
+    }
+  }
+  let world_entry = fn(
+    owner : Int32,
+    imported : Bool,
+    name : String,
+    kind : WorldItemKind,
+    node : Int32,
+  ) {
+    let items = if imported {
+      world_imports[owner]
+    } else {
+      world_exports[owner]
+    }
+    let seen = if imported {
+      world_import_names[owner]
+    } else {
+      world_export_names[owner]
+    }
+    if seen.get(name) is Some(first) {
+      let d = prepared_error(
+        prepared,
+        node,
+        "WIT-S004",
+        "duplicate world item `" + name + "`",
+      )
+      errors.push({
+        ..d,
+        related: [
+          {
+            location: prepared.origins[first].location,
+            message: "first declared here",
+          },
+        ],
+      })
+    } else {
+      seen[name] = node
+      items.push({ name, kind, location: prepared.origins[node].location, })
+    }
+  }
+  for owner, node in tree.nodes {
+    if node.data is World(items~, ..) {
+      for item in items {
+        if type_declaration(tree.nodes[item].data) &&
+          declaration(tree.nodes[item].data) is Some(name) {
+          world_entry(owner, true, name, Type(item), item)
+        }
+      }
+    }
+  }
   let duplicates = fn(ids : ReadOnlyArray[Int32], kind : String) {
     let seen : Map[String, Int32] = Map([])
     for child in ids {
@@ -74,9 +206,9 @@ pub fn verify_ast(
       }
       if name is Some(name) {
         if seen.get(name) is Some(first) {
-          let d = error(
-            source_id,
-            tree.nodes[child].span,
+          let d = prepared_error(
+            prepared,
+            child,
             "WIT-S004",
             "duplicate " + kind + " `" + name + "`",
           )
@@ -84,7 +216,7 @@ pub fn verify_ast(
             ..d,
             related: [
               {
-                location: { source: source_id, span: tree.nodes[first].span, },
+                location: prepared.origins[first].location,
                 message: "first declared here",
               },
             ],
@@ -120,92 +252,161 @@ pub fn verify_ast(
 
     let mut accepted = true
     match (role, data) {
-      (Root, File(items~)) => {
-        let headers = items.filter(id => tree.nodes[id].data is Package(..))
-        if headers.length() != 1 ||
-          items.is_empty() ||
-          !(tree.nodes[items[0]].data is Package(..)) {
-          bad(
-            id, "WIT-S002", "a complete WIT package requires one leading package header",
-          )
-        }
+      (Root, File(items~)) =>
         for i = items.length() - 1; i >= 0; i = i - 1 {
-          pending.push((items[i], Top, scope))
+          if !(tree.nodes[items[i]].data is Package(..)) {
+            pending.push((items[i], Top, scope))
+          }
         }
-      }
-      (Top, Package(path~, items~, attributes~, nested~)) => {
-        if !items.is_empty() && !nested {
-          bad(
-            id, "WIT-S001", "non-nested package header cannot own declarations",
-          )
-        }
-        if nested || !attributes.is_empty() {
-          bad(
-            id, "WIT-S003", "nested packages and attributes are not yet supported",
-          )
-        }
-        pending.push((path, PackagePath, scope))
-        for i = items.length() - 1; i >= 0; i = i - 1 {
-          pending.push((items[i], Top, scope))
-        }
-      }
-      (PackagePath, Path(namespaces~, segments~, version~)) => {
-        if namespaces.length() != 1 ||
-          segments.length() != 1 ||
-          !identifier(namespaces[0]) ||
-          !identifier(segments[0]) {
-          bad(id, "WIT-S001", "invalid package identity")
-        } else {
-          package_identity = Some({
-            namespace_name: namespaces[0],
-            name: segments[0],
-            version,
-          })
-        }
-        if version is Some(_) {
-          bad(id, "WIT-S003", "version semantics are not yet supported")
-        }
-      }
       (Top, Interface(items~, attributes~, ..))
       | (Top, World(items~, attributes~, ..)) => {
         if !attributes.is_empty() {
           bad(id, "WIT-S003", "attributes are not yet supported")
         }
-        let scope_id = scopes.length()
-        scopes.push({})
-        // WIT names are collected before resolving types, including forward references.
+        guard owner_scopes.get(id) is Some(scope_id) else {
+          bad(id, "WIT-S001", "invalid interface/world scope")
+          continue
+        }
         for item in items {
           if data is World(..) && tree.nodes[item].data is Function(..) {
             bad(item, "WIT-S001", "world functions must be imports or exports")
           }
-          if declaration(tree.nodes[item].data) is Some(name) {
-            if scopes[scope_id].get(name) is Some(first) {
-              let d = error(
-                source_id,
-                tree.nodes[item].span,
-                "WIT-S004",
-                "duplicate declaration `" + name + "`",
-              )
-              errors.push({
-                ..d,
-                related: [
-                  {
-                    location: {
-                      source: source_id,
-                      span: tree.nodes[first].span,
-                    },
-                    message: "first declared here",
-                  },
-                ],
-              })
-            } else {
-              scopes[scope_id][name] = item
-              bindings.push({ name, scope: scope_id, node: item, target: item, })
-            }
-          }
         }
         for i = items.length() - 1; i >= 0; i = i - 1 {
           pending.push((items[i], Member, scope_id))
+        }
+      }
+      (Member, Use(path~, names~, renamed~, attributes~)) => {
+        if tree.nodes[scope_owners[scope]].data is World(..) {
+          bad(id, "WIT-S003", "world use elaboration is not yet supported")
+          continue
+        }
+        if renamed is Some(_) || !attributes.is_empty() {
+          bad(
+            id, "WIT-S003", "interface alias and use attributes are not yet supported",
+          )
+        }
+        if names.is_empty() {
+          bad(id, "WIT-S001", "use requires selected type names")
+        }
+        match prepared.find_item(scopes, path, "interface") {
+          Err(d) => errors.push(d)
+          Ok((target, external)) => {
+            let owner = scope_owners[scope]
+            record_path(owner, path, target, external)
+            let target_scope = owner_scopes[target]
+            for selector in names {
+              guard tree.nodes[selector].data is Rename(name~, renamed~) else {
+                bad(selector, "WIT-S001", "invalid use selector role")
+                continue
+              }
+              let introduced = renamed.unwrap_or(name)
+              if !identifier(name) || !identifier(introduced) {
+                bad(selector, "WIT-S001", "invalid decoded use name")
+              }
+              match scopes[target_scope].get(name) {
+                None =>
+                  bad(
+                    selector,
+                    "WIT-S005",
+                    "unresolved type `" + name + "` in imported interface",
+                  )
+                Some(declaration) =>
+                  if !type_declaration(tree.nodes[declaration].data) &&
+                    !(tree.nodes[declaration].data is Rename(..)) {
+                    let d = prepared_error(
+                      prepared, selector, "WIT-S008", "imported name is not a type",
+                    )
+                    errors.push({
+                      ..d,
+                      related: [
+                        {
+                          location: prepared.origins[declaration].location,
+                          message: "non-type declaration is here",
+                        },
+                      ],
+                    })
+                  } else {
+                    references.push((selector, declaration))
+                    bindings.push({
+                      name: introduced,
+                      scope,
+                      node: selector,
+                      target: declaration,
+                    })
+                    if tree.nodes[owner].data is World(..) {
+                      world_entry(
+                        owner,
+                        true,
+                        introduced,
+                        Type(selector),
+                        selector,
+                      )
+                    }
+                  }
+              }
+            }
+          }
+        }
+      }
+      (Member, Import(name~, target~, attributes~))
+      | (Member, Export(name~, target~, attributes~)) => {
+        let owner = scope_owners[scope]
+        if !(tree.nodes[owner].data is World(..)) {
+          bad(id, "WIT-S001", "imports and exports require a world")
+          continue
+        }
+        if !attributes.is_empty() {
+          bad(id, "WIT-S003", "world item attributes are not yet supported")
+        }
+        let imported = data is Import(..)
+        if !imported {
+          bad(id, "WIT-S003", "world export elaboration is not yet supported")
+          continue
+        }
+        match tree.nodes[target].data {
+          Path(..) =>
+            match prepared.find_item(scopes, target, "interface") {
+              Err(d) => errors.push(d)
+              Ok((interface_id, external)) => {
+                record_path(owner, target, interface_id, external)
+                let identity = prepared.identities[prepared.node_packages[interface_id]]
+                let interface_name = declaration(tree.nodes[interface_id].data).unwrap_or(
+                  "",
+                )
+                let canonical = identity.namespace_name +
+                  ":" +
+                  identity.name +
+                  "/" +
+                  interface_name +
+                  (match identity.version {
+                    Some(v) => "@" + v
+                    None => ""
+                  })
+                world_entry(
+                  owner,
+                  imported,
+                  name.unwrap_or(canonical),
+                  Interface(interface_id),
+                  id,
+                )
+              }
+            }
+          Signature(..) =>
+            match name {
+              Some(name) => {
+                if !identifier(name) {
+                  bad(id, "WIT-S001", "invalid world function name")
+                }
+                world_entry(owner, imported, name, Function(target), id)
+                pending.push((target, Signature, scope))
+              }
+              None => bad(id, "WIT-S001", "world functions require a name")
+            }
+          _ =>
+            bad(
+              target, "WIT-S003", "inline world item semantics are not yet supported",
+            )
         }
       }
       (Member, Resource(methods~, attributes~, ..)) => {
@@ -315,13 +516,14 @@ pub fn verify_ast(
       (Type, NamedType(name~)) =>
         match scopes[scope].get(name) {
           Some(target) =>
-            if type_declaration(tree.nodes[target].data) {
+            if type_declaration(tree.nodes[target].data) ||
+              tree.nodes[target].data is Rename(..) {
               references.push((id, target))
               bindings.push({ name, scope, node: id, target, })
             } else {
-              let d = error(
-                source_id,
-                node.span,
+              let d = prepared_error(
+                prepared,
+                id,
                 "WIT-S008",
                 "expected a type, found `" + name + "`",
               )
@@ -329,10 +531,7 @@ pub fn verify_ast(
                 ..d,
                 related: [
                   {
-                    location: {
-                      source: source_id,
-                      span: tree.nodes[target].span,
-                    },
+                    location: prepared.origins[target].location,
                     message: "non-type declaration is here",
                   },
                 ],
@@ -396,30 +595,6 @@ pub fn verify_ast(
         @debug.to_string(node.data.kind()),
       )
     }
-    if role is Top {
-      if declaration(data) is Some(name) {
-        if scopes[0].get(name) is Some(first) {
-          let d = error(
-            source_id,
-            node.span,
-            "WIT-S004",
-            "duplicate declaration `" + name + "`",
-          )
-          errors.push({
-            ..d,
-            related: [
-              {
-                location: { source: source_id, span: tree.nodes[first].span, },
-                message: "first declared here",
-              },
-            ],
-          })
-        } else {
-          scopes[0][name] = id
-          bindings.push({ name, scope: 0, node: id, target: id, })
-        }
-      }
-    }
   }
   // Alias edges are followed with an explicit stack. Cycles cannot create a model.
   let edges : Map[Int32, Int32] = Map([])
@@ -445,16 +620,13 @@ pub fn verify_ast(
           let (ancestor, leaving) = work[i]
           if leaving && related.length() < 32 {
             related.push({
-              location: { source: source_id, span: tree.nodes[ancestor].span, },
+              location: prepared.origins[ancestor].location,
               message: "type dependency passes through here",
             })
           }
         }
-        let d = error(
-          source_id,
-          tree.nodes[id].span,
-          "WIT-S006",
-          "cyclic type dependency",
+        let d = prepared_error(
+          prepared, id, "WIT-S006", "cyclic type dependency",
         )
         errors.push({ ..d, related: ReadOnlyArray::from_array(related), })
         continue
@@ -470,16 +642,51 @@ pub fn verify_ast(
       }
     }
   }
-  if errors.is_empty() && package_identity is Some(package_identity) {
-    Ok({
-      source_id,
-      source_text: source,
-      tree,
+  for (owner, items) in world_imports {
+    ignore(owner)
+    for item in items {
+      if item.kind is Interface(target) &&
+        interface_edges.any(edge => edge.0 == target) {
+        let message = "world import dependency elaboration is not yet supported"
+        errors.push(
+          error(item.location.source, item.location.span, "WIT-S003", message),
+        )
+      }
+    }
+  }
+  graph_cycles(prepared, interface_edges, false, errors)
+  graph_cycles(prepared, package_edges, true, errors)
+  let worlds : Array[ResolvedWorld] = []
+  for id, node in tree.nodes {
+    if node.data is World(name~, ..) && world_imports.get(id) is Some(imports) {
+      worlds.push({
+        id,
+        name,
+        imports: ReadOnlyArray::from_array(imports),
+        exports: ReadOnlyArray::from_array(world_exports[id]),
+        location: prepared.origins[id].location,
+      })
+    }
+  }
+  if errors.is_empty() {
+    let first = prepared.documents[0]
+    let locations = prepared.origins.map(origin => origin.location)
+    let model : Verified = {
+      source_id: first.id,
+      source_text: first.text,
+      tree: first.ast,
       bindings: ReadOnlyArray::from_array(bindings),
-      resolved_types: resolved_types(tree, source_id, edges),
-      package_identity,
+      resolved_types: resolved_types(tree, locations, edges),
+      package_identity: prepared.identities[0],
+    }
+    Ok({
+      model,
+      documents: prepared.documents,
+      packages: prepared.identities,
+      origins: prepared.origins,
+      resolved_worlds: ReadOnlyArray::from_array(worlds),
     })
   } else {
-    Err(ReadOnlyArray::from_array(errors))
+    Err(dependency_chains(prepared, package_edges, errors))
   }
 }

@@ -1,0 +1,1 @@
+package example:root; interface api {type item=u8;}

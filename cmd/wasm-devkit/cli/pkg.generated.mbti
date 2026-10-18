@@ -3,6 +3,7 @@ package "moonrockz/wasm-devkit/cli"
 
 import {
   "moonbitlang/core/debug",
+  "moonrockz/wit/verifier",
 }
 
 // Values
@@ -11,6 +12,8 @@ pub fn arguments(ArrayView[String]) -> Result[Action, String]
 pub fn execute(Options, String) -> Output
 
 pub let help : String
+
+pub fn render_wit_diagnostics(ReadOnlyArray[@verifier.Diagnostic], ReadOnlyArray[(String, String)]) -> String
 
 pub fn version() -> String
 
@@ -39,6 +42,14 @@ pub fn Command::equal(Self, Self) -> Bool
 pub fn Command::not_equal(Self, Self) -> Bool
 pub fn Command::to_repr(Self) -> @debug.Repr
 
+pub(all) struct DependencyMapping {
+  name : String
+  path : String
+} derive(Eq, @debug.Debug)
+pub fn DependencyMapping::equal(Self, Self) -> Bool
+pub fn DependencyMapping::not_equal(Self, Self) -> Bool
+pub fn DependencyMapping::to_repr(Self) -> @debug.Repr
+
 pub(all) enum Language {
   Wit
   Wac
@@ -55,6 +66,9 @@ pub(all) struct Options {
   indent_width : Int
   check : Bool
   write : Bool
+  base : String?
+  deps_dir : String?
+  dependencies : ReadOnlyArray[DependencyMapping]
 } derive(Eq, @debug.Debug)
 pub fn Options::equal(Self, Self) -> Bool
 pub fn Options::not_equal(Self, Self) -> Bool

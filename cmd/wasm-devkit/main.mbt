@@ -16,6 +16,16 @@ async fn main {
         @stdio.stdout.write("wasm-devkit " + @cli.version() + "\n")
         0
       }
+      Ok(Run(options)) if options.command == Verify => {
+        let result = @verification.execute(options)
+        if !result.stdout.is_empty() {
+          @stdio.stdout.write(result.stdout)
+        }
+        if !result.stderr.is_empty() {
+          @stdio.stderr.write(result.stderr)
+        }
+        result.exit_code
+      }
       Ok(Run(options)) => {
         let data = if options.path == "-" {
           @stdio.stdin.read_all()

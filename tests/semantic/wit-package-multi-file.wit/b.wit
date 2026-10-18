@@ -1,0 +1,1 @@
+interface consumer { use api.{item as local}; type result-item = list<local>; }

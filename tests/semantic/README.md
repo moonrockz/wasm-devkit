@@ -4,9 +4,12 @@ These are original Apache-2.0 fixture sources for the initial verifier API path.
 They are a seed suite, not the complete upstream conformance gate required by issue #5.
 No upstream fixture sources are copied here yet.
 
-`manifest.tsv` records acceptance and SHA-256 over the exact source bytes. Each file
+`manifest.tsv` records acceptance and SHA-256 over the exact source bytes. For a
+directory bundle, the digest covers each sorted relative file name, a NUL separator
+and its bytes, including files intentionally ignored by source discovery. Each file
 is passed unchanged to the reference semantic resolver and the wasm-devkit CLI.
-There are no dependency files or registry lookups in this suite. The wasm-devkit CLI
+Directory fixtures include complete multi-file and dependency bundles. There are no
+registry lookups in this suite. The wasm-devkit CLI
 uses `--all-features` to admit the fixed-list grammar. The reference resolvers use
 their default semantic feature sets.
 
@@ -32,3 +35,9 @@ feature profiles and justified exclusions remain tracked in Beads
 WIT type cases establish the pinned resolver's aggregate constraints, map-key categories,
 fixed-list u32 bounds and lexical representation, forward references and recursive graphs.
 In particular a `string` map key succeeds while an alias to `string` fails at this pin.
+
+Source-package fixtures compare the issue's valid runtime import, missing packages,
+versions/interfaces/selectors, multi-file identities, transitive diamonds, local and
+package cycles, exact version selection, mismatched headers and discovery rules.
+`wit-package-no-nested-deps.wit` deliberately places a dependency below another
+package's `deps` directory; both resolvers reject the unresolved transitive package.

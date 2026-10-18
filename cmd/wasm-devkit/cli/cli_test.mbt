@@ -122,7 +122,7 @@ test "verify distinguishes syntax and semantics without changing check" {
         "wac", "package a:b; import f: func(); let x = f; export x as \"x\";", "package a:b; let x = f; import f: func();",
       ),
     ] {
-    let verify = options(["verify", "--language", language])
+    let verify = options(["verify", "--language", language, "--base", "."])
     let good = @cli.execute(verify, good)
     assert_eq(good.exit_code, 0)
     assert_true(good.stdout.contains("verified"))
@@ -141,4 +141,29 @@ test "verify distinguishes syntax and semantics without changing check" {
   assert_eq(options(["verify", "a.wac"]).language, Wac)
   assert_true(@cli.arguments(["verify", "a.wit", "--write"]) is Err(_))
   assert_eq(@cli.execute(options(["verify", "a.wit"]), "?").exit_code, 1)
+}
+
+///|
+test "dependency arguments require verify and stdin supplies a resolution base" {
+  let parsed = options([
+    "verify", "wit", "--language", "wit", "--base", "work", "--deps-dir", "deps",
+    "--dep", "example:dep@1.0.0=dep.wit",
+  ])
+  assert_eq(parsed.base, Some("work"))
+  assert_eq(parsed.deps_dir, Some("deps"))
+  assert_eq(parsed.dependencies.length(), 1)
+  assert_eq(parsed.dependencies[0].name, "example:dep@1.0.0")
+  assert_eq(parsed.dependencies[0].path, "dep.wit")
+  for
+    args in [
+      ["verify", "--language", "wit"],
+      ["verify", "a.wit", "--dep", "broken"],
+      ["verify", "a.wit", "--dep", "=path"],
+      ["verify", "a.wit", "--dep", "name="],
+      ["verify", "a.wit", "--deps-dir"],
+      ["parse", "a.wit", "--base", "."],
+      ["format", "a.wit", "--dep", "a:b=path"],
+    ] {
+    assert_true(@cli.arguments(args[:]) is Err(_))
+  }
 }

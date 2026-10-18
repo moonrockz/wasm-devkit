@@ -43,7 +43,7 @@ async fn main {
       fail("unknown fixture language")
     }
     let (hash_code, digest, hash_error) = @process.collect_output("node", [
-      "--input-type=module", "-e", "import {createHash} from 'node:crypto'; import {readFileSync} from 'node:fs'; console.log(createHash('sha256').update(readFileSync(process.argv[1])).digest('hex'))",
+      "--input-type=module", "-e", "import {createHash} from 'node:crypto'; import {readFileSync,readdirSync,statSync} from 'node:fs'; import {join} from 'node:path'; const root=process.argv[1], h=createHash('sha256'); if(statSync(root).isDirectory()){const files=[],todo=[['',root]]; while(todo.length){const [rel,p]=todo.pop(); for(const name of readdirSync(p).sort()){const child=join(p,name),r=rel?rel+'/'+name:name; if(statSync(child).isDirectory())todo.push([r,child]); else files.push([r,child]);}} for(const [rel,p] of files.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0)){h.update(rel+String.fromCharCode(0));h.update(readFileSync(p));}} else h.update(readFileSync(root)); console.log(h.digest('hex'))",
       path,
     ])
     if hash_code != 0 || digest.text().trim() != fields[2] {

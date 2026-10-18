@@ -1,5 +1,6 @@
 import {
   "moonrockz/wasm-devkit/cli",
+  "moonrockz/wasm-devkit/verification",
   "moonbitlang/async",
   "moonbitlang/async/stdio",
   "moonbitlang/async/fs",

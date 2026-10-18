@@ -15,6 +15,9 @@ pub let help : String =
   #|
   #|Options:
   #|  --language wit|wac   Select the source language
+  #|  --base PATH          Dependency resolution base (required for verify stdin)
+  #|  --deps-dir PATH      Dependency directory relative to the resolution base
+  #|  --dep PKG=PATH       Map a package to a file/directory, relative to the base
   #|  --all-features       Enable documented grammar extensions
   #|  --indent 0..8        Spaces per indentation level (default: 2)
   #|  --check              Fail if formatting would change input (format only)
@@ -46,6 +49,12 @@ pub(all) enum Command {
 } derive(Eq, Debug)
 
 ///|
+pub(all) struct DependencyMapping {
+  name : String
+  path : String
+} derive(Eq, Debug)
+
+///|
 pub(all) struct Options {
   command : Command
   language : Language
@@ -54,6 +63,9 @@ pub(all) struct Options {
   indent_width : Int32
   check : Bool
   write : Bool
+  base : String?
+  deps_dir : String?
+  dependencies : ReadOnlyArray[DependencyMapping]
 } derive(Eq, Debug)
 
 ///|
@@ -87,6 +99,9 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
   let mut all_features = false
   let mut check = false
   let mut write = false
+  let mut base = None
+  let mut deps_dir = None
+  let dependencies : Array[DependencyMapping] = []
   let mut literal = false
   let mut at = 1
   while at < args.length() {
@@ -129,6 +144,27 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
         _ => return Err("--indent requires an integer from 0 through 8")
       }
       indent_width = width
+    } else if !literal &&
+      (arg == "--base" || arg == "--deps-dir" || arg == "--dep") {
+      at += 1
+      if at == args.length() || args[at].is_empty() {
+        return Err(arg + " requires a value")
+      }
+      if arg == "--base" {
+        base = Some(args[at])
+      } else if arg == "--deps-dir" {
+        deps_dir = Some(args[at])
+      } else {
+        guard args[at].find("=") is Some(separator) &&
+          separator > 0 &&
+          separator + 1 < args[at].length() else {
+          return Err("--dep requires PKG=PATH")
+        }
+        dependencies.push({
+          name: args[at][:separator].to_owned(),
+          path: args[at][separator + 1:].to_owned(),
+        })
+      }
     } else if !literal && arg == "--all-features" {
       all_features = true
     } else if !literal && arg == "--check" {
@@ -159,6 +195,13 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
         )
       }
   }
+  if command != Verify &&
+    (base is Some(_) || deps_dir is Some(_) || !dependencies.is_empty()) {
+    return Err("dependency options require verify")
+  }
+  if command == Verify && path == "-" && base is None {
+    return Err("verify on stdin requires --base PATH")
+  }
   if (check || write) && command != Format {
     return Err("--check and --write require format")
   }
@@ -169,7 +212,18 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
     return Err("--write requires a named file")
   }
   Ok(
-    Run({ command, language, path, all_features, indent_width, check, write, }),
+    Run({
+      command,
+      language,
+      path,
+      all_features,
+      indent_width,
+      check,
+      write,
+      base,
+      deps_dir,
+      dependencies: ReadOnlyArray::from_array(dependencies),
+    }),
   )
 }
 
@@ -196,3 +250,9 @@ pub extend Options with @debug.Debug::{to_repr}
 
 ///|
 pub extend Action with @debug.Debug::{to_repr}
+
+///|
+pub extend DependencyMapping with Eq::{equal, not_equal}
+
+///|
+pub extend DependencyMapping with @debug.Debug::{to_repr}

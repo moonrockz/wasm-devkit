@@ -1,0 +1,1 @@
+package example:dep; interface api { run: func(); }

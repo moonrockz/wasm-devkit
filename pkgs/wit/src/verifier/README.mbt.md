@@ -15,9 +15,16 @@ Fixed lists use decimal u32 lengths, including zero. Enable their grammar throug
 char or string scalar keys. At the pinned reference revision, aliases to those scalars
 are rejected as map keys. Futures, streams and error-context types follow that same pin.
 
-Resource methods, handles, use/include, world imports/exports, package dependencies,
-attributes and other unsupported constructs fail with `WIT-S003` until their
-semantics are implemented under [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
+Source packages may span multiple files. Interface type `use` selectors and renames
+resolve through supplied local or external packages, including transitive and diamond
+dependencies. Version-qualified paths match exact package identities. An unversioned
+reference does not select a versioned package. Simple world function/interface imports
+remain runtime imports and require no component implementation.
+
+Resource methods, handles, top-level interface aliases, includes, world use/export
+elaboration, imports of interfaces that themselves use other interfaces, encoded
+packages and attributes still fail explicitly under `WIT-S003`. Their implementation
+continues under [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
 A successful result covers the entire supported input. An unsupported or unresolved
 construct never yields a `Verified` model.
 
@@ -61,10 +68,10 @@ before using them. Neither operation formats or reparses the supplied AST.
 `Verified` has a private constructor. Its AST, bindings and source context are immutable.
 `identity()` exposes the package name. Binding identities use the source, lexical
 scope and arena node. `types()` exposes a fully resolved immutable type graph;
-each local type edge names an entry's `id`, with source-qualified provenance.
+each type edge names an entry's closure-local `id`, with source-qualified provenance.
 The graph includes aliases and anonymous composites without reparsing source. Diagnostics use
 source-qualified UTF-16 half-open spans, with related locations for earlier declarations.
-Ordering follows deterministic source traversal and requires no mutable global state.
+Diagnostics sort by source identity, UTF-16 span and code. Resolution uses no mutable global state.
 `Diagnostic::render()` renders source identities and offsets without confusing dependency
 locations with the root source. The CLI adds 1-based UTF-16 line/column coordinates.
 
@@ -91,3 +98,52 @@ test "inspect resolved type edges" {
   }
 }
 ```
+
+## Resolve a supplied package closure
+
+`Document::from_parse` accepts existing parser results. Callers can also construct
+`Document` values from existing ASTs and syntax diagnostics. The resolver validates
+all supplied files and packages, including dependencies that are not referenced by
+the root. Providers decide which sources to supply. Filesystem and registry adapters
+belong outside this package.
+
+```mbt check
+///|
+test "resolve a package without implementing its runtime import" {
+  let root_text = "package example:app@1.0.0; world app { import example:dep/api@1.0.0; }"
+  let dep_text = "package example:dep@1.0.0; interface api { greet: func(name: string) -> string; }"
+  let root : @verifier.SourcePackage = {
+    documents: [
+      @verifier.Document::from_parse(
+        "world.wit",
+        root_text,
+        @parser.parse(root_text),
+      ),
+    ],
+  }
+  let dep : @verifier.SourcePackage = {
+    documents: [
+      @verifier.Document::from_parse(
+        "deps/api.wit",
+        dep_text,
+        @parser.parse(dep_text),
+      ),
+    ],
+  }
+  let model = @verifier.resolve(root, dependencies=[dep]).unwrap()
+  assert_eq(model.root().name, "app")
+  assert_eq(model.worlds()[0].imports[0].name, "example:dep/api@1.0.0")
+  assert_eq(model.sources()[0].ast, root.documents[0].ast)
+}
+```
+
+Every source keeps its original text and AST. `Resolution::origin(id)` maps a
+closure-local node/type identity back to its source-qualified UTF-16 location and
+original arena index. Successful identities and diagnostics are independent of
+source/dependency discovery order. Explicit work stacks handle type, interface and
+package cycles; related labels explain dependency chains, including syntax failures
+in a dependency whose package header can still be recovered.
+
+`WIT-S009` reports an unresolved package identity. `WIT-S011` reports conflicting
+package metadata or duplicate supplied identities. Missing interface/type selectors
+use `WIT-S005`; wrong declaration kinds use `WIT-S008`.

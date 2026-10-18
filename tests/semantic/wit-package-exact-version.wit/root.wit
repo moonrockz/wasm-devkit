@@ -1,0 +1,1 @@
+package example:root; interface api { use example:dep/api@2.0.0.{item}; }

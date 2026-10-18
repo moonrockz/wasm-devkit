@@ -73,7 +73,7 @@ async fn main {
   @fs.write_file(semantic_bad, "interface api { type t = missing; }")
   let _ = run(["verify", wit], 0, wit)
   let _ = run(["verify", semantic_wac], 0, wit)
-  let _ = run(["verify", "--language", "wit"], 0, wit)
+  let _ = run(["verify", "--language", "wit", "--base", "."], 0, wit)
   let _ = run(["verify", semantic_bad], 1, wit)
   let _ = run(["check", semantic_bad], 0, wit)
   let _ = run(["verify", dir + "/missing.wit"], 2, wit)
@@ -101,5 +101,36 @@ async fn main {
   let _ = run(["parse", malformed], 2, wit)
   let _ = run(["parse"], 2, wit)
   let _ = run(["format", "--language", "wit", "--write"], 2, wit)
+  let package_dir = dir + "/package"
+  let dependency_dir = package_dir + "/deps/dep"
+  @fs.mkdir(dependency_dir, recursive=true, allow_exist=true)
+  let world = package_dir + "/world.wit"
+  let api = dependency_dir + "/api.wit"
+  let mapped = dir + "/mapped.wit"
+  let world_source = "package example:app@1.0.0; world app { import example:dep/api@1.0.0; }"
+  let api_source = "package example:dep@1.0.0; interface api { greet: func(name: string) -> string; }"
+  @fs.write_file(world, world_source)
+  @fs.write_file(api, api_source)
+  @fs.write_file(mapped, api_source)
+  let _ = run(["verify", package_dir, "--language", "wit"], 0, wit)
+  let _ = run(["verify", world], 0, wit)
+  let _ = run(["verify", "--language", "wit", "--base", package_dir], 0, world)
+  let _ = run(["verify", "--language", "wit"], 2, world)
+  let _ = run(["verify", world, "--dep", "wrong:package=../mapped.wit"], 1, wit)
+  let _ = run(["verify", world, "--dep", "example:dep=missing.wit"], 2, wit)
+  let _ = run(["verify", world, "--deps-dir", "missing"], 2, wit)
+  @fs.write_file(
+    api, "// 😀\npackage example:dep@1.0.0; interface api { type item = missing; }",
+  )
+  let (_, dependency_error) = run(["verify", world], 1, wit)
+  assert_true(dependency_error.contains(api + ":2:"))
+  assert_true(dependency_error.contains("required by dependency"))
+  let _ = run(
+    ["verify", world, "--dep", "example:dep@1.0.0=../mapped.wit"],
+    0,
+    wit,
+  )
+  assert_eq(@fs.read_file(world).text(), world_source)
+  @fs.write_file(api, api_source)
   println("CLI smoke checks passed")
 }

@@ -1,0 +1,242 @@
+///|
+fn output(out : String, errors : String, exit_code : Int32) -> @cli.Output {
+  { stdout: out, stderr: errors, exit_code, write_text: None, }
+}
+
+///|
+fn parent(path : String) -> String {
+  let mut separator = -1
+  for i in 0..<path.length() {
+    let c = path.code_unit_at(i).to_int()
+    if c == 47 || c == 92 {
+      separator = i
+    }
+  }
+  if separator < 0 {
+    "."
+  } else if separator == 0 {
+    path[:1].to_owned()
+  } else {
+    path[:separator].to_owned()
+  }
+}
+
+///|
+fn relative(base : String, path : String) -> String {
+  if path.has_prefix("/") ||
+    path.has_prefix("\\") ||
+    (path.length() > 1 && path.code_unit_at(1).to_int() == 58) {
+    path
+  } else {
+    base + "/" + path
+  }
+}
+
+///|
+async fn read_document(
+  path : String,
+  features : @parser.Features,
+) -> @verifier.Document {
+  let source = @utf8.decode(@fs.read_file(path).binary(), ignore_bom=false)
+  @verifier.Document::from_parse(path, source, @parser.parse(source, features~))
+}
+
+///|
+async fn load_package(
+  path : String,
+  features : @parser.Features,
+) -> @verifier.SourcePackage {
+  let documents : Array[@verifier.Document] = []
+  if @fs.kind(path) is Directory {
+    for entry in @fs.readdir(path, sort=true) {
+      let child = relative(path, entry)
+      if entry.has_suffix(".wit") && @fs.kind(child) is Regular {
+        documents.push(read_document(child, features))
+      }
+    }
+  } else {
+    documents.push(read_document(path, features))
+  }
+  { documents: ReadOnlyArray::from_array(documents), }
+}
+
+///|
+fn unsupported(path : String) -> @verifier.Diagnostic {
+  let message = "encoded WIT package loading is not yet supported"
+  {
+    code: "WIT-S003",
+    message,
+    primary: {
+      location: { source: path, span: { start: 0, end: 0, }, },
+      message,
+    },
+    related: [],
+  }
+}
+
+///|
+async fn wit(options : @cli.Options) -> @cli.Output {
+  let features = if options.all_features {
+    @parser.Features::all()
+  } else {
+    @parser.Features::default()
+  }
+  let is_directory = options.path != "-" && @fs.kind(options.path) is Directory
+  let base = options.base.unwrap_or(
+    if is_directory {
+      options.path
+    } else {
+      parent(options.path)
+    },
+  )
+  let root = if options.path == "-" {
+    let text = @utf8.decode(@stdio.stdin.read_all().binary(), ignore_bom=false)
+    @verifier.SourcePackage::{
+      documents: [
+        @verifier.Document::from_parse(
+          "<stdin>",
+          text,
+          @parser.parse(text, features~),
+        ),
+      ],
+    }
+  } else if options.path.has_suffix(".wasm") || options.path.has_suffix(".wat") {
+    return output("", unsupported(options.path).render(), 1)
+  } else {
+    load_package(options.path, features)
+  }
+  let dependencies : Array[@verifier.SourcePackage] = []
+  let errors : Array[@verifier.Diagnostic] = []
+  let deps_dir = relative(base, options.deps_dir.unwrap_or("deps"))
+  if @fs.exists(deps_dir) {
+    if !(@fs.kind(deps_dir) is Directory) {
+      return output("", deps_dir + ": dependency root must be a directory\n", 2)
+    }
+    for entry in @fs.readdir(deps_dir, sort=true) {
+      let path = relative(deps_dir, entry)
+      if @fs.kind(path) is Directory || entry.has_suffix(".wit") {
+        dependencies.push(load_package(path, features))
+      } else if entry.has_suffix(".wasm") || entry.has_suffix(".wat") {
+        errors.push(unsupported(path))
+      }
+    }
+  } else if options.deps_dir is Some(_) {
+    return output("", deps_dir + ": dependency directory does not exist\n", 2)
+  }
+  for mapping in options.dependencies {
+    let path = relative(base, mapping.path)
+    // Explicit mappings are checked even if the root never references them.
+    if !@fs.exists(path) {
+      return output("", path + ": dependency mapping does not exist\n", 2)
+    }
+    if path.has_suffix(".wasm") || path.has_suffix(".wat") {
+      errors.push(unsupported(path))
+      continue
+    }
+    let package_input = load_package(path, features)
+    match package_input.identity() {
+      Err(diagnostics) => errors.append(diagnostics.iter().to_array())
+      Ok(identity) => {
+        let base_name = identity.namespace_name + ":" + identity.name
+        if mapping.name != identity.key() && mapping.name != base_name {
+          let message = "dependency mapping expected " +
+            mapping.name +
+            ", found " +
+            identity.key()
+          let mut location : @verifier.Location = {
+            source: path,
+            span: { start: 0, end: 0, },
+          }
+          for document in package_input.documents {
+            for node in document.ast.nodes {
+              if node.data is Package(..) {
+                location = { source: document.id, span: node.span, }
+              }
+            }
+          }
+          errors.push({
+            code: "WIT-S011",
+            message,
+            primary: { location, message, },
+            related: [],
+          })
+        }
+      }
+    }
+    // Explicit mappings override discovered packages with the same declared identity.
+    if package_input.identity() is Ok(identity) {
+      let retained = dependencies.filter(existing => {
+        match existing.identity() {
+          Ok(previous) => previous != identity
+          Err(_) => true
+        }
+      })
+      dependencies.clear()
+      dependencies.append(retained)
+    }
+    dependencies.push(package_input)
+  }
+  let sources : Array[(String, String)] = []
+  for package_input in [root].iter().concat(dependencies.iter()) {
+    for document in package_input.documents {
+      sources.push((document.id, document.text))
+    }
+  }
+  if !errors.is_empty() {
+    return output(
+      "",
+      @cli.render_wit_diagnostics(
+        ReadOnlyArray::from_array(errors),
+        ReadOnlyArray::from_array(sources),
+      ),
+      1,
+    )
+  }
+  match
+    @verifier.resolve(
+      root,
+      dependencies=ReadOnlyArray::from_array(dependencies),
+    ) {
+    Ok(_) =>
+      output(
+        (if options.path == "-" { "<stdin>" } else { options.path }) +
+        ": verified wit\n",
+        "",
+        0,
+      )
+    Err(diagnostics) =>
+      output(
+        "",
+        @cli.render_wit_diagnostics(
+          diagnostics,
+          ReadOnlyArray::from_array(sources),
+        ),
+        1,
+      )
+  }
+}
+
+///|
+/// I/O adapter for the pure language verifiers. Components are never executed.
+pub async fn execute(options : @cli.Options) -> @cli.Output {
+  match options.language {
+    Wit => wit(options)
+    Wac => {
+      if options.deps_dir is Some(_) || !options.dependencies.is_empty() {
+        return output(
+          "",
+          options.path +
+          ":1:1: error WAC-S003: dependency providers are not yet supported for WAC\n",
+          1,
+        )
+      }
+      let data = if options.path == "-" {
+        @stdio.stdin.read_all()
+      } else {
+        @fs.read_file(options.path)
+      }
+      let source = @utf8.decode(data.binary(), ignore_bom=false)
+      @cli.execute(options, source)
+    }
+  }
+}

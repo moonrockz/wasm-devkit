@@ -1,5 +1,5 @@
 ///|
-/// Edges use stable source-local AST node identities. A named type points to
+/// Edges use deterministic closure-local node identities. A named type points to
 /// its resolved declaration, rather than retaining an unresolved name string.
 pub(all) enum TypeKind {
   Scalar(String)
@@ -115,7 +115,7 @@ fn fixed_size(text : String) -> UInt32? {
 ///|
 fn resolved_types(
   tree : @ast.Tree,
-  source : String,
+  locations : ReadOnlyArray[Location],
   references : Map[Int32, Int32],
 ) -> ReadOnlyArray[ResolvedType] {
   let result : Array[ResolvedType] = []
@@ -123,7 +123,8 @@ fn resolved_types(
     let kind : TypeKind? = match node.data {
       PrimitiveType(name~) => Some(Scalar(name))
       Resource(..) => Some(Resource)
-      NamedType(..) => references.get(id).map(id => TypeKind::Alias(id))
+      NamedType(..) | Rename(..) =>
+        references.get(id).map(id => TypeKind::Alias(id))
       Alias(ty~, ..) => Some(Alias(ty))
       ListType(element~, length~) =>
         Some(
@@ -145,11 +146,7 @@ fn resolved_types(
         let members : Array[TypeMember] = []
         for field in fields {
           if tree.nodes[field].data is Field(name~, ty~, ..) {
-            members.push({
-              name,
-              ty,
-              location: { source, span: tree.nodes[field].span, },
-            })
+            members.push({ name, ty, location: locations[field], })
           }
         }
         Some(Record(ReadOnlyArray::from_array(members)))
@@ -173,11 +170,7 @@ fn resolved_types(
         let members : Array[TypeCase] = []
         for case_id in cases {
           if tree.nodes[case_id].data is Case(name~, payload~, ..) {
-            members.push({
-              name,
-              payload,
-              location: { source, span: tree.nodes[case_id].span, },
-            })
+            members.push({ name, payload, location: locations[case_id], })
           }
         }
         Some(Variant(ReadOnlyArray::from_array(members)))
@@ -189,7 +182,7 @@ fn resolved_types(
         id,
         name: declaration(node.data),
         kind,
-        location: { source, span: node.span, },
+        location: locations[id],
       })
     }
   }

@@ -4,11 +4,14 @@ package "moonrockz/wit/verifier"
 import {
   "moonbitlang/core/debug",
   "moonrockz/wit/ast",
+  "moonrockz/wit/diagnostic",
   "moonrockz/wit/parser",
   "moonrockz/wit/span",
 }
 
 // Values
+pub fn resolve(SourcePackage, dependencies? : ReadOnlyArray[SourcePackage]) -> Result[Resolution, ReadOnlyArray[Diagnostic]]
+
 pub fn verify(@parser.Parse, source_id? : String, source~ : String) -> Result[Verified, ReadOnlyArray[Diagnostic]]
 
 pub fn verify_ast(@ast.Tree, source_id? : String, source~ : String) -> Result[Verified, ReadOnlyArray[Diagnostic]]
@@ -37,6 +40,14 @@ pub fn Diagnostic::not_equal(Self, Self) -> Bool
 pub fn Diagnostic::render(Self) -> String
 pub fn Diagnostic::to_repr(Self) -> @debug.Repr
 
+pub(all) struct Document {
+  id : String
+  text : String
+  ast : @ast.Tree
+  diagnostics : ReadOnlyArray[@diagnostic.Diagnostic]
+}
+pub fn Document::from_parse(String, String, @parser.Parse) -> Self
+
 pub(all) struct Label {
   location : Location
   message : String
@@ -53,14 +64,34 @@ pub fn Location::equal(Self, Self) -> Bool
 pub fn Location::not_equal(Self, Self) -> Bool
 pub fn Location::to_repr(Self) -> @debug.Repr
 
+pub(all) struct Origin {
+  location : Location
+  node : Int
+} derive(Eq, @debug.Debug)
+pub fn Origin::equal(Self, Self) -> Bool
+pub fn Origin::not_equal(Self, Self) -> Bool
+pub fn Origin::to_repr(Self) -> @debug.Repr
+
 pub(all) struct PackageIdentity {
   namespace_name : String
   name : String
   version : String?
 } derive(Eq, @debug.Debug)
 pub fn PackageIdentity::equal(Self, Self) -> Bool
+pub fn PackageIdentity::key(Self) -> String
 pub fn PackageIdentity::not_equal(Self, Self) -> Bool
 pub fn PackageIdentity::to_repr(Self) -> @debug.Repr
+
+pub struct Resolution {
+  // private fields
+}
+pub fn Resolution::declarations(Self) -> ReadOnlyArray[Binding]
+pub fn Resolution::identities(Self) -> ReadOnlyArray[PackageIdentity]
+pub fn Resolution::origin(Self, Int) -> Origin?
+pub fn Resolution::root(Self) -> PackageIdentity
+pub fn Resolution::sources(Self) -> ReadOnlyArray[Document]
+pub fn Resolution::types(Self) -> ReadOnlyArray[ResolvedType]
+pub fn Resolution::worlds(Self) -> ReadOnlyArray[ResolvedWorld]
 
 pub(all) struct ResolvedType {
   id : Int
@@ -71,6 +102,22 @@ pub(all) struct ResolvedType {
 pub fn ResolvedType::equal(Self, Self) -> Bool
 pub fn ResolvedType::not_equal(Self, Self) -> Bool
 pub fn ResolvedType::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ResolvedWorld {
+  id : Int
+  name : String
+  imports : ReadOnlyArray[WorldItem]
+  exports : ReadOnlyArray[WorldItem]
+  location : Location
+} derive(Eq, @debug.Debug)
+pub fn ResolvedWorld::equal(Self, Self) -> Bool
+pub fn ResolvedWorld::not_equal(Self, Self) -> Bool
+pub fn ResolvedWorld::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SourcePackage {
+  documents : ReadOnlyArray[Document]
+}
+pub fn SourcePackage::identity(Self) -> Result[PackageIdentity, ReadOnlyArray[Diagnostic]]
 
 pub(all) struct TypeCase {
   name : String
@@ -124,6 +171,24 @@ pub fn Verified::identity(Self) -> PackageIdentity
 pub fn Verified::source(Self) -> String
 pub fn Verified::text(Self) -> String
 pub fn Verified::types(Self) -> ReadOnlyArray[ResolvedType]
+
+pub(all) struct WorldItem {
+  name : String
+  kind : WorldItemKind
+  location : Location
+} derive(Eq, @debug.Debug)
+pub fn WorldItem::equal(Self, Self) -> Bool
+pub fn WorldItem::not_equal(Self, Self) -> Bool
+pub fn WorldItem::to_repr(Self) -> @debug.Repr
+
+pub(all) enum WorldItemKind {
+  Interface(Int)
+  Function(Int)
+  Type(Int)
+} derive(Eq, @debug.Debug)
+pub fn WorldItemKind::equal(Self, Self) -> Bool
+pub fn WorldItemKind::not_equal(Self, Self) -> Bool
+pub fn WorldItemKind::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

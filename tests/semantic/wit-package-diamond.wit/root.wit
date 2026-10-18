@@ -1,0 +1,1 @@
+package example:root; interface api { use example:left/api.{item as left}; use example:right/api.{item as right}; type both = tuple<left, right>; }
