@@ -3,8 +3,8 @@
 WIT language tooling for MoonBit.
 
 Source positions, structured diagnostics, lossless lexical analysis, typed immutable ASTs/CSTs,
-recovering syntax parsing, immutable traversal and rewrites are implemented.
-Printing and formatting remain unimplemented.
+recovering syntax parsing, immutable traversal, rewrites, canonical printing and comment-preserving
+formatting are implemented for the documented grammar profile.
 This module has not been published.
 
 `@scanner.scan(source)` returns immutable tokens and diagnostics. `Scan::to_source()`
@@ -35,8 +35,8 @@ The syntax parser must not perform I/O.
 | `cst` | Implemented: lossless grammar hierarchy, token ranges and subtree reconstruction |
 | `parser` | Implemented: recovering grammar parser and explicit proposal switches |
 | `traversal` | Implemented: AST/CST walks, folds, reductions, events, immutable cursors and rewrites |
-| `printer` | Stack-safe canonical AST-to-source emission |
-| `formatter` | Stack-safe CST formatting that preserves comments and meaning |
+| `printer` | Implemented: stack-safe canonical AST emission with structural round-trip checks |
+| `formatter` | Implemented: CST-aware layout preserving comment text, token order and meaning |
 
 ## Validation
 
@@ -52,9 +52,16 @@ unique parents, child order and span containment.
 Traversal adds 800 seeded equivalence/rewrite cases per target and a 16,000-level
 stress case for readers, cursors, reductions, AST rewrites and CST source edits.
 
-Remaining validation for later packages:
+Printing and formatting run all 389 pinned fixture sources, 1,000 seeded type/comment
+properties, 18,000 nested type constructors and 1,200 nested package blocks per target.
+Printer output preserves AST structure apart from locations and arena numbering.
+Formatter output retains non-whitespace tokens and raw comments and is idempotent.
+Malformed source returns diagnostics without partial formatted output.
 
-- Deep nesting across printing and formatting on every target.
-- Printer structural round trips and formatter semantic preservation/idempotence.
+`@printer.print(tree)` emits canonical source. `@formatter.format(source)` and
+`format_cst(tree)` normalize layout using the selected parser feature profile.
+Both accept `indent_width`, defaulting to two spaces, and return explicit errors.
+The printer supports all implemented proposal forms; the formatter accepts the same
+feature switches as parsing. Read each package for recovery and invalid-input behavior.
 
 See root Beads epic `wasm-devkit-p5m` for implementation work.

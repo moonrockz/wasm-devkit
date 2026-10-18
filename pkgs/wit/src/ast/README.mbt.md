@@ -27,3 +27,7 @@ edges, exactly one parent per non-root node, containment and nonoverlapping chil
 It does not perform name resolution or check whether a manually constructed AST is legal WIT.
 Public constructors accept immutable collections. Use `ReadOnlyArray::from_array` to copy
 mutable builder arrays. No recursive node references or mutable backing arrays are exposed.
+
+`Tree::equivalent(other)` compares valid tree structure while ignoring source spans and
+arena numbering. An explicit pair stack follows corresponding typed child roles. Scalar
+metadata, list lengths and optional-field shapes remain significant. Invalid trees return false.

@@ -36,3 +36,37 @@ test "AST validation rejects cycles, reused children, invalid spans and detached
     assert_false(tree.validate())
   }
 }
+
+///|
+test "equivalence ignores locations and arena numbering while retaining roles" {
+  let a : @ast.Tree = {
+    nodes: [
+      { data: PrimitiveType(name="u8"), span: { start: 0, end: 1, }, },
+      { data: PrimitiveType(name="string"), span: { start: 1, end: 2, }, },
+      { data: TupleType(elements=[0, 1]), span: { start: 0, end: 2, }, },
+    ],
+  }
+  let b : @ast.Tree = {
+    nodes: [
+      { data: PrimitiveType(name="string"), span: { start: 20, end: 21, }, },
+      { data: PrimitiveType(name="u8"), span: { start: 10, end: 11, }, },
+      { data: TupleType(elements=[1, 0]), span: { start: 10, end: 21, }, },
+    ],
+  }
+  assert_true(a.equivalent(b))
+  let ok : @ast.Tree = {
+    nodes: [
+      a.nodes[0],
+      { data: ResultType(ok=Some(0), error=None), span: { start: 0, end: 1, }, },
+    ],
+  }
+  let error : @ast.Tree = {
+    nodes: [
+      a.nodes[0],
+      { data: ResultType(ok=None, error=Some(0)), span: { start: 0, end: 1, }, },
+    ],
+  }
+  assert_false(ok.equivalent(error))
+  let empty : @ast.Tree = { nodes: [], }
+  assert_false(empty.equivalent(empty))
+}

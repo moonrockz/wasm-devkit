@@ -564,3 +564,26 @@ pub fn Data::map_children(self : Data, replace : (Int32) -> Int32) -> Data {
     Error(text~, recovered~) => Error(text~, recovered=recovered.map(replace))
   }
 }
+
+///|
+/// Structural equality ignoring all source locations and arena numbering. Valid
+/// trees are compared with an explicit pair stack, without recursive descent.
+pub fn Tree::equivalent(self : Tree, other : Tree) -> Bool {
+  guard self.validate() &&
+    other.validate() &&
+    self.nodes.length() == other.nodes.length() else {
+    return false
+  }
+  let pending = [(self.nodes.length() - 1, other.nodes.length() - 1)]
+  while pending.pop() is Some((left, right)) {
+    let a = self.nodes[left].data
+    let b = other.nodes[right].data
+    guard a.map_children(_ => 0) == b.map_children(_ => 0) else { return false }
+    let ac = a.children()
+    let bc = b.children()
+    for i in 0..<ac.length() {
+      pending.push((ac[i], bc[i]))
+    }
+  }
+  true
+}
