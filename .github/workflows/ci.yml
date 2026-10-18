@@ -58,6 +58,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - run: mise run test -- ${{ matrix.target }}
+      - run: mise run test:docs -- ${{ matrix.target }}
 
   windows:
     name: Build and test native (Windows)

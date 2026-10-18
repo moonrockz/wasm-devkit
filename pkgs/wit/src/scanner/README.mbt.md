@@ -1,5 +1,69 @@
 # WIT scanner
 
+[Module scenario guide](../../README.mbt.md#scenario-recipes) · [API contracts](#api-contracts)
+
+## Recipes
+
+These executable examples use the following `moon.pkg` test imports. Add the module
+with `moon add moonrockz/wit@0.1.0`, then copy a recipe into `example_test.mbt`
+and run `moon test`. Application code uses the same imports without `for "test"`.
+
+If your package already has a test import group, merge these entries into it.
+
+```moon.pkg
+import {
+  "moonrockz/wit/scanner",
+} for "test"
+```
+
+### Keep comments and malformed tokens for an editor
+
+```mbt check
+///|
+test "README: Keep comments and malformed tokens for an editor" {
+  let source = "/* note */ ?"
+  let scanned = @scanner.scan(source)
+  assert_eq(scanned.to_source(), source)
+  assert_eq(scanned.tokens[0].kind, BlockComment)
+  assert_true(scanned.tokens.any(token => token.kind == Invalid))
+  assert_false(scanned.diagnostics.is_empty())
+  assert_eq(scanned.tokens[scanned.tokens.length() - 1].kind, Eof)
+}
+```
+
+### Filter trivia without changing token locations
+
+```mbt check
+///|
+test "README: Filter trivia without changing token locations" {
+  let scanned = @scanner.scan("/* note */ name")
+  let significant = scanned.tokens.filter(token => {
+    !token.kind.is_trivia() && token.kind != Eof
+  })
+  assert_eq(significant.length(), 1)
+  assert_eq(significant[0].text, "name")
+  assert_eq(significant[0].span.start, 11)
+  assert_eq(scanned.to_source(), "/* note */ name")
+}
+```
+
+### Inspect an escaped WIT keyword and a version
+
+```mbt check
+///|
+test "README: Inspect an escaped WIT keyword and a version" {
+  let scanned = @scanner.scan("%interface demo:api@1.2.3")
+  assert_true(scanned.diagnostics.is_empty())
+  assert_eq(scanned.tokens[0].kind, Identifier)
+  assert_eq(scanned.tokens[0].text, "%interface")
+  assert_true(
+    scanned.tokens.any(token => token.kind == Version && token.text == "1.2.3"),
+  )
+}
+```
+
+## API contracts
+
 `scan(text)` returns a `Scan` with `ReadOnlyArray[Token]` and
 `ReadOnlyArray[Diagnostic]`. Each token holds its kind, exact raw spelling and UTF-16 span.
 No mutable backing arrays escape. Keywords have kind `Keyword` and retain their spelling;

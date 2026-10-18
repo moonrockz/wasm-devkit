@@ -4,3 +4,8 @@ import {
   "moonrockz/wac/scanner",
   "moonbitlang/core/debug",
 }
+
+import {
+  "moonrockz/wac/cst",
+  "moonrockz/wac/parser",
+} for "test"

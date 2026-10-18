@@ -1,5 +1,5 @@
 ///|
-/// Run the full local gate: lint, validate, test, build.
+/// Run the full local gate: lint, validate, test, README examples, build.
 ///
 /// Usage: `mise run check`, or `moonx scripts/check.mbtx`.
 import {
@@ -12,7 +12,7 @@ import {
 ///|
 async fn main {
   println("🔍 Running all checks...")
-  for task in ["lint", "validate", "test", "build"] {
+  for task in ["lint", "validate", "test", "test:docs", "build"] {
     println("")
     println("=== \{task} ===")
     let code = @process.run(

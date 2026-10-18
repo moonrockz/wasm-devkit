@@ -18,6 +18,30 @@ pub(all) struct Tree {
 } derive(Eq, Debug)
 
 ///|
+///
+/// Reconstruct a concrete subtree and the complete file.
+///
+/// Example imports: `moonrockz/wac/cst` as `@cst`, `moonrockz/wac/parser` as `@parser`.
+///
+/// ```mbt check
+/// test "Tree::to_source: Reconstruct a concrete subtree and the complete file" {
+///   let source = "// leading\npackage demo:app; interface api {} // trailing"
+///   let parsed = @parser.parse(source)
+///   let concrete : @cst.Tree = parsed.cst
+///   let root = concrete.nodes.length() - 1
+///   assert_eq(concrete.to_source(), source)
+///   assert_eq(concrete.node_source(root), Some(source))
+///   assert_eq(concrete.node_source(-1), None)
+///   for id, node in concrete.nodes {
+///     if node.kind == Interface {
+///       assert_true(
+///         concrete.node_source(id).unwrap().contains("interface api {}"),
+///       )
+///       assert_true(node.first_token < node.last_token)
+///     }
+///   }
+/// }
+/// ```
 pub fn Tree::to_source(self : Tree) -> String {
   let out = StringBuilder()
   for token in self.tokens {
@@ -27,6 +51,30 @@ pub fn Tree::to_source(self : Tree) -> String {
 }
 
 ///|
+///
+/// Reconstruct a concrete subtree and the complete file.
+///
+/// Example imports: `moonrockz/wac/cst` as `@cst`, `moonrockz/wac/parser` as `@parser`.
+///
+/// ```mbt check
+/// test "Tree::node_source: Reconstruct a concrete subtree and the complete file" {
+///   let source = "// leading\npackage demo:app; interface api {} // trailing"
+///   let parsed = @parser.parse(source)
+///   let concrete : @cst.Tree = parsed.cst
+///   let root = concrete.nodes.length() - 1
+///   assert_eq(concrete.to_source(), source)
+///   assert_eq(concrete.node_source(root), Some(source))
+///   assert_eq(concrete.node_source(-1), None)
+///   for id, node in concrete.nodes {
+///     if node.kind == Interface {
+///       assert_true(
+///         concrete.node_source(id).unwrap().contains("interface api {}"),
+///       )
+///       assert_true(node.first_token < node.last_token)
+///     }
+///   }
+/// }
+/// ```
 pub fn Tree::node_source(self : Tree, index : Int32) -> String? {
   guard self.nodes.get(index) is Some(node) &&
     node.first_token >= 0 &&
@@ -42,6 +90,19 @@ pub fn Tree::node_source(self : Tree, index : Int32) -> String? {
 }
 
 ///|
+///
+/// Validate concrete data before navigating it.
+///
+/// Example imports: `moonrockz/wac/cst` as `@cst`.
+///
+/// ```mbt check
+/// test "Tree::validate: Validate concrete data before navigating it" {
+///   let empty : @cst.Tree = { tokens: [], nodes: [], }
+///   assert_false(empty.validate())
+///   assert_eq(empty.node_source(0), None)
+///   assert_eq(empty.to_source(), "")
+/// }
+/// ```
 pub fn Tree::validate(self : Tree) -> Bool {
   guard !self.nodes.is_empty() && !self.tokens.is_empty() else { return false }
   let parents = Array::make(self.nodes.length(), 0)

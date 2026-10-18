@@ -108,7 +108,7 @@ description = "Run the tests of the task scripts (scripts/*.mbtx that have a scr
 run = "moonx scripts/test-scripts.mbtx"
 
 [tasks.check]
-description = "Run lint, validate, test and build"
+description = "Run lint, validation, tests, README examples and builds"
 run = "moonx scripts/check.mbtx"
 
 [tasks.clean]
@@ -173,3 +173,7 @@ run = "moonx scripts/build-cli.mbtx"
 [tasks."release:verify-cli"]
 description = "Verify published CLI installs (args: moonx|mise X.Y.Z)"
 run = "moonx scripts/verify-cli.mbtx"
+
+[tasks."test:docs"]
+description = "Run README recipes with their documented imports (args: targets; default: all four)"
+run = "moonx scripts/test-docs.mbtx"

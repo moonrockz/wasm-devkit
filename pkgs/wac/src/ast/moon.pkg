@@ -2,3 +2,8 @@ import {
   "moonrockz/wac/span",
   "moonbitlang/core/debug",
 }
+
+import {
+  "moonrockz/wac/ast",
+  "moonrockz/wac/parser",
+} for "test"

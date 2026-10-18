@@ -27,7 +27,112 @@ From this repository, `mise run cli -- --help` or
 `moon run cmd/wasm-devkit --target wasm -- --help` runs the local sources.
 `mise run build:cli` builds, smoke-tests and packages a native host archive under `dist/`.
 
-## Use
+## Scenarios
+
+### Check and format a WIT interface
+
+Save this as `hello.wit`:
+
+```wit
+// Public API
+package example:greeter;
+interface greeter{hello: func(name: string)->string;}
+```
+
+```shell
+moonx moonrockz/wasm-devkit@0.1.0 parse hello.wit
+moonx moonrockz/wasm-devkit@0.1.0 format hello.wit
+```
+
+Parsing writes `hello.wit: valid wit`. Formatting writes this source to stdout:
+
+```wit
+// Public API
+package example:greeter;
+interface greeter {
+  hello: func(name: string) -> string;
+}
+```
+
+Use `format` to retain comments. `print` regenerates canonical source from the AST.
+The [WIT library recipes](../../pkgs/wit/README.mbt.md#scenario-recipes) show how to perform
+these operations in MoonBit code.
+
+### Inspect a WAC composition
+
+Save this as `app.wac`:
+
+```wac
+package example:app;
+import host: interface { log: func(message: string); };
+let app = new example:service { host, ... };
+export app.run as "run";
+```
+
+```shell
+moonx moonrockz/wasm-devkit@0.1.0 parse app.wac
+moonx moonrockz/wasm-devkit@0.1.0 ast app.wac
+moonx moonrockz/wasm-devkit@0.1.0 cst app.wac
+moonx moonrockz/wasm-devkit@0.1.0 tokens app.wac
+```
+
+Parsing writes `app.wac: valid wac`. The inspection commands show typed node fields,
+concrete token ranges and raw token spelling. Parsing does not fetch `example:service`
+or check whether the composition is semantically valid.
+The [WAC library recipes](../../pkgs/wac/README.mbt.md#scenario-recipes) show how to index
+imports and bindings or preserve grouping during a rewrite.
+
+### Enforce formatting in CI and apply it locally
+
+```shell
+moonx moonrockz/wasm-devkit@0.1.0 format --check hello.wit
+moonx moonrockz/wasm-devkit@0.1.0 format --write hello.wit
+moonx moonrockz/wasm-devkit@0.1.0 format --check hello.wit
+```
+
+The compact input above first returns status `1` because layout differs. `--write` updates
+the named file after successful formatting; the last check then returns `0`.
+Malformed source returns diagnostics and leaves the file unchanged. Use `--indent 4`
+when your project uses four spaces.
+
+### Process stdin or enable proposal syntax
+
+In a POSIX shell:
+
+```shell
+cat hello.wit | moonx moonrockz/wasm-devkit@0.1.0 format --language wit
+```
+
+In PowerShell:
+
+```powershell
+Get-Content -Raw hello.wit | moonx moonrockz/wasm-devkit@0.1.0 format --language wit
+```
+
+Stdin needs `--language` because it has no extension. `--write` needs a named file.
+For documented extensions such as WIT fixed-length lists or WAC named results, pass the
+same profile when parsing and formatting. Save this as `proposals.wit`:
+
+```wit
+interface arrays { type words = list<u8, 16>; }
+```
+
+```shell
+moonx moonrockz/wasm-devkit@0.1.0 parse --all-features proposals.wit
+moonx moonrockz/wasm-devkit@0.1.0 format --all-features proposals.wit
+```
+
+For WAC, save this as `callbacks.wac` and use `--all-features` with the `.wac` file:
+
+```wac
+package example:types;
+type callback = func() -> (value: u8);
+```
+
+See the [WIT parser profile](../../pkgs/wit/src/parser/README.mbt.md) and
+[WAC parser profile](../../pkgs/wac/src/parser/README.mbt.md) for the exact syntax covered.
+
+## Command reference
 
 ```shell
 wasm-devkit parse example.wit

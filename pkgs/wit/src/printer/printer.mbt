@@ -1,4 +1,21 @@
 ///|
+///
+/// Reject a fragment or invalid printer options.
+///
+/// Example imports: `moonrockz/wit/ast` as `@ast`, `moonrockz/wit/printer` as `@printer`.
+///
+/// ```mbt check
+/// test "PrintError: Reject a fragment or invalid printer options" {
+///   let fragment : @ast.Tree = {
+///     nodes: [{ data: PrimitiveType(name="u8"), span: { start: 0, end: 2, }, }],
+///   }
+///   assert_true(fragment.validate())
+///   assert_eq(@printer.print(fragment), Err(InvalidRoot))
+///   assert_eq(@printer.print(fragment, indent_width=9), Err(InvalidOptions))
+///   let empty : @ast.Tree = { nodes: [], }
+///   assert_eq(@printer.print(empty), Err(InvalidTree))
+/// }
+/// ```
 pub(all) enum PrintError {
   InvalidTree
   InvalidRoot
@@ -105,6 +122,23 @@ fn generic(out : Array[Command], name : String, node : Int32) -> Unit {
 /// Canonical source for a complete WIT file AST. All syntax descent is scheduled
 /// on a heap command stack. Recovery nodes and nonrepresentable hand-built ASTs
 /// return errors; the operation never returns partial output.
+///
+/// Emit canonical source and check a structural round trip.
+///
+/// Example imports: `moonrockz/wit/parser` as `@parser`, `moonrockz/wit/printer` as `@printer`.
+///
+/// ```mbt check
+/// test "print: Emit canonical source and check a structural round trip" {
+///   let parsed = @parser.parse("interface api { type byte = u8; }")
+///   assert_true(parsed.is_valid())
+///   let printed = @printer.print(parsed.ast, indent_width=4).unwrap()
+///   let again = @parser.parse(printed)
+///   assert_true(again.is_valid())
+///   assert_true(parsed.ast.equivalent(again.ast))
+///   assert_eq(@printer.print(again.ast, indent_width=4), Ok(printed))
+///   assert_true(printed.contains("    type byte = u8;"))
+/// }
+/// ```
 pub fn print(
   tree : @ast.Tree,
   indent_width~ : Int32 = 2,
