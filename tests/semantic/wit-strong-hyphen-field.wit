@@ -1,0 +1,1 @@
+package example:app;interface api{record r{a-b:u8,ab:u8}}

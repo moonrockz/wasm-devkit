@@ -10,8 +10,9 @@ The local type profile supports complete package headers, interfaces/worlds, ali
 records, flags, enums, variants, opaque resources, owned/borrowed handles, scalar/composite types and synchronous free interface
 functions. WIT names may refer forward within an interface or world. Recursive type
 graphs, empty aggregates/tuples, duplicate members and more than 32 flags are rejected.
-Local member names and named world keys must be strongly unique, so `a` and `A`
-conflict. Reference lookup remains case-sensitive. Package-level interface/world
+Local member names and named world keys must be strongly unique. Canonicalization
+folds ASCII case and removes hyphens, so `a-b`, `ab` and `AB` conflict.
+Reference lookup preserves exact spelling. Package-level interface/world
 names and file aliases retain their distinct casing.
 Fixed lists use decimal u32 lengths, including zero. Use `@parser.Features::reference()`
 when supplying parsed models for the pinned semantic profile. CLI verification uses

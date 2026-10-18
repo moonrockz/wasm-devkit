@@ -145,6 +145,11 @@ pub extend Binding with @debug.Debug::{to_repr}
 ///|
 /// AST names are decoded identifiers. They must satisfy the identifier contract
 /// even when the caller did not obtain the tree from the parser.
+fn strong_name(name : String) -> String {
+  name.to_lower().replace(old="-", new="")
+}
+
+///|
 fn identifier(name : String) -> Bool {
   if name.is_empty() {
     return false

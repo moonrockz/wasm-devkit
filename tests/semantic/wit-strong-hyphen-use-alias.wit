@@ -1,0 +1,1 @@
+package example:app;interface api{type a=u8;type b=u8;}interface other{use api.{a as foo-bar,b as foobar};}

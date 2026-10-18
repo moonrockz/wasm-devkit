@@ -338,3 +338,32 @@ test "strong local name uniqueness folds kebab casing while type lookup preserve
     is Ok(_),
   )
 }
+
+///|
+test "strong local names remove hyphens without changing lookup or package globals" {
+  for
+    body in [
+      "record r{a-b:u8,ab:u8}", "flags f{a-b,AB}", "enum e{ab,a-b}", "variant v{a-b,ab}",
+      "f:func(a-b:u8,ab:u8);", "type a-b=u8;type ab=u16;", "a-b:func();AB:func();",
+      "type a-b=u8;ab:func();",
+    ] {
+    let text = "package example:app;interface api{" + body + "}"
+    assert_true(
+      @parser.parse(text, features=@parser.Features::reference()).is_valid(),
+    )
+    assert_true(
+      verify(text) is Err(errors) && errors.any(d => d.code == "WIT-S004"),
+    )
+  }
+  assert_true(
+    verify("package example:app;interface api{type a-b=u8;f:func(x:ab);}")
+    is Err(errors) &&
+    errors[0].code == "WIT-S005",
+  )
+  assert_true(
+    verify(
+      "package example:app;interface a-b{}interface ab{}use a-b as c-d;use ab as cd;",
+    )
+    is Ok(_),
+  )
+}

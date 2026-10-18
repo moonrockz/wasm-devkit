@@ -245,3 +245,28 @@ test "strong world name conflicts do not collapse case-distinct canonical interf
   ).unwrap()
   assert_eq(model.select_world().unwrap().imports.length(), 2)
 }
+
+///|
+test "world named keys remove hyphens while canonical interface IDs keep their spelling" {
+  for
+    body in [
+      "import a-b:func();import ab:func();", "export a-b:interface{}export ab:interface{}",
+      "resource a-b;import ab:func();", "include base;import ab:func();",
+    ] {
+    assert_true(
+      world_model(
+        "package example:app;world base{import a-b:func();}world app{" +
+        body +
+        "}",
+      )
+      is Err(errors) &&
+      errors.any(d => d.code == "WIT-S004"),
+    )
+  }
+  assert_true(
+    world_model(
+      "package example:app;interface a-b{}interface ab{}world app{import a-b;import ab;}",
+    )
+    is Ok(_),
+  )
+}

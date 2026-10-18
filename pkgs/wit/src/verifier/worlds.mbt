@@ -35,7 +35,7 @@ fn world_key(item : WorldItem) -> String {
       _ => "name:" + item.name
     }
   } else {
-    "name:" + item.name.to_lower()
+    "name:" + strong_name(item.name)
   }
 }
 

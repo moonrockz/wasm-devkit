@@ -88,7 +88,7 @@ fn verify_prepared(
     let key = if scope_id < prepared.identities.length() {
       name
     } else {
-      name.to_lower()
+      strong_name(name)
     }
     if names.get(key) is Some(first) {
       let d = prepared_error(
@@ -204,7 +204,7 @@ fn verify_prepared(
         _ => None
       }
       if name is Some(name) {
-        if seen.get(name.to_lower()) is Some(first) {
+        if seen.get(strong_name(name)) is Some(first) {
           let d = prepared_error(
             prepared,
             child,
@@ -221,7 +221,7 @@ fn verify_prepared(
             ],
           })
         } else {
-          seen[name.to_lower()] = child
+          seen[strong_name(name)] = child
         }
       }
     }
