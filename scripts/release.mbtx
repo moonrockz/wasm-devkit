@@ -172,6 +172,31 @@ fn release_assets(version : String) -> Array[String] {
 }
 
 ///|
+fn validate_release_assets(
+  version : String,
+  release : Json,
+) -> Result[Unit, String] {
+  guard release is { "isDraft": False, "assets": Array(assets), .. } else {
+    return Err("Expected a published release with native asset metadata.")
+  }
+  let uploaded = assets
+    .iter()
+    .filter_map(fn(asset) {
+      match asset {
+        { "name": String(name), "state": String("uploaded"), .. } => Some(name)
+        _ => None
+      }
+    })
+    .to_array()
+  let missing = release_assets(version).filter(name => !uploaded.contains(name))
+  if missing.is_empty() {
+    Ok(())
+  } else {
+    Err("Missing uploaded native assets: " + missing.join(", "))
+  }
+}
+
+///|
 async fn github(version : String) -> Unit {
   let text = notes(version)
   let assets = release_assets(version)
@@ -238,14 +263,18 @@ async fn status() -> Unit {
     return
   }
   validate(Some(version)) |> ignore
-  output("gh", [
+  let release_text = output("gh", [
     "release",
     "view",
     "v\{version}",
     "--json",
-    "url,isDraft,targetCommitish",
+    "url,isDraft,targetCommitish,assets",
   ])
-  |> println
+  match validate_release_assets(version, @json.parse(release_text)) {
+    Ok(_) => println(release_text)
+    Err(message) => fail_with(message)
+  }
+  println("ok: all native archives and checksum files are uploaded")
   for name in ["moonrockz/wit", "moonrockz/wac", "moonrockz/wasm-devkit"] {
     let text = output("curl", [
       "--fail",
@@ -316,4 +345,49 @@ test "release assets cover every supported native installation platform" {
   assert_true(names.contains("wasm-devkit-v0.1.0-linux-x64.tar.gz"))
   assert_true(names.contains("wasm-devkit-v0.1.0-macos-arm64.tar.gz.sha256"))
   assert_true(names.contains("wasm-devkit-v0.1.0-windows-x64.tar.gz"))
+}
+
+///|
+test "release status rejects partial native publication" {
+  let names = release_assets("0.1.0")
+  let uploaded = names.map(name => {
+    Json::object({
+      "name": Json::string(name),
+      "state": Json::string("uploaded"),
+    })
+  })
+  let release = Json::object({
+    "isDraft": Json::boolean(false),
+    "assets": Json::array(uploaded),
+  })
+  assert_eq(validate_release_assets("0.1.0", release), Ok(()))
+  for missing in [names[0], names[1], names[4]] {
+    let partial = uploaded.filter(asset => {
+      !(asset is { "name": String(name), .. } && name == missing)
+    })
+    let release = Json::object({
+      "isDraft": Json::boolean(false),
+      "assets": Json::array(partial),
+    })
+    guard validate_release_assets("0.1.0", release) is Err(message) else {
+      fail("partial release must fail status")
+    }
+    assert_true(message.contains(missing))
+  }
+  let draft = Json::object({
+    "isDraft": Json::boolean(true),
+    "assets": Json::array(uploaded),
+  })
+  assert_true(validate_release_assets("0.1.0", draft) is Err(_))
+  let pending = uploaded.copy()
+  pending[0] = Json::object({
+    "name": Json::string(names[0]),
+    "state": Json::string("new"),
+  })
+  let release = Json::object({
+    "isDraft": Json::boolean(false),
+    "assets": Json::array(pending),
+  })
+  assert_true(validate_release_assets("0.1.0", release) is Err(_))
+  assert_true(validate_release_assets("0.1.0", Json::null()) is Err(_))
 }
