@@ -29,6 +29,13 @@ inline interfaces, function/interface imports and exports, and include-with rena
 Their transitive interface dependencies remain runtime imports and require no component
 implementation.
 
+Top-level `package name { ... }` blocks supply additional source packages in the
+same file. They share one original document and AST while retaining separate
+package ownership and file-local alias scopes. The main package still needs a
+leading `package name;` header in at least one file. Nested identities must be
+unique across blocks and supplied dependencies. Package blocks cannot contain
+further package blocks, matching the pinned resolver.
+
 Encoded packages and attributes still fail explicitly
 under `WIT-S003`. Their implementation
 continues under [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
@@ -257,6 +264,31 @@ in a dependency whose package header can still be recovered.
 `WIT-S009` reports an unresolved package identity. `WIT-S011` reports conflicting
 package metadata or duplicate supplied identities. Missing interface/type selectors
 use `WIT-S005`; wrong declaration kinds use `WIT-S008`.
+
+## Package blocks in one source
+
+```mbt check
+///|
+test "resolve a dependency package block without copying its source" {
+  let source = "package example:app;world app{import example:dep/api;}package example:dep{interface api{resource item;load:func()->item;}}"
+  let document = @verifier.Document::from_parse(
+    "bundle.wit",
+    source,
+    @parser.parse(source),
+  )
+  let model = @verifier.resolve({ documents: [document], }).unwrap()
+  assert_eq(model.root().key(), "example:app")
+  assert_eq(model.identities().length(), 2)
+  assert_eq(model.sources().length(), 1)
+  assert_eq(model.sources()[0].ast, document.ast)
+  assert_eq(model.select_world().unwrap().imports[0].name, "example:dep/api")
+}
+```
+
+Qualified paths may refer forward to a package block or follow transitive imports
+between blocks. A block may also remain unreferenced; verification still checks
+its declarations. Diagnostic dependency chains distinguish package regions in the
+same source, preserving their original UTF-16 locations.
 
 ## Select and inspect a world
 

@@ -19,6 +19,8 @@ pub fn Document::from_parse(
 ///|
 /// Files belonging to one package. At least one file must declare its identity;
 /// matching headers in other files are allowed. Discovery order is immaterial.
+/// Top-level nested package blocks supply additional package identities while
+/// retaining the same original document and source-qualified node provenance.
 pub(all) struct SourcePackage {
   documents : ReadOnlyArray[Document]
 }
@@ -169,7 +171,8 @@ fn prepare(
   let inputs = [root]
   inputs.append(dependencies.iter().to_array())
   let errors : Array[Diagnostic] = []
-  let groups : Array[(PackageIdentity, Array[Document])] = []
+  let groups : Array[PackageGroup] = []
+  let nested_groups : Array[PackageGroup] = []
   let source_ids : Map[String, Bool] = Map([])
   for input in inputs {
     let documents = input.documents.iter().to_array()
@@ -240,12 +243,32 @@ fn prepare(
       let mut header_count = 0
       for index, item in items {
         if document.ast.nodes[item].data
-          is Package(path~, attributes~, items=package_items, nested~) {
+          is Package(path~, items=package_items, nested~, ..) {
+          guard package_identity_at(document, item, errors) is Some(candidate) else {
+            continue
+          }
+          if nested {
+            for child in package_items {
+              if document.ast.nodes[child].data is Package(..) {
+                errors.push(
+                  error(
+                    document.id,
+                    document.ast.nodes[child].span,
+                    "WIT-S001",
+                    "nested packages must be placed at the top-level",
+                  ),
+                )
+              }
+            }
+            nested_groups.push({
+              identity: candidate,
+              documents: [document],
+              sections: [item],
+            })
+            continue
+          }
           header_count += 1
-          if index != 0 ||
-            header_count > 1 ||
-            nested ||
-            !package_items.is_empty() {
+          if index != 0 || header_count > 1 || !package_items.is_empty() {
             errors.push(
               error(
                 document.id,
@@ -254,57 +277,6 @@ fn prepare(
                 "expected one leading package header per file",
               ),
             )
-          }
-          if !attributes.is_empty() {
-            errors.push(
-              error(
-                document.id,
-                document.ast.nodes[item].span,
-                "WIT-S003",
-                "package attributes are not yet supported",
-              ),
-            )
-          }
-          guard document.ast.nodes[path].data
-            is Path(namespaces~, segments~, version~) else {
-            errors.push(
-              error(
-                document.id,
-                document.ast.nodes[path].span,
-                "WIT-S001",
-                "invalid package path role",
-              ),
-            )
-            continue
-          }
-          guard namespaces.length() == 1 &&
-            segments.length() == 1 &&
-            identifier(namespaces[0]) &&
-            identifier(segments[0]) else {
-            errors.push(
-              error(
-                document.id,
-                document.ast.nodes[path].span,
-                "WIT-S001",
-                "invalid package identity",
-              ),
-            )
-            continue
-          }
-          if version is Some(version) && !semantic_version(version) {
-            errors.push(
-              error(
-                document.id,
-                document.ast.nodes[path].span,
-                "WIT-S011",
-                "invalid semantic package version",
-              ),
-            )
-          }
-          let candidate : PackageIdentity = {
-            namespace_name: namespaces[0],
-            name: segments[0],
-            version,
           }
           if identity is Some(previous) && candidate != previous {
             errors.push(
@@ -325,7 +297,14 @@ fn prepare(
       }
     }
     match identity {
-      Some(identity) => groups.push((identity, documents))
+      Some(identity) =>
+        groups.push({
+          identity,
+          documents,
+          sections: ReadOnlyArray::from_array(
+            documents.map(doc => doc.ast.nodes.length() - 1),
+          ),
+        })
       None =>
         errors.push(
           error(
@@ -341,57 +320,91 @@ fn prepare(
         )
     }
   }
+  groups.append(nested_groups)
   if !errors.is_empty() {
     return Err(loading_diagnostics(root, groups, errors))
   }
-  // Keep the root package first. Dependency/source discovery permutations cannot
-  // affect arena identities, diagnostics or resolution order.
+  // Keep the root package first. Nested blocks and supplied dependencies share
+  // the same identity space, while each original document is retained once.
   let deps = groups[1:].to_owned()
-  deps.sort_by((a, b) => identity_key(a.0).compare(identity_key(b.0)))
+  deps.sort_by((a, b) => {
+    identity_key(a.identity).compare(identity_key(b.identity))
+  })
   let groups = [groups[0]]
   groups.append(deps)
   let identities : Array[PackageIdentity] = []
-  let documents : Array[Document] = []
-  let nodes : Array[@ast.Node] = []
-  let origins : Array[Origin] = []
-  let roots : Array[Int32] = []
-  let node_packages : Array[Int32] = []
-  let known : Map[String, Bool] = Map([])
+  let known : Map[String, Location] = Map([])
   let by_identity : Map[String, Int32] = Map([])
-  for package_index, (identity, files) in groups {
-    let key = identity_key(identity)
-    if known.contains(key) {
-      errors.push(
-        error(
-          files[0].id,
-          { start: 0, end: 0, },
-          "WIT-S011",
-          "duplicate supplied package " + key,
-        ),
+  for package_index, group in groups {
+    let key = identity_key(group.identity)
+    let location : Location = {
+      source: group.documents[0].id,
+      span: group.documents[0].ast.nodes[group.sections[0]].span,
+    }
+    if known.get(key) is Some(previous) {
+      let d = error(
+        location.source,
+        location.span,
+        "WIT-S011",
+        "duplicate supplied package " + key,
       )
+      errors.push({
+        ..d,
+        related: [{ location: previous, message: "first package definition", }],
+      })
     }
-    known[key] = true
+    known[key] = location
     by_identity[key] = package_index
-    identities.push(identity)
-    for document in files {
-      let base = nodes.length()
-      for index, node in document.ast.nodes {
-        nodes.push({
-          data: node.data.map_children(child => base + child),
-          span: node.span,
-        })
-        origins.push({
-          location: { source: document.id, span: node.span, },
-          node: index,
-        })
-        node_packages.push(package_index)
-      }
-      roots.push(nodes.length() - 1)
-      documents.push(document)
-    }
+    identities.push(group.identity)
   }
   if !errors.is_empty() {
     return Err(ordered_diagnostics(errors))
+  }
+  let documents : Array[Document] = []
+  let bases : Map[String, Int32] = Map([])
+  let nodes : Array[@ast.Node] = []
+  let origins : Array[Origin] = []
+  let roots : Array[Int32] = []
+  let root_owners : Map[Int32, Int32] = Map([])
+  let node_packages : Array[Int32] = []
+  for package_index, group in groups {
+    for file_index, document in group.documents {
+      let base = match bases.get(document.id) {
+        Some(base) => base
+        None => {
+          let base = nodes.length()
+          bases[document.id] = base
+          for index, node in document.ast.nodes {
+            nodes.push({
+              data: node.data.map_children(child => base + child),
+              span: node.span,
+            })
+            origins.push({
+              location: { source: document.id, span: node.span, },
+              node: index,
+            })
+            node_packages.push(-1)
+          }
+          documents.push(document)
+          base
+        }
+      }
+      let section = base + group.sections[file_index]
+      roots.push(section)
+      root_owners[section] = package_index
+    }
+  }
+  for root in roots {
+    let owner = root_owners[root]
+    let pending = [root]
+    while pending.pop() is Some(id) {
+      node_packages[id] = owner
+      for child in nodes[id].data.children() {
+        if !root_owners.contains(child) {
+          pending.push(child)
+        }
+      }
+    }
   }
   Ok({
     tree: { nodes: ReadOnlyArray::from_array(nodes), },
@@ -491,7 +504,7 @@ fn Prepared::find_item(
     )
   }
   let alias_target = if !external {
-    match file_aliases.get(self.origins[path].location.source) {
+    match file_aliases.get(self.alias_scope(path)) {
       Some(names) => names.get(item_name)
       None => None
     }
@@ -671,16 +684,29 @@ fn dependency_chains(
   edges : Array[(Int32, Int32, Int32)],
   diagnostics : Array[Diagnostic],
 ) -> ReadOnlyArray[Diagnostic] {
-  let source_packages : Map[String, Int32] = Map([])
-  for root in prepared.roots {
-    source_packages[prepared.origins[root].location.source] = prepared.node_packages[root]
+  let owners : Map[String, Int32] = Map([])
+  for id, origin in prepared.origins {
+    let key = location_key(origin.location)
+    let owner = prepared.node_packages[id]
+    // Caller-built trees may give distinct package nodes identical locations.
+    // Preserve the primary location without inventing an ambiguous chain.
+    if owners.get(key) is Some(previous) && previous != owner {
+      owners[key] = -1
+    } else if !owners.contains(key) {
+      owners[key] = owner
+    }
   }
   let locations = edges.map(edge => {
     (edge.0, edge.1, prepared.origins[edge.2].location)
   })
   chain_diagnostics(
     prepared.identities,
-    source_packages,
+    location => {
+      match owners.get(location_key(location)) {
+        Some(owner) if owner >= 0 => Some(owner)
+        _ => None
+      }
+    },
     locations,
     diagnostics,
   )
@@ -689,7 +715,7 @@ fn dependency_chains(
 ///|
 fn chain_diagnostics(
   identities : ReadOnlyArray[PackageIdentity],
-  source_packages : Map[String, Int32],
+  package_at : (Location) -> Int32?,
   edges : Array[(Int32, Int32, Location)],
   diagnostics : Array[Diagnostic],
 ) -> ReadOnlyArray[Diagnostic] {
@@ -719,8 +745,7 @@ fn chain_diagnostics(
   let result = []
   for diagnostic in diagnostics {
     let related = diagnostic.related.iter().to_array()
-    if source_packages.get(diagnostic.primary.location.source)
-      is Some(package_index) {
+    if package_at(diagnostic.primary.location) is Some(package_index) {
       let mut current = package_index
       let mut steps = 0
       while current != 0 && parent[current] >= 0 && steps < 32 {
@@ -743,33 +768,43 @@ fn chain_diagnostics(
 ///|
 fn loading_diagnostics(
   root : SourcePackage,
-  groups : Array[(PackageIdentity, Array[Document])],
+  groups : Array[PackageGroup],
   errors : Array[Diagnostic],
 ) -> ReadOnlyArray[Diagnostic] {
   // Valid headers and structurally safe paths can still explain how a package
   // with syntax errors was requested. This is diagnostic context, never a model.
   if groups.is_empty() ||
     root.documents.is_empty() ||
-    !groups[0].1.any(doc => {
+    groups[0].sections[0] != groups[0].documents[0].ast.nodes.length() - 1 ||
+    !groups[0].documents.any(doc => {
       root.documents.any(original => original.id == doc.id)
     }) {
     return ordered_diagnostics(errors)
   }
-  let identities = ReadOnlyArray::from_array(groups.map(group => group.0))
+  let identities = ReadOnlyArray::from_array(
+    groups.map(group => group.identity),
+  )
   let by_key : Map[String, Int32] = Map([])
-  let sources : Map[String, Int32] = Map([])
-  for i, (identity, documents) in groups {
-    by_key[identity_key(identity)] = i
-    for doc in documents {
-      sources[doc.id] = i
+  let ranges = PackageRanges::new()
+  for i, group in groups {
+    by_key[identity_key(group.identity)] = i
+    for file_index, doc in group.documents {
+      let section = group.sections[file_index]
+      if doc.ast.validate() && section >= 0 && section < doc.ast.nodes.length() {
+        let node = doc.ast.nodes[section]
+        ranges.add(doc.id, node.data, node.span, i)
+      }
     }
   }
+  ranges.sort()
   let edges : Array[(Int32, Int32, Location)] = []
-  for from, (_, documents) in groups {
-    for doc in documents {
-      if !doc.ast.validate() {
+  let seen : Map[String, Bool] = Map([])
+  for group in groups {
+    for doc in group.documents {
+      if seen.contains(doc.id) || !doc.ast.validate() {
         continue
       }
+      seen[doc.id] = true
       for node in doc.ast.nodes {
         if node.data is Path(namespaces~, segments~, version~) &&
           namespaces.length() == 1 &&
@@ -781,14 +816,21 @@ fn loading_diagnostics(
               Some(v) => "@" + v
               None => ""
             })
-          if by_key.get(key) is Some(target) {
-            edges.push((from, target, { source: doc.id, span: node.span, }))
+          let location : Location = { source: doc.id, span: node.span, }
+          if by_key.get(key) is Some(target) &&
+            ranges.owner(location) is Some(from) {
+            edges.push((from, target, location))
           }
         }
       }
     }
   }
-  chain_diagnostics(identities, sources, edges, errors)
+  chain_diagnostics(
+    identities,
+    location => ranges.owner(location),
+    edges,
+    errors,
+  )
 }
 
 ///|

@@ -156,13 +156,11 @@ fn verify_prepared(
     }
   }
   for root in prepared.roots {
-    if tree.nodes[root].data is File(items~) {
-      for item in items {
-        match tree.nodes[item].data {
-          Interface(name~, ..) | World(name~, ..) =>
-            register(prepared.node_packages[root], name, item)
-          _ => ()
-        }
+    for item in section_items(tree.nodes[root].data) {
+      match tree.nodes[item].data {
+        Interface(name~, ..) | World(name~, ..) =>
+          register(prepared.node_packages[root], name, item)
+        _ => ()
       }
     }
   }
@@ -270,7 +268,7 @@ fn verify_prepared(
     }
     let mut accepted = true
     match (role, data) {
-      (Root, File(items~)) =>
+      (Root, File(items~)) | (Root, Package(items~, nested=true, ..)) =>
         for i = items.length() - 1; i >= 0; i = i - 1 {
           if !(tree.nodes[items[i]].data is Package(..)) {
             pending.push((items[i], Top, scope))

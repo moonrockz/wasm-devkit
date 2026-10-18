@@ -212,6 +212,13 @@ does not fall back to a versioned package.
 WAC dependency providers and encoded WIT packages remain explicit unsupported errors
 while the remaining issue #5 tasks are implemented. Source files are never rewritten.
 
+WIT files may also contain top-level dependency package blocks after the main
+package header. For example, `package example:app;` may be followed by declarations
+and `package example:dep { interface api {} }`. Qualified imports resolve those
+blocks without separate dependency files. The main package still needs a header;
+duplicate identities and package blocks inside other blocks fail verification.
+File-local aliases stay separate for each package, even within the same file.
+
 ### Verify a resource API
 
 Save this source as `files.wit` and run `wasm-devkit verify files.wit`.

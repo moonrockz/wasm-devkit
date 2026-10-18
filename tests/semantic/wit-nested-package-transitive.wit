@@ -1,0 +1,1 @@
+package example:root;use example:middle/api as host;world app{import host;}package example:middle{interface api{use example:leaf/api.{r};read:func()->r;}}package example:leaf{interface api{resource r;}}

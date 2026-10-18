@@ -63,3 +63,9 @@ strong component-name collisions, duplicate constructors and resource renaming
 through world includes. Accessor cases cover free/method/static getter-setter pairs,
 arity and result restrictions, exact matching, differing value types accepted by
 the reference, includes supplying getters and annotation-preserving renames.
+
+Nested-package cases cover a main header plus top-level package blocks, independent
+alias scopes within one source, transitive dependencies, world/resource includes,
+multi-file discovery, missing main headers, duplicate identities, cycles and
+forbidden blocks inside blocks. Attribute and semantic feature/stability cases
+remain outside the implemented profile.

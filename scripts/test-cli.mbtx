@@ -101,6 +101,22 @@ async fn main {
   assert_true(accessor_error.contains("WIT-S007"))
   assert_true(accessor_error.contains(invalid_accessor + ":1:"))
   assert_eq(@fs.read_file(invalid_accessor).text(), invalid_accessor_source)
+  let package_blocks = dir + "/package-blocks.wit"
+  let package_blocks_source = "package example:app;world app{include example:dep/base;}package example:dep{world base{import host:interface{resource item;load:func()->item;}}}"
+  @fs.write_file(package_blocks, package_blocks_source)
+  let (blocks_summary, _) = run(["verify", package_blocks, "--json"], 0, wit)
+  assert_true(blocks_summary.contains("example:dep/base"))
+  let _ = run(["verify", package_blocks, "--world", "example:dep/base"], 0, wit)
+  let _ = run(["verify", "--language", "wit", "--base", dir], 0, package_blocks)
+  assert_eq(@fs.read_file(package_blocks).text(), package_blocks_source)
+  let duplicate_block = dir + "/duplicate-package-block.wit"
+  @fs.write_file(
+    duplicate_block, "package example:app;package example:app{interface api{}}",
+  )
+  let _ = run(["check", duplicate_block], 0, wit)
+  let (_, block_error) = run(["verify", duplicate_block], 1, wit)
+  assert_true(block_error.contains("WIT-S011"))
+  assert_true(block_error.contains(duplicate_block + ":1:"))
   let (stdin_wit, _) = run(["parse", "--language", "wit"], 0, wit)
   assert_true(stdin_wit.contains("<stdin>: valid wit"))
   let (stdin_wac, _) = run(["print", "-", "--language", "wac"], 0, wac)

@@ -112,11 +112,11 @@ fn collect_file_aliases(
 ) -> Map[String, Map[String, Int32]] {
   let aliases : Map[String, Map[String, Int32]] = Map([])
   for root in prepared.roots {
-    let source = prepared.origins[root].location.source
+    let source = prepared.alias_scope(root)
     let names : Map[String, Int32] = Map([])
     let seen : Map[String, Int32] = Map([])
     aliases[source] = names
-    guard prepared.tree.nodes[root].data is File(items~) else { continue }
+    let items = section_items(prepared.tree.nodes[root].data)
     for item in items {
       if declaration(prepared.tree.nodes[item].data) is Some(name) {
         seen[name] = item

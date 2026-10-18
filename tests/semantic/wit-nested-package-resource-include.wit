@@ -1,0 +1,1 @@
+package example:root;world app{include example:dep/base;}package example:dep{world base{resource r{constructor();p:get()->r;p:set(value:borrow<r>);}}}
