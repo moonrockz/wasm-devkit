@@ -18,7 +18,7 @@ WAC has a lossless scanner, typed immutable AST/CST and recovering parser, teste
 all 163 files in its pinned reference corpus. WAC immutable traversal, rewrites, canonical printing and comment-preserving formatting
 are implemented.
 The CLI under `cmd/wasm-devkit` supports both languages, files/stdin, inspection, printing
-and formatter check/write modes. Nothing has been published to mooncakes.io yet.
+and formatter check/write modes. The first release version is `0.1.0`.
 
 | Module | Path | Intended capabilities |
 |--------|------|-----------------------|
@@ -105,8 +105,8 @@ The Smithy database and tasks are not reused.
 
 ## Releases
 
-Version `0.0.0` marks unpublished development. All modules share the root version.
-The first release will be `0.1.0`, after both languages and the CLI are ready.
+The first release is `0.1.0`. All modules share the root version.
+Version `0.0.0` is reserved for unpublished development.
 
 Run `mise run release:prepare -- X.Y.Z` on clean main. This creates a local release branch,
 updates versions and prepends a changelog section. Replace its highlights placeholder before
@@ -114,8 +114,8 @@ committing, pushing and opening a release PR. After merging the reviewed PR, dis
 workflow with that version and `dry_run=true` first. Publishing requires a separate dispatch with
 `dry_run=false` and the `MOONCAKES_USER_TOKEN` repository or organization secret.
 
-The library workflow validates all four targets and task scripts, publishes only `moonrockz/wit`
-and `moonrockz/wac`, followed by `moonrockz/wasm-devkit`. Native CLI archives are built on
+The release workflow validates all four targets and task scripts, then publishes `moonrockz/wit`,
+`moonrockz/wac` and `moonrockz/wasm-devkit` in dependency order. Native CLI archives are built on
 Linux x64, macOS arm64 and Windows x64 for mise installation.
 See [AGENTS.md](AGENTS.md) and the release-manager skill for the exact sequence.
 
