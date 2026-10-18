@@ -230,3 +230,18 @@ test "included aliases to named interface resources preserve the external resour
     }),
   )
 }
+
+///|
+test "strong world name conflicts do not collapse case-distinct canonical interfaces" {
+  assert_true(
+    world_model(
+      "package example:app;world app{import f:func();import F:func();}",
+    )
+    is Err(errors) &&
+    errors.any(d => d.code == "WIT-S004"),
+  )
+  let model = world_model(
+    "package example:app;interface api{}interface API{}world app{import api;import API;}",
+  ).unwrap()
+  assert_eq(model.select_world().unwrap().imports.length(), 2)
+}

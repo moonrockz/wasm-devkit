@@ -75,8 +75,22 @@ fn verify_prepared(
   let package_edges : Array[(Int32, Int32, Int32)] = []
   let tables = WorldTables::new()
   let includes : Array[(Int32, Int32, Int32, ReadOnlyArray[Int32])] = []
+  let strong_scopes : Map[Int32, Map[String, Int32]] = Map([])
   let register = fn(scope_id : Int32, name : String, id : Int32) {
-    if scopes[scope_id].get(name) is Some(first) {
+    let names = match strong_scopes.get(scope_id) {
+      Some(names) => names
+      None => {
+        let names : Map[String, Int32] = Map([])
+        strong_scopes[scope_id] = names
+        names
+      }
+    }
+    let key = if scope_id < prepared.identities.length() {
+      name
+    } else {
+      name.to_lower()
+    }
+    if names.get(key) is Some(first) {
       let d = prepared_error(
         prepared,
         id,
@@ -93,6 +107,7 @@ fn verify_prepared(
         ],
       })
     } else {
+      names[key] = id
       scopes[scope_id][name] = id
       bindings.push({ name, scope: scope_id, node: id, target: id, })
     }
@@ -189,7 +204,7 @@ fn verify_prepared(
         _ => None
       }
       if name is Some(name) {
-        if seen.get(name) is Some(first) {
+        if seen.get(name.to_lower()) is Some(first) {
           let d = prepared_error(
             prepared,
             child,
@@ -206,7 +221,7 @@ fn verify_prepared(
             ],
           })
         } else {
-          seen[name] = child
+          seen[name.to_lower()] = child
         }
       }
     }

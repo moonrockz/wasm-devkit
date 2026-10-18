@@ -309,3 +309,32 @@ test "opaque resource aliases retain nominal identities and forward references" 
   assert_eq(reference.length(), 1)
   assert_eq(reference[0].target, resources[0].id)
 }
+
+///|
+test "strong local name uniqueness folds kebab casing while type lookup preserves spelling" {
+  for
+    body in [
+      "record r{a:u8,A:u8}", "flags f{a,A}", "enum e{a,A}", "variant v{a,A}", "f:func(a:u8,A:u8);",
+      "type a=u8;type A=u16;", "f:func();F:func();", "type a=u8;A:func();",
+    ] {
+    let text = "package example:app;interface api{" + body + "}"
+    assert_true(
+      @parser.parse(text, features=@parser.Features::reference()).is_valid(),
+    )
+    assert_true(
+      verify(text) is Err(errors) &&
+      errors.any(d => d.code == "WIT-S004" && !d.related.is_empty()),
+    )
+  }
+  assert_true(
+    verify("package example:app;interface api{type a=u8;f:func(x:A);}")
+    is Err(errors) &&
+    errors[0].code == "WIT-S005",
+  )
+  assert_true(
+    verify(
+      "package example:app;interface api{}interface API{}use api as other;use API as OTHER;",
+    )
+    is Ok(_),
+  )
+}
