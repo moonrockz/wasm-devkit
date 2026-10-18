@@ -5,7 +5,7 @@ WAC language tooling for MoonBit.
 Source positions, structured diagnostics, a lossless scanner, typed immutable ASTs/CSTs and
 a recovering parser, immutable traversal, rewrites, canonical printing and comment-preserving
 formatting are implemented.
-Install with `moon add moonrockz/wac@0.1.0`.
+Install with `moon add moonrockz/wac@0.1.1`.
 
 ## Scenario recipes
 

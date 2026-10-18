@@ -5,7 +5,7 @@ WIT language tooling for MoonBit.
 Source positions, structured diagnostics, lossless lexical analysis, typed immutable ASTs/CSTs,
 recovering syntax parsing, immutable traversal, rewrites, canonical printing and comment-preserving
 formatting are implemented for the documented grammar profile.
-Install with `moon add moonrockz/wit@0.1.0`.
+Install with `moon add moonrockz/wit@0.1.1`.
 
 `@scanner.scan(source)` returns immutable tokens and diagnostics. `Scan::to_source()`
 reconstructs the exact input. Lexical success does not imply syntactic validity.
