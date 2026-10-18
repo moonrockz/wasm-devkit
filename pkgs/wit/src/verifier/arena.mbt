@@ -191,7 +191,8 @@ fn SemanticArena::copy_function(
   let name = match function_resource(kind) {
     Some(resource) =>
       match self.types[resource].name {
-        Some(resource_name) => remap_function_name(name, kind, resource_name)
+        Some(resource_name) =>
+          remap_function_name(name, kind, original.flavor, resource_name)
         None => name
       }
     None => name
@@ -249,9 +250,8 @@ fn SemanticArena::copy_world(
   for side in [imports, exports] {
     let copied = []
     for item in side {
-      let mut name = if !item.by_id &&
-        replacements.get(item.name) is Some((name, _)) {
-        name
+      let mut name = if !item.by_id {
+        include_item_name(item.name, replacements)
       } else {
         item.name
       }

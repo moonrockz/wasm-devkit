@@ -207,3 +207,86 @@ test "law: include renaming preserves checked constructor and receiver contracts
     seed=2620141,
   )
 }
+
+///|
+test "look-alike resources retain distinct nominal identities through use renames and exports" {
+  let model = resource_model(
+    "package example:app;interface left{resource r;}interface right{resource r;}interface api{use left.{r as a};use right.{r as b};f:func(x:own<a>,y:borrow<b>)->b;}world app{export api;}",
+  ).unwrap()
+  let types = model.types()
+  let resources = types.filter(t => t.kind is Resource)
+  assert_eq(resources.length(), 2)
+  assert_eq(resources[0].name, resources[1].name)
+  assert_false(resources[0].id == resources[1].id)
+  let function = model.functions()[0]
+  assert_true(
+    types.any(t => {
+      t.id == function.params[0].ty && t.kind == Own(resources[0].id)
+    }),
+  )
+  assert_true(
+    types.any(t => {
+      t.id == function.params[1].ty && t.kind == Borrow(resources[1].id)
+    }),
+  )
+  assert_true(
+    types.any(t => {
+      Some(t.id) == function.result && t.kind == Own(resources[1].id)
+    }),
+  )
+  assert_eq(model.select_world(name=Some("app")).unwrap().imports.length(), 2)
+}
+
+///|
+test "supplied dependency resources preserve distinct identities in renamed handle signatures" {
+  let root = "package example:app;interface api{use example:left/api.{r as a};use example:right/api.{r as b};f:func(x:own<a>,y:borrow<b>)->b;}world app{export api;}"
+  let left = "package example:left;interface api{resource r;}"
+  let right = "package example:right;interface api{resource r;}"
+  let source_package = fn(
+    id : String,
+    text : String,
+  ) -> @verifier.SourcePackage {
+    {
+      documents: [
+        @verifier.Document::from_parse(
+          id,
+          text,
+          @parser.parse(text, features=@parser.Features::reference()),
+        ),
+      ],
+    }
+  }
+  let root_package = source_package("root.wit", root)
+  let left_package = source_package("left.wit", left)
+  let right_package = source_package("right.wit", right)
+  let model = @verifier.resolve(root_package, dependencies=[
+    right_package, left_package,
+  ]).unwrap()
+  let resources = model.types().filter(t => t.kind is Resource)
+  assert_eq(resources.length(), 2)
+  assert_false(resources[0].id == resources[1].id)
+  assert_eq(resources[0].location.source, "left.wit")
+  assert_eq(resources[1].location.source, "right.wit")
+  let function = model.functions()[0]
+  assert_true(
+    model
+    .types()
+    .any(t => t.id == function.params[0].ty && t.kind == Own(resources[0].id)),
+  )
+  assert_true(
+    model
+    .types()
+    .any(t => t.id == function.params[1].ty && t.kind == Borrow(resources[1].id)),
+  )
+  assert_true(
+    model
+    .types()
+    .any(t => Some(t.id) == function.result && t.kind == Own(resources[1].id)),
+  )
+  assert_eq(
+    model.types(),
+    @verifier.resolve(root_package, dependencies=[left_package, right_package])
+    .unwrap()
+    .types(),
+  )
+}

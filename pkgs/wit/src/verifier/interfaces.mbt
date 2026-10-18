@@ -7,10 +7,18 @@ pub(all) enum FunctionKind {
 } derive(Eq, Debug)
 
 ///|
+pub(all) enum FunctionFlavor {
+  Plain
+  Getter
+  Setter
+} derive(Eq, Debug)
+
+///|
 pub(all) struct ResolvedFunction {
   id : Int32
   name : String
   kind : FunctionKind
+  flavor : FunctionFlavor
   params : ReadOnlyArray[TypeMember]
   result : Int32?
   asynchronous : Bool
@@ -88,7 +96,7 @@ fn model_functions(
     }
     if signature is Some((name, signature)) &&
       prepared.tree.nodes[signature].data
-      is Signature(result=output, asynchronous~, ..) {
+      is Signature(result=output, asynchronous~, flavor=syntax_flavor, ..) {
       let members : Array[TypeMember] = []
       let kind : FunctionKind = match resource_members.get(id) {
         Some(resource) =>
@@ -108,7 +116,7 @@ fn model_functions(
       let name = match resource_members.get(id) {
         Some(resource) =>
           resource_function_name(prepared.tree, resource, id).unwrap_or(name)
-        None => name
+        None => signature_name(prepared.tree, signature, name)
       }
       if prepared.tree.nodes[signature].data is Signature(params=parameters, ..) {
         for parameter in parameters {
@@ -125,6 +133,11 @@ fn model_functions(
         id: signature,
         name,
         kind,
+        flavor: match syntax_flavor {
+          Func => Plain
+          Get => Getter
+          Set => Setter
+        },
         params: ReadOnlyArray::from_array(members),
         result: output,
         asynchronous,
@@ -147,6 +160,7 @@ fn model_functions(
         id,
         name: resource_function_name(prepared.tree, resource, id).unwrap(),
         kind: Constructor(resource),
+        flavor: Plain,
         params: ReadOnlyArray::from_array(parameters),
         result: match output {
           Some(id) => Some(id)
@@ -219,7 +233,7 @@ fn model_interfaces(
         },
         package_identity: prepared.identities[prepared.node_packages[id]],
         types: ReadOnlyArray::from_array(types),
-        functions: ReadOnlyArray::from_array(signatures),
+        functions: ordered_functions(ReadOnlyArray::from_array(signatures)),
         location: prepared.origins[id].location,
       })
     }
@@ -244,3 +258,9 @@ pub extend FunctionKind with Eq::{equal, not_equal}
 
 ///|
 pub extend FunctionKind with @debug.Debug::{to_repr}
+
+///|
+pub extend FunctionFlavor with Eq::{equal, not_equal}
+
+///|
+pub extend FunctionFlavor with @debug.Debug::{to_repr}

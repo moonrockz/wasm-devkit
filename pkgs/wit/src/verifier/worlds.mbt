@@ -300,8 +300,9 @@ fn expand_worlds(
           }
           for index, copied in items {
             let original = originals[index]
-            if !original.by_id && replacements.contains(original.name) {
-              used[original.name] = true
+            let subject = include_rename_subject(original.name)
+            if !original.by_id && replacements.contains(subject) {
+              used[subject] = true
             }
             tables.add(prepared, owner, imported, copied, at, true, errors)
           }

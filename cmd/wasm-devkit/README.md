@@ -223,6 +223,8 @@ interface files {
     constructor(path: string) -> result<file, string>;
     read: async func() -> list<u8>;
     open: static func(path: string) -> file;
+    position: get() -> u64;
+    position: set(value: u64);
   }
 }
 world app { import files; }
@@ -234,6 +236,12 @@ the constructed resource as its direct success type. Changing its return to
 `own<file>` keeps the syntax valid but makes `verify` exit with status 1 and
 `WIT-S007` at the constructor result. Borrowed handles anywhere in a function
 result also fail verification. Source files remain unchanged.
+
+Accessors use the pinned reference grammar during `verify`. Getters require a
+result and no explicit parameters. Setters require one explicit parameter, an
+exact corresponding getter, and an optional result with no success type.
+Changing `position: set(value: u64)` to return `u8` is syntax-valid under
+`check --all-features` and fails `verify` with `WIT-S007`.
 
 ### Select and inspect WIT worlds
 

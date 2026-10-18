@@ -1,0 +1,1 @@
+package example:app;interface api{use example:left/api.{r as a};use example:right/api.{r as b};f:func(x:own<a>,y:borrow<b>)->b;}world app{export api;}

@@ -60,4 +60,6 @@ to fresh local resources and preserved resources from named interfaces.
 Resource-function cases cover implicit receivers, ordinary/static/async functions,
 constructor default and fallible results, direct-resource success restrictions,
 strong component-name collisions, duplicate constructors and resource renaming
-through world includes. Accessors remain outside the implemented semantic profile.
+through world includes. Accessor cases cover free/method/static getter-setter pairs,
+arity and result restrictions, exact matching, differing value types accepted by
+the reference, includes supplying getters and annotation-preserving renames.

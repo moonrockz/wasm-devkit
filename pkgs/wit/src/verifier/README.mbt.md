@@ -8,7 +8,7 @@ filesystem, network or subprocess I/O. `Parse::is_valid()` still checks syntax;
 
 The local type profile supports complete package headers, interfaces/worlds, aliases,
 records, flags, enums, variants, resources, owned/borrowed handles, scalar/composite
-types, constructors and ordinary/static methods. Free functions and methods may be
+types, constructors, getters/setters and ordinary/static methods. Free functions and methods may be
 synchronous or asynchronous. WIT names may refer forward within an interface or world. Recursive type
 graphs, empty aggregates/tuples, duplicate members and more than 32 flags are rejected.
 Local member names and named world keys must be strongly unique. Canonicalization
@@ -29,7 +29,7 @@ inline interfaces, function/interface imports and exports, and include-with rena
 Their transitive interface dependencies remain runtime imports and require no component
 implementation.
 
-Accessors, encoded packages and attributes still fail explicitly
+Encoded packages and attributes still fail explicitly
 under `WIT-S003`. Their implementation
 continues under [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
 A successful result covers the entire supported input. An unsupported or unresolved
@@ -84,7 +84,7 @@ locations with the root source. The CLI adds 1-based UTF-16 line/column coordina
 
 Stable code families are `WIT-S001` for invalid ASTs, `WIT-S002` for missing package identity, `WIT-S003` for unsupported
 semantics, `WIT-S004` for duplicate names and `WIT-S005` for unresolved or
-incorrectly typed references. `WIT-S006` reports type cycles, `WIT-S007` reports invalid aggregate/composite and handle contracts, and `WIT-S008` distinguishes a non-type declaration used as a type.
+incorrectly typed references. `WIT-S006` reports type cycles, `WIT-S007` reports invalid aggregate/composite, handle and function contracts, and `WIT-S008` distinguishes a non-type declaration used as a type.
 
 ## Inspect resolved types
 
@@ -172,6 +172,42 @@ test "verify a resource API with fallible construction and an async method" {
 World resource definitions implicitly import their associated functions. Includes
 freshen the resource, constructor/method kinds and receiver/result handles together.
 An include-with resource rename also updates its associated mangled function names.
+
+## Getters and setters
+
+`Features::reference()` admits the accessor grammar. `ResolvedFunction.flavor`
+distinguishes `Plain`, `Getter` and `Setter` independently of the function's
+resource kind. Getters have no explicit parameters and require a result. Setters
+have one explicit parameter and may return nothing or a direct result type with
+no success type. A typedef defined as that result type is allowed; further aliases
+are not. Accessors cannot be asynchronous. Method accessors retain their implicit
+borrowed receiver, and function results still cannot contain borrowed handles.
+
+Each setter requires the exact corresponding getter name in the same interface
+or world import/export scope. Case, hyphens and method/static kind must match.
+World pairing is checked after include expansion, so an included getter can
+satisfy a local setter. Getter and setter value types may differ at the pinned
+reference revision. Include-with property renames update both mangled names;
+resource renames preserve the method/static and accessor annotations.
+
+```mbt check
+///|
+test "verify and inspect an included getter and setter pair" {
+  let source = "package example:app;world base{import size:get()->u64;}world app{import length:set(value:u64);include base with{size as length}}"
+  let parsed = @parser.parse(source, features=@parser.Features::reference())
+  let model = @verifier.verify(parsed, source~).unwrap()
+  let world = model.select_world(name=Some("app")).unwrap()
+  assert_eq(world.imports[0].name, "[get]length")
+  assert_eq(world.imports[1].name, "[set]length")
+  assert_true(
+    model.functions().any(f => f.name == "[set]length" && f.flavor is Setter),
+  )
+}
+```
+
+Interface function lists and world item lists move setters that precede their
+getter to follow it, matching the reference ordering. Setters already after their
+getter keep their position relative to unrelated declarations.
 
 ## Resolve a supplied package closure
 

@@ -1318,6 +1318,7 @@ pub fn parse(
 /// Grammar accepted by the pinned wasm-tools v1.262.0 semantic reference.
 /// Keeps the older default/all syntax profiles unchanged. Disabling nested
 /// namespace syntax disambiguates unspaced named interface paths.
+/// Accessors are enabled for this semantic reference revision.
 ///
 /// ```mbt check
 /// test "select the current semantic-reference grammar explicitly" {
@@ -1328,6 +1329,11 @@ pub fn parse(
 ///   assert_true(
 ///     @parser.parse(source, features=@parser.Features::reference()).is_valid(),
 ///   )
+///   let accessor = "package example:app;interface api{size:get()->u64;}"
+///   assert_false(@parser.parse(accessor).is_valid())
+///   assert_true(
+///     @parser.parse(accessor, features=@parser.Features::reference()).is_valid(),
+///   )
 /// }
 /// ```
 pub fn Features::reference() -> Features {
@@ -1335,6 +1341,6 @@ pub fn Features::reference() -> Features {
     nested_names: false,
     fixed_lists: true,
     external_ids: true,
-    accessors: false,
+    accessors: true,
   }
 }

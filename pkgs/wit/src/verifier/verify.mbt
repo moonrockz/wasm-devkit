@@ -89,6 +89,12 @@ fn verify_prepared(
     let key = if scope_id < prepared.identities.length() {
       name
     } else {
+      let name = if !name.has_prefix("[") &&
+        tree.nodes[id].data is Function(signature~, ..) {
+        signature_name(tree, signature, name)
+      } else {
+        name
+      }
       component_name_key(name)
     }
     if names.get(key) is Some(first) {
@@ -398,7 +404,14 @@ fn verify_prepared(
                 if !identifier(name) {
                   bad(id, "WIT-S001", "invalid world function name")
                 }
-                world_entry(owner, imported, name, Function(target), id, false)
+                world_entry(
+                  owner,
+                  imported,
+                  signature_name(tree, target, name),
+                  Function(target),
+                  id,
+                  false,
+                )
                 pending.push((target, Signature, scope))
               }
               None => bad(id, "WIT-S001", "world functions require a name")
@@ -570,9 +583,21 @@ fn verify_prepared(
           pending.push((params[i], Parameter, scope))
         }
       }
-      (Signature, Signature(params~, result~, flavor~, ..)) => {
-        if flavor != Func {
-          bad(id, "WIT-S003", "accessors are not yet supported")
+      (Signature, Signature(params~, result~, flavor~, asynchronous~)) => {
+        if flavor != Func && asynchronous {
+          bad(id, "WIT-S001", "accessors cannot be asynchronous")
+        }
+        if flavor == Get {
+          if !params.is_empty() {
+            bad(id, "WIT-S007", "getters cannot have explicit parameters")
+          }
+          if result is None {
+            bad(id, "WIT-S007", "getters must return a value")
+          }
+        } else if flavor == Set && params.length() != 1 {
+          bad(
+            id, "WIT-S007", "setters must have exactly one explicit parameter",
+          )
         }
         duplicates(params, "parameter")
         if result is Some(result) {
@@ -733,11 +758,17 @@ fn verify_prepared(
   let resources = resource_roots(tree, edges)
   verify_handles(prepared, edges, resources, errors)
   verify_constructors(prepared, edges, errors)
+  verify_setter_results(prepared, edges, errors)
   if !errors.is_empty() {
     return Err(dependency_chains(prepared, package_edges, errors))
   }
   let arena = SemanticArena::new(prepared, edges, resources)
+  verify_interface_accessors(arena, errors)
+  if !errors.is_empty() {
+    return Err(dependency_chains(prepared, package_edges, errors))
+  }
   expand_worlds(prepared, tables, includes, arena, interface_edges, errors)
+  verify_accessor_pairs(arena, tables, errors)
   let worlds : Array[ResolvedWorld] = []
   for id, node in tree.nodes {
     if node.data is World(name~, ..) && tables.imports.get(id) is Some(imports) {
@@ -745,8 +776,8 @@ fn verify_prepared(
         id,
         name,
         package_identity: prepared.identities[prepared.node_packages[id]],
-        imports: ReadOnlyArray::from_array(imports),
-        exports: ReadOnlyArray::from_array(tables.exports[id]),
+        imports: ordered_world_items(imports, arena),
+        exports: ordered_world_items(tables.exports[id], arena),
         location: prepared.origins[id].location,
       })
     }

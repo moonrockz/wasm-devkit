@@ -1,0 +1,1 @@
+package example:app;world base{import p:get()->u8;}world app{import p:set(x:string);include base;}

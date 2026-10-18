@@ -22,12 +22,10 @@ fn resource_function_name(
   }
   match tree.nodes[item].data {
     Constructor(..) => Some("[constructor]" + resource_name)
-    Function(name~, is_static~, ..) =>
+    Function(name~, is_static~, signature~, ..) =>
       Some(
         (if is_static { "[static]" } else { "[method]" }) +
-        resource_name +
-        "." +
-        name,
+        signature_name(tree, signature, resource_name + "." + name),
       )
     _ => None
   }
@@ -45,12 +43,23 @@ fn component_name_key(name : String) -> String {
   } else if rest.has_prefix("[method]") || rest.has_prefix("[static]") {
     rest = rest[8:].to_owned()
   }
+  let is_setter = rest.has_prefix("[set]")
+  if rest.has_prefix("[get]") || is_setter {
+    rest = rest[5:].to_owned()
+  }
   let key = strong_name(rest)
   let parts = key.split(".").to_array()
   if parts.length() == 2 && parts[0] == parts[1] {
     return parts[0].to_owned()
   }
-  (if is_constructor { "[constructor]" } else { "" }) + key
+  (if is_constructor {
+    "[constructor]"
+  } else if is_setter {
+    "[set]"
+  } else {
+    ""
+  }) +
+  key
 }
 
 ///|
@@ -131,6 +140,7 @@ fn function_resource(kind : FunctionKind) -> Int32? {
 fn remap_function_name(
   name : String,
   kind : FunctionKind,
+  flavor : FunctionFlavor,
   resource : String,
 ) -> String {
   match kind {
@@ -139,6 +149,7 @@ fn remap_function_name(
     Method(_) | Static(_) => {
       let parts = name.split(".").to_array()
       (if kind is Method(_) { "[method]" } else { "[static]" }) +
+      flavor_prefix(flavor) +
       resource +
       "." +
       parts[parts.length() - 1].to_owned()
