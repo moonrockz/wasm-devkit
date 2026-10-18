@@ -1,0 +1,1 @@
+package example:app;interface api{resource r;}world base{use api.{r};}world app{include base with{r as handle}}

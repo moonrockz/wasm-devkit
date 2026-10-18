@@ -1,0 +1,1 @@
+package example:app; interface a {} interface b {} world first {import host:a;} world second {import host:b;} world app {include first;include second;}

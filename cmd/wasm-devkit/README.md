@@ -211,3 +211,22 @@ does not fall back to a versioned package.
 
 WAC dependency providers and encoded WIT packages remain explicit unsupported errors
 while the remaining issue #5 tasks are implemented. Source files are never rewritten.
+
+### Select and inspect WIT worlds
+
+```shell
+wasm-devkit verify ./wit --language wit --world app
+wasm-devkit verify ./wit --language wit --world example:app/app@1.0.0
+wasm-devkit verify ./wit --language wit --json
+```
+
+Verification checks the supplied package closure. `--world` additionally requires
+an unambiguous world selection. A short name refers to the root package; a qualified
+world ID may select a dependency world. A package-only selector must contain exactly
+one world. Missing or ambiguous selections exit with status 1 and source-qualified
+diagnostics. Omitting `--world` verifies all worlds without selecting one.
+
+`--json` emits world keys, item kinds, named interface identities and directly
+referenced resource identities. The report covers the entire verified closure.
+Includes retain source provenance, expand renames and dependencies, and distinguish
+fresh world-owned resources from resources imported through named interfaces.

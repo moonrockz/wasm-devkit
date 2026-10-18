@@ -40,6 +40,9 @@ pub struct Verified {
   bindings : ReadOnlyArray[Binding]
   resolved_types : ReadOnlyArray[ResolvedType]
   package_identity : PackageIdentity
+  resolved_worlds : ReadOnlyArray[ResolvedWorld]
+  resolved_interfaces : ReadOnlyArray[ResolvedInterface]
+  resolved_functions : ReadOnlyArray[ResolvedFunction]
 }
 
 ///|

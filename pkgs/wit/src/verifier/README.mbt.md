@@ -10,20 +10,22 @@ The local type profile supports complete package headers, interfaces/worlds, ali
 records, flags, enums, variants, opaque resources, scalar/composite types and synchronous free interface
 functions. WIT names may refer forward within an interface or world. Recursive type
 graphs, empty aggregates/tuples, duplicate members and more than 32 flags are rejected.
-Fixed lists use decimal u32 lengths, including zero. Enable their grammar through
-`@parser.Features::all()` or CLI `--all-features`. Maps require direct bool, integer,
+Fixed lists use decimal u32 lengths, including zero. Use `@parser.Features::reference()`
+when supplying parsed models for the pinned semantic profile. CLI verification uses
+that grammar profile; syntax commands retain their existing default/all profiles. Maps require direct bool, integer,
 char or string scalar keys. At the pinned reference revision, aliases to those scalars
 are rejected as map keys. Futures, streams and error-context types follow that same pin.
 
 Source packages may span multiple files. Interface type `use` selectors and renames
 resolve through supplied local or external packages, including transitive and diamond
 dependencies. Version-qualified paths match exact package identities. An unversioned
-reference does not select a versioned package. Simple world function/interface imports
-remain runtime imports and require no component implementation.
+reference does not select a versioned package. Worlds support local/external aliases,
+inline interfaces, function/interface imports and exports, and include-with renames.
+Their transitive interface dependencies remain runtime imports and require no component
+implementation.
 
-Resource methods, handles, top-level interface aliases, includes, world use/export
-elaboration, imports of interfaces that themselves use other interfaces, encoded
-packages and attributes still fail explicitly under `WIT-S003`. Their implementation
+Resource methods, handles, encoded packages and attributes still fail explicitly
+under `WIT-S003`. Their implementation
 continues under [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
 A successful result covers the entire supported input. An unsupported or unresolved
 construct never yields a `Verified` model.
@@ -147,3 +149,46 @@ in a dependency whose package header can still be recovered.
 `WIT-S009` reports an unresolved package identity. `WIT-S011` reports conflicting
 package metadata or duplicate supplied identities. Missing interface/type selectors
 use `WIT-S005`; wrong declaration kinds use `WIT-S008`.
+
+## Select and inspect a world
+
+Top-level `use` aliases remain file-local and refer to direct package declarations.
+They can name a declaration defined later; they cannot name another alias. Interface
+IDs retain their original canonical identity. Includes clone world-owned types and
+anonymous interfaces. Their owned resources receive fresh nominal identities while
+keeping the original source location. Aliases to resources imported from named
+interfaces continue to reference those external resources.
+
+```mbt check
+///|
+test "include a world and inspect its runtime imports" {
+  let source = "package example:app; interface api { type t=u8; } world base { import api; export run:func(); } world app { include base with {run as execute} }"
+  let model = @verifier.verify(@parser.parse(source), source~).unwrap()
+  let world = model.select_world(name=Some("app")).unwrap()
+  assert_eq(world.imports[0].name, "example:app/api")
+  assert_eq(world.exports[0].name, "execute")
+  assert_true(
+    model.select_world() is Err(errors) && errors[0].code == "WIT-S010",
+  )
+  assert_eq(model.interfaces()[0].types[0].name, "t")
+}
+```
+
+`select_world()` requires exactly one root-package world. A short name selects a
+root world. `example:app/app@1.0.0` selects a qualified world across the supplied
+closure; a package identity selects its sole world or reports ambiguity. Verification
+without selection checks every supplied world and never chooses one implicitly.
+`WIT-S010` reports ambiguous selection with candidate locations. `WIT-S012` reports
+incompatible imported/exported interface dependency paths.
+
+`world_summary()` returns JSON containing world import/export keys, item kinds,
+named interface IDs and resource identities. It omits arena
+indices, source locations and function/type bodies. Use `interfaces()`, `functions()`
+and `types()` for that checked metadata. Each type's `scope` identifies its interface
+or world, including fresh include instances. No tree walk or include expansion uses
+recursive descent.
+
+`Features::reference()` resolves the grammar ambiguity between named interface paths
+and the older nested-namespace extension. Named paths in this profile are independent
+of whitespace. The older `Features::default()` and `Features::all()` profiles retain
+their pinned specification behavior, including the package-import example in that corpus.

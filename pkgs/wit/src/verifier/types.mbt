@@ -34,6 +34,7 @@ pub(all) struct TypeCase {
 
 ///|
 pub(all) struct ResolvedType {
+  scope : Int32
   id : Int32
   name : String?
   kind : TypeKind
@@ -117,6 +118,7 @@ fn resolved_types(
   tree : @ast.Tree,
   locations : ReadOnlyArray[Location],
   references : Map[Int32, Int32],
+  scopes : ReadOnlyArray[Int32],
 ) -> ReadOnlyArray[ResolvedType] {
   let result : Array[ResolvedType] = []
   for id, node in tree.nodes {
@@ -180,6 +182,7 @@ fn resolved_types(
     if kind is Some(kind) {
       result.push({
         id,
+        scope: scopes[id],
         name: declaration(node.data),
         kind,
         location: locations[id],

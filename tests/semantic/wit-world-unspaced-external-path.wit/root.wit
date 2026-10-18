@@ -1,0 +1,1 @@
+package example:app;world app{import local:example:dep/api@1.0.0;export out:example:dep/api@1.0.0;}

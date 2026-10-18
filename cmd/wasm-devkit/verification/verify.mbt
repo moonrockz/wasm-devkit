@@ -76,11 +76,7 @@ fn unsupported(path : String) -> @verifier.Diagnostic {
 
 ///|
 async fn wit(options : @cli.Options) -> @cli.Output {
-  let features = if options.all_features {
-    @parser.Features::all()
-  } else {
-    @parser.Features::default()
-  }
+  let features = @parser.Features::reference()
   let is_directory = options.path != "-" && @fs.kind(options.path) is Directory
   let base = options.base.unwrap_or(
     if is_directory {
@@ -197,13 +193,30 @@ async fn wit(options : @cli.Options) -> @cli.Output {
       root,
       dependencies=ReadOnlyArray::from_array(dependencies),
     ) {
-    Ok(_) =>
+    Ok(model) => {
+      if options.world is Some(_) {
+        if model.select_world(name=options.world) is Err(diagnostics) {
+          return output(
+            "",
+            @cli.render_wit_diagnostics(
+              diagnostics,
+              ReadOnlyArray::from_array(sources),
+            ),
+            1,
+          )
+        }
+      }
       output(
-        (if options.path == "-" { "<stdin>" } else { options.path }) +
-        ": verified wit\n",
+        if options.json {
+          model.world_summary().stringify() + "\n"
+        } else {
+          (if options.path == "-" { "<stdin>" } else { options.path }) +
+          ": verified wit\n"
+        },
         "",
         0,
       )
+    }
     Err(diagnostics) =>
       output(
         "",

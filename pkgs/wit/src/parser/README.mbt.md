@@ -186,3 +186,12 @@ explicit: bare CR is whitespace as in the WIT specification; malformed strings r
 newlines; semantic version and fixed-list integer spellings are not restricted to the
 reference's machine-integer widths. Proposal paths, optional semicolons after include renames
 and strict Core WebAssembly Unicode-escape separators follow the documented WIT profile.
+
+## Semantic reference grammar
+
+`Features::reference()` selects the grammar used by the pinned wasm-tools v1.262.0
+semantic resolver. It enables fixed lists and named interface paths while disabling
+the older nested-namespace and accessor extensions. Named interface paths in this
+profile do not depend on whitespace. Default/all profiles retain the original
+specification corpus behavior. This is a grammar choice; semantic validity still
+requires the separate verifier.

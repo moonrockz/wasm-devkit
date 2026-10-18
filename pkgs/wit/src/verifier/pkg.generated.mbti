@@ -86,14 +86,43 @@ pub struct Resolution {
   // private fields
 }
 pub fn Resolution::declarations(Self) -> ReadOnlyArray[Binding]
+pub fn Resolution::functions(Self) -> ReadOnlyArray[ResolvedFunction]
 pub fn Resolution::identities(Self) -> ReadOnlyArray[PackageIdentity]
+pub fn Resolution::interfaces(Self) -> ReadOnlyArray[ResolvedInterface]
 pub fn Resolution::origin(Self, Int) -> Origin?
 pub fn Resolution::root(Self) -> PackageIdentity
+pub fn Resolution::select_world(Self, name? : String?) -> Result[ResolvedWorld, ReadOnlyArray[Diagnostic]]
 pub fn Resolution::sources(Self) -> ReadOnlyArray[Document]
 pub fn Resolution::types(Self) -> ReadOnlyArray[ResolvedType]
+pub fn Resolution::world_summary(Self) -> Json
 pub fn Resolution::worlds(Self) -> ReadOnlyArray[ResolvedWorld]
 
+pub(all) struct ResolvedFunction {
+  id : Int
+  name : String
+  params : ReadOnlyArray[TypeMember]
+  result : Int?
+  asynchronous : Bool
+  location : Location
+} derive(Eq, @debug.Debug)
+pub fn ResolvedFunction::equal(Self, Self) -> Bool
+pub fn ResolvedFunction::not_equal(Self, Self) -> Bool
+pub fn ResolvedFunction::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ResolvedInterface {
+  id : Int
+  name : String?
+  package_identity : PackageIdentity
+  types : ReadOnlyArray[TypeMember]
+  functions : ReadOnlyArray[ResolvedFunction]
+  location : Location
+} derive(Eq, @debug.Debug)
+pub fn ResolvedInterface::equal(Self, Self) -> Bool
+pub fn ResolvedInterface::not_equal(Self, Self) -> Bool
+pub fn ResolvedInterface::to_repr(Self) -> @debug.Repr
+
 pub(all) struct ResolvedType {
+  scope : Int
   id : Int
   name : String?
   kind : TypeKind
@@ -104,6 +133,7 @@ pub fn ResolvedType::not_equal(Self, Self) -> Bool
 pub fn ResolvedType::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ResolvedWorld {
+  package_identity : PackageIdentity
   id : Int
   name : String
   imports : ReadOnlyArray[WorldItem]
@@ -164,16 +194,25 @@ pub struct Verified {
   bindings : ReadOnlyArray[Binding]
   resolved_types : ReadOnlyArray[ResolvedType]
   package_identity : PackageIdentity
+  resolved_worlds : ReadOnlyArray[ResolvedWorld]
+  resolved_interfaces : ReadOnlyArray[ResolvedInterface]
+  resolved_functions : ReadOnlyArray[ResolvedFunction]
 }
 pub fn Verified::ast(Self) -> @ast.Tree
 pub fn Verified::declarations(Self) -> ReadOnlyArray[Binding]
+pub fn Verified::functions(Self) -> ReadOnlyArray[ResolvedFunction]
 pub fn Verified::identity(Self) -> PackageIdentity
+pub fn Verified::interfaces(Self) -> ReadOnlyArray[ResolvedInterface]
+pub fn Verified::select_world(Self, name? : String?) -> Result[ResolvedWorld, ReadOnlyArray[Diagnostic]]
 pub fn Verified::source(Self) -> String
 pub fn Verified::text(Self) -> String
 pub fn Verified::types(Self) -> ReadOnlyArray[ResolvedType]
+pub fn Verified::world_summary(Self) -> Json
+pub fn Verified::worlds(Self) -> ReadOnlyArray[ResolvedWorld]
 
 pub(all) struct WorldItem {
   name : String
+  by_id : Bool
   kind : WorldItemKind
   location : Location
 } derive(Eq, @debug.Debug)

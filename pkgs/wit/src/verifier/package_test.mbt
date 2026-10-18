@@ -3,7 +3,7 @@ fn document(id : String, text : String) -> @verifier.Document {
   @verifier.Document::from_parse(
     id,
     text,
-    @parser.parse(text, features=@parser.Features::all()),
+    @parser.parse(text, features=@parser.Features::reference()),
   )
 }
 

@@ -1,0 +1,1 @@
+package example:app;world base{resource first;resource second;}world app{include base with {first as resource-a,second as resource-b}}

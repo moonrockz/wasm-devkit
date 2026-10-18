@@ -21,6 +21,7 @@ pub(all) struct Features {
 }
 pub fn Features::all() -> Self
 pub fn Features::default() -> Self
+pub fn Features::reference() -> Self
 
 pub(all) struct Parse {
   ast : @ast.Tree

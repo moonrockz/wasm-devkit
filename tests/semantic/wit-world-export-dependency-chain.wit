@@ -1,0 +1,1 @@
+package example:app; interface base{type t=u8;} interface middle{use base.{t};} interface api{use middle.{t};} world app{export api;export base;}

@@ -1,0 +1,11 @@
+[package]
+name = "wasm-devkit-semantic-reference"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.94.1"
+publish = false
+license = "Apache-2.0"
+
+[dependencies]
+wit-parser = { version = "=0.262.0", features = ["wat"] }
+serde_json = "=1.0.149"

@@ -23,6 +23,7 @@ release feature sets. The runner checks executable version output. No feature sw
 are passed. In-profile acceptance differences fail the runner.
 
 ```shell
+mise run build:semantic-reference
 mise run test:semantics -- /path/to/wasm-tools /path/to/wac
 ```
 
@@ -41,3 +42,12 @@ versions/interfaces/selectors, multi-file identities, transitive diamonds, local
 package cycles, exact version selection, mismatched headers and discovery rules.
 `wit-package-no-nested-deps.wit` deliberately places a dependency below another
 package's `deps` directory; both resolvers reject the unresolved transitive package.
+
+World cases cover include renames/conflicts/cycles, file-local aliases, inline and named
+interfaces, implicit dependencies, mixed import/export paths and resource freshening.
+Accepted WIT fixtures also compare normalized world summaries using the test-only
+[pinned Resolve API oracle](../../tools/semantic-reference/README.md). The projection
+compares keys, item kinds, named interface IDs and resource identities. Full
+function/type-model corpus conformance remains in the original semantic gate tasks.
+The helper preserves `WorldKey` discriminants because raw upstream JSON map names
+can collide with user names such as `interface-0`.

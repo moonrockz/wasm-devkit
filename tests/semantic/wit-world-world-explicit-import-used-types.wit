@@ -1,0 +1,1 @@
+package example:app; interface base {type t=u8;} interface api {use base.{t}; f:func()->t;} world app {import base; export api;}

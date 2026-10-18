@@ -1,0 +1,1 @@
+package example:app; world first {import f:func();} world second {import f:func();} world app {include first; include second;}

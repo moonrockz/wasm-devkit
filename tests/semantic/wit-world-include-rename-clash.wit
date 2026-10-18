@@ -1,0 +1,1 @@
+package example:app; world base {import f:func();import g:func();} world app {include base with {f as same,g as same}}

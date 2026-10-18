@@ -2,7 +2,7 @@ name = "moonrockz/wasm-devkit"
 
 version = "0.1.1"
 
-description = "WIT and WAC syntax tools for files and stdin"
+description = "WIT and WAC language tools for files and stdin"
 
 repository = "https://github.com/moonrockz/wasm-devkit"
 

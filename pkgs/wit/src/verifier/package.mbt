@@ -36,7 +36,6 @@ pub struct Resolution {
   priv documents : ReadOnlyArray[Document]
   priv packages : ReadOnlyArray[PackageIdentity]
   priv origins : ReadOnlyArray[Origin]
-  priv resolved_worlds : ReadOnlyArray[ResolvedWorld]
 }
 
 ///|
@@ -441,6 +440,7 @@ fn Prepared::find_item(
   scopes : Array[Map[String, Int32]],
   path : Int32,
   expected : String,
+  file_aliases~ : Map[String, Map[String, Int32]] = Map([]),
 ) -> Result[(Int32, Bool), Diagnostic] {
   guard self.tree.nodes[path].data is Path(namespaces~, segments~, version~) else {
     return Err(
@@ -490,7 +490,19 @@ fn Prepared::find_item(
       prepared_error(self, path, "WIT-S001", "invalid decoded item name"),
     )
   }
-  match scopes[package_index].get(item_name) {
+  let alias_target = if !external {
+    match file_aliases.get(self.origins[path].location.source) {
+      Some(names) => names.get(item_name)
+      None => None
+    }
+  } else {
+    None
+  }
+  match
+    (match alias_target {
+      Some(target) => Some(target)
+      None => scopes[package_index].get(item_name)
+    }) {
     None =>
       Err(
         prepared_error(
@@ -507,8 +519,8 @@ fn Prepared::find_item(
       )
     Some(target) => {
       let right_kind = match self.tree.nodes[target].data {
-        Interface(..) => expected == "interface"
-        World(..) => expected == "world"
+        Interface(..) => expected == "interface" || expected == "item"
+        World(..) => expected == "world" || (expected == "item" && !external)
         _ => false
       }
       if right_kind {
@@ -544,12 +556,14 @@ pub(all) enum WorldItemKind {
 ///|
 pub(all) struct WorldItem {
   name : String
+  by_id : Bool
   kind : WorldItemKind
   location : Location
 } derive(Eq, Debug)
 
 ///|
 pub(all) struct ResolvedWorld {
+  package_identity : PackageIdentity
   id : Int32
   name : String
   imports : ReadOnlyArray[WorldItem]
@@ -559,7 +573,7 @@ pub(all) struct ResolvedWorld {
 
 ///|
 pub fn Resolution::worlds(self : Resolution) -> ReadOnlyArray[ResolvedWorld] {
-  self.resolved_worlds
+  self.model.worlds()
 }
 
 ///|

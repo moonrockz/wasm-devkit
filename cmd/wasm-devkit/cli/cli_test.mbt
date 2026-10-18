@@ -167,3 +167,34 @@ test "dependency arguments require verify and stdin supplies a resolution base" 
     assert_true(@cli.arguments(args[:]) is Err(_))
   }
 }
+
+///|
+test "world selection is explicit and summaries contain no arena indices" {
+  let source = "package example:app; interface api {} world first {import api;} world second {}"
+  let selected = @cli.execute(
+    options(["verify", "a.wit", "--world", "first", "--json"]),
+    source,
+  )
+  assert_eq(selected.exit_code, 0)
+  assert_true(selected.stdout.contains("example:app/api"))
+  assert_false(selected.stdout.contains("interface-"))
+  assert_eq(
+    @cli.execute(options(["verify", "a.wit", "--world", "missing"]), source).exit_code,
+    1,
+  )
+  let ambiguous = @cli.execute(
+    options(["verify", "a.wit", "--world", "example:app"]),
+    source,
+  )
+  assert_eq(ambiguous.exit_code, 1)
+  assert_true(ambiguous.stderr.contains("WIT-S010"))
+  assert_eq(@cli.execute(options(["verify", "a.wit"]), source).exit_code, 0)
+  for
+    args in [
+      ["verify", "a.wit", "--world"],
+      ["verify", "a.wac", "--world", "app"],
+      ["parse", "a.wit", "--json"],
+    ] {
+    assert_true(@cli.arguments(args[:]) is Err(_))
+  }
+}

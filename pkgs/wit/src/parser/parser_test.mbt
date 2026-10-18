@@ -411,3 +411,17 @@ test "a leading byte-order mark is trivia rather than a syntax error" {
   assert_eq(parsed.cst.tokens[0].text, "\ufeff")
   assert_false(@parser.parse(" \ufeffinterface x {}").is_valid())
 }
+
+///|
+test "named local interface paths are independent of whitespace" {
+  for
+    source in [
+      "package example:app; interface api {} world app { import a:api; export b:api; }",
+      "package example:app; interface api {} world app { import a: api; export b: api; }",
+    ] {
+    let parsed = @parser.parse(source, features=@parser.Features::reference())
+    assert_true(parsed.is_valid())
+    assert_true(parsed.ast.nodes.any(n => n.data is Import(name=Some("a"), ..)))
+    assert_true(parsed.ast.nodes.any(n => n.data is Export(name=Some("b"), ..)))
+  }
+}

@@ -95,3 +95,8 @@ all 321 WIT files at its pinned revision; these examples do not claim exhaustive
 | 76 | Syntax acceptance | Unmodified. |
 | 77 | Skip | Examples from several separate files combined in one fenced block. |
 | 78 | Syntax acceptance | Unmodified. |
+
+The newer semantic reference's named-interface grammar accepts `import a:b;` as a
+named import. The original specification example 47 remains invalid under the pinned
+`Features::all()` syntax profile. `Features::reference()` selects the newer grammar
+without changing this corpus's expected result.

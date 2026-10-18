@@ -1,0 +1,1 @@
+package example:app; world base {import f:func();} world app {include base with {missing as renamed}}

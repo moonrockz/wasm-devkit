@@ -5,7 +5,7 @@ pub fn version() -> String {
 
 ///|
 pub let help : String =
-  #|wasm-devkit: WIT and WAC syntax tools
+  #|wasm-devkit: WIT and WAC language tools
   #|
   #|Usage: wasm-devkit <parse|verify|ast|cst|tokens|print|format> [FILE|-] [OPTIONS]
   #|       wasm-devkit --help | --version
@@ -15,6 +15,8 @@ pub let help : String =
   #|
   #|Options:
   #|  --language wit|wac   Select the source language
+  #|  --world NAME         Require a WIT world, short or package-qualified
+  #|  --json               Emit a WIT world-key/interface-identity summary
   #|  --base PATH          Dependency resolution base (required for verify stdin)
   #|  --deps-dir PATH      Dependency directory relative to the resolution base
   #|  --dep PKG=PATH       Map a package to a file/directory, relative to the base
@@ -66,6 +68,8 @@ pub(all) struct Options {
   base : String?
   deps_dir : String?
   dependencies : ReadOnlyArray[DependencyMapping]
+  world : String?
+  json : Bool
 } derive(Eq, Debug)
 
 ///|
@@ -101,6 +105,8 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
   let mut write = false
   let mut base = None
   let mut deps_dir = None
+  let mut world = None
+  let mut json = false
   let dependencies : Array[DependencyMapping] = []
   let mut literal = false
   let mut at = 1
@@ -165,6 +171,14 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
           path: args[at][separator + 1:].to_owned(),
         })
       }
+    } else if !literal && arg == "--world" {
+      at += 1
+      if at == args.length() || args[at].is_empty() {
+        return Err("--world requires a name")
+      }
+      world = Some(args[at])
+    } else if !literal && arg == "--json" {
+      json = true
     } else if !literal && arg == "--all-features" {
       all_features = true
     } else if !literal && arg == "--check" {
@@ -199,6 +213,9 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
     (base is Some(_) || deps_dir is Some(_) || !dependencies.is_empty()) {
     return Err("dependency options require verify")
   }
+  if (world is Some(_) || json) && (command != Verify || language != Wit) {
+    return Err("--world and --json require verify --language wit")
+  }
   if command == Verify && path == "-" && base is None {
     return Err("verify on stdin requires --base PATH")
   }
@@ -223,6 +240,8 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
       base,
       deps_dir,
       dependencies: ReadOnlyArray::from_array(dependencies),
+      world,
+      json,
     }),
   )
 }

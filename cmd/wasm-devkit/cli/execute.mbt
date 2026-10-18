@@ -76,7 +76,9 @@ fn wit_execute(options : Options, source : String, label : String) -> Output {
       },
     )
   }
-  let features = if options.all_features {
+  let features = if options.command == Verify {
+    @wit_parser.Features::reference()
+  } else if options.all_features {
     @wit_parser.Features::all()
   } else {
     @wit_parser.Features::default()
@@ -88,7 +90,26 @@ fn wit_execute(options : Options, source : String, label : String) -> Output {
   match options.command {
     Verify =>
       match @wit_verifier.verify(parsed, source_id=label, source~) {
-        Ok(_) => output(label + ": verified wit\n", "", 0)
+        Ok(model) => {
+          if options.world is Some(_) {
+            if model.select_world(name=options.world) is Err(diagnostics) {
+              return output(
+                "",
+                render_wit_diagnostics(diagnostics, [(label, source)]),
+                1,
+              )
+            }
+          }
+          output(
+            if options.json {
+              model.world_summary().stringify() + "\n"
+            } else {
+              label + ": verified wit\n"
+            },
+            "",
+            0,
+          )
+        }
         Err(diagnostics) => {
           let out = StringBuilder()
           let text = @wit_span.Source::new(source)

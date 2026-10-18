@@ -3,7 +3,7 @@ fn verify(
   source : String,
 ) -> Result[@verifier.Verified, ReadOnlyArray[@verifier.Diagnostic]] {
   @verifier.verify(
-    @parser.parse(source, features=@parser.Features::all()),
+    @parser.parse(source, features=@parser.Features::reference()),
     source_id="api.wit",
     source~,
   )
@@ -192,7 +192,7 @@ test "map and fixed list edges follow pinned resolver categories and u32 bounds"
     ] {
     let source = "package example:app; interface api { " + body + " }"
     assert_true(
-      @parser.parse(source, features=@parser.Features::all()).is_valid(),
+      @parser.parse(source, features=@parser.Features::reference()).is_valid(),
     )
     assert_true(verify(source) is Err(_))
   }

@@ -1,0 +1,1 @@
+package example:app;world app{include example:dep/base@1.0.0 with {f as host}}

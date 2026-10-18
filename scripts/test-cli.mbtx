@@ -132,5 +132,16 @@ async fn main {
   )
   assert_eq(@fs.read_file(world).text(), world_source)
   @fs.write_file(api, api_source)
+  let (_, _) = run(["verify", world, "--world", "app"], 0, wit)
+  let (_, _) = run(["verify", world, "--world", "missing"], 1, wit)
+  let (summary, _) = run(
+    ["verify", world, "--world", "example:app/app@1.0.0", "--json"],
+    0,
+    wit,
+  )
+  assert_true(summary.contains("example:dep/api@1.0.0"))
+  let worlds = dir + "/worlds.wit"
+  @fs.write_file(worlds, "package example:worlds;world first{}world second{}")
+  let (_, _) = run(["verify", worlds, "--world", "example:worlds"], 1, wit)
   println("CLI smoke checks passed")
 }
