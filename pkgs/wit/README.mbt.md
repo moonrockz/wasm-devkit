@@ -43,14 +43,13 @@ The lexical layer has acceptance examples, 2,400 seeded property cases per targe
 exact token/span reconstruction laws and a 30,000-level nested comment stress case.
 Tests also exercise malformed UTF-16 and string escapes. All run on wasm, wasm-gc, js and native.
 
-The parser adds 67 pinned specification examples with a licensed fixture manifest,
+The parser adds 68 pinned specification examples and 321 upstream WIT files with a licensed fixture manifest,
 1,900 seeded property cases, 20,000 nested types, 10,000 missing type closers and
 2,000 nested packages per target. AST/CST validation checks postorder references,
 unique parents, child order and span containment.
 
 Remaining validation for the syntax frontend and later packages:
 
-- Broader pinned upstream parser corpus coverage beyond specification examples.
 - Deep nesting across traversal, printing and formatting on every target.
 - Equivalent traversal event order with prune/stop behavior.
 - Immutable trees and rewrites leaving original trees unchanged.

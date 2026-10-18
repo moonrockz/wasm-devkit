@@ -11,8 +11,8 @@ switches for these fixtures. Semantic errors such as undefined names, duplicate 
 type cycles and incompatible feature gates are accepted as syntax, as the parser performs no
 semantic resolution. Block 47 contains an invalid package-only import. Block 72 omits a required
 package semicolon. Skipped blocks contain pseudo-syntax or combined files, rather than complete
-parseable documents. Additional upstream parser corpus coverage remains on Beads task
-`wasm-devkit-p5m.2.1`; these examples do not claim exhaustive grammar compatibility.
+parseable documents. The [wasm-tools corpus](wasm-tools/README.md) separately covers
+all 321 WIT files at its pinned revision; these examples do not claim exhaustive grammar compatibility.
 
 | Block | Check | Adaptation or reason |
 |-------|-------|----------------------|
@@ -32,7 +32,7 @@ parseable documents. Additional upstream parser corpus coverage remains on Beads
 | 13 | Syntax acceptance | Unmodified. |
 | 14 | Syntax acceptance | Unmodified. |
 | 15 | Syntax acceptance | Unmodified. |
-| 16 | Skip | Contains an ellipsis-only enum body standing for omitted cases. |
+| 16 | Syntax acceptance | Unmodified. |
 | 17 | Syntax acceptance | Unmodified. |
 | 18 | Skip | Multiple pseudo-files and an ellipsis-only enum body. |
 | 19 | Skip | Multiple separate files combined in one fenced block. |

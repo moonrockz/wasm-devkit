@@ -199,11 +199,9 @@ test "grammar constraints reject invalid documents" {
       "world a { f: func(); }", "interface a { resource r { type nested = u8; } }",
       "package no-namespace;", "interface a {} package late:name;", "package a:b; package a:b;",
       "use package:only;", "use local@1.2.3;", "use a:b/x@01.2.3;", "use a:b/x@1.2.3-01;",
-      "use a:b/x@1.2.3+;", "interface a { type t = borrow<list<u8>>; }", "interface a { type t = map<f32,u8>; }",
-      "interface a { type t = map<named,u8>; }", "interface a { type t = option<>; }",
-      "interface a { type t = result<_,_>; }", "interface a { type t = list<u8,0>; }",
-      "interface a { f: static func(); }", "interface a { f: async get() -> u8; }",
-      "interface a { use thing; }", "world a { include thing with {}; }",
+      "use a:b/x@1.2.3+;", "interface a { type t = borrow<list<u8>>; }", "interface a { type t = option<>; }",
+      "interface a { type t = result<_,_>; }", "interface a { f: static func(); }",
+      "interface a { f: async get() -> u8; }", "interface a { use thing; }",
     ] {
     let result = @parser.parse(source, features=@parser.Features::all())
     assert_false(result.is_valid())
@@ -365,4 +363,51 @@ test "lexical errors and malformed UTF-16 survive syntax recovery" {
       }),
     )
   }
+}
+
+///|
+test "syntactically valid semantic failures remain typed syntax" {
+  let _ = checked(
+    "interface a { enum e {} variant v {} type t = map<tuple<u8>,u8>; use missing.{}; } world w { include missing with {} }",
+  )
+}
+
+///|
+test "error-context is a primitive and its percent escape is a name" {
+  let parsed = checked(
+    "interface a { type t = error-context; type n = %error-context; }",
+  )
+  assert_true(
+    parsed.ast.nodes.any(n => n.data == PrimitiveType(name="error-context")),
+  )
+  assert_true(
+    parsed.ast.nodes.any(n => n.data == NamedType(name="error-context")),
+  )
+}
+
+///|
+test "fixed-length integer spellings remain lossless for later validation" {
+  for length in ["0", "0001", "4294967295", "4294967296"] {
+    let parsed = checked(
+      "interface a { type t = list<u8," + length + ">; }",
+      features=@parser.Features::all(),
+    )
+    assert_true(
+      parsed.ast.nodes.any(n => {
+        match n.data {
+          ListType(length=Some(actual), ..) => actual == length
+          _ => false
+        }
+      }),
+    )
+  }
+}
+
+///|
+test "a leading byte-order mark is trivia rather than a syntax error" {
+  let source = "\ufeffpackage a:b; interface x {}"
+  let parsed = checked(source)
+  assert_eq(parsed.cst.tokens[0].kind, Whitespace)
+  assert_eq(parsed.cst.tokens[0].text, "\ufeff")
+  assert_false(@parser.parse(" \ufeffinterface x {}").is_valid())
 }

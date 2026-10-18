@@ -72,7 +72,6 @@ priv enum Task {
   ResultTypeTail
   ListTypeTail
   AfterParams
-  MapTail
 }
 
 ///|
@@ -673,10 +672,6 @@ fn State::item(self : State, context : Context) -> Unit {
           "variant" => Variant
           _ => Names
         }
-        if (word == "variant" || word == "enum") &&
-          self.current().kind == RBrace {
-          self.error("WIT-P003", "variant/enum requires at least one case")
-        }
         self.tasks.push(Fields(mode, RBrace, true))
       }
     }
@@ -725,9 +720,6 @@ fn State::item(self : State, context : Context) -> Unit {
           self.error("WIT-P003", "top-level use cannot select type names")
         }
         if self.expect(LBrace, "'{'") {
-          if self.current().kind == RBrace {
-            self.error("WIT-P003", "use requires at least one selected name")
-          }
           self.renames(false)
         }
       } else if !top {
@@ -747,9 +739,6 @@ fn State::item(self : State, context : Context) -> Unit {
       })
       if self.eat_word("with") {
         if self.expect(LBrace, "'{'") {
-          if self.current().kind == RBrace {
-            self.error("WIT-P003", "include with requires a rename")
-          }
           self.renames(true)
         }
         ignore(self.eat(Semicolon))
@@ -1010,7 +999,8 @@ fn State::ty(self : State) -> Unit {
     | "f64"
     | "char"
     | "bool"
-    | "string" => {
+    | "string"
+    | "error-context" => {
       self.bump()
       self.emit(PrimitiveType(name=token.text), token.span.start, first)
     }
@@ -1085,7 +1075,6 @@ fn State::ty(self : State) -> Unit {
           self.tasks.push(Expect(RAngle, "'>'"))
           self.tasks.push(Type)
           self.tasks.push(Expect(Comma, "','"))
-          self.tasks.push(MapTail)
           self.tasks.push(Type)
         }
       }
@@ -1175,26 +1164,15 @@ pub fn parse(
         if state.eat(Comma) {
           state.gate(features.fixed_lists, "fixed-length lists")
           let length = state.current().text
-          if state.current().kind != Integer || length.has_prefix("0") {
+          if state.current().kind != Integer {
             state.error(
-              "WIT-P003", "fixed list length must be a positive decimal integer",
+              "WIT-P003", "fixed list length must be a decimal integer",
             )
           }
-          ignore(state.expect(Integer, "positive integer length"))
+          ignore(state.expect(Integer, "integer length"))
           state.set_make(c => ListType(element=c[0], length=Some(length)))
         }
         ignore(state.expect(RAngle, "'>'"))
-      }
-      MapTail => {
-        let parent = state.frames[state.frames.length() - 1]
-        let key = state.nodes[parent.children[0]].data
-        if key is PrimitiveType(name~) {
-          if name == "f32" || name == "f64" {
-            state.error("WIT-P003", "map keys cannot be floating point")
-          }
-        } else {
-          state.error("WIT-P003", "map keys must be scalar key types")
-        }
       }
     }
   }

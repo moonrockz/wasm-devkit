@@ -21,12 +21,14 @@ members, aliases, paths, imports, exports, inline interfaces, use selectors and 
 world includes and include renaming, and since/unstable/deprecated attributes.
 
 Types include scalar primitives, named types, lists, tuples, options, all result forms,
-explicit own/borrow handles, futures, streams and maps. Explicit `own<name>` handles,
+explicit own/borrow handles, futures, streams, error-context primitives and maps.
+Explicit `own<name>` handles,
 empty records/flags/tuples and trailing commas follow the reference parser's accepted
-syntax. The reference inspected for those cases is wasm-tools commit
-`dcac6c30353afa6e851ef0bbd4ca14d8f5493731`. Variants/enums require a case.
-Map keys are restricted to the scalar key grammar. Semantic versions use SemVer 2.0
-syntax without bounded integer conversion. Fixed list lengths are positive decimal strings.
+syntax. The pinned reference is wasm-tools commit
+`dcac6c30353afa6e851ef0bbd4ca14d8f5493731`. Empty variants, enums, use selectors and
+include rename lists are also retained as syntax. Semantic versions use SemVer 2.0
+syntax without bounded integer conversion. Fixed-list integer spellings are preserved
+as strings, including zero and leading zeros; their numeric domain is validated later.
 
 `Features::default()` disables nested namespaces/package paths, fixed-length lists,
 external IDs/named interface imports, and accessors. Set individual fields or use
@@ -36,8 +38,9 @@ Named interface imports use whitespace around `:` to distinguish a plain-name al
 from a contiguous package path, following the pinned specification's disambiguation.
 
 Semantic resolution is separate. The parser does not load packages, resolve references,
-check duplicate names/type cycles, enforce compatible feature versions, or validate resource
-method/getter/setter signatures. Those checks require later semantic tooling. An AST can
+check duplicate names/type cycles, enforce compatible feature versions, check aggregate
+cardinality or map-key validity, or validate resource method/getter/setter signatures.
+Those checks require later semantic tooling. An AST can
 therefore describe syntactically valid code with semantic errors.
 
 ## Recovery and diagnostics
@@ -51,7 +54,7 @@ All diagnostics use UTF-16 source spans and are sorted by source start, then cod
 |------|---------|
 | `WIT-P001` | Missing token, identifier, member or type |
 | `WIT-P002` | Invalid or missing semantic version |
-| `WIT-P003` | Invalid scope, path, cardinality or type grammar constraint |
+| `WIT-P003` | Invalid scope, path or type grammar constraint |
 | `WIT-P004` | Unknown or malformed attribute |
 | `WIT-P005` | Disabled proposal syntax |
 | `WIT-P006` | Unexpected item, skipped during recovery |
@@ -62,7 +65,7 @@ AST recovery nodes and missing fields are not a successful parse of the malforme
 ## Validation
 
 [Fixture provenance and skips](fixtures/README.md) account for all 79 WIT fenced blocks in
-the pinned specification. Sixty-seven examples run on every target, including invalid syntax.
+the pinned specification. Sixty-eight examples run on every target, including invalid syntax.
 Snippets are wrapped in their grammatical contexts; omitted pseudo-syntax is recorded explicitly.
 The original Apache-2.0 license is retained alongside the manifest.
 
@@ -71,4 +74,16 @@ errors, recovery, collection ownership, exact CST reconstruction and structural 
 Per target, seeded properties cover 600 arbitrary Unicode sources, 1,000 malformed grammar
 fragment sequences and 300 generated valid nested types. Stress cases include 20,000 nested
 list types, 10,000 unclosed option types and 2,000 nested package bodies on wasm, wasm-gc,
-js and native. Broader upstream parser corpus coverage remains on Beads `wasm-devkit-p5m.2.1`.
+js and native.
+
+The [wasm-tools corpus](fixtures/wasm-tools/README.md) embeds all 321 upstream WIT files
+without source adaptations or skips. Expectations come from its syntax-only parser, rather
+than package resolution. All source hashes, classifications and two deliberate nesting-limit
+differences are recorded in the manifest. Every case checks acceptance, structural invariants
+and exact reconstruction on all four targets.
+
+The implementation preserves a leading BOM as trivia. Differences outside the corpus are
+explicit: bare CR is whitespace as in the WIT specification; malformed strings recover at
+newlines; semantic version and fixed-list integer spellings are not restricted to the
+reference's machine-integer widths. Proposal paths, optional semicolons after include renames
+and strict Core WebAssembly Unicode-escape separators follow the documented WIT profile.

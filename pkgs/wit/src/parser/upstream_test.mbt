@@ -401,6 +401,30 @@ test "pinned WIT specification example 15" {
 }
 
 ///|
+test "pinned WIT specification example 16" {
+  let source =
+    #|package local:demo;
+    #|
+    #|interface types {
+    #|    enum errno { /* ... */ }
+    #|
+    #|    type size = u32;
+    #|}
+    #|
+    #|interface my-host-functions {
+    #|    use types.{errno, size};
+    #|}
+    #|
+  let result = @parser.parse(source, features=@parser.Features::all())
+  if !result.is_valid() {
+    fail(@debug.to_string(result.diagnostics))
+  }
+  assert_eq(result.cst.to_source(), source)
+  assert_true(result.ast.validate())
+  assert_true(result.cst.validate())
+}
+
+///|
 test "pinned WIT specification example 17" {
   let source =
     #|package local:demo;

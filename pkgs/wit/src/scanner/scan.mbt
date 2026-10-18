@@ -79,7 +79,8 @@ fn valid_identifier(text : String) -> Bool {
 ///|
 fn keyword(text : String) -> Bool {
   match text {
-    "as"
+    "error-context"
+    | "as"
     | "async"
     | "bool"
     | "borrow"
@@ -379,7 +380,10 @@ pub fn scan(text : String) -> Scan {
   while i < text.length() {
     let start = i
     let c = unit(text, i)
-    let kind = if whitespace(c) {
+    let kind = if i == 0 && c == 0xfeff {
+      i += 1
+      Whitespace
+    } else if whitespace(c) {
       i += 1
       while whitespace(unit(text, i)) {
         i += 1

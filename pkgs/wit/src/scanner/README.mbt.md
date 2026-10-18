@@ -14,7 +14,7 @@ tokens. `Scan::to_source()` reconstructs the exact input, including malformed UT
 
 The baseline is [Component Model WIT.md](https://github.com/WebAssembly/component-model/blob/0220da84209397d9067c19cac83dae969aa85a7b/design/mvp/WIT.md),
 revision `0220da84209397d9067c19cac83dae969aa85a7b`. Tests cover all 42 keywords in its
-lexical grammar. Proposal syntax, attribute recognition, package/path assembly and
+lexical grammar, plus the reference parser's `error-context` keyword. Proposal syntax, attribute recognition, package/path assembly and
 semantic-version validation belong to the future parser. `get` and `set` remain contextual
 identifiers. Lexical acceptance never implies that a proposal or document is supported.
 
@@ -29,6 +29,7 @@ identifiers. Lexical acceptance never implies that a proposal or document is sup
   takes place in the scanner.
 - Operators follow the pinned lexical table. `Minus`, `Plus` and `Underscore` also represent
   semantic-version pieces and the result placeholder. `->` takes precedence over `-`.
+- A leading U+FEFF byte-order mark is retained as whitespace. It still counts as one UTF-16 unit.
 - Line comments stop before LF, retaining any preceding CR. Block comments nest using a depth counter.
 - Quoted names validate Core WebAssembly escapes, Unicode scalar escapes and decoded UTF-8 bytes.
   Raw LF/CR terminates an unclosed string for recovery; subsequent declarations remain visible.
@@ -57,5 +58,4 @@ and strings retain their token kind. Always inspect diagnostics before consuming
 
 The scanner and reconstruction use loops without input-controlled recursion. Tests include
 generated Unicode and malformed fragments, immutable collection ownership, exact span tiling,
-string escape boundaries and 30,000 nested block comments on every target. Upstream syntax
-corpus validation remains part of Beads task `wasm-devkit-p5m.2.1`.
+string escape boundaries and 30,000 nested block comments on every target. The parser tests also exercise every WIT file from its pinned upstream corpus.

@@ -12,7 +12,7 @@ source restrictions, and handles nested comments without recursion. Property tes
 comment stress test run on wasm, wasm-gc, js and native.
 
 WIT traversal, printing and formatting are still pending. The parser has a documented grammar
-profile and pinned specification examples; broader upstream parser corpus validation is still pending.
+profile, 68 pinned specification examples and all 321 WIT files from a pinned upstream parser corpus.
 WAC remains a scaffold exposing only its development version. No CLI is available yet,
 and nothing has been published to mooncakes.io.
 

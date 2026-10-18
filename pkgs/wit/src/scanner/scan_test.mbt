@@ -225,3 +225,10 @@ test "unpaired UTF-16 surrogates remain lossless and are diagnosed" {
     }
   }
 }
+
+///|
+test "reference error-context keyword and percent escape are distinct" {
+  let tokens = @scanner.scan("error-context %error-context").tokens
+  assert_eq(tokens[0].kind, Keyword)
+  assert_eq(tokens[2].kind, Identifier)
+}
