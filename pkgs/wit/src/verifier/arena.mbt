@@ -32,6 +32,7 @@ fn lexical_owners(tree : @ast.Tree) -> ReadOnlyArray[Int32] {
 fn SemanticArena::new(
   prepared : Prepared,
   references : Map[Int32, Int32],
+  resources : ReadOnlyArray[Int32],
 ) -> SemanticArena {
   let scopes = lexical_owners(prepared.tree)
   let types = resolved_types(
@@ -39,6 +40,7 @@ fn SemanticArena::new(
     prepared.origins.map(o => o.location),
     references,
     scopes,
+    resources,
   )
   let functions = model_functions(prepared)
   let interfaces = model_interfaces(prepared, functions)
@@ -80,7 +82,7 @@ fn SemanticArena::allocate(self : SemanticArena, source : Int32) -> Int32 {
 fn kind_children(kind : TypeKind) -> ReadOnlyArray[Int32] {
   match kind {
     Scalar(_) | Resource | Flags(_) | Enum(_) => []
-    Alias(id) | List(id, _) | Option(id) => [id]
+    Alias(id) | Own(id) | Borrow(id) | List(id, _) | Option(id) => [id]
     Tuple(ids) => ids
     Result(ok, error) => {
       let ids = []
@@ -111,6 +113,8 @@ fn remap_kind(kind : TypeKind, replace : (Int32) -> Int32) -> TypeKind {
   match kind {
     Scalar(_) | Resource | Flags(_) | Enum(_) => kind
     Alias(id) => Alias(replace(id))
+    Own(id) => Own(replace(id))
+    Borrow(id) => Borrow(replace(id))
     List(id, size) => List(replace(id), size)
     Option(id) => Option(replace(id))
     Tuple(ids) => Tuple(ids.map(replace))

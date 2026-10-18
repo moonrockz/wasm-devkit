@@ -4,6 +4,8 @@
 pub(all) enum TypeKind {
   Scalar(String)
   Resource
+  Own(Int32)
+  Borrow(Int32)
   Alias(Int32)
   List(Int32, UInt32?)
   Tuple(ReadOnlyArray[Int32])
@@ -63,6 +65,7 @@ fn type_declaration(data : @ast.Data) -> Bool {
 fn type_edges(data : @ast.Data) -> ReadOnlyArray[Int32] {
   match data {
     Alias(ty~, ..) | Field(ty~, ..) => [ty]
+    OwnType(resource~) | BorrowType(resource~) => [resource]
     Record(fields~, ..) => fields
     Variant(cases~, ..) => cases
     Case(payload~, ..) =>
@@ -119,15 +122,29 @@ fn resolved_types(
   locations : ReadOnlyArray[Location],
   references : Map[Int32, Int32],
   scopes : ReadOnlyArray[Int32],
+  resources : ReadOnlyArray[Int32],
 ) -> ReadOnlyArray[ResolvedType] {
   let result : Array[ResolvedType] = []
+  let raw_resources = Array::make(tree.nodes.length(), false)
+  for node in tree.nodes {
+    match node.data {
+      Alias(ty~, ..) => raw_resources[ty] = true
+      OwnType(resource~) | BorrowType(resource~) =>
+        raw_resources[resource] = true
+      _ => ()
+    }
+  }
   for id, node in tree.nodes {
     let kind : TypeKind? = match node.data {
       PrimitiveType(name~) => Some(Scalar(name))
       Resource(..) => Some(Resource)
+      NamedType(..) if resources[id] >= 0 && !raw_resources[id] =>
+        Some(Own(resources[id]))
       NamedType(..) | Rename(..) =>
         references.get(id).map(id => TypeKind::Alias(id))
       Alias(ty~, ..) => Some(Alias(ty))
+      OwnType(resource~) => Some(Own(resources[resource]))
+      BorrowType(resource~) => Some(Borrow(resources[resource]))
       ListType(element~, length~) =>
         Some(
           List(

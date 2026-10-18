@@ -7,7 +7,7 @@ filesystem, network or subprocess I/O. `Parse::is_valid()` still checks syntax;
 ## Current profile
 
 The local type profile supports complete package headers, interfaces/worlds, aliases,
-records, flags, enums, variants, opaque resources, scalar/composite types and synchronous free interface
+records, flags, enums, variants, opaque resources, owned/borrowed handles, scalar/composite types and synchronous free interface
 functions. WIT names may refer forward within an interface or world. Recursive type
 graphs, empty aggregates/tuples, duplicate members and more than 32 flags are rejected.
 Local member names and named world keys must be strongly unique, so `a` and `A`
@@ -27,7 +27,7 @@ inline interfaces, function/interface imports and exports, and include-with rena
 Their transitive interface dependencies remain runtime imports and require no component
 implementation.
 
-Resource methods, handles, encoded packages and attributes still fail explicitly
+Resource methods, encoded packages and attributes still fail explicitly
 under `WIT-S003`. Their implementation
 continues under [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
 A successful result covers the entire supported input. An unsupported or unresolved
@@ -82,7 +82,7 @@ locations with the root source. The CLI adds 1-based UTF-16 line/column coordina
 
 Stable code families are `WIT-S001` for invalid ASTs, `WIT-S002` for missing package identity, `WIT-S003` for unsupported
 semantics, `WIT-S004` for duplicate names and `WIT-S005` for unresolved or
-incorrectly typed references. `WIT-S006` reports type cycles, `WIT-S007` reports invalid aggregate/composite contracts and `WIT-S008` distinguishes a non-type declaration used as a type.
+incorrectly typed references. `WIT-S006` reports type cycles, `WIT-S007` reports invalid aggregate/composite and handle contracts, and `WIT-S008` distinguishes a non-type declaration used as a type.
 
 ## Inspect resolved types
 
@@ -103,6 +103,38 @@ test "inspect resolved type edges" {
   }
 }
 ```
+
+## Resource handles
+
+`Own(resource)` and `Borrow(resource)` refer to the canonical nominal resource ID.
+Plain typedef aliases preserve their resource identity and may name handle targets.
+In value positions, a resource or an alias to a resource means an owned handle.
+An alias to an owned/borrowed handle cannot itself be a handle target.
+Borrowed handles may occur inside parameters and unused type declarations. A function
+result cannot contain a borrowed handle, even through aliases, aggregates, futures
+or streams. Such a result reports `WIT-S007` and labels the borrowed type's source.
+
+```mbt check
+///|
+test "inspect nominal owned and borrowed handles" {
+  let source = "package example:app;interface api{resource file;type alias=file;read:func(input:borrow<alias>)->file;}"
+  let model = @verifier.verify(@parser.parse(source), source~).unwrap()
+  let types = model.types()
+  let resource = types.filter(t => t.kind is Resource)[0].id
+  let function = model.functions()[0]
+  assert_true(
+    types.any(t => t.id == function.params[0].ty && t.kind == Borrow(resource)),
+  )
+  assert_true(
+    types.any(t => Some(t.id) == function.result && t.kind == Own(resource)),
+  )
+}
+```
+
+Handle resolution, borrow analysis and include copying use explicit work stacks.
+An included world or anonymous interface receives fresh local resource IDs, and
+its handles point to those fresh IDs. Handles to resources from named interfaces
+retain their original nominal target.
 
 ## Resolve a supplied package closure
 

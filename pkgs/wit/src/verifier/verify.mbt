@@ -562,6 +562,12 @@ fn verify_prepared(
         }
         pending.push((element, Type, scope))
       }
+      (Type, OwnType(resource~)) | (Type, BorrowType(resource~)) => {
+        if !(tree.nodes[resource].data is NamedType(..)) {
+          bad(resource, "WIT-S001", "a handle target must be a resource name")
+        }
+        pending.push((resource, Type, scope))
+      }
       (Type, TupleType(elements~)) => {
         if elements.is_empty() {
           bad(id, "WIT-S007", "empty tuple")
@@ -664,7 +670,12 @@ fn verify_prepared(
   if !errors.is_empty() {
     return Err(dependency_chains(prepared, package_edges, errors))
   }
-  let arena = SemanticArena::new(prepared, edges)
+  let resources = resource_roots(tree, edges)
+  verify_handles(prepared, edges, resources, errors)
+  if !errors.is_empty() {
+    return Err(dependency_chains(prepared, package_edges, errors))
+  }
+  let arena = SemanticArena::new(prepared, edges, resources)
   expand_worlds(prepared, tables, includes, arena, interface_edges, errors)
   let worlds : Array[ResolvedWorld] = []
   for id, node in tree.nodes {

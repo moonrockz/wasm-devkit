@@ -51,3 +51,8 @@ compares keys, item kinds, named interface IDs and resource identities. Full
 function/type-model corpus conformance remains in the original semantic gate tasks.
 The helper preserves `WorldKey` discriminants because raw upstream JSON map names
 can collide with user names such as `interface-0`.
+
+Handle fixtures compare forward resource aliases, owned/borrowed parameters,
+shorthand resource values, invalid handle targets and borrowed results hidden in
+aliases, records, variants, futures and streams. Include cases exercise handles
+to fresh local resources and preserved resources from named interfaces.
