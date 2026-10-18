@@ -10,7 +10,8 @@ test "all pinned grammar keywords are reserved and percent escapes are identifie
   }
   for
     spelling in [
-      "my-name", "HTTP", "HTTP-request", "%interface", "a0-b1", "FOO-BAR",
+      "my-name", "HTTP", "HTTP-request", "%interface", "a0-b1", "FOO-BAR", "a1-2-3",
+      "A1-2-3", "A11-4CR0NYMS", "m1x3d-4CR0NYMS", "my-world-1",
     ] {
     assert_eq(@scanner.scan(spelling).tokens[0].kind, Identifier)
     assert_true(@scanner.scan(spelling).diagnostics.is_empty())

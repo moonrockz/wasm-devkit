@@ -2,7 +2,7 @@ name = "moonrockz/wit"
 
 version = "0.0.0"
 
-description = "WIT language tooling for MoonBit (scaffold)"
+description = "WIT syntax tooling for MoonBit"
 
 repository = "https://github.com/moonrockz/wasm-devkit"
 

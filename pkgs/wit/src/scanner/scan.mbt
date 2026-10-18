@@ -44,19 +44,30 @@ fn hex(c : Int32) -> Int32? {
 /// Words have a consistent case within each hyphen-separated segment.
 fn valid_identifier(text : String) -> Bool {
   let mut start = if unit(text, 0) == 37 { 1 } else { 0 }
-  guard start < text.length() else { return false }
+  guard lower(unit(text, start)) || upper(unit(text, start)) else {
+    return false
+  }
   while start < text.length() {
-    let first = unit(text, start)
-    let is_lower = lower(first)
-    guard is_lower || upper(first) else { return false }
-    let mut i = start + 1
+    let mut casing = 0
+    let mut i = start
     while i < text.length() && unit(text, i) != 45 {
       let c = unit(text, i)
-      guard digit(c) || (if is_lower { lower(c) } else { upper(c) }) else {
+      if lower(c) {
+        if casing == 2 {
+          return false
+        }
+        casing = 1
+      } else if upper(c) {
+        if casing == 1 {
+          return false
+        }
+        casing = 2
+      } else if !digit(c) {
         return false
       }
       i += 1
     }
+    guard i > start else { return false }
     if i == text.length() {
       return true
     }

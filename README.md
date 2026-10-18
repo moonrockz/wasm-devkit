@@ -5,12 +5,14 @@ A MoonBit monorepo for WebAssembly language tooling, created from the
 
 ## Status
 
-WIT source positions, structured diagnostics and a lossless scanner are implemented.
+WIT source positions, structured diagnostics, a lossless scanner, typed immutable ASTs/CSTs
+and a recovering parser are implemented.
 The scanner retains trivia and malformed text, validates WebAssembly string names and Unicode
 source restrictions, and handles nested comments without recursion. Property tests and a 30,000-level
 comment stress test run on wasm, wasm-gc, js and native.
 
-WIT ASTs, CSTs, parsing, traversal, printing and formatting are still pending.
+WIT traversal, printing and formatting are still pending. The parser has a documented grammar
+profile and pinned specification examples; broader upstream parser corpus validation is still pending.
 WAC remains a scaffold exposing only its development version. No CLI is available yet,
 and nothing has been published to mooncakes.io.
 
@@ -20,7 +22,7 @@ and nothing has been published to mooncakes.io.
 | `moonrockz/wac` | [pkgs/wac](pkgs/wac) | WAC scanner, AST, lossless CST, recovering parser, immutable stack-safe traversal, printer and formatter |
 
 Both modules reserve `span`, `diagnostic`, `scanner`, `ast`, `cst`, `parser`, `traversal`,
-`printer` and `formatter` packages. Only WIT's first three packages have implementations.
+`printer` and `formatter` packages. WIT implements the first six; traversal, printer and formatter remain reserved.
 Each language will be independently consumable. WAC also gets an AST for typed traversal and printing.
 
 Add future libraries under `pkgs/`. The planned CLI will live under `cmd/` and support

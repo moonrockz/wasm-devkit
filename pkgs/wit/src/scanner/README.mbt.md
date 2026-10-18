@@ -18,7 +18,9 @@ lexical grammar. Proposal syntax, attribute recognition, package/path assembly a
 semantic-version validation belong to the future parser. `get` and `set` remain contextual
 identifiers. Lexical acceptance never implies that a proposal or document is supported.
 
-- ASCII kebab identifiers use consistently lower- or uppercase segments, optionally escaped with `%`.
+- ASCII kebab identifiers start with a letter and use consistently lower- or uppercase fragments,
+  optionally escaped with `%`. Fragments after a hyphen may start with digits, as in `a1-2-3`
+  and `m1x3d-4CR0NYMS`, following the pinned Component Model label grammar.
 - Integers are digit sequences. A digit sequence followed by a dot and another digit starts a `Version`
   candidate, consuming contiguous ASCII letters, digits, dots, hyphens and plus signs.
   This permits SemVer labels that are not WIT identifiers. The parser must validate the

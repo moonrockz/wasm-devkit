@@ -1,0 +1,34 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonrockz/wit/parser"
+
+import {
+  "moonrockz/wit/ast",
+  "moonrockz/wit/cst",
+  "moonrockz/wit/diagnostic",
+}
+
+// Values
+pub fn parse(String, features? : Features) -> Parse
+
+// Errors
+
+// Types and methods
+pub(all) struct Features {
+  nested_names : Bool
+  fixed_lists : Bool
+  external_ids : Bool
+  accessors : Bool
+}
+pub fn Features::all() -> Self
+pub fn Features::default() -> Self
+
+pub(all) struct Parse {
+  ast : @ast.Tree
+  cst : @cst.Tree
+  diagnostics : ReadOnlyArray[@diagnostic.Diagnostic]
+}
+pub fn Parse::is_valid(Self) -> Bool
+
+// Type aliases
+
+// Traits
