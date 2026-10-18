@@ -1,1 +1,14 @@
-// Reserved WAC formatter package. No implementation yet.
+import {
+  "moonrockz/wac/cst",
+  "moonrockz/wac/parser",
+  "moonrockz/wac/scanner",
+  "moonrockz/wac/diagnostic",
+  "moonrockz/wac/internal/layout",
+  "moonbitlang/core/debug",
+}
+
+import {
+  "moonrockz/wac/formatter",
+  "moonrockz/wac/ast",
+  "moonbitlang/core/quickcheck",
+} for "test"

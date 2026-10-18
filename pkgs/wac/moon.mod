@@ -2,7 +2,7 @@ name = "moonrockz/wac"
 
 version = "0.0.0"
 
-description = "WAC language tooling for MoonBit (scaffold)"
+description = "WAC language tooling for MoonBit"
 
 repository = "https://github.com/moonrockz/wasm-devkit"
 

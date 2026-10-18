@@ -1,0 +1,19 @@
+import {
+  "moonrockz/wit/parser" @wit_parser,
+  "moonrockz/wit/scanner" @wit_scanner,
+  "moonrockz/wit/span" @wit_span,
+  "moonrockz/wit/diagnostic" @wit_diagnostic,
+  "moonrockz/wit/printer" @wit_printer,
+  "moonrockz/wit/formatter" @wit_formatter,
+  "moonrockz/wac/parser" @wac_parser,
+  "moonrockz/wac/scanner" @wac_scanner,
+  "moonrockz/wac/span" @wac_span,
+  "moonrockz/wac/diagnostic" @wac_diagnostic,
+  "moonrockz/wac/printer" @wac_printer,
+  "moonrockz/wac/formatter" @wac_formatter,
+  "moonbitlang/core/debug",
+}
+
+import {
+  "moonrockz/wasm-devkit/cli",
+} for "test"

@@ -2,4 +2,5 @@ members = [
   ".",
   "./pkgs/wit",
   "./pkgs/wac",
+  "./cmd/wasm-devkit",
 ]

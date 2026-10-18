@@ -1,0 +1,28 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonrockz/wit/printer"
+
+import {
+  "moonbitlang/core/debug",
+  "moonrockz/wit/ast",
+}
+
+// Values
+pub fn print(@ast.Tree, indent_width? : Int) -> Result[String, PrintError]
+
+// Errors
+
+// Types and methods
+pub(all) enum PrintError {
+  InvalidTree
+  InvalidRoot
+  InvalidOptions
+  RecoveryNode(Int)
+  Unrepresentable
+} derive(Eq, @debug.Debug)
+pub fn PrintError::equal(Self, Self) -> Bool
+pub fn PrintError::not_equal(Self, Self) -> Bool
+pub fn PrintError::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

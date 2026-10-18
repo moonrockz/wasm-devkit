@@ -1,1 +1,7 @@
-// Reserved WAC span package. No implementation yet.
+import {
+  "moonbitlang/core/debug",
+}
+
+import {
+  "moonrockz/wac/span",
+} for "test"

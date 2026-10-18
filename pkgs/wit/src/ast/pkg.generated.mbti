@@ -1,0 +1,128 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonrockz/wit/ast"
+
+import {
+  "moonbitlang/core/debug",
+  "moonrockz/wit/span",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) enum Data {
+  File(items~ : ReadOnlyArray[Int])
+  Package(attributes~ : ReadOnlyArray[Int], path~ : Int, items~ : ReadOnlyArray[Int], nested~ : Bool)
+  Interface(name~ : String, attributes~ : ReadOnlyArray[Int], items~ : ReadOnlyArray[Int])
+  World(name~ : String, attributes~ : ReadOnlyArray[Int], items~ : ReadOnlyArray[Int])
+  Resource(name~ : String, attributes~ : ReadOnlyArray[Int], methods~ : ReadOnlyArray[Int], has_body~ : Bool)
+  Alias(name~ : String, attributes~ : ReadOnlyArray[Int], ty~ : Int)
+  Record(name~ : String, attributes~ : ReadOnlyArray[Int], fields~ : ReadOnlyArray[Int])
+  Flags(name~ : String, attributes~ : ReadOnlyArray[Int], cases~ : ReadOnlyArray[Int])
+  Enum(name~ : String, attributes~ : ReadOnlyArray[Int], cases~ : ReadOnlyArray[Int])
+  Variant(name~ : String, attributes~ : ReadOnlyArray[Int], cases~ : ReadOnlyArray[Int])
+  Function(name~ : String, attributes~ : ReadOnlyArray[Int], signature~ : Int, is_static~ : Bool)
+  Constructor(attributes~ : ReadOnlyArray[Int], params~ : ReadOnlyArray[Int], result~ : Int?)
+  Signature(flavor~ : FunctionFlavor, asynchronous~ : Bool, params~ : ReadOnlyArray[Int], result~ : Int?)
+  Import(name~ : String?, attributes~ : ReadOnlyArray[Int], target~ : Int)
+  Export(name~ : String?, attributes~ : ReadOnlyArray[Int], target~ : Int)
+  Use(attributes~ : ReadOnlyArray[Int], path~ : Int, names~ : ReadOnlyArray[Int], renamed~ : String?)
+  Include(attributes~ : ReadOnlyArray[Int], path~ : Int, renames~ : ReadOnlyArray[Int])
+  Attribute(name~ : String, field~ : String, value~ : String)
+  Path(namespaces~ : ReadOnlyArray[String], segments~ : ReadOnlyArray[String], version~ : String?)
+  Rename(name~ : String, renamed~ : String?)
+  Field(name~ : String, attributes~ : ReadOnlyArray[Int], ty~ : Int)
+  Case(name~ : String, attributes~ : ReadOnlyArray[Int], payload~ : Int?)
+  Parameter(name~ : String, ty~ : Int)
+  PrimitiveType(name~ : String)
+  NamedType(name~ : String)
+  ListType(element~ : Int, length~ : String?)
+  TupleType(elements~ : ReadOnlyArray[Int])
+  OptionType(payload~ : Int)
+  ResultType(ok~ : Int?, error~ : Int?)
+  OwnType(resource~ : Int)
+  BorrowType(resource~ : Int)
+  FutureType(payload~ : Int?)
+  StreamType(payload~ : Int?)
+  MapType(key~ : Int, value~ : Int)
+  Error(text~ : String, recovered~ : ReadOnlyArray[Int])
+} derive(Eq, @debug.Debug)
+pub fn Data::children(Self) -> ReadOnlyArray[Int]
+pub fn Data::equal(Self, Self) -> Bool
+pub fn Data::kind(Self) -> Kind
+pub fn Data::map_children(Self, (Int) -> Int) -> Self
+pub fn Data::not_equal(Self, Self) -> Bool
+pub fn Data::to_repr(Self) -> @debug.Repr
+
+pub(all) enum FunctionFlavor {
+  Func
+  Get
+  Set
+} derive(Eq, @debug.Debug)
+pub fn FunctionFlavor::equal(Self, Self) -> Bool
+pub fn FunctionFlavor::not_equal(Self, Self) -> Bool
+pub fn FunctionFlavor::to_repr(Self) -> @debug.Repr
+
+pub(all) enum Kind {
+  File
+  Package
+  Interface
+  World
+  Resource
+  Alias
+  Record
+  Flags
+  Enum
+  Variant
+  Function
+  Constructor
+  Signature
+  Import
+  Export
+  Use
+  Include
+  Attribute
+  Path
+  Rename
+  Field
+  Case
+  Parameter
+  PrimitiveType
+  NamedType
+  ListType
+  TupleType
+  OptionType
+  ResultType
+  OwnType
+  BorrowType
+  FutureType
+  StreamType
+  MapType
+  Error
+} derive(Eq, @debug.Debug)
+pub fn Kind::equal(Self, Self) -> Bool
+pub fn Kind::not_equal(Self, Self) -> Bool
+pub fn Kind::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Node {
+  data : Data
+  span : @span.Span
+} derive(Eq, @debug.Debug)
+pub fn Node::equal(Self, Self) -> Bool
+pub fn Node::not_equal(Self, Self) -> Bool
+pub fn Node::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Tree {
+  nodes : ReadOnlyArray[Node]
+} derive(Eq, @debug.Debug)
+pub fn Tree::equal(Self, Self) -> Bool
+pub fn Tree::equivalent(Self, Self) -> Bool
+pub fn Tree::not_equal(Self, Self) -> Bool
+pub fn Tree::root(Self) -> Int?
+pub fn Tree::to_repr(Self) -> @debug.Repr
+pub fn Tree::validate(Self) -> Bool
+
+// Type aliases
+
+// Traits

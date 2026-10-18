@@ -1,1 +1,10 @@
-// Reserved WAC scanner package. No implementation yet.
+import {
+  "moonrockz/wac/span",
+  "moonrockz/wac/diagnostic",
+  "moonbitlang/core/debug",
+}
+
+import {
+  "moonrockz/wac/scanner",
+  "moonbitlang/core/quickcheck",
+} for "test"

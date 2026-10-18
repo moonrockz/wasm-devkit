@@ -1,1 +1,11 @@
-// Reserved WIT scanner package. No implementation yet.
+import {
+  "moonbitlang/core/debug",
+  "moonrockz/wit/span",
+  "moonrockz/wit/diagnostic",
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "moonrockz/wit/scanner",
+  "moonbitlang/core/quickcheck",
+} for "test"

@@ -1,0 +1,31 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonrockz/wac/parser"
+
+import {
+  "moonrockz/wac/ast",
+  "moonrockz/wac/cst",
+  "moonrockz/wac/diagnostic",
+}
+
+// Values
+pub fn parse(String, features? : Features) -> Parse
+
+// Errors
+
+// Types and methods
+pub(all) struct Features {
+  named_results : Bool
+}
+pub fn Features::all() -> Self
+pub fn Features::default() -> Self
+
+pub(all) struct Parse {
+  ast : @ast.Tree
+  cst : @cst.Tree
+  diagnostics : ReadOnlyArray[@diagnostic.Diagnostic]
+}
+pub fn Parse::is_valid(Self) -> Bool
+
+// Type aliases
+
+// Traits

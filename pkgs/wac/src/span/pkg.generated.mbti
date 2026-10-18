@@ -1,0 +1,43 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonrockz/wac/span"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) struct Position {
+  line : Int
+  column : Int
+} derive(Eq, @debug.Debug)
+pub fn Position::equal(Self, Self) -> Bool
+pub fn Position::not_equal(Self, Self) -> Bool
+pub fn Position::to_repr(Self) -> @debug.Repr
+
+pub struct Source {
+  // private fields
+}
+pub fn Source::line_count(Self) -> Int
+pub fn Source::new(String) -> Self
+pub fn Source::position(Self, Int) -> Position?
+pub fn Source::slice(Self, Span) -> String?
+pub fn Source::span(Self) -> Span
+pub fn Source::text(Self) -> String
+
+pub(all) struct Span {
+  start : Int
+  end : Int
+} derive(Eq, @debug.Debug)
+pub fn Span::contains(Self, Self) -> Bool
+pub fn Span::equal(Self, Self) -> Bool
+pub fn Span::length(Self) -> Int
+pub fn Span::not_equal(Self, Self) -> Bool
+pub fn Span::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

@@ -1,1 +1,13 @@
-// Reserved WIT formatter package. No implementation yet.
+import {
+  "moonrockz/wit/cst",
+  "moonrockz/wit/parser",
+  "moonrockz/wit/scanner",
+  "moonrockz/wit/diagnostic",
+  "moonrockz/wit/internal/layout",
+  "moonbitlang/core/debug",
+}
+
+import {
+  "moonrockz/wit/formatter",
+  "moonbitlang/core/quickcheck",
+} for "test"

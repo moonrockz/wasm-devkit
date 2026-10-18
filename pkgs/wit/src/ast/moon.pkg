@@ -1,1 +1,8 @@
-// Reserved WIT ast package. No implementation yet.
+import {
+  "moonrockz/wit/span",
+  "moonbitlang/core/debug",
+}
+
+import {
+  "moonrockz/wit/ast",
+} for "test"

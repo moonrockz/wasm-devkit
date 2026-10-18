@@ -157,3 +157,19 @@ run = "moonx scripts/publish.mbtx"
 [tasks."release:validate"]
 description = "Verify release version and finished changelog notes (args: optional X.Y.Z)"
 run = "moonx scripts/release.mbtx validate"
+
+[tasks."cli"]
+description = "Run the WIT/WAC CLI from source"
+run = "moon run cmd/wasm-devkit --target wasm --quiet --"
+
+[tasks."test:cli"]
+description = "Exercise the CLI over files/stdin (args: wasm, native, --binary PATH or --moonx VERSION)"
+run = "moonx scripts/test-cli.mbtx"
+
+[tasks."build:cli"]
+description = "Build, smoke-test and archive the host native CLI (optional host label)"
+run = "moonx scripts/build-cli.mbtx"
+
+[tasks."release:verify-cli"]
+description = "Verify published CLI installs (args: moonx|mise X.Y.Z)"
+run = "moonx scripts/verify-cli.mbtx"

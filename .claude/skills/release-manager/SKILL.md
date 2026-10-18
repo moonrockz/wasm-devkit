@@ -1,11 +1,11 @@
 ---
 name: release-manager
-description: Prepare, validate, publish and troubleshoot wasm-devkit library releases.
+description: Prepare, validate, publish and troubleshoot wasm-devkit library and CLI releases.
 ---
 
 # Release manager
 
-Read AGENTS.md and README.md. This repository publishes libraries, not CLI binaries.
+Read AGENTS.md and README.md. This repository publishes WIT/WAC libraries, the moonx CLI and native CLI release archives.
 Version 0.0.0 is an unpublished scaffold and must never be released.
 
 1. Check clean main, current CI and `mise run release:status`. Check which capabilities are ready.
@@ -19,8 +19,9 @@ Version 0.0.0 is an unpublished scaffold and must never be released.
 6. After merge, dispatch `gh workflow run release.yml --ref main -f version=X.Y.Z -f dry_run=true`.
    Wait for validation to pass.
 7. When publishing is authorized, dispatch again with `dry_run=false`. The workflow validates main,
-   publishes WIT and WAC to mooncakes.io and creates the GitHub release.
-8. Run `mise run release:status`, verify both registry entries and the GitHub tag/release,
+   publishes WIT, WAC and the CLI to mooncakes.io, verifies moonx, creates the GitHub release
+   with native archives and verifies mise installation.
+8. Run `mise run release:status`, verify all three registry entries, moonx/mise installation and the GitHub tag/release,
    close the task and run `bd sync`.
 
 Publishing needs MOONCAKES_USER_TOKEN and is permanent. Do not publish scaffold modules,

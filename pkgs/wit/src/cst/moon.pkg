@@ -1,1 +1,10 @@
-// Reserved WIT cst package. No implementation yet.
+import {
+  "moonrockz/wit/ast",
+  "moonrockz/wit/span",
+  "moonrockz/wit/scanner",
+  "moonbitlang/core/debug",
+}
+
+import {
+  "moonrockz/wit/cst",
+} for "test"

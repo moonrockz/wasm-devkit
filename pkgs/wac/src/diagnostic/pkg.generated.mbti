@@ -1,0 +1,54 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonrockz/wac/diagnostic"
+
+import {
+  "moonbitlang/core/debug",
+  "moonrockz/wac/span",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) struct Diagnostic {
+  code : String
+  severity : Severity
+  message : String
+  primary : Label
+  related : ReadOnlyArray[Label]
+  recovery : Recovery
+} derive(Eq, @debug.Debug)
+pub fn Diagnostic::equal(Self, Self) -> Bool
+pub fn Diagnostic::error(String, String, @span.Span, recovery? : Recovery) -> Self
+pub fn Diagnostic::not_equal(Self, Self) -> Bool
+pub fn Diagnostic::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Label {
+  span : @span.Span
+  message : String
+} derive(Eq, @debug.Debug)
+pub fn Label::equal(Self, Self) -> Bool
+pub fn Label::not_equal(Self, Self) -> Bool
+pub fn Label::to_repr(Self) -> @debug.Repr
+
+pub(all) enum Recovery {
+  Continue
+  SkipToken
+  EndOfInput
+} derive(Eq, @debug.Debug)
+pub fn Recovery::equal(Self, Self) -> Bool
+pub fn Recovery::not_equal(Self, Self) -> Bool
+pub fn Recovery::to_repr(Self) -> @debug.Repr
+
+pub(all) enum Severity {
+  Error
+  Warning
+} derive(Eq, @debug.Debug)
+pub fn Severity::equal(Self, Self) -> Bool
+pub fn Severity::not_equal(Self, Self) -> Bool
+pub fn Severity::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

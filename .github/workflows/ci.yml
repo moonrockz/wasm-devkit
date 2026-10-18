@@ -99,12 +99,51 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - run: mise run test:scripts
 
+
+  cli:
+    name: CLI (${{ matrix.platform }})
+    needs: [lint]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-latest, platform: linux-x64}
+          - {os: macos-latest, platform: macos-arm64}
+          - {os: windows-latest, platform: windows-x64}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+        if: runner.os != 'Windows'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: hustcer/setup-moonbit@v1
+        if: runner.os == 'Windows'
+        with:
+          version: '0.10.15+943464bfa'
+          core-version: '0.10.15+943464bfa'
+      - uses: actions/setup-node@v4
+        if: runner.os == 'Windows'
+        with:
+          node-version: '24.14.1'
+      - run: moon update
+      - run: moonx scripts/test-cli.mbtx wasm
+      - run: moonx scripts/build-cli.mbtx ${{ matrix.platform }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wasm-devkit-${{ matrix.platform }}
+          path: |
+            dist/wasm-devkit-*.tar.gz
+            dist/wasm-devkit-*.sha256
+          if-no-files-found: error
+
   ci-ok:
     name: ci-ok
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: always()
-    needs: [lint, build, test, windows, test-native-zig, test-scripts]
+    needs: [lint, build, test, windows, test-native-zig, test-scripts, cli]
     steps:
       - name: Require every job to succeed
         env:

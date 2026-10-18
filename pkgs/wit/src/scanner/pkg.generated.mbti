@@ -1,0 +1,71 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonrockz/wit/scanner"
+
+import {
+  "moonbitlang/core/debug",
+  "moonrockz/wit/diagnostic",
+  "moonrockz/wit/span",
+}
+
+// Values
+pub fn scan(String) -> Scan
+
+// Errors
+
+// Types and methods
+pub(all) struct Scan {
+  tokens : ReadOnlyArray[Token]
+  diagnostics : ReadOnlyArray[@diagnostic.Diagnostic]
+} derive(Eq, @debug.Debug)
+pub fn Scan::equal(Self, Self) -> Bool
+pub fn Scan::not_equal(Self, Self) -> Bool
+pub fn Scan::to_repr(Self) -> @debug.Repr
+pub fn Scan::to_source(Self) -> String
+
+pub(all) struct Token {
+  kind : TokenKind
+  text : String
+  span : @span.Span
+} derive(Eq, @debug.Debug)
+pub fn Token::equal(Self, Self) -> Bool
+pub fn Token::not_equal(Self, Self) -> Bool
+pub fn Token::to_repr(Self) -> @debug.Repr
+
+pub(all) enum TokenKind {
+  Whitespace
+  LineComment
+  BlockComment
+  Identifier
+  Keyword
+  Integer
+  Version
+  StringLiteral
+  Equal
+  Comma
+  Colon
+  Semicolon
+  LParen
+  RParen
+  LBrace
+  RBrace
+  LAngle
+  RAngle
+  Star
+  Arrow
+  Slash
+  Dot
+  At
+  Minus
+  Plus
+  Underscore
+  Invalid
+  Eof
+} derive(Eq, @debug.Debug)
+pub fn TokenKind::equal(Self, Self) -> Bool
+pub fn TokenKind::is_trivia(Self) -> Bool
+pub fn TokenKind::not_equal(Self, Self) -> Bool
+pub fn TokenKind::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

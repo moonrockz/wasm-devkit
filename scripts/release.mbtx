@@ -1,5 +1,5 @@
 ///|
-/// Library release preparation, validation, notes and GitHub publication.
+/// Library and CLI release preparation, validation, notes and GitHub publication.
 /// No command publishes packages implicitly; the workflow controls publication.
 import {
   "moonbitlang/async@0.22.5",
@@ -122,7 +122,7 @@ async fn notes(version : String) -> String {
   let body = section(@fs.read_file("CHANGELOG.md").text(), version).unwrap()
   "# wasm-devkit v\{version}\n\n" +
   body +
-  "\n\nInstall:\n\n- `moon add moonrockz/wit@\{version}`\n- `moon add moonrockz/wac@\{version}`\n"
+  "\n\nInstall:\n\n- `moon add moonrockz/wit@\{version}`\n- `moon add moonrockz/wac@\{version}`\n- `moonx moonrockz/wasm-devkit@\{version} --help`\n- `mise use github:moonrockz/wasm-devkit@\{version}`\n"
 }
 
 ///|
@@ -161,8 +161,50 @@ async fn prepare(version : String) -> Unit {
 }
 
 ///|
+fn release_assets(version : String) -> Array[String] {
+  let result = []
+  for platform in ["linux-x64", "macos-arm64", "windows-x64"] {
+    let archive = "wasm-devkit-v" + version + "-" + platform + ".tar.gz"
+    result.push(archive)
+    result.push(archive + ".sha256")
+  }
+  result
+}
+
+///|
+fn validate_release_assets(
+  version : String,
+  release : Json,
+) -> Result[Unit, String] {
+  guard release is { "isDraft": False, "assets": Array(assets), .. } else {
+    return Err("Expected a published release with native asset metadata.")
+  }
+  let uploaded = assets
+    .iter()
+    .filter_map(fn(asset) {
+      match asset {
+        { "name": String(name), "state": String("uploaded"), .. } => Some(name)
+        _ => None
+      }
+    })
+    .to_array()
+  let missing = release_assets(version).filter(name => !uploaded.contains(name))
+  if missing.is_empty() {
+    Ok(())
+  } else {
+    Err("Missing uploaded native assets: " + missing.join(", "))
+  }
+}
+
+///|
 async fn github(version : String) -> Unit {
   let text = notes(version)
+  let assets = release_assets(version)
+  for name in assets {
+    if !@fs.exists("dist/" + name) {
+      fail_with("Missing validated release asset: " + name)
+    }
+  }
   let sha = output("git", ["rev-parse", "HEAD"])
   let tag = "v\{version}"
   let remote = output("git", [
@@ -199,6 +241,18 @@ async fn github(version : String) -> Unit {
   } else {
     fail_with("Cannot inspect GitHub release: \{err.text()}")
   }
+  let existing = output("gh", [
+      "release", "view", tag, "--json", "assets", "--jq", ".assets[].name",
+    ])
+    .split("\n")
+    .map(s => s.to_owned())
+    .to_array()
+  for name in assets {
+    if !existing.contains(name) {
+      // Never replace an existing asset when retrying a partial release.
+      output("gh", ["release", "upload", tag, "dist/" + name]) |> ignore
+    }
+  }
 }
 
 ///|
@@ -209,15 +263,19 @@ async fn status() -> Unit {
     return
   }
   validate(Some(version)) |> ignore
-  output("gh", [
+  let release_text = output("gh", [
     "release",
     "view",
     "v\{version}",
     "--json",
-    "url,isDraft,targetCommitish",
+    "url,isDraft,targetCommitish,assets",
   ])
-  |> println
-  for name in ["moonrockz/wit", "moonrockz/wac"] {
+  match validate_release_assets(version, @json.parse(release_text)) {
+    Ok(_) => println(release_text)
+    Err(message) => fail_with(message)
+  }
+  println("ok: all native archives and checksum files are uploaded")
+  for name in ["moonrockz/wit", "moonrockz/wac", "moonrockz/wasm-devkit"] {
     let text = output("curl", [
       "--fail",
       "--silent",
@@ -278,4 +336,58 @@ test "release versions reject malformed and noncanonical inputs" {
   }
   assert_true(valid_version("0.0.1"))
   assert_true(valid_version("12.34.56"))
+}
+
+///|
+test "release assets cover every supported native installation platform" {
+  let names = release_assets("0.1.0")
+  assert_eq(names.length(), 6)
+  assert_true(names.contains("wasm-devkit-v0.1.0-linux-x64.tar.gz"))
+  assert_true(names.contains("wasm-devkit-v0.1.0-macos-arm64.tar.gz.sha256"))
+  assert_true(names.contains("wasm-devkit-v0.1.0-windows-x64.tar.gz"))
+}
+
+///|
+test "release status rejects partial native publication" {
+  let names = release_assets("0.1.0")
+  let uploaded = names.map(name => {
+    Json::object({
+      "name": Json::string(name),
+      "state": Json::string("uploaded"),
+    })
+  })
+  let release = Json::object({
+    "isDraft": Json::boolean(false),
+    "assets": Json::array(uploaded),
+  })
+  assert_eq(validate_release_assets("0.1.0", release), Ok(()))
+  for missing in [names[0], names[1], names[4]] {
+    let partial = uploaded.filter(asset => {
+      !(asset is { "name": String(name), .. } && name == missing)
+    })
+    let release = Json::object({
+      "isDraft": Json::boolean(false),
+      "assets": Json::array(partial),
+    })
+    guard validate_release_assets("0.1.0", release) is Err(message) else {
+      fail("partial release must fail status")
+    }
+    assert_true(message.contains(missing))
+  }
+  let draft = Json::object({
+    "isDraft": Json::boolean(true),
+    "assets": Json::array(uploaded),
+  })
+  assert_true(validate_release_assets("0.1.0", draft) is Err(_))
+  let pending = uploaded.copy()
+  pending[0] = Json::object({
+    "name": Json::string(names[0]),
+    "state": Json::string("new"),
+  })
+  let release = Json::object({
+    "isDraft": Json::boolean(false),
+    "assets": Json::array(pending),
+  })
+  assert_true(validate_release_assets("0.1.0", release) is Err(_))
+  assert_true(validate_release_assets("0.1.0", Json::null()) is Err(_))
 }

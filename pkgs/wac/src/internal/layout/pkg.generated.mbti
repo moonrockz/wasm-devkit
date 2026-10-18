@@ -1,0 +1,17 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonrockz/wac/internal/layout"
+
+import {
+  "moonrockz/wac/cst",
+}
+
+// Values
+pub fn render(@cst.Tree, Int) -> String?
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

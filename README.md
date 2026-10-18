@@ -5,9 +5,20 @@ A MoonBit monorepo for WebAssembly language tooling, created from the
 
 ## Status
 
-The workspace, module boundaries, task scripts, CI, hooks and library release workflow are set up.
-**Language tooling is not implemented yet.** Each module currently exposes only its development version.
-No parser, printer or formatter is available, and nothing has been published to mooncakes.io.
+WIT source positions, structured diagnostics, a lossless scanner, typed immutable ASTs/CSTs,
+a recovering parser, immutable traversal, rewrites, canonical printing and comment-preserving
+formatting are implemented.
+The scanner retains trivia and malformed text, validates WebAssembly string names and Unicode
+source restrictions, and handles nested comments without recursion. Property tests and a 30,000-level
+comment stress test run on wasm, wasm-gc, js and native.
+
+The WIT parser has a documented grammar
+profile, 68 pinned specification examples and all 321 WIT files from a pinned upstream parser corpus.
+WAC has a lossless scanner, typed immutable AST/CST and recovering parser, tested against
+all 163 files in its pinned reference corpus. WAC immutable traversal, rewrites, canonical printing and comment-preserving formatting
+are implemented.
+The CLI under `cmd/wasm-devkit` supports both languages, files/stdin, inspection, printing
+and formatter check/write modes. Nothing has been published to mooncakes.io yet.
 
 | Module | Path | Intended capabilities |
 |--------|------|-----------------------|
@@ -15,10 +26,11 @@ No parser, printer or formatter is available, and nothing has been published to 
 | `moonrockz/wac` | [pkgs/wac](pkgs/wac) | WAC scanner, AST, lossless CST, recovering parser, immutable stack-safe traversal, printer and formatter |
 
 Both modules reserve `span`, `diagnostic`, `scanner`, `ast`, `cst`, `parser`, `traversal`,
-`printer` and `formatter` packages. Those packages contain documentation and manifests only.
+`printer` and `formatter` packages. Both languages implement all packages for their documented grammar profiles.
 Each language will be independently consumable. WAC also gets an AST for typed traversal and printing.
 
-Add future modules under `pkgs/` and executables under `apps/`, then register them in `moon.work`.
+Add future libraries under `pkgs/`. The [CLI](cmd/wasm-devkit/README.md) lives under `cmd/`
+and is packaged for moonx and native mise installation. Register new modules in `moon.work`.
 Keep external reference clones in ignored local scratch space. Their histories and implementation
 code are not part of the published modules.
 
@@ -32,6 +44,9 @@ mise install
 mise run hooks:install
 mise run check
 mise run test:scripts
+mise run test:cli -- wasm
+mise run test:cli -- native
+mise run build:cli
 ```
 
 MoonBit, Node.js, yamllint, lefthook, Zig and git-cliff are pinned in
@@ -90,8 +105,8 @@ The Smithy database and tasks are not reused.
 
 ## Releases
 
-Version `0.0.0` marks the unpublished scaffold. All modules share the root version.
-The first release will be `0.0.1` or a deliberately selected later version after language tooling is ready.
+Version `0.0.0` marks unpublished development. All modules share the root version.
+The first release will be `0.1.0`, after both languages and the CLI are ready.
 
 Run `mise run release:prepare -- X.Y.Z` on clean main. This creates a local release branch,
 updates versions and prepends a changelog section. Replace its highlights placeholder before
@@ -100,7 +115,8 @@ workflow with that version and `dry_run=true` first. Publishing requires a separ
 `dry_run=false` and the `MOONCAKES_USER_TOKEN` repository or organization secret.
 
 The library workflow validates all four targets and task scripts, publishes only `moonrockz/wit`
-and `moonrockz/wac`, then creates the GitHub release. There are no inherited CLI assets.
+and `moonrockz/wac`, followed by `moonrockz/wasm-devkit`. Native CLI archives are built on
+Linux x64, macOS arm64 and Windows x64 for mise installation.
 See [AGENTS.md](AGENTS.md) and the release-manager skill for the exact sequence.
 
 ## License

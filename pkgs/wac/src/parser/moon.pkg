@@ -1,1 +1,13 @@
-// Reserved WAC parser package. No implementation yet.
+import {
+  "moonrockz/wac/ast",
+  "moonrockz/wac/cst",
+  "moonrockz/wac/span",
+  "moonrockz/wac/scanner",
+  "moonrockz/wac/diagnostic",
+}
+
+import {
+  "moonrockz/wac/parser",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/quickcheck",
+} for "test"

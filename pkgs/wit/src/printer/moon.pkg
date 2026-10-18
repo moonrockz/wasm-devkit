@@ -1,1 +1,12 @@
-// Reserved WIT printer package. No implementation yet.
+import {
+  "moonrockz/wit/ast",
+  "moonrockz/wit/parser",
+  "moonrockz/wit/scanner",
+  "moonrockz/wit/internal/layout",
+  "moonbitlang/core/debug",
+}
+
+import {
+  "moonrockz/wit/printer",
+  "moonbitlang/core/quickcheck",
+} for "test"
