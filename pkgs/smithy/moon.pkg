@@ -1,0 +1,14 @@
+warnings = "-reserved_keyword"
+
+import {
+  "moonrockz/jmespath",
+  "moonrockz/smithy-syntax" @syntax,
+  "moonbitlang/core/json",
+}
+
+import {
+  "moonrockz/jmespath",
+  "moonrockz/smithy",
+  "moonrockz/smithy-syntax" @syntax,
+  "moonbitlang/core/quickcheck",
+} for "test"
