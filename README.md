@@ -77,7 +77,8 @@ acceptance remains available through `parse` and `check`.
 WAC verification covers ordered local types, interfaces, worlds, resources,
 uses/includes and typed imports/exports. Caller-supplied binary dependencies resolve
 exact package keys and nested definition paths through immutable type graphs.
-CLI dependency lookup and component instantiation remain under development.
+The CLI loads those binary dependencies from local paths. Text dependency adapters,
+registry lookup and component instantiation remain under development.
 See the [WIT verifier](pkgs/wit/src/verifier/README.mbt.md) and
 [WAC verifier](pkgs/wac/src/verifier/README.mbt.md) for checked examples and exact scope.
 Unsupported semantic constructs fail explicitly. Full dependency and component verification

@@ -2,6 +2,8 @@ import {
   "moonrockz/wasm-devkit/cli",
   "moonrockz/wit/verifier",
   "moonrockz/wit/parser",
+  "moonrockz/wac/parser" @wac_parser,
+  "moonrockz/wac/verifier" @wac_verifier,
   "moonbitlang/async/fs",
   "moonbitlang/async/stdio",
   "moonbitlang/core/encoding/utf8",

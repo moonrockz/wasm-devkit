@@ -83,6 +83,108 @@ async fn main {
     ordered_wac,
   )
   assert_eq(@fs.read_file(ordered_wac).text(), ordered_source)
+
+  // Original component package fixture: encoded:original@2.0.0 with api/service.
+  // Same bytes/model oracle as verifier/packages_test.mbt; lookup key is separate.
+  let package_bytes = b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x07\x52\x01\x41\x02\x01\x42\x06\x04\x00\x06\x68\x61\x6e\x64\x6c\x65\x03\x01\x01\x79\x04\x00\x06\x6e\x75\x6d\x62\x65\x72\x03\x00\x01\x01\x68\x00\x01\x40\x01\x01\x68\x03\x00\x02\x04\x00\x04\x74\x61\x6b\x65\x01\x04\x04\x00\x1a\x65\x6e\x63\x6f\x64\x65\x64\x3a\x6f\x72\x69\x67\x69\x6e\x61\x6c\x2f\x61\x70\x69\x40\x32\x2e\x30\x2e\x30\x05\x00\x0b\x09\x01\x00\x03\x61\x70\x69\x03\x00\x00\x07\x88\x01\x01\x41\x02\x01\x41\x04\x01\x42\x06\x04\x00\x06\x68\x61\x6e\x64\x6c\x65\x03\x01\x01\x79\x04\x00\x06\x6e\x75\x6d\x62\x65\x72\x03\x00\x01\x01\x68\x00\x01\x40\x01\x01\x68\x03\x00\x02\x04\x00\x04\x74\x61\x6b\x65\x01\x04\x03\x00\x1a\x65\x6e\x63\x6f\x64\x65\x64\x3a\x6f\x72\x69\x67\x69\x6e\x61\x6c\x2f\x61\x70\x69\x40\x32\x2e\x30\x2e\x30\x05\x00\x01\x40\x00\x00\x79\x04\x00\x06\x61\x6e\x73\x77\x65\x72\x01\x01\x04\x00\x1e\x65\x6e\x63\x6f\x64\x65\x64\x3a\x6f\x72\x69\x67\x69\x6e\x61\x6c\x2f\x73\x65\x72\x76\x69\x63\x65\x40\x32\x2e\x30\x2e\x30\x04\x00\x0b\x0d\x01\x00\x07\x73\x65\x72\x76\x69\x63\x65\x03\x02\x00\x00\x10\x0c\x70\x61\x63\x6b\x61\x67\x65\x2d\x64\x6f\x63\x73\x01\x7b\x7d\x00\x2f\x09\x70\x72\x6f\x64\x75\x63\x65\x72\x73\x01\x0c\x70\x72\x6f\x63\x65\x73\x73\x65\x64\x2d\x62\x79\x01\x0d\x77\x69\x74\x2d\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x07\x30\x2e\x32\x36\x32\x2e\x30"
+  let package_dir = dir + "/wac-packages"
+  @fs.mkdir(package_dir + "/deps/lookup/dep", recursive=true, allow_exist=true)
+  let package_source = package_dir + "/root.wac"
+  let package_text = "package test:app; import i: lookup:dep/api; export i;"
+  @fs.write_file(package_source, package_text)
+  @fs.write_file(package_dir + "/deps/lookup/dep.wasm", package_bytes)
+  @fs.write_file(package_dir + "/deps/lookup/dep/1.2.3.wasm", package_bytes)
+  // Use a separate name for the unversioned file: the versioned package directory
+  // wins over a sibling .wasm under the reference filesystem precedence.
+  @fs.write_file(package_dir + "/component.bin", package_bytes)
+  let _ = run(
+    ["verify", package_source, "--dep", "lookup:dep=component.bin"],
+    0,
+    wit,
+  )
+  let _ = run(
+    [
+      "verify", "-", "--language", "wac", "--base", package_dir, "--dep", "lookup:dep=component.bin",
+    ],
+    0,
+    package_source,
+  )
+  @fs.mkdir(
+    package_dir + "/binary-deps/lookup",
+    recursive=true,
+    allow_exist=true,
+  )
+  if @fs.exists(package_dir + "/binary-deps/lookup/dep.wat") {
+    @fs.remove(package_dir + "/binary-deps/lookup/dep.wat")
+  }
+  @fs.write_file(package_dir + "/binary-deps/lookup/dep.wasm", package_bytes)
+  let _ = run(["verify", package_source, "--deps-dir", "binary-deps"], 0, wit)
+  @fs.write_file(
+    package_source, "package test:app; import i: lookup:dep/api@1.2.3; export i;",
+  )
+  let _ = run(
+    ["verify", package_source, "--dep", "lookup:dep=missing.bin"],
+    0,
+    wit,
+  )
+  @fs.write_file(package_source, package_text)
+  let (_, missing_mapping) = run(
+    ["verify", package_source, "--dep", "lookup:dep=missing.bin"],
+    2,
+    wit,
+  )
+  assert_true(missing_mapping.contains("WAC-P003"))
+  let (_, missing_package) = run(
+    ["verify", package_source, "--deps-dir", "absent"],
+    1,
+    wit,
+  )
+  assert_true(missing_package.contains("root.wac:1:"))
+  assert_true(missing_package.contains("WAC-P003"))
+  let (_, directory_package) = run(["verify", package_source], 1, wit)
+  assert_true(directory_package.contains("WAC-S003"))
+  @fs.write_file(package_dir + "/bad.bin", b"bad")
+  let (_, bad_package) = run(
+    ["verify", package_source, "--dep", "lookup:dep=bad.bin"],
+    1,
+    wit,
+  )
+  assert_true(bad_package.contains("WAC-B001"))
+  assert_true(bad_package.contains("bad.bin:[byte"))
+  assert_true(bad_package.contains("root.wac:["))
+  assert_true(bad_package.contains("requested here"))
+  // Duplicate CLI mappings follow the reference override map: the last wins.
+  let _ = run(
+    [
+      "verify", package_source, "--dep", "lookup:dep=bad.bin", "--dep", "lookup:dep=component.bin",
+    ],
+    0,
+    wit,
+  )
+  @fs.write_file(package_dir + "/text.wat", "(component)")
+  let (_, text_package) = run(
+    ["verify", package_source, "--dep", "lookup:dep=text.wat"],
+    1,
+    wit,
+  )
+  assert_true(text_package.contains("WAC-B002"))
+  @fs.write_file(package_dir + "/binary-deps/lookup/dep.wat", package_bytes)
+  let _ = run(["verify", package_source, "--deps-dir", "binary-deps"], 0, wit)
+  @fs.write_file(package_dir + "/binary-deps/lookup/dep.wat", b"\x00asm")
+  let (_, preferred_wat) = run(
+    ["verify", package_source, "--deps-dir", "binary-deps"],
+    1,
+    wit,
+  )
+  assert_true(preferred_wat.contains("dep.wat"))
+  assert_true(preferred_wat.contains("WAC-B001"))
+  @fs.write_file(package_source, "package test:app;")
+  let _ = run(
+    ["verify", package_source, "--dep", "lookup:dep=missing.bin"],
+    0,
+    wit,
+  )
+
   let invalid_wac = dir + "/ordered-invalid.wac"
   for
     (source, code, related) in [

@@ -263,22 +263,6 @@ async fn wit(options : @cli.Options) -> @cli.Output {
 pub async fn execute(options : @cli.Options) -> @cli.Output {
   match options.language {
     Wit => wit(options)
-    Wac => {
-      if options.deps_dir is Some(_) || !options.dependencies.is_empty() {
-        return output(
-          "",
-          options.path +
-          ":1:1: error WAC-S003: dependency providers are not yet supported for WAC\n",
-          1,
-        )
-      }
-      let data = if options.path == "-" {
-        @stdio.stdin.read_all()
-      } else {
-        @fs.read_file(options.path)
-      }
-      let source = @utf8.decode(data.binary(), ignore_bom=false)
-      @cli.execute(options, source)
-    }
+    Wac => wac(options)
   }
 }

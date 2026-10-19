@@ -27,7 +27,7 @@ version suffixes are opaque during resolution, as in the pinned resolver.
 
 Component instantiation, instance access, export spreads,
 targets and parser-only named results fail with `WAC-S003`. These remaining
-composition operations and CLI dependency loading are tracked under
+composition operations are tracked under
 [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
 A successful result covers the entire supported input. An unsupported or unresolved
 construct never yields a `Verified` model.
@@ -209,11 +209,28 @@ resolver even when their version suffix differs. Self instantiation is rejected.
 missing packages, `WAC-P004` missing definitions or nested exports, and `WAC-P005`
 self instantiation. Binary decode failures retain their `WAC-B` code and byte
 location, with a related label on the requesting WAC path. This API does no file,
-registry or network lookup. CLI dependency loading and component instantiation
-remain separate unfinished work.
+registry or network lookup. The CLI loads the supported binary profile from local
+paths; text/WIT dependency adapters and component instantiation remain unfinished.
 
 Twenty-two original dependency probes compare acceptance and ordered source models
 with pinned `Document::resolve`, covering version matching, lookup/embedded identity
 separation, repeated resources, nested exports, uses, includes and local paths.
 Contract tests cover malformed dependency provenance, unused inputs and duplicate
 keys. All supported binary inputs use the declarative profile described above.
+
+`package_requests` collects dependency keys before loading them. It uses first-use
+key order and retains the last requesting path, matching the pinned resolver's
+map behavior. It validates syntax and source bounds, excludes local package paths,
+and rejects self instantiation even inside nested argument expressions. It does
+not establish semantic validity; pass the loaded inputs to `verify` afterward.
+
+```mbt check
+///|
+test "collect exact dependency keys before I/O" {
+  let source = "package app:main; import i: deps:api/types@1.2.3;"
+  let requests = @verifier.package_requests(@parser.parse(source), source~).unwrap()
+  assert_eq(requests.length(), 1)
+  assert_eq(requests[0].name, "deps:api")
+  assert_eq(requests[0].version, Some("1.2.3"))
+}
+```

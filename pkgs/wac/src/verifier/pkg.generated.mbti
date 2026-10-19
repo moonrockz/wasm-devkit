@@ -11,6 +11,8 @@ import {
 // Values
 pub fn decode_component_package(Bytes, source_id? : String) -> Result[BinaryPackage, ReadOnlyArray[Diagnostic]]
 
+pub fn package_requests(@parser.Parse, source~ : String, source_id? : String) -> Result[ReadOnlyArray[PackageRequest], ReadOnlyArray[Diagnostic]]
+
 pub fn verify(@parser.Parse, source_id? : String, source~ : String, dependencies? : ReadOnlyArray[PackageSource]) -> Result[Verified, ReadOnlyArray[Diagnostic]]
 
 pub fn verify_ast(@ast.Tree, source_id? : String, source~ : String, dependencies? : ReadOnlyArray[PackageSource]) -> Result[Verified, ReadOnlyArray[Diagnostic]]
@@ -88,6 +90,15 @@ pub fn Location::render(Self) -> String
 pub fn Location::span(Self) -> @span.Span?
 pub fn Location::text(String, @span.Span) -> Self
 pub fn Location::to_repr(Self) -> @debug.Repr
+
+pub(all) struct PackageRequest {
+  name : String
+  version : String?
+  location : Location
+} derive(Eq, @debug.Debug)
+pub fn PackageRequest::equal(Self, Self) -> Bool
+pub fn PackageRequest::not_equal(Self, Self) -> Bool
+pub fn PackageRequest::to_repr(Self) -> @debug.Repr
 
 pub(all) struct PackageSource {
   name : String

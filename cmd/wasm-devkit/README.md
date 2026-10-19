@@ -236,7 +236,7 @@ raw binary feature names that are empty or begin with `-`.
 WAT accepts root `@custom` metadata and `@producers` annotations, quoted
 identifiers, byte/Unicode escapes and component binary strings.
 Unsupported forms return a diagnostic and exit 1. Missing files and provider I/O
-failures return exit 2. WAC dependency providers remain unfinished under issue #5.
+failures return exit 2. WAC local binary dependencies use the separate layout below.
 Source and encoded inputs are never rewritten.
 
 WIT files may also contain top-level dependency package blocks after the main
@@ -295,3 +295,35 @@ diagnostics. Omitting `--world` verifies all worlds without selecting one.
 referenced resource identities. The report covers the entire verified closure.
 Includes retain source provenance, expand renames and dependencies, and distinguish
 fresh world-owned resources from resources imported through named interfaces.
+
+### WAC local component dependencies
+
+WAC `verify` loads caller-named binary component packages for imports, `use`,
+world includes and nested definition paths. The package name used for lookup is
+independent of the interface IDs encoded in the component.
+
+```shell
+wasm-devkit verify ./app.wac --dep lookup:dep=./component.wasm
+wasm-devkit verify ./app.wac --deps-dir ./components
+```
+
+Paths are relative to `--base`, or the input file's directory by default. For
+`lookup:dep`, automatic lookup tries `deps/lookup/dep`; if that is a directory it
+is selected. Otherwise `.wat` takes precedence over `.wasm`. A versioned request
+uses `deps/lookup/dep/1.2.3.wasm` (or `.wat`), preserving the full version string.
+Explicit `--dep lookup:dep=PATH` mappings override only unversioned requests, as
+in WAC 0.12.0. Repeated mappings use the last value. Unrequested mappings are not
+read. The library API instead rejects duplicate supplied package keys.
+
+The current WAC dependency profile accepts validated declarative component bytes,
+including bytes in a file with another extension. WIT directories, WIT text and
+WAT text fail explicitly; their portable adapters remain unfinished. Runtime/core
+sections, component values and root export ascriptions are also outside the
+binary profile. Component instantiation, access, spreads and target checks remain
+unfinished, so this does not yet verify arbitrary executable compositions.
+
+An unknown automatically discovered package is a semantic error (exit 1).
+A missing explicit mapping or a file read failure is an I/O error (exit 2).
+Invalid or unsupported component bytes return exit 1, with dependency byte
+provenance and a related requesting WAC location. `WAC-P006` identifies dependency
+read failures. No registry lookup, network access or component execution occurs.

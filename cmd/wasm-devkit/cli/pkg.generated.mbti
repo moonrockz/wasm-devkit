@@ -3,7 +3,6 @@ package "moonrockz/wasm-devkit/cli"
 
 import {
   "moonbitlang/core/debug",
-  "moonrockz/wit/verifier",
 }
 
 // Values
@@ -13,7 +12,11 @@ pub fn execute(Options, String) -> Output
 
 pub let help : String
 
-pub fn render_wit_diagnostics(ReadOnlyArray[@verifier.Diagnostic], ReadOnlyArray[(String, String)]) -> String
+pub fn render_wac_diagnostics(ReadOnlyArray[@moonrockz/wac/verifier.Diagnostic], String, String) -> String
+
+pub fn render_wit_diagnostics(ReadOnlyArray[@moonrockz/wit/verifier.Diagnostic], ReadOnlyArray[(String, String)]) -> String
+
+pub fn verify_wac(Options, String, dependencies? : ReadOnlyArray[@moonrockz/wac/verifier.PackageSource]) -> Output
 
 pub fn version() -> String
 

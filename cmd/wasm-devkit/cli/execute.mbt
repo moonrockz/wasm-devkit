@@ -208,7 +208,12 @@ fn wac_errors(
 }
 
 ///|
-fn wac_execute(options : Options, source : String, label : String) -> Output {
+fn wac_execute(
+  options : Options,
+  source : String,
+  label : String,
+  dependencies~ : ReadOnlyArray[@wac_verifier.PackageSource] = [],
+) -> Output {
   if options.command == Tokens {
     let scanned = @wac_scanner.scan(source)
     let out = StringBuilder()
@@ -236,32 +241,11 @@ fn wac_execute(options : Options, source : String, label : String) -> Output {
   let code = if valid { 0 } else { 1 }
   match options.command {
     Verify =>
-      match @wac_verifier.verify(parsed, source_id=label, source~) {
+      match
+        @wac_verifier.verify(parsed, source_id=label, source~, dependencies~) {
         Ok(_) => output(label + ": verified wac\n", "", 0)
-        Err(diagnostics) => {
-          let out = StringBuilder()
-          let text = @wac_span.Source::new(source)
-          for diagnostic in diagnostics {
-            let p = diagnostic.primary.location
-            let location = if p.source == label && p.span() is Some(span) {
-              let coordinates = match text.position(span.start) {
-                Some(position) => "\{position.line+1}:\{position.column+1}"
-                None => "?:?"
-              }
-              "\{p.source}:\{coordinates}"
-            } else {
-              p.render()
-            }
-            out.write_string(
-              "\{location}: error \{diagnostic.code}: \{diagnostic.message}\n",
-            )
-            for label in diagnostic.related {
-              let p = label.location
-              out.write_string("\{p.render()}: \{label.message}\n")
-            }
-          }
-          output("", out.to_string(), 1)
-        }
+        Err(diagnostics) =>
+          output("", render_wac_diagnostics(diagnostics, source, label), 1)
       }
     Parse =>
       output(if valid { label + ": valid wac\n" } else { "" }, errors, code)
@@ -387,4 +371,57 @@ pub fn render_wit_diagnostics(
     }
   }
   out.to_string()
+}
+
+///|
+pub fn render_wac_diagnostics(
+  diagnostics : ReadOnlyArray[@wac_verifier.Diagnostic],
+  source : String,
+  label : String,
+) -> String {
+  let out = StringBuilder()
+  let text = @wac_span.Source::new(source)
+  for diagnostic in diagnostics {
+    let p = diagnostic.primary.location
+    let location = if p.source == label && p.span() is Some(span) {
+      let coordinates = match text.position(span.start) {
+        Some(position) => "\{position.line+1}:\{position.column+1}"
+        None => "?:?"
+      }
+      "\{p.source}:\{coordinates}"
+    } else {
+      p.render()
+    }
+    out.write_string(
+      "\{location}: error \{diagnostic.code}: \{diagnostic.message}\n",
+    )
+    for label in diagnostic.related {
+      let p = label.location
+      out.write_string("\{p.render()}: \{label.message}\n")
+    }
+  }
+
+  out.to_string()
+}
+
+///|
+/// Verify WAC with caller-supplied binary dependencies and CLI formatting.
+pub fn verify_wac(
+  options : Options,
+  source : String,
+  dependencies~ : ReadOnlyArray[@wac_verifier.PackageSource] = [],
+) -> Output {
+  if options.command != Verify || options.language != Wac {
+    return output("", "WAC verification requires verify and language wac\n", 2)
+  }
+  wac_execute(
+    options,
+    source,
+    if options.path == "-" {
+      "<stdin>"
+    } else {
+      options.path
+    },
+    dependencies~,
+  )
 }
