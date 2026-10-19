@@ -67,7 +67,7 @@ test "invalid annotations report original annotation and package locations" {
     assert_true(errors.any(d => d.code == "WIT-S013"))
     for error in errors {
       assert_eq(error.primary.location.source, "api.wit")
-      assert_true(error.primary.location.span.start >= 45)
+      assert_true(error.primary.location.span().unwrap().start >= 45)
     }
     assert_true(verify(source) is Err(again) && again == errors)
   }

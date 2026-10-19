@@ -18,4 +18,5 @@ import {
 
 import {
   "moonrockz/wasm-devkit/cli",
+  "moonrockz/wit/verifier" @wit_verifier,
 } for "test"

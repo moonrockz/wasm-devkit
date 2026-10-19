@@ -1,5 +1,6 @@
 import {
   "moonrockz/wit/ast",
+  "moonrockz/wit/binary",
   "moonrockz/wit/parser",
   "moonrockz/wit/span",
   "moonrockz/wit/diagnostic",

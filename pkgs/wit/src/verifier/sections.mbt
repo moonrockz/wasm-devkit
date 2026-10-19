@@ -61,11 +61,8 @@ fn Prepared::alias_scope(self : Prepared, id : Int32) -> String {
 
 ///|
 fn location_key(location : Location) -> String {
-  location.span.start.to_string() +
-  ":" +
-  location.span.end.to_string() +
-  ":" +
-  location.source
+  let (kind, start, end) = location.order_key()
+  "\{kind}:\{start}:\{end}:" + location.source
 }
 
 ///|
@@ -120,12 +117,13 @@ fn PackageRanges::sort(self : PackageRanges) -> Unit {
 
 ///|
 fn PackageRanges::owner(self : PackageRanges, location : Location) -> Int32? {
+  guard location.position is SourceSpan(span) else { return None }
   if self.blocks.get(location.source) is Some(blocks) {
     let mut low = 0
     let mut high = blocks.length()
     while low < high {
       let middle = low + (high - low) / 2
-      if blocks[middle].0 <= location.span.start {
+      if blocks[middle].0 <= span.start {
         low = middle + 1
       } else {
         high = middle
@@ -133,7 +131,7 @@ fn PackageRanges::owner(self : PackageRanges, location : Location) -> Int32? {
     }
     if low > 0 {
       let (start, end, owner) = blocks[low - 1]
-      if start <= location.span.start && location.span.end <= end {
+      if start <= span.start && span.end <= end {
         return Some(owner)
       }
     }

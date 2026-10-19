@@ -39,8 +39,11 @@ test "nested dependency packages share one original source while retaining separ
     "example:dep",
   )
   let origin = model.origin(resource.id).unwrap()
-  assert_eq(input.ast.nodes[origin.node].span, resource.location.span)
-  assert_true(input.ast.nodes[origin.node].data is Resource(..))
+  assert_eq(
+    input.ast.nodes[origin.node.unwrap()].span,
+    resource.location.span().unwrap(),
+  )
+  assert_true(input.ast.nodes[origin.node.unwrap()].data is Resource(..))
   assert_eq(origin.location.source, "bundle.wit")
   let function = model.functions()[0]
   assert_true(
@@ -155,7 +158,8 @@ test "dependency chains distinguish package blocks within one Unicode source" {
   assert_true(
     diagnostic.related.any(label => {
       label.message == "required by dependency example:root" &&
-      label.location.span.start < diagnostic.primary.location.span.start
+      label.location.span().unwrap().start <
+      diagnostic.primary.location.span().unwrap().start
     }),
   )
   assert_true(section_model(text) is Err(again) && errors == again)

@@ -114,28 +114,8 @@ fn wit_execute(options : Options, source : String, label : String) -> Output {
             0,
           )
         }
-        Err(diagnostics) => {
-          let out = StringBuilder()
-          let text = @wit_span.Source::new(source)
-          for diagnostic in diagnostics {
-            let p = diagnostic.primary.location
-            let position = text.position(p.span.start)
-            let coordinates = match position {
-              Some(p) => "\{p.line+1}:\{p.column+1}"
-              None => "?:?"
-            }
-            out.write_string(
-              "\{p.source}:\{coordinates}: error \{diagnostic.code}: \{diagnostic.message}\n",
-            )
-            for label in diagnostic.related {
-              let p = label.location
-              out.write_string(
-                "\{p.source}:[\{p.span.start},\{p.span.end}): \{label.message}\n",
-              )
-            }
-          }
-          output("", out.to_string(), 1)
-        }
+        Err(diagnostics) =>
+          output("", render_wit_diagnostics(diagnostics, [(label, source)]), 1)
       }
     Parse =>
       output(if valid { label + ": valid wit\n" } else { "" }, errors, code)
@@ -374,15 +354,18 @@ pub fn render_wit_diagnostics(
     }
   }
   let render_location = fn(location : @wit_verifier.Location) {
-    match indexed.get(location.source) {
-      Some(source) =>
-        match source.position(location.span.start) {
-          Some(position) =>
-            "\{location.source}:\{position.line+1}:\{position.column+1}"
-          None =>
-            "\{location.source}:[\{location.span.start},\{location.span.end})"
+    match location.position {
+      SourceSpan(span) =>
+        match indexed.get(location.source) {
+          Some(source) =>
+            match source.position(span.start) {
+              Some(position) =>
+                "\{location.source}:\{position.line+1}:\{position.column+1}"
+              None => location.render()
+            }
+          None => location.render()
         }
-      None => "\{location.source}:[\{location.span.start},\{location.span.end})"
+      BinaryOffset(_) => location.render()
     }
   }
   let out = StringBuilder()

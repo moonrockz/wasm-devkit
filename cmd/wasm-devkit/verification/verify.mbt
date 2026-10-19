@@ -66,10 +66,7 @@ fn unsupported(path : String) -> @verifier.Diagnostic {
   {
     code: "WIT-S003",
     message,
-    primary: {
-      location: { source: path, span: { start: 0, end: 0, }, },
-      message,
-    },
+    primary: { location: @verifier.Location::binary(path), message, },
     related: [],
   }
 }
@@ -141,12 +138,12 @@ async fn wit(options : @cli.Options) -> @cli.Output {
             identity.key()
           let mut location : @verifier.Location = {
             source: path,
-            span: { start: 0, end: 0, },
+            position: SourceSpan({ start: 0, end: 0, }),
           }
           for document in package_input.documents {
             for node in document.ast.nodes {
-              if node.data is Package(..) {
-                location = { source: document.id, span: node.span, }
+              if node.data is Package(nested=false, ..) {
+                location = @verifier.Location::text(document.id, node.span)
               }
             }
           }

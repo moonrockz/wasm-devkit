@@ -948,7 +948,7 @@ fn verify_prepared(
       model,
       root_location: {
         source: first.id,
-        span: first.ast.nodes[first.ast.nodes.length() - 1].span,
+        position: SourceSpan(first.ast.nodes[first.ast.nodes.length() - 1].span),
       },
       documents: prepared.documents,
       packages: prepared.identities,

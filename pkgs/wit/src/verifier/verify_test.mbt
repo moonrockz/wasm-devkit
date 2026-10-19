@@ -45,7 +45,7 @@ test "duplicates link their original declaration and Unicode offsets are UTF16" 
   assert_eq(errors[0].code, "WIT-S004")
   assert_eq(errors[0].related.length(), 1)
   assert_eq(errors[0].related[0].location.source, "api.wit")
-  assert_eq(errors[0].primary.location.span.start, 56)
+  assert_eq(errors[0].primary.location.span().unwrap().start, 56)
   assert_true(errors[0].render().contains("api.wit:[56,"))
   assert_true(verify(source) is Err(again) && again == errors)
 }

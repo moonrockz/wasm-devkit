@@ -412,9 +412,8 @@ fn elaborate_world(
       if !leaving {
         if tables.export_names[owner].contains(key) {
           if !exporting {
-            let d = error(
-              item.location.source,
-              item.location.span,
+            let d = error_at(
+              item.location,
               "WIT-S012",
               "interface required as both an imported and exported dependency",
             )
@@ -443,9 +442,8 @@ fn elaborate_world(
         }
       } else if exporting {
         if required_imports.contains(id) {
-          let d = error(
-            item.location.source,
-            item.location.span,
+          let d = error_at(
+            item.location,
             "WIT-S012",
             "interface transitively required as an import conflicts with its export",
           )
@@ -512,7 +510,7 @@ pub fn Verified::select_world(
   .select_world(
     {
       source: self.source_id,
-      span: self.tree.nodes[self.tree.nodes.length() - 1].span,
+      position: SourceSpan(self.tree.nodes[self.tree.nodes.length() - 1].span),
     },
     name~,
   )

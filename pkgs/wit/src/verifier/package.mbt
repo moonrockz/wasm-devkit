@@ -26,9 +26,10 @@ pub(all) struct SourcePackage {
 }
 
 ///|
+/// Original syntax index is present only when the provider supplied a source AST.
 pub(all) struct Origin {
   location : Location
-  node : Int32
+  node : Int32?
 } derive(Eq, Debug)
 
 ///|
@@ -340,12 +341,11 @@ fn prepare(
     let key = identity_key(group.identity)
     let location : Location = {
       source: group.documents[0].id,
-      span: group.documents[0].ast.nodes[group.sections[0]].span,
+      position: SourceSpan(group.documents[0].ast.nodes[group.sections[0]].span),
     }
     if known.get(key) is Some(previous) {
-      let d = error(
-        location.source,
-        location.span,
+      let d = error_at(
+        location,
         "WIT-S011",
         "duplicate supplied package " + key,
       )
@@ -381,8 +381,8 @@ fn prepare(
               span: node.span,
             })
             origins.push({
-              location: { source: document.id, span: node.span, },
-              node: index,
+              location: Location::text(document.id, node.span),
+              node: Some(index),
             })
             node_packages.push(-1)
           }
@@ -446,7 +446,7 @@ fn prepared_error(
   message : String,
 ) -> Diagnostic {
   let location = prepared.origins[id].location
-  error(location.source, location.span, code, message)
+  error_at(location, code, message)
 }
 
 ///|
@@ -837,7 +837,7 @@ fn loading_diagnostics(
               Some(v) => "@" + v
               None => ""
             })
-          let location : Location = { source: doc.id, span: node.span, }
+          let location : Location = Location::text(doc.id, node.span)
           if by_key.get(key) is Some(target) &&
             ranges.owner(location) is Some(from) {
             edges.push((from, target, location))
@@ -877,15 +877,11 @@ fn ordered_diagnostics(errors : Array[Diagnostic]) -> ReadOnlyArray[Diagnostic] 
     if source != 0 {
       return source
     }
-    let start = a.primary.location.span.start.compare(
-      b.primary.location.span.start,
-    )
-    if start != 0 {
-      return start
-    }
-    let end = a.primary.location.span.end.compare(b.primary.location.span.end)
-    if end != 0 {
-      return end
+    let position = a.primary.location
+      .order_key()
+      .compare(b.primary.location.order_key())
+    if position != 0 {
+      return position
     }
     let code = a.code.compare(b.code)
     if code != 0 {

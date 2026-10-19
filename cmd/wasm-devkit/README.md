@@ -181,7 +181,9 @@ codes and formatter writes. `mise run test:cli -- --binary PATH` checks a packag
 Run `wasm-devkit verify api.wit` or `wasm-devkit verify app.wac` to check the current
 local semantic profile. Stdin requires `--language wit` or `--language wac`, plus `--base PATH` for dependency resolution.
 Exit status is 0 for a fully verified supported model, 1 for syntax/semantic errors
-or unsupported constructs, and 2 for invalid arguments or I/O errors.
+or unsupported constructs, and 2 for invalid arguments or I/O errors. Text labels
+use UTF-16 line/column coordinates; encoded provider labels use byte offsets or
+`[binary]` when no precise position is available.
 
 `parse` and its `check` alias retain their syntax-only behavior. Verification does
 not modify source files or execute components. See the library verifier guides for

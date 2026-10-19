@@ -4,6 +4,7 @@ package "moonrockz/wit/verifier"
 import {
   "moonbitlang/core/debug",
   "moonrockz/wit/ast",
+  "moonrockz/wit/binary",
   "moonrockz/wit/diagnostic",
   "moonrockz/wit/parser",
   "moonrockz/wit/span",
@@ -36,6 +37,7 @@ pub(all) struct Diagnostic {
   related : ReadOnlyArray[Label]
 } derive(Eq, @debug.Debug)
 pub fn Diagnostic::equal(Self, Self) -> Bool
+pub fn Diagnostic::from_binary(@binary.Diagnostic) -> Self
 pub fn Diagnostic::not_equal(Self, Self) -> Bool
 pub fn Diagnostic::render(Self) -> String
 pub fn Diagnostic::to_repr(Self) -> @debug.Repr
@@ -77,15 +79,19 @@ pub fn Label::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Location {
   source : String
-  span : @span.Span
+  position : Position
 } derive(Eq, @debug.Debug)
+pub fn Location::binary(String, offset? : Int?) -> Self
 pub fn Location::equal(Self, Self) -> Bool
 pub fn Location::not_equal(Self, Self) -> Bool
+pub fn Location::render(Self) -> String
+pub fn Location::span(Self) -> @span.Span?
+pub fn Location::text(String, @span.Span) -> Self
 pub fn Location::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Origin {
   location : Location
-  node : Int
+  node : Int?
 } derive(Eq, @debug.Debug)
 pub fn Origin::equal(Self, Self) -> Bool
 pub fn Origin::not_equal(Self, Self) -> Bool
@@ -100,6 +106,14 @@ pub fn PackageIdentity::equal(Self, Self) -> Bool
 pub fn PackageIdentity::key(Self) -> String
 pub fn PackageIdentity::not_equal(Self, Self) -> Bool
 pub fn PackageIdentity::to_repr(Self) -> @debug.Repr
+
+pub(all) enum Position {
+  SourceSpan(@span.Span)
+  BinaryOffset(Int?)
+} derive(Eq, @debug.Debug)
+pub fn Position::equal(Self, Self) -> Bool
+pub fn Position::not_equal(Self, Self) -> Bool
+pub fn Position::to_repr(Self) -> @debug.Repr
 
 pub struct Resolution {
   // private fields

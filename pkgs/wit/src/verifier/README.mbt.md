@@ -113,10 +113,29 @@ before using them. Neither operation formats or reparses the supplied AST.
 scope and arena node. `types()` exposes a fully resolved immutable type graph;
 each type edge names an entry's closure-local `id`, with source-qualified provenance.
 The graph includes aliases and anonymous composites without reparsing source. Diagnostics use
-source-qualified UTF-16 half-open spans, with related locations for earlier declarations.
-Diagnostics sort by source identity, UTF-16 span and code. Resolution uses no mutable global state.
+source-qualified locations, with related locations for earlier declarations.
+`Location.position` distinguishes `SourceSpan`, measured in UTF-16 code units,
+from `BinaryOffset`, measured in bytes. A binary offset can be unavailable.
+`Location::span()` returns a span only for text locations. Diagnostics sort by
+source identity, position kind, offsets and code. Resolution uses no mutable global state.
 `Diagnostic::render()` renders source identities and offsets without confusing dependency
 locations with the root source. The CLI adds 1-based UTF-16 line/column coordinates.
+Binary labels use `[byte N]` or `[binary]` and never pass through a text line table.
+
+```mbt check
+///|
+test "binary diagnostics retain their position units" {
+  let diagnostic = @verifier.Diagnostic::from_binary({
+    source: "dep.wasm",
+    offset: Some(17),
+    code: "WIT-B001",
+    message: "truncated encoding",
+  })
+  assert_eq(diagnostic.primary.location.position, BinaryOffset(Some(17)))
+  assert_eq(diagnostic.primary.location.span(), None)
+  assert_true(diagnostic.render().contains("dep.wasm:[byte 17]"))
+}
+```
 
 Stable code families are `WIT-S001` for invalid ASTs, `WIT-S002` for missing package identity, `WIT-S003` for unsupported
 semantics, `WIT-S004` for duplicate names and `WIT-S005` for unresolved or
@@ -317,7 +336,8 @@ test "resolve a package without implementing its runtime import" {
 
 Every source keeps its original text and AST. `Resolution::origin(id)` maps a
 closure-local node/type identity back to its source-qualified UTF-16 location and
-original arena index. Successful identities and diagnostics are independent of
+original arena index. The index is optional; source documents retain `Some(index)`.
+Encoded providers can have no original syntax node or textual span. Successful identities and diagnostics are independent of
 source/dependency discovery order. Explicit work stacks handle type, interface and
 package cycles; related labels explain dependency chains, including syntax failures
 in a dependency whose package header can still be recovered.

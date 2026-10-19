@@ -7,6 +7,39 @@ fn options(args : ArrayView[String]) -> @cli.Options raise {
 }
 
 ///|
+test "binary labels are never interpreted through a textual line table" {
+  let primary = @wit_verifier.Diagnostic::from_binary({
+    source: "dep.wasm",
+    offset: Some(3),
+    code: "WIT-B003",
+    message: "invalid metadata",
+  })
+  let diagnostic = {
+    ..primary,
+    related: [
+      {
+        location: @wit_verifier.Location::text("api.wit", { start: 3, end: 4, }),
+        message: "used here",
+      },
+    ],
+  }
+  let output = @cli.render_wit_diagnostics([diagnostic], [
+    ("dep.wasm", "😀\na"),
+    ("api.wit", "😀\na"),
+  ])
+  assert_true(output.contains("dep.wasm:[byte 3]: error WIT-B003"))
+  assert_true(output.contains("api.wit:2:1: used here"))
+  let unknown = @wit_verifier.Diagnostic::from_binary({
+    source: "dep.wasm",
+    offset: None,
+    code: "WIT-B003",
+    message: "invalid metadata",
+  })
+  let output = @cli.render_wit_diagnostics([unknown], [("dep.wasm", "😀\na")])
+  assert_true(output.contains("dep.wasm:[binary]: error WIT-B003"))
+}
+
+///|
 test "language inference stdin explicit paths and option validation" {
   assert_eq(options(["parse", "a.wit"]).language, Wit)
   assert_eq(options(["ast", "a.wac"]).language, Wac)
