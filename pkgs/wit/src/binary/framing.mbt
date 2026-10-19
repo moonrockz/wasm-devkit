@@ -153,6 +153,7 @@ fn Reader::sort(self : Reader) -> Unit raise Boundary {
 fn Reader::description(
   self : Reader,
   core~ : Bool = false,
+  value_offsets~ : Array[Int32] = [],
 ) -> Unit raise Boundary {
   match self.byte() {
     0 if core => {
@@ -172,6 +173,10 @@ fn Reader::description(
         "core module types are outside the WIT type-component boundary",
       )
     1 | 4 | 5 => ignore(self.unsigned())
+    2 if core => {
+      value_offsets.push(self.position)
+      self.value_type()
+    }
     2 =>
       raise Failure(
         Some(self.position - 1),
@@ -207,7 +212,11 @@ priv enum Frame {
 ///|
 /// Bound physical scope nesting before invoking the maintained recursive parser.
 /// Type references remain flat indices; vector work is bounded by input bytes.
-fn type_framing(reader : Reader, core~ : Bool = false) -> Unit raise Boundary {
+fn type_framing(
+  reader : Reader,
+  core~ : Bool = false,
+  value_offsets~ : Array[Int32] = [],
+) -> Unit raise Boundary {
   let work : Array[Frame] = []
   let count = reader.count()
   for _ in 0..<count {
@@ -377,11 +386,11 @@ fn type_framing(reader : Reader, core~ : Bool = false) -> Unit raise Boundary {
           }
           3 if component => {
             reader.external_name()
-            reader.description(core~)
+            reader.description(core~, value_offsets~)
           }
           4 => {
             reader.external_name()
-            reader.description(core~)
+            reader.description(core~, value_offsets~)
           }
           _ =>
             raise Failure(
@@ -399,6 +408,7 @@ fn type_framing(reader : Reader, core~ : Bool = false) -> Unit raise Boundary {
 fn preflight(
   bytes : Bytes,
   declarations~ : Bool = false,
+  value_offsets~ : Array[Int32] = [],
 ) -> Unit raise Boundary {
   if bytes.length() < 8 || bytes[0:4] != b"\x00asm".exact_view() {
     raise Failure(Some(0), "WIT-B001", "invalid component header")
@@ -604,12 +614,12 @@ fn preflight(
           }
         }
       }
-      7 => type_framing(payload, core=declarations)
+      7 => type_framing(payload, core=declarations, value_offsets~)
       10 if declarations => {
         let count = payload.count()
         for _ in 0..<count {
           payload.external_name()
-          payload.description(core=declarations)
+          payload.description(core=declarations, value_offsets~)
         }
       }
       11 => {
@@ -625,10 +635,11 @@ fn preflight(
               (
                 payload.bytes[payload.position] == b'\x00' ||
                 payload.bytes[payload.position] == b'\x01' ||
+                payload.bytes[payload.position] == b'\x02' ||
                 payload.bytes[payload.position] == b'\x03' ||
                 payload.bytes[payload.position] == b'\x04' ||
                 payload.bytes[payload.position] == b'\x05'
-              ) => payload.description(core=declarations)
+              ) => payload.description(core=declarations, value_offsets~)
             1 =>
               raise Failure(
                 Some(payload.position - 1),

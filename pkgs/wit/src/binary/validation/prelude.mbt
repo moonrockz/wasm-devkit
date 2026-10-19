@@ -86,6 +86,7 @@ pub struct ComponentValidationConfig {
   component_implements : Bool
   canonical_version_suffix : Bool
   restricted_map_keys : Bool
+  borrowed_value_exports : Bool
 }
 
 ///|
@@ -94,12 +95,14 @@ pub fn ComponentValidationConfig::ComponentValidationConfig(
   component_implements~ : Bool = true,
   canonical_version_suffix~ : Bool = true,
   restricted_map_keys~ : Bool = true,
+  borrowed_value_exports~ : Bool = false,
 ) -> ComponentValidationConfig {
   {
     wit_names,
     component_implements,
     canonical_version_suffix,
     restricted_map_keys,
+    borrowed_value_exports,
   }
 }
 
@@ -138,6 +141,7 @@ priv struct Counts {
   mut ascription_remaining : Int32
   mut func : Int32
   mut value : Int32
+  values : Array[ComponentValue]
   mut component : Int32
   mut instance : Int32
   mut core_func : Int32
@@ -766,6 +770,7 @@ fn Counts::Counts() -> Counts {
     ascription_remaining: 1000000,
     func: 0,
     value: 0,
+    values: [],
     component: 0,
     instance: 0,
     core_func: 0,

@@ -402,6 +402,7 @@ priv struct ComponentBuildState {
   component_names : Array[NamedBinding]
   instance_names : Array[NamedBinding]
   func_names : Array[NamedBinding]
+  value_names : Array[NamedBinding]
   core_func_names : Array[NamedBinding]
   core_table_names : Array[NamedBinding]
   core_memory_names : Array[NamedBinding]
@@ -414,6 +415,7 @@ priv struct ComponentBuildState {
   outer_core_module_scopes : Array[Array[NamedBinding]]
   mut next_type_idx : Int32
   mut next_func_idx : Int32
+  mut next_value_idx : Int32
   mut core_name_work : Int32
   mut next_core_type_idx : Int32
   mut next_core_module_idx : Int32
@@ -448,6 +450,7 @@ fn ComponentBuildState::ComponentBuildState(
     component_names: [],
     instance_names: [],
     func_names: [],
+    value_names: [],
     core_func_names: [],
     core_table_names: [],
     core_memory_names: [],
@@ -460,6 +463,7 @@ fn ComponentBuildState::ComponentBuildState(
     outer_core_module_scopes,
     next_type_idx: 0,
     next_func_idx: 0,
+    next_value_idx: 0,
     core_name_work: 1000000,
     next_core_type_idx: 0,
     next_core_module_idx: 0,
@@ -2170,6 +2174,25 @@ fn parse_inline_externdesc_from_type_desc(
   let mut core_type_count = local_core_type_count
   let mut decl_count = 0
 
+  if desc[0] is Atom("value") {
+    let name = parse_optional_identifier(desc, 1)
+    let index = if name is Some(_) { 2 } else { 1 }
+    guard desc.length() == index + 1 else {
+      raise Unsupported("value descriptor needs one value type")
+    }
+    let (ty, next, added) = parse_inline_valtype_encoding(
+      desc[index],
+      state,
+      decls,
+      type_count,
+      local_type_names,
+    )
+    let encoded = ByteBuf::ByteBuf()
+    encoded.push_u8(0x02)
+    push_valtype_encoding(encoded, ty)
+    return (encoded.to_bytes(), next, core_type_count, added)
+  }
+
   if desc[0] is Atom("func") {
     let mut type_use : Int32? = None
     let filtered : Array[SExpr] = [Atom("func")]
@@ -2346,6 +2369,9 @@ fn inline_externdesc_sort(
 ) -> (Int32, Int32?, String?) raise ComponentTextError {
   if desc.length() == 0 {
     raise Unsupported("empty type descriptor")
+  }
+  if desc[0] is Atom("value") {
+    return (0x02, None, parse_optional_identifier(desc, 1))
   }
   if desc[0] is Atom("func") {
     return (0x01, None, parse_optional_identifier(desc, 1))
@@ -3089,6 +3115,30 @@ fn parse_import(
   }
   if desc.length() == 0 {
     raise Unsupported("empty import descriptor")
+  }
+  if desc[0] is Atom("value") {
+    let value_name = parse_optional_identifier(desc, 1)
+    let index = if value_name is Some(_) { 2 } else { 1 }
+    guard desc.length() == index + 1 else {
+      raise Unsupported("value import needs one value type")
+    }
+    let ty = parse_valtype(desc[index], state)
+    let encoded = ByteBuf::ByteBuf()
+    encoded.push_u8(0x02)
+    push_valtype_encoding(encoded, ty)
+    let entry : ImportEntry = { name, attributes, desc: encoded.to_bytes(), }
+    state.imports.push(entry)
+    push_ordered_section(state, 10, encode_import_decl(entry))
+    bind_named_index(
+      state.value_names,
+      match value_name {
+        Some(_) => value_name
+        None => import_id_opt
+      },
+      state.next_value_idx,
+    )
+    state.next_value_idx += 1
+    return
   }
   if desc[0] is Atom("type") {
     let type_name_opt = parse_optional_identifier(desc, 1)
@@ -4037,6 +4087,7 @@ fn bind_alias_name(
   }
   match sort_tag {
     0x01 => bind_named_index(state.func_names, name_opt, idx)
+    0x02 => bind_named_index(state.value_names, name_opt, idx)
     0x03 => bind_named_index(state.type_names, name_opt, idx)
     0x04 => bind_named_index(state.component_names, name_opt, idx)
     0x05 => bind_named_index(state.instance_names, name_opt, idx)
@@ -4104,6 +4155,11 @@ fn allocate_alias_index(
       0x01 => {
         let idx = state.next_func_idx
         state.next_func_idx += 1
+        idx
+      }
+      0x02 => {
+        let idx = state.next_value_idx
+        state.next_value_idx += 1
         idx
       }
       0x03 => {
@@ -4917,6 +4973,7 @@ fn bump_sort_index_after_export(
   }
   match sort_tag {
     0x01 => state.next_func_idx += 1
+    0x02 => state.next_value_idx += 1
     0x03 => state.next_type_idx += 1
     0x04 => state.next_component_idx += 1
     0x05 => state.next_instance_idx += 1
@@ -4949,6 +5006,7 @@ fn current_sort_index_for_export(
   }
   match sort_tag {
     0x01 => state.next_func_idx
+    0x02 => state.next_value_idx
     0x03 => state.next_type_idx
     0x04 => state.next_component_idx
     0x05 => state.next_instance_idx
@@ -5151,6 +5209,16 @@ fn parse_export_ascribed_desc(
   }
   if ascribed.length() == 0 {
     raise Unsupported("export ascribed descriptor is empty")
+  }
+  if sort_tag == 0x02 {
+    guard ascribed.length() == 2 && ascribed[0] is Atom("value") else {
+      raise Unsupported("value export ascription needs one value type")
+    }
+    let ty = parse_valtype(ascribed[1], state)
+    let encoded = ByteBuf::ByteBuf()
+    encoded.push_u8(0x02)
+    push_valtype_encoding(encoded, ty)
+    return Some(encoded.to_bytes())
   }
   if sort_tag == 0x01 {
     if !(ascribed[0] is Atom("func")) {
@@ -5392,10 +5460,13 @@ fn parse_export_field(
     raise Unsupported("export descriptor is incomplete")
   }
   if desc[0] is Atom("func") ||
+    desc[0] is Atom("value") ||
     desc[0] is Atom("component") ||
     desc[0] is Atom("instance") {
     let (sort_tag, context) = if desc[0] is Atom("func") {
       (0x01, "function")
+    } else if desc[0] is Atom("value") {
+      (0x02, "value")
     } else if desc[0] is Atom("component") {
       (0x04, "component")
     } else {
@@ -6429,6 +6500,7 @@ fn parse_component_sort_ref(
     }
     let idx = match sort_tag {
       0x01 => resolve_reference(items[1], state.func_names, "function")
+      0x02 => resolve_reference(items[1], state.value_names, "value")
       0x03 => resolve_type_reference(items[1], state)
       0x04 => resolve_component_reference(items[1], state)
       0x05 => resolve_reference(items[1], state.instance_names, "instance")
@@ -6439,6 +6511,7 @@ fn parse_component_sort_ref(
   if items.length() >= 3 &&
     (
       sort_tag == 0x01 ||
+      sort_tag == 0x02 ||
       sort_tag == 0x03 ||
       sort_tag == 0x04 ||
       sort_tag == 0x05
@@ -7210,6 +7283,7 @@ fn resolve_alias_sort_index(
   } else {
     match sort_tag {
       0x01 => resolve_reference(expr, state.func_names, "function")
+      0x02 => resolve_reference(expr, state.value_names, "value")
       0x03 => resolve_type_reference(expr, state)
       0x04 => resolve_component_reference(expr, state)
       0x05 => resolve_reference(expr, state.instance_names, "instance")

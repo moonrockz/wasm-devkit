@@ -18,6 +18,7 @@ priv struct BinaryScope {
   declarations : Array[BinaryDeclaration]
   types : Array[Int32]
   functions : Array[Int32]
+  values : Array[Int32]
   instances : Array[Int32]
   components : Array[Int32]
   modules : Array[Int32]
@@ -94,7 +95,12 @@ fn BinaryGraph::follow(
 ///|
 fn binary_kind_id(kind : ItemKind) -> Int32 {
   match kind {
-    Type(id) | Function(id) | Instance(id) | Component(id) | Module(id) => id
+    Type(id)
+    | Function(id)
+    | Instance(id)
+    | Component(id)
+    | Module(id)
+    | Value(id) => id
   }
 }
 
@@ -106,6 +112,7 @@ fn binary_kind_with_id(kind : ItemKind, id : Int32) -> ItemKind {
     Instance(_) => Instance(id)
     Component(_) => Component(id)
     Module(_) => Module(id)
+    Value(_) => Value(id)
   }
 }
 
@@ -134,6 +141,7 @@ fn BinaryScope::bind(self : BinaryScope, kind : ItemKind) -> Unit {
     Instance(id) => self.instances.push(id)
     Component(id) => self.components.push(id)
     Module(id) => self.modules.push(id)
+    Value(id) => self.values.push(id)
   }
 }
 
@@ -148,10 +156,7 @@ fn BinaryScope::lookup(
     Func => Function(binary_index(self.functions, index))
     Instance => Instance(binary_index(self.instances, index))
     Component => Component(binary_index(self.components, index))
-    Value =>
-      raise Unsupported(
-        "component values are outside the binary package profile",
-      )
+    Value => Value(binary_index(self.values, index))
     Core(0x11) => Module(binary_index(self.modules, index))
     Core(_) =>
       raise Unsupported(
@@ -247,6 +252,7 @@ fn BinaryGraph::scope(
     declarations,
     types: [],
     functions: [],
+    values: [],
     instances: [],
     components: [],
     modules: [],

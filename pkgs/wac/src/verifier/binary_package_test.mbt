@@ -317,16 +317,17 @@ test "package graph value-reexport" {
   )
   assert_eq(
     result is Ok(_),
-    false,
+    true,
     msg=match result {
       Ok(_) => "accepted"
       Err(errors) => errors[0].message
     },
   )
-  guard result is Err([error]) else {
-    fail("unsupported binary profile accepted")
-  }
-  assert_eq(error.code, "WAC-B002")
+  assert_eq(binary_projection(result.unwrap()), [
+    "world", "", "0", "1", "v", "value", "scalar", "u32", "1", "v", "value", "scalar",
+    "u32", "instance", "interface", "", "0", "1", "v", "value", "scalar", "u32",
+    "definitions", "0",
+  ])
 }
 
 ///|

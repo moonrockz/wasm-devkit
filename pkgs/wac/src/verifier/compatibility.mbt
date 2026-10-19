@@ -250,7 +250,8 @@ fn Check::compatible(
           | (Function(_), Function(_))
           | (Instance(_), Instance(_))
           | (Component(_), Component(_))
-          | (Module(_), Module(_)) => true
+          | (Module(_), Module(_))
+          | (Value(_), Value(_)) => true
           _ => false
         }
         let ai = binary_kind_id(a)

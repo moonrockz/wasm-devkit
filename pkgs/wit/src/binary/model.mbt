@@ -57,6 +57,7 @@ pub extend Diagnostic with @debug.Debug::{to_repr}
 /// The immutable bytes are the validated snapshot.
 pub struct ValidatedDeclarativeComponent {
   bytes : Bytes
+  parser_bytes : Bytes
 }
 
 ///|
@@ -78,8 +79,10 @@ pub fn validate_declarative_component(
   source_id~ : String = "<binary>",
 ) -> Result[ValidatedDeclarativeComponent, ReadOnlyArray[Diagnostic]] {
   try {
-    preflight(bytes, declarations=true)
-    let component = @component.parse_component(bytes) catch {
+    let value_offsets : Array[Int32] = []
+    preflight(bytes, declarations=true, value_offsets~)
+    let parser_bytes = legacy_value_encoding(bytes, value_offsets)
+    let component = @component.parse_component(parser_bytes) catch {
       error => raise Failure(None, "WIT-B001", error.to_string())
     }
     let (core_ascriptions, core_contracts) = validate_core_definitions(
@@ -109,6 +112,7 @@ pub fn validate_declarative_component(
         true,
         restricted_map_keys=false,
         canonical_version_suffix=false,
+        borrowed_value_exports=true,
       ),
       core_contracts=Some(core_contracts),
     ) catch {
@@ -150,9 +154,19 @@ pub fn validate_declarative_component(
         )
       error => raise Failure(None, "WIT-B003", error.to_string())
     }
-    Ok({ bytes, })
+    Ok({ bytes, parser_bytes, })
   } catch {
     Failure(offset, code, message) =>
       Err([{ source: source_id, offset, code, message, }])
   }
+}
+
+///|
+/// Compatibility encoding for the retained component parser. Only value extern
+/// descriptors gain the legacy type-bound tag; original validated bytes remain
+/// available through `bytes`. Core module bodies are preserved byte for byte.
+pub fn ValidatedDeclarativeComponent::parser_bytes(
+  self : ValidatedDeclarativeComponent,
+) -> Bytes {
+  self.parser_bytes
 }

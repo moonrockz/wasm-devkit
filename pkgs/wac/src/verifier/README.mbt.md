@@ -124,7 +124,7 @@ nodes. Instantiations record the exact package key and ordered argument edges.
 Each node has its resolved item kind, source location and resource bindings. Repeated access to the
 same export of the same instance reuses its node; aliases and groups preserve that
 identity. `composition_exports()` records ordered root export names and their node
-IDs, including several names for one value. Node IDs are separate from type and AST
+IDs, including several names for reusable items. Component values permit exactly one consuming use. Node IDs are separate from type and AST
 IDs. Access and argument edges point to earlier nodes, so the graph is acyclic.
 Resource bindings map static type IDs to runtime nominal identities. Separate imports
 and instantiations freshen owned resources; aliases and captured resources retain
@@ -206,7 +206,7 @@ imports and re-exports. It follows WAC 0.12.0's wasmparser 0.258.0 map-key rules
 All diagnostic positions count bytes. Unknown offsets remain absent.
 
 Concrete nested components, component instantiation, async canonical
-functions and other intrinsics, component start sections and component-value externs remain unsupported. Function export ascriptions validate parameter
+functions and other intrinsics, component start sections remain unsupported. Function export ascriptions validate parameter
 names, async mode, structural value types and nominal resource identities, and
 retain the ascribed function type. Type-equality export annotations compare
 complete value shapes and nominal resource identity, including imported aliases
@@ -535,7 +535,7 @@ Both binary and WAT inputs support these contracts and flat concrete core module
 bodies. Core instantiation and synchronous canonical lift/lower are supported.
 Imported component instantiation and inline instances are supported. Concrete
 component definitions, non-resource type arguments, async canonical functions
-and other intrinsics, component starts and values remain outside this profile.
+and other intrinsics, component starts and runtime-produced values remain outside this profile.
 Concrete GC/reference types, supertypes and shared heap types remain
 unsupported. Nested component/instance core declarations with limits above u32
 or custom memory pages return `WAC-B002` before the pinned parser runs; root
@@ -625,3 +625,20 @@ reference cases are retained in `tests/semantic/wac-runtime-instances`, alongsid
 43 package probes and six source compositions. Four emitted compositions pass
 independent binary validation; two additional pinned encoder panics are recorded
 separately. Public APIs perform validation without executing components.
+
+## Component values
+
+`ItemKind::Value` points to a value type in the immutable arena. Declarative binary
+and WAT packages support value imports, exports, imported-instance aliases and
+export annotations. Validation checks complete structural types, nominal resource
+identity, named record visibility through nested scopes, and exactly one use of
+each introduced value. Imported instances may expose values without consuming them;
+accessing an export introduces a value that must then be consumed.
+
+Source compositions can infer value imports, forward values as arguments and export
+them. `WAC-C010` rejects unused or multiply consumed values, with locations for the
+introduction and first/second uses. This catches pinned resolver false positives
+whose encoded compositions fail validation. The 45 package and 17 composition
+cases in `tests/semantic/wac-value-externs` retain reference evidence. WAC 0.12.0's
+borrowed-value export rules are used, including its difference from wasm-tools
+1.262.0. Runtime-produced values remain outside the binary profile.

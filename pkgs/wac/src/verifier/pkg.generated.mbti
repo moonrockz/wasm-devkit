@@ -113,6 +113,7 @@ pub(all) enum ItemKind {
   Instance(Int)
   Component(Int)
   Module(Int)
+  Value(Int)
 } derive(Eq, @debug.Debug)
 pub fn ItemKind::equal(Self, Self) -> Bool
 pub fn ItemKind::not_equal(Self, Self) -> Bool

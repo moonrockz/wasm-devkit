@@ -5,6 +5,7 @@ priv struct ContractMembers {
   sorts : Map[String, @component.Sort]
   types : Map[String, Int32]
   functions : Map[String, FuncSigShape]
+  values : Map[String, CompleteFunctionSignature]
   children : Map[String, Int32]
   modules : Map[String, Int32]
   direct_modules : Map[String, @core_types.Module]
@@ -17,6 +18,7 @@ fn ContractMembers::new() -> ContractMembers {
     sorts: Map([]),
     types: Map([]),
     functions: Map([]),
+    values: Map([]),
     children: Map([]),
     modules: Map([]),
     direct_modules: Map([]),
@@ -302,6 +304,16 @@ fn scoped_contract_metadata(
                 scope.instances.push(child_node)
               }
               stack.push(child_scope)
+            }
+            Value(Type(ty)) => {
+              let (signature, rest) = complete_value_signature(
+                value(index, ty),
+                types,
+                resources,
+                remaining,
+              )
+              remaining = rest
+              items.values[name] = signature
             }
             CoreModuleType(original) => items.modules[name] = original
             _ => raise IncompleteFunctionSignature

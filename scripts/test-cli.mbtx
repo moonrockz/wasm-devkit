@@ -1035,6 +1035,25 @@ async fn main {
       }
     }
   }
+  for extension in ["wasm", "wat"] {
+    for
+      (name, status) in [
+        ("fill", 0),
+        ("forward", 0),
+        ("duplicate-export", 1),
+        ("unused-access", 1),
+      ] {
+      let root = "tests/semantic/wac-value-externs/composition/" + name
+      let (_, diagnostic) = run(
+        ["verify", root + "/input.wac", "--dep", "test:dep=dep." + extension],
+        status,
+        wit,
+      )
+      if status == 1 {
+        assert_true(diagnostic.contains("WAC-C010"))
+      }
+    }
+  }
   // Copyable reader-facing bundles run through every installed/source CLI path.
   let bundle = "examples/verification/"
   for

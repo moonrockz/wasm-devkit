@@ -91,6 +91,14 @@ fn check_import_resources(
               resource(id)
             }
           }
+          Value => {
+            guard items.values.get(name) is Some(signature) else {
+              raise SectionParseError(10, "incomplete imported value")
+            }
+            for id in signature.resources {
+              resource(id)
+            }
+          }
           Instance | Component => {
             guard items.children.get(name) is Some(child) else {
               raise SectionParseError(10, "incomplete imported child contract")

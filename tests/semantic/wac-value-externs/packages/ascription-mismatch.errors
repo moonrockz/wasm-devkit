@@ -1,0 +1,5 @@
+error: ascribed type of export is not compatible with item's type
+expected primitive `u64` found primitive `u32` (at offset 0x13)
+
+ascribed type of export is not compatible with item's type
+expected primitive `u64` found primitive `u32` (at offset 0x13)

@@ -224,6 +224,16 @@ fn validate_component_section_alias(
       }
       _ => ()
     }
+    if a.sort is Value {
+      guard a.target is Export(parent, name) &&
+        counts.instance_contracts.get(parent) is Some((metadata, node)) &&
+        metadata.nodes[node].exports.values.get(name) is Some(signature) else {
+        raise SectionParseError(
+          6, "value alias requires a complete instance contract",
+        )
+      }
+      counts.values.push({ signature, used: false, })
+    }
     if a.sort is Type {
       let mut new_td : @component.TypeDef? = None
       let mut new_local_resource = false

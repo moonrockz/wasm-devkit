@@ -1203,6 +1203,24 @@ fn validate_typedef(
                   )
                 }
               }
+              Value(Type(value)) =>
+                if valtype_uses_disallowed_resources(
+                    value,
+                    local_type_table,
+                    local_import_resource_type_idxs,
+                    Map([]),
+                  ) ||
+                  !valtype_valid_in_interface(
+                    value,
+                    local_type_table,
+                    local_resource_ids,
+                    local_named_types,
+                    Map([]),
+                  ) {
+                  raise SectionParseError(
+                    7, "value not valid to be used as import",
+                  )
+                }
               FuncType(tyidx) =>
                 if tyidx >= 0 && tyidx < local_type_table.length() {
                   match local_type_table[tyidx] {
@@ -1306,6 +1324,25 @@ fn validate_typedef(
                   ) {
                   raise SectionParseError(
                     7, "type not valid to be used as export",
+                  )
+                }
+              }
+              Value(Type(value)) => {
+                if !valtype_valid_in_interface(
+                    value,
+                    local_type_table,
+                    local_resource_ids,
+                    local_named_types,
+                    Map([]),
+                  ) {
+                  raise SectionParseError(
+                    7, "value not valid to be used as export",
+                  )
+                }
+                if !cfg.borrowed_value_exports &&
+                  valtype_contains_borrow(value, local_type_table, Map([])) {
+                  raise SectionParseError(
+                    7, "exported value type cannot contain a borrow type",
                   )
                 }
               }
@@ -1476,6 +1513,13 @@ fn validate_typedef(
                   }
                 }
               }
+              Value(Type(value)) =>
+                if !cfg.borrowed_value_exports &&
+                  valtype_contains_borrow(value, local_type_table, Map([])) {
+                  raise SectionParseError(
+                    7, "exported value type cannot contain a borrow type",
+                  )
+                }
               FuncType(index) =>
                 match local_type_table[index] {
                   Some(FuncType(ft)) => {

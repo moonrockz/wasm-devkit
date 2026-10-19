@@ -166,3 +166,10 @@ metadata and comparison budgets. Imported resource binders substitute supplied
 identities; exported instance resources freshen independently. Inline instances
 retain complete functions, types, nested contracts and direct core module
 contracts. Non-resource type arguments fail closed pending nominal type origins.
+
+Component value externs retain complete synthetic result-only signature graphs,
+with separate value use tracking and the WAC borrowed-export profile flag. Import
+and annotation checks preserve named-type visibility; nested instance validation
+uses an explicit work stack with named outer scopes. Contract ascription and local
+resource audits also inspect value members. These changes are recorded in
+`LOCAL.patch`; `component_values.mbt` is original wasm-devkit code.

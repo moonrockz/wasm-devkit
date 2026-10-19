@@ -66,8 +66,8 @@ and canonical signatures. Nested concrete component definitions, component
 instantiation, async canonical functions and other intrinsics, and
 component start sections remain unsupported and
 return `WIT-B002`. Physical type-scope nesting has the same 256 limit.
-Component-value externs return `WIT-B002` because the pinned parser's value-bound
-encoding is obsolete. Supported export annotations are described below; missing
+Component-value externs use a framing-guided adapter for the retained parser's
+legacy descriptor tags while preserving the original bytes. Supported export annotations are described below; missing
 complete contracts produce explicit unsupported diagnostics.
 
 This entry point follows WAC 0.12.0's wasmparser 0.258.0 metadata profile. It does
@@ -109,7 +109,7 @@ including aliases and re-exports. Instance annotations check functions, values,
 nominal resources, nested instances/components and core modules against the complete
 expected contract. Annotated aliases and re-exports
 retain the narrowed contract. The type-only WIT entry point continues to reject all
-root export ascriptions. Component values and concrete runtime component definitions remain unsupported.
+root export ascriptions. Runtime-produced component values and concrete runtime component definitions remain unsupported.
 Section 5 supports imported-component instantiation and inline instances, with
 complete argument contracts and nominal resource substitution. Non-resource type
 arguments remain unsupported until named-type origins are retained.
@@ -152,3 +152,13 @@ while resource handles remain i32. Destructors must accept exactly the resource
 representation and return nothing. Export aliases preserve the original local
 identity. The 42 cases in `tests/semantic/wac-resource-intrinsics` compare both
 pinned validators and full binary/WAT models; four emitted compositions validate.
+
+## Declarative component values
+
+The WAC profile validates value imports, exports, imported-instance aliases and
+annotations, including exact one-use rules and complete named/nominal types.
+Its wasmparser 0.258 rules permit borrowed value exports. Type-only WIT inputs
+continue to reject value externs. `ValidatedDeclarativeComponent.bytes()` retains
+the original input; `parser_bytes()` provides the immutable compatibility encoding
+for the retained parser. Only framing-identified value descriptors and their section
+lengths change. Core bodies, custom sections and unrelated bytes remain exact.

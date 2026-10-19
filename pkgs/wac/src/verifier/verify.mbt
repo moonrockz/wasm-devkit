@@ -428,6 +428,7 @@ pub fn verify_ast(
     check.register_wit_packages(wit_dependencies)
     check.file(tree.nodes.length() - 1)
     check.finalize_implicit_imports()
+    check.validate_value_uses()
     check.verify_target()
     Ok({
       source_id,

@@ -1,0 +1,31 @@
+///|
+test "runtime value boundary export-instance" {
+  for
+    result in [
+      @verifier.decode_component_package(
+        b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x07\x09\x01\x41\x01\x04\x00\x01\x76\x02\x79\x0a\x06\x01\x00\x01\x63\x04\x00\x05\x04\x01\x00\x00\x00\x0b\x07\x01\x00\x01\x69\x05\x00\x00\x00\x1d\x0e\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x2d\x6e\x61\x6d\x65\x01\x05\x03\x01\x00\x01\x63\x01\x05\x05\x01\x00\x01\x69",
+      ),
+      @verifier.decode_wat_component_package(
+        "(component (type $c (component (export \"v\" (value u32)))) (import \"c\" (component (type $c))) (instance $i (instantiate 0)) (export \"i\" (instance $i)))",
+      ),
+    ] {
+    assert_true(result is Err(_))
+    assert_eq(result.unwrap_err()[0].code, "WAC-B002")
+  }
+}
+
+///|
+test "runtime value boundary alias-value" {
+  for
+    result in [
+      @verifier.decode_component_package(
+        b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x07\x09\x01\x41\x01\x04\x00\x01\x76\x02\x79\x0a\x06\x01\x00\x01\x63\x04\x00\x05\x04\x01\x00\x00\x00\x06\x06\x01\x02\x00\x00\x01\x76\x0b\x07\x01\x00\x01\x76\x02\x00\x00\x00\x24\x0e\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x2d\x6e\x61\x6d\x65\x01\x05\x02\x01\x00\x01\x76\x01\x05\x03\x01\x00\x01\x63\x01\x05\x05\x01\x00\x01\x69",
+      ),
+      @verifier.decode_wat_component_package(
+        "(component (type $c (component (export \"v\" (value u32)))) (import \"c\" (component (type $c))) (instance $i (instantiate 0)) (alias export $i \"v\" (value $v)) (export \"v\" (value $v)))",
+      ),
+    ] {
+    assert_true(result is Err(_))
+    assert_eq(result.unwrap_err()[0].code, "WAC-B002")
+  }
+}

@@ -90,7 +90,8 @@ pub fn decode_component_package(
   bytes : Bytes,
   source_id~ : String = "<binary>",
 ) -> Result[BinaryPackage, ReadOnlyArray[Diagnostic]] {
-  match @binary_validation.validate_declarative_component(bytes, source_id~) {
+  let parser_bytes = match
+    @binary_validation.validate_declarative_component(bytes, source_id~) {
     Err(errors) =>
       return Err(
         errors.map(error => {
@@ -110,10 +111,10 @@ pub fn decode_component_package(
           }
         }),
       )
-    Ok(_) => ()
+    Ok(validated) => validated.parser_bytes()
   }
   try {
-    let component = @component.parse_component(bytes) catch {
+    let component = @component.parse_component(parser_bytes) catch {
       _ => raise Invalid("validated component could not be read")
     }
     binary_decode(component, bytes, source_id)

@@ -61,3 +61,8 @@ Implicit reference collection excludes explicit outer alias targets and local
 type bindings. Those declarations retain their source numeric slots even when
 names shadow outer resource types. Import-resource controls compare the resulting
 binary and WAT public models against both pinned validators.
+
+Value imports, instance aliases, export projections and annotations use modern
+direct value descriptors. Their dedicated index space remains separate from
+functions and types. `LOCAL.patch` retains these compiler changes; the binary
+boundary adapts only validated descriptor positions for the older parser.

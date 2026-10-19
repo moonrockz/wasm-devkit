@@ -292,15 +292,13 @@ fn Check::merge_import_type(
 ) -> Unit raise SemanticFailure {
   let target = self.import_type_id(state, node, binary_kind_id(first))
   let source = self.import_type_id(state, node, binary_kind_id(second))
-  if target == source {
-    return
-  }
   let sorts_match = match (first, second) {
     (Type(_), Type(_))
     | (Function(_), Function(_))
     | (Instance(_), Instance(_))
     | (Component(_), Component(_))
-    | (Module(_), Module(_)) => true
+    | (Module(_), Module(_))
+    | (Value(_), Value(_)) => true
     _ => false
   }
   if !sorts_match {
@@ -309,6 +307,9 @@ fn Check::merge_import_type(
         node, "WAC-C009", "shared implicit imports have different item kinds",
       ),
     )
+  }
+  if target == source {
+    return
   }
   match (self.types[target].kind, self.types[source].kind) {
     (Module(a), Module(b)) => {

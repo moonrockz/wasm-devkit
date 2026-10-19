@@ -6,6 +6,7 @@ pub(all) enum ItemKind {
   Instance(Int32)
   Component(Int32)
   Module(Int32)
+  Value(Int32)
 } derive(Eq, Debug)
 
 ///|

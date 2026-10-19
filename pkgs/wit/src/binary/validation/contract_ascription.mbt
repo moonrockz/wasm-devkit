@@ -109,6 +109,13 @@ fn check_scoped_contract(
             }
             leaves.push(Function(left, af, right, bf))
           }
+          Value => {
+            guard lm.values.get(name) is Some(av) &&
+              rm.values.get(name) is Some(bv) else {
+              raise UnsupportedComponentAscription
+            }
+            leaves.push(Function(left, av, right, bv))
+          }
           Instance | Component => {
             guard lm.children.get(name) is Some(ac) &&
               rm.children.get(name) is Some(bc) else {

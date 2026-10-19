@@ -112,6 +112,11 @@ fn RuntimeContractBuilder::append(
     )
     let result = ContractMembers::new()
     for (name, sort) in source.sorts {
+      // Runtime value contracts require origin and consumption evidence before
+      // they can pass through this builder. Never silently drop their graphs.
+      if sort is Value {
+        raise UnsupportedComponentAscription
+      }
       result.sorts[name] = sort
     }
     for (name, ty) in source.types {

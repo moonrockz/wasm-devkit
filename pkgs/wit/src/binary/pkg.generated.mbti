@@ -30,8 +30,10 @@ pub fn ValidatedComponent::bytes(Self) -> Bytes
 
 pub struct ValidatedDeclarativeComponent {
   bytes : Bytes
+  parser_bytes : Bytes
 }
 pub fn ValidatedDeclarativeComponent::bytes(Self) -> Bytes
+pub fn ValidatedDeclarativeComponent::parser_bytes(Self) -> Bytes
 
 // Type aliases
 

@@ -57,10 +57,8 @@ fn BinaryGraph::describe(
     }
     ComponentType(index) =>
       Component(self.follow(binary_index(scope.types, index)))
-    Value(_) =>
-      raise Unsupported(
-        "component values are outside the binary package profile",
-      )
+    Value(Type(ty)) => Value(self.value(scope, ty))
+    Value(Eq(_)) => raise Invalid("legacy value equality descriptor")
     CoreModuleType(index) => {
       guard scope.core_ids.get(index) is Some(Some(id)) else {
         raise Invalid("core module type index is invalid")
@@ -148,6 +146,7 @@ fn BinaryGraph::export_entry(
       Instance(self.instantiate_type(scope, binary_index(scope.types, index)))
     (Component(_), Some(ComponentType(index))) =>
       Component(self.follow(binary_index(scope.types, index)))
+    (Value(_), Some(Value(Type(ty)))) => Value(self.value(scope, ty))
     (Module(_), Some(CoreModuleType(index))) => {
       guard scope.core_ids.get(index) is Some(Some(id)) else {
         raise Invalid("core module ascription index is invalid")

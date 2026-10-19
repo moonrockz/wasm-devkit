@@ -1627,100 +1627,148 @@ fn instancetype_valid_for_use_as_interface(
   tyidx : Int32,
   type_table : Array[@component.TypeDef?],
   type_outers : Array[Array[@component.TypeDef?]],
+  named_types : Map[Int32, Int32],
 ) -> Bool {
-  if tyidx < 0 || tyidx >= type_table.length() {
-    return true
-  }
-  match type_table[tyidx] {
-    Some(InstanceTypeEmpty) => true
-    Some(InstanceType(decls)) => {
-      let local_type_table : Array[@component.TypeDef?] = []
-      let local_resource_ids : Array[Int32?] = []
-      let local_named_types : Map[Int32, Int32] = Map([])
-      let mut next_rid = 0
-      fn push_local(td : @component.TypeDef?) -> Unit {
-        local_type_table.push(td)
-        match td {
-          Some(ResourceType(_, _, _, _)) => {
-            local_resource_ids.push(Some(next_rid))
-            next_rid += 1
+  let work = [(tyidx, type_table, [type_table] + type_outers, [named_types])]
+  let mut remaining = 1000000
+  while work.pop() is Some((tyidx, type_table, type_outers, named_outers)) {
+    remaining -= 1
+    if remaining < 0 {
+      return false
+    }
+    if tyidx < 0 || tyidx >= type_table.length() {
+      return false
+    }
+    match type_table[tyidx] {
+      Some(InstanceTypeEmpty) => ()
+      Some(InstanceType(decls)) => {
+        let local_type_table : Array[@component.TypeDef?] = []
+        let local_resource_ids : Array[Int32?] = []
+        let local_named_types : Map[Int32, Int32] = Map([])
+        let mut next_rid = 0
+        fn push_local(td : @component.TypeDef?) -> Unit {
+          local_type_table.push(td)
+          match td {
+            Some(ResourceType(_, _, _, _)) => {
+              local_resource_ids.push(Some(next_rid))
+              next_rid += 1
+            }
+            _ => local_resource_ids.push(None)
           }
-          _ => local_resource_ids.push(None)
         }
-      }
 
-      for d in decls {
-        match d {
-          Type(t) => push_local(Some(t))
-          AliasOuter(kind, count, idx) =>
-            if kind == 0x03 {
-              let td = if count == 0 {
-                local_type_table.get(idx).unwrap_or(None)
-              } else {
-                outer_type_of_alias(type_outers, count, idx) catch {
-                  _ => None
-                }
-              }
-              let rid = if count == 0 {
-                local_resource_ids.get(idx).unwrap_or(None)
-              } else {
-                None
-              }
-              push_local(td)
-              if count == 0 {
-                local_resource_ids[local_resource_ids.length() - 1] = rid
-              }
-            }
-          AliasInstanceExport(kind, _inst, _name) =>
-            if kind == 0x03 {
-              push_local(None)
-            }
-          Export(_name, _attributes, desc) =>
-            match desc {
-              Type(bound) => {
-                let new_idx = local_type_table.length()
-                match bound {
-                  Eq(src) =>
-                    if src >= 0 && src < local_type_table.length() {
-                      push_local(local_type_table[src])
-                    } else {
-                      push_local(None)
-                    }
-                  SubResource =>
-                    push_local(Some(ResourceType(-1, 0x7f, None, HostDefined)))
-                }
-                local_named_types.set(new_idx, 1)
-                if !valtype_valid_for_type_import_export(
-                    TypeIdx(new_idx),
-                    local_type_table,
-                    local_resource_ids,
-                    local_named_types,
-                    Map([]),
-                  ) {
-                  return false
-                }
-              }
-              FuncType(ft_idx) =>
-                if ft_idx >= 0 && ft_idx < local_type_table.length() {
-                  match local_type_table[ft_idx] {
-                    Some(FuncType(ft)) =>
-                      if !functype_valid_in_interface(
-                          ft, local_type_table, local_resource_ids, local_named_types,
-                        ) {
-                        return false
-                      }
-                    _ => ()
+        for d in decls {
+          remaining -= 1
+          if remaining < 0 {
+            return false
+          }
+          match d {
+            Type(t) => push_local(Some(t))
+            AliasOuter(kind, count, idx) =>
+              if kind == 0x03 {
+                let td = if count == 0 {
+                  local_type_table.get(idx).unwrap_or(None)
+                } else {
+                  outer_type_of_alias(type_outers, count, idx) catch {
+                    _ => None
                   }
                 }
-              _ => ()
-            }
-          _ => ()
+                let rid = if count == 0 {
+                  local_resource_ids.get(idx).unwrap_or(None)
+                } else {
+                  None
+                }
+                push_local(td)
+                if count == 0 {
+                  local_resource_ids[local_resource_ids.length() - 1] = rid
+                  if local_named_types.contains(idx) {
+                    local_named_types[local_type_table.length() - 1] = 1
+                  }
+                } else if named_outers.get(count - 1) is Some(names) &&
+                  names.contains(idx) {
+                  local_named_types[local_type_table.length() - 1] = 1
+                }
+              }
+            AliasInstanceExport(kind, _inst, _name) =>
+              if kind == 0x03 {
+                push_local(None)
+              }
+            Export(_name, _attributes, desc) =>
+              match desc {
+                Type(bound) => {
+                  let new_idx = local_type_table.length()
+                  match bound {
+                    Eq(src) =>
+                      if src >= 0 && src < local_type_table.length() {
+                        push_local(local_type_table[src])
+                      } else {
+                        push_local(None)
+                      }
+                    SubResource =>
+                      push_local(
+                        Some(ResourceType(-1, 0x7f, None, HostDefined)),
+                      )
+                  }
+                  local_named_types.set(new_idx, 1)
+                  if !valtype_valid_for_type_import_export(
+                      TypeIdx(new_idx),
+                      local_type_table,
+                      local_resource_ids,
+                      local_named_types,
+                      Map([]),
+                    ) {
+                    return false
+                  }
+                }
+                InstanceType(child) => {
+                  remaining -= local_type_table.length() +
+                    type_outers.length() +
+                    local_named_types.length()
+                  if remaining < 0 {
+                    return false
+                  }
+                  let snapshot = local_type_table.copy()
+                  work.push(
+                    (
+                      child,
+                      snapshot,
+                      [snapshot] + type_outers,
+                      [local_named_types.copy()] + named_outers,
+                    ),
+                  )
+                }
+                Value(Type(value)) =>
+                  if !valtype_valid_in_interface(
+                      value,
+                      local_type_table,
+                      local_resource_ids,
+                      local_named_types,
+                      Map([]),
+                    ) {
+                    return false
+                  }
+                FuncType(ft_idx) =>
+                  if ft_idx >= 0 && ft_idx < local_type_table.length() {
+                    match local_type_table[ft_idx] {
+                      Some(FuncType(ft)) =>
+                        if !functype_valid_in_interface(
+                            ft, local_type_table, local_resource_ids, local_named_types,
+                          ) {
+                          return false
+                        }
+                      _ => ()
+                    }
+                  }
+                _ => ()
+              }
+            _ => ()
+          }
         }
       }
-      true
+      _ => ()
     }
-    _ => true
   }
+  true
 }
 
 ///|

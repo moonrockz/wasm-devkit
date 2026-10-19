@@ -142,6 +142,19 @@ fn validate_component_section_import(
         }
       _ => ()
     }
+    if i.desc is Value(Type(value)) {
+      if !valtype_valid_in_interface(
+          value,
+          type_table,
+          resource_ids,
+          import_named_types,
+          Map([]),
+        ) {
+        raise SectionParseError(10, "value not valid to be used as import")
+      }
+      let signature = counts.value_signature(value, type_table, resource_ids)
+      counts.values.push({ signature, used: false, })
+    }
     if i.desc is FuncType(tyidx) {
       match type_table[tyidx] {
         Some(FuncType(ft)) => {
@@ -359,7 +372,7 @@ fn validate_component_section_import(
               _ => ()
             }
             if !instancetype_valid_for_use_as_interface(
-                tyidx, type_table, type_outers,
+                tyidx, type_table, type_outers, import_named_types,
               ) {
               raise SectionParseError(
                 10, "instance not valid to be used as import",
@@ -632,7 +645,7 @@ fn validate_component_section_import(
       if type_table[new_idx] is Some(InstanceType(_)) ||
         type_table[new_idx] is Some(InstanceTypeEmpty) {
         if !instancetype_valid_for_use_as_interface(
-            new_idx, type_table, type_outers,
+            new_idx, type_table, type_outers, import_named_types,
           ) {
           raise SectionParseError(10, "type not valid to be used as import")
         }

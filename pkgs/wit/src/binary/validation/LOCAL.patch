@@ -390,31 +390,70 @@
 @@ -1139 +1183 @@
 -                    local_resource_ids.push(None)
 +                    local_resource_ids.push(Some(new_idx))
-@@ -1168,0 +1213,4 @@
+@@ -1161,0 +1206,18 @@
++              Value(Type(value)) =>
++                if valtype_uses_disallowed_resources(
++                    value,
++                    local_type_table,
++                    local_import_resource_type_idxs,
++                    Map([]),
++                  ) ||
++                  !valtype_valid_in_interface(
++                    value,
++                    local_type_table,
++                    local_resource_ids,
++                    local_named_types,
++                    Map([]),
++                  ) {
++                  raise SectionParseError(
++                    7, "value not valid to be used as import",
++                  )
++                }
+@@ -1168,0 +1231,4 @@
 +                      validate_accessor_pair(
 +                        7, name, ft, local_type_table, local_resource_ids, import_functions,
 +                      )
 +                      import_functions[name] = ft
-@@ -1221,0 +1270,3 @@
+@@ -1221,0 +1288,3 @@
 +            if desc is InstanceType(_) {
 +              local_instance_imports.push(false)
 +            }
-@@ -1238 +1289 @@
+@@ -1238 +1307 @@
 -                    local_resource_ids.push(None)
 +                    local_resource_ids.push(Some(new_idx))
-@@ -1267,0 +1319,4 @@
+@@ -1260,0 +1330,19 @@
++              Value(Type(value)) => {
++                if !valtype_valid_in_interface(
++                    value,
++                    local_type_table,
++                    local_resource_ids,
++                    local_named_types,
++                    Map([]),
++                  ) {
++                  raise SectionParseError(
++                    7, "value not valid to be used as export",
++                  )
++                }
++                if !cfg.borrowed_value_exports &&
++                  valtype_contains_borrow(value, local_type_table, Map([])) {
++                  raise SectionParseError(
++                    7, "exported value type cannot contain a borrow type",
++                  )
++                }
++              }
+@@ -1267,0 +1356,4 @@
 +                      validate_accessor_pair(
 +                        7, name, ft, local_type_table, local_resource_ids, export_functions,
 +                      )
 +                      export_functions[name] = ft
-@@ -1289,0 +1345,3 @@
+@@ -1289,0 +1382,3 @@
 +      let local_resource_ids : Array[Int32?] = []
 +      let resource_names : Map[String, Int32] = Map([])
 +      let export_functions : Map[String, @component.FuncType] = Map([])
-@@ -1292 +1350 @@
+@@ -1292 +1387 @@
 -      let local_core_type_exports : Array[Map[String, Int]?] = []
 +      let local_core_type_exports : Array[Map[String, Int32]?] = []
-@@ -1317,2 +1375,8 @@
+@@ -1317,2 +1412,8 @@
 -              let outer = outer_type_of_alias(type_outers, count, idx)
 -              if type_outer_depths[count - 1] < component_depth {
 +              // Count zero aliases an earlier type in the current lexical scope.
@@ -425,15 +464,15 @@
 +                outer_type_of_alias(type_outers, count, idx)
 +              }
 +              if count > 0 && type_outer_depths[count - 1] < component_depth {
-@@ -1332,0 +1397 @@
+@@ -1332,0 +1434 @@
 +              let rid = if count == 0 { local_resource_ids[idx] } else { None }
-@@ -1333,0 +1399 @@
+@@ -1333,0 +1436 @@
 +              local_resource_ids.push(rid)
-@@ -1344,0 +1411 @@
+@@ -1344,0 +1448 @@
 +              local_resource_ids.push(None)
-@@ -1360,0 +1428 @@
+@@ -1360,0 +1465 @@
 +            local_resource_ids.push(None)
-@@ -1394,4 +1462,31 @@
+@@ -1394,4 +1499,38 @@
 -            // Like the component export section, exporting a type introduces
 -            // a fresh type index in this instance type's local type space.
 -            if desc is Type(_) {
@@ -455,6 +494,13 @@
 +                  }
 +                }
 +              }
++              Value(Type(value)) =>
++                if !cfg.borrowed_value_exports &&
++                  valtype_contains_borrow(value, local_type_table, Map([])) {
++                  raise SectionParseError(
++                    7, "exported value type cannot contain a borrow type",
++                  )
++                }
 +              FuncType(index) =>
 +                match local_type_table[index] {
 +                  Some(FuncType(ft)) => {
@@ -469,29 +515,29 @@
 +                  _ => ()
 +                }
 +              _ => ()
-@@ -1433 +1528 @@
+@@ -1433 +1572 @@
 -  core_type_bound : Int,
 +  core_type_bound : Int32,
-@@ -1578 +1673 @@
+@@ -1578 +1717 @@
 -fn canon_memory_idx(opts : Array[@component.CanonOpt]) -> Int? {
 +fn canon_memory_idx(opts : Array[@component.CanonOpt]) -> Int32? {
-@@ -1588 +1683 @@
+@@ -1588 +1727 @@
 -fn canon_realloc_idx(opts : Array[@component.CanonOpt]) -> Int? {
 +fn canon_realloc_idx(opts : Array[@component.CanonOpt]) -> Int32? {
-@@ -1598 +1693 @@
+@@ -1598 +1737 @@
 -fn canon_post_return_idx(opts : Array[@component.CanonOpt]) -> Int? {
 +fn canon_post_return_idx(opts : Array[@component.CanonOpt]) -> Int32? {
-@@ -1608 +1703 @@
+@@ -1608 +1747 @@
 -fn functype_needs_memory(
 +fn functype_params_need_memory(
-@@ -1611,5 +1706 @@
+@@ -1611,5 +1750 @@
 -) -> Bool {
 -  // Canonical ABI uses linear memory when:
 -  // - any param/result type itself needs memory (e.g. string/list), or
 -  // - the flattened parameter list is too large (>16), or
 -  // - the result can't be represented as a single core value.
 +) -> Bool raise ComponentValidationError {
-@@ -1628,27 +1718,0 @@
+@@ -1628,27 +1762,0 @@
 -  match ft.result {
 -    None => false
 -    Some(r) =>
@@ -519,10 +565,10 @@
 -      None => return true
 -    }
 -  }
-@@ -1662 +1726 @@
+@@ -1662 +1770 @@
 -) -> Bool {
 +) -> Bool raise ComponentValidationError {
-@@ -1675,136 +1738,0 @@
+@@ -1675,136 +1782,0 @@
 -
 -///|
 -fn valtype_contains_list_or_string(
@@ -1484,40 +1530,232 @@
 @@ -1749 +1627 @@
 -  tyidx : Int,
 +  tyidx : Int32,
-@@ -1760,2 +1638,2 @@
+@@ -1751,0 +1630 @@
++  named_types : Map[Int32, Int32],
+@@ -1753,16 +1632,25 @@
+-  if tyidx < 0 || tyidx >= type_table.length() {
+-    return true
+-  }
+-  match type_table[tyidx] {
+-    Some(InstanceTypeEmpty) => true
+-    Some(InstanceType(decls)) => {
+-      let local_type_table : Array[@component.TypeDef?] = []
 -      let local_resource_ids : Array[Int?] = []
 -      let local_named_types : Map[Int, Int] = Map([])
-+      let local_resource_ids : Array[Int32?] = []
-+      let local_named_types : Map[Int32, Int32] = Map([])
-@@ -1779,2 +1657,11 @@
+-      let mut next_rid = 0
+-      fn push_local(td : @component.TypeDef?) -> Unit {
+-        local_type_table.push(td)
+-        match td {
+-          Some(ResourceType(_, _, _, _)) => {
+-            local_resource_ids.push(Some(next_rid))
+-            next_rid += 1
++  let work = [(tyidx, type_table, [type_table] + type_outers, [named_types])]
++  let mut remaining = 1000000
++  while work.pop() is Some((tyidx, type_table, type_outers, named_outers)) {
++    remaining -= 1
++    if remaining < 0 {
++      return false
++    }
++    if tyidx < 0 || tyidx >= type_table.length() {
++      return false
++    }
++    match type_table[tyidx] {
++      Some(InstanceTypeEmpty) => ()
++      Some(InstanceType(decls)) => {
++        let local_type_table : Array[@component.TypeDef?] = []
++        let local_resource_ids : Array[Int32?] = []
++        let local_named_types : Map[Int32, Int32] = Map([])
++        let mut next_rid = 0
++        fn push_local(td : @component.TypeDef?) -> Unit {
++          local_type_table.push(td)
++          match td {
++            Some(ResourceType(_, _, _, _)) => {
++              local_resource_ids.push(Some(next_rid))
++              next_rid += 1
++            }
++            _ => local_resource_ids.push(None)
+@@ -1770,31 +1658,17 @@
+-          _ => local_resource_ids.push(None)
+-        }
+-      }
+-
+-      for d in decls {
+-        match d {
+-          Type(t) => push_local(Some(t))
+-          AliasOuter(kind, count, idx) =>
+-            if kind == 0x03 {
 -              let td = outer_type_of_alias(type_outers, count, idx) catch {
 -                _ => None
-+              let td = if count == 0 {
-+                local_type_table.get(idx).unwrap_or(None)
-+              } else {
-+                outer_type_of_alias(type_outers, count, idx) catch {
-+                  _ => None
+-              }
+-              push_local(td)
+-            }
+-          AliasInstanceExport(kind, _inst, _name) =>
+-            if kind == 0x03 {
+-              push_local(None)
+-            }
+-          Export(_name, _attributes, desc) =>
+-            match desc {
+-              Type(bound) => {
+-                let new_idx = local_type_table.length()
+-                match bound {
+-                  Eq(src) =>
+-                    if src >= 0 && src < local_type_table.length() {
+-                      push_local(local_type_table[src])
+-                    } else {
+-                      push_local(None)
+-                    }
+-                  SubResource =>
+-                    push_local(Some(ResourceType(-1, 0x7f, None, HostDefined)))
++        }
++
++        for d in decls {
++          remaining -= 1
++          if remaining < 0 {
++            return false
++          }
++          match d {
++            Type(t) => push_local(Some(t))
++            AliasOuter(kind, count, idx) =>
++              if kind == 0x03 {
++                let td = if count == 0 {
++                  local_type_table.get(idx).unwrap_or(None)
++                } else {
++                  outer_type_of_alias(type_outers, count, idx) catch {
++                    _ => None
++                  }
+@@ -1802,9 +1676,14 @@
+-                local_named_types.set(new_idx, 1)
+-                if !valtype_valid_for_type_import_export(
+-                    TypeIdx(new_idx),
+-                    local_type_table,
+-                    local_resource_ids,
+-                    local_named_types,
+-                    Map([]),
+-                  ) {
+-                  return false
++                let rid = if count == 0 {
++                  local_resource_ids.get(idx).unwrap_or(None)
++                } else {
++                  None
 +                }
++                push_local(td)
++                if count == 0 {
++                  local_resource_ids[local_resource_ids.length() - 1] = rid
++                  if local_named_types.contains(idx) {
++                    local_named_types[local_type_table.length() - 1] = 1
++                  }
++                } else if named_outers.get(count - 1) is Some(names) &&
++                  names.contains(idx) {
++                  local_named_types[local_type_table.length() - 1] = 1
+@@ -1813,8 +1692,14 @@
+-              FuncType(ft_idx) =>
+-                if ft_idx >= 0 && ft_idx < local_type_table.length() {
+-                  match local_type_table[ft_idx] {
+-                    Some(FuncType(ft)) =>
+-                      if !functype_valid_in_interface(
+-                          ft, local_type_table, local_resource_ids, local_named_types,
+-                        ) {
+-                        return false
++            AliasInstanceExport(kind, _inst, _name) =>
++              if kind == 0x03 {
++                push_local(None)
 +              }
-+              let rid = if count == 0 {
-+                local_resource_ids.get(idx).unwrap_or(None)
-+              } else {
-+                None
-@@ -1782,0 +1670,3 @@
-+              if count == 0 {
-+                local_resource_ids[local_resource_ids.length() - 1] = rid
++            Export(_name, _attributes, desc) =>
++              match desc {
++                Type(bound) => {
++                  let new_idx = local_type_table.length()
++                  match bound {
++                    Eq(src) =>
++                      if src >= 0 && src < local_type_table.length() {
++                        push_local(local_type_table[src])
++                      } else {
++                        push_local(None)
+@@ -1822 +1707,14 @@
+-                    _ => ()
++                    SubResource =>
++                      push_local(
++                        Some(ResourceType(-1, 0x7f, None, HostDefined)),
++                      )
++                  }
++                  local_named_types.set(new_idx, 1)
++                  if !valtype_valid_for_type_import_export(
++                      TypeIdx(new_idx),
++                      local_type_table,
++                      local_resource_ids,
++                      local_named_types,
++                      Map([]),
++                    ) {
++                    return false
+@@ -1825,9 +1723,49 @@
+-              _ => ()
+-            }
+-          _ => ()
+-        }
+-      }
+-      true
+-    }
+-    _ => true
+-  }
++                InstanceType(child) => {
++                  remaining -= local_type_table.length() +
++                    type_outers.length() +
++                    local_named_types.length()
++                  if remaining < 0 {
++                    return false
++                  }
++                  let snapshot = local_type_table.copy()
++                  work.push(
++                    (
++                      child,
++                      snapshot,
++                      [snapshot] + type_outers,
++                      [local_named_types.copy()] + named_outers,
++                    ),
++                  )
++                }
++                Value(Type(value)) =>
++                  if !valtype_valid_in_interface(
++                      value,
++                      local_type_table,
++                      local_resource_ids,
++                      local_named_types,
++                      Map([]),
++                    ) {
++                    return false
++                  }
++                FuncType(ft_idx) =>
++                  if ft_idx >= 0 && ft_idx < local_type_table.length() {
++                    match local_type_table[ft_idx] {
++                      Some(FuncType(ft)) =>
++                        if !functype_valid_in_interface(
++                            ft, local_type_table, local_resource_ids, local_named_types,
++                          ) {
++                          return false
++                        }
++                      _ => ()
++                    }
++                  }
++                _ => ()
 +              }
-@@ -1853,2 +1743,2 @@
++            _ => ()
++          }
++        }
++      }
++      _ => ()
++    }
++  }
++  true
+@@ -1853,2 +1791,2 @@
 -  let visiting_local : Map[Int, Int] = Map([])
 -  let visiting_global : Map[Int, Int] = Map([])
 +  let visiting_local : Map[Int32, Int32] = Map([])
 +  let visiting_global : Map[Int32, Int32] = Map([])
-@@ -1935,2 +1825,2 @@
+@@ -1935,2 +1873,2 @@
 -  actual : Map[String, Int]?,
 -  expected : Map[String, Int],
 +  actual : Map[String, Int32]?,
 +  expected : Map[String, Int32],
-@@ -1950,0 +1841,85 @@
+@@ -1950,0 +1889,85 @@
 +
 +///|
 +fn validate_accessor_function(
@@ -1683,23 +1921,26 @@
 @@ -55 +64 @@
 -  SectionParseError(Int, String)
 +  SectionParseError(Int32, String)
-@@ -77,0 +87,2 @@
+@@ -77,0 +87,3 @@
 +  canonical_version_suffix : Bool
 +  restricted_map_keys : Bool
-@@ -83 +94,3 @@
++  borrowed_value_exports : Bool
+@@ -83 +95,4 @@
 -  component_implements? : Bool = true,
 +  component_implements~ : Bool = true,
 +  canonical_version_suffix~ : Bool = true,
 +  restricted_map_keys~ : Bool = true,
-@@ -85 +98,6 @@
++  borrowed_value_exports~ : Bool = false,
+@@ -85 +100,7 @@
 -  { wit_names, component_implements, }
 +  {
 +    wit_names,
 +    component_implements,
 +    canonical_version_suffix,
 +    restricted_map_keys,
++    borrowed_value_exports,
 +  }
-@@ -114,12 +132,19 @@
+@@ -114,12 +135,20 @@
 -  mut func : Int
 -  mut value : Int
 -  mut component : Int
@@ -1721,6 +1962,7 @@
 +  mut ascription_remaining : Int32
 +  mut func : Int32
 +  mut value : Int32
++  values : Array[ComponentValue]
 +  mut component : Int32
 +  mut instance : Int32
 +  mut core_func : Int32
@@ -1731,7 +1973,7 @@
 +  mut core_memory : Int32
 +  mut core_global : Int32
 +  mut core_tag : Int32
-@@ -161 +186,9 @@
+@@ -161 +190,9 @@
 -} derive(Eq)
 +  complete : CompleteFunctionSignature?
 +}
@@ -1742,65 +1984,65 @@
 +impl Eq for FuncSigShape with fn equal(a, b) {
 +  a.params == b.params && a.result == b.result
 +}
-@@ -165,2 +198,2 @@
+@@ -165,2 +202,2 @@
 -  Existing(Int)
 -  Resource(Int)
 +  Existing(Int32)
 +  Resource(Int32)
-@@ -182,3 +215,3 @@
+@@ -182,3 +219,3 @@
 -  Resource(Int)
 -  Own(Int)
 -  Borrow(Int)
 +  Resource(Int32)
 +  Own(Int32)
 +  Borrow(Int32)
-@@ -204,2 +237,2 @@
+@@ -204,2 +241,2 @@
 -  resource_ids : Array[Int?],
 -) -> Int? {
 +  resource_ids : Array[Int32?],
 +) -> Int32? {
-@@ -218,3 +251,3 @@
+@@ -218,3 +255,3 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 -) -> Int? {
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
 +) -> Int32? {
-@@ -238,2 +271,2 @@
+@@ -238,2 +275,2 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
-@@ -258,2 +291,2 @@
+@@ -258,2 +295,2 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
-@@ -460 +493,4 @@
+@@ -460 +497,4 @@
 -fn core_func_type_of_idx(m : @types.Module, func_idx : Int) -> @types.FuncType? {
 +fn core_func_type_of_idx(
 +  m : @types.Module,
 +  func_idx : Int32,
 +) -> @types.FuncType? {
-@@ -485 +521 @@
+@@ -485 +525 @@
 -  table_idx : Int,
 +  table_idx : Int32,
-@@ -506 +542 @@
+@@ -506 +546 @@
 -  mem_idx : Int,
 +  mem_idx : Int32,
-@@ -527 +563 @@
+@@ -527 +567 @@
 -  global_idx : Int,
 +  global_idx : Int32,
-@@ -546 +582 @@
+@@ -546 +586 @@
 -fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int) -> @types.FuncType? {
 +fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int32) -> @types.FuncType? {
-@@ -642 +678 @@
+@@ -642 +682 @@
 -fn core_kind_of_extern_type(ty : CoreExternType) -> Int {
 +fn core_kind_of_extern_type(ty : CoreExternType) -> Int32 {
-@@ -679 +715 @@
+@@ -679 +719 @@
 -  idx : Int,
 +  idx : Int32,
-@@ -723,0 +760,7 @@
+@@ -723,0 +764,7 @@
 +    type_metadata: Map([]),
 +    instance_metadata: Map([]),
 +    component_contracts: Map([]),
@@ -1808,23 +2050,25 @@
 +    core_contracts: None,
 +    metadata_remaining: 1000000,
 +    ascription_remaining: 1000000,
-@@ -763 +806 @@
+@@ -725,0 +773 @@
++    values: [],
+@@ -763 +811 @@
 -fn is_lower_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_lower_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -793 +836 @@
+@@ -793 +841 @@
 -fn is_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -843,2 +886,2 @@
+@@ -843,2 +891,2 @@
 -fn is_canonversion_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 -  if start < 0 || end_ <= start || end_ > name.length() {
 +fn is_semver_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
 +  if start < 0 || start >= end_ || end_ > name.length() {
-@@ -848,2 +891,2 @@
+@@ -848,2 +896,2 @@
 -  if name[i].to_int() >= 0x31 && name[i].to_int() <= 0x39 {
 -    i += 1
 +  for component in 0..<3 {
 +    let begin = i
-@@ -853,11 +896,27 @@
+@@ -853,11 +901,27 @@
 -    return i == end_
 -  }
 -  if name[i].to_int() != 0x30 || i + 1 >= end_ {
@@ -1863,7 +2107,7 @@
 +
 +  // Numeric prerelease identifiers cannot contain leading zeroes.
 +  if i < end_ && name[i] == 0x2d {
-@@ -865 +924,15 @@
+@@ -865 +929,15 @@
 -    while i < end_ && is_ascii_digit(name[i]) {
 +    while true {
 +      let begin = i
@@ -1880,7 +2124,7 @@
 +      if i >= end_ || name[i] != 0x2e {
 +        break
 +      }
-@@ -867,95 +939,0 @@
+@@ -867,95 +944,0 @@
 -    }
 -    return i == end_
 -  }
@@ -1976,13 +2220,13 @@
 -    }
 -    if need_id {
 -      return false
-@@ -1016,3 +993,0 @@
+@@ -1016,3 +998,0 @@
 -      if at != -1 {
 -        return false
 -      }
-@@ -1019,0 +995 @@
+@@ -1019,0 +1000 @@
 +      break
-@@ -1028,9 +1004 @@
+@@ -1028,9 +1009 @@
 -  if at != -1 {
 -    if at >= name.length() - 1 {
 -      return false
@@ -1993,14 +2237,14 @@
 -    }
 -  }
 +  // Version syntax is checked with the separately encoded suffix.
-@@ -1185 +1153 @@
+@@ -1185 +1158 @@
 -fn is_integrity_value(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_integrity_value(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -1453,0 +1422,3 @@
+@@ -1453,0 +1427,3 @@
 +  if prefix_eq("get") || prefix_eq("set") {
 +    return is_kebab_case_range(name, close + 1, name.length())
 +  }
-@@ -1460 +1431,9 @@
+@@ -1460 +1436,9 @@
 -  // method/static: require exactly one '.' and kebab-case around it.
 +  // Method/static names can have one accessor annotation before the resource.
 +  let mut start = close + 1
@@ -2011,10 +2255,10 @@
 +    ) {
 +    start += 5
 +  }
-@@ -1462 +1441 @@
+@@ -1462 +1446 @@
 -  for k in (close + 1)..<name.length() {
 +  for k in start..<name.length() {
-@@ -1470,4 +1449,4 @@
+@@ -1470,4 +1454,4 @@
 -  if dot < 0 || dot == close + 1 || dot == name.length() - 1 {
 -    return false
 -  }
@@ -2023,19 +2267,19 @@
 +    return false
 +  }
 +  is_kebab_case_range(name, start, dot) &&
-@@ -1506 +1485 @@
+@@ -1506 +1490 @@
 -  mut pos : Int
 +  mut pos : Int32
-@@ -1522 +1501 @@
+@@ -1522 +1506 @@
 -) -> Int raise ComponentValidationError {
 +) -> Int32 raise ComponentValidationError {
-@@ -1534 +1513 @@
+@@ -1534 +1518 @@
 -) -> Int raise ComponentValidationError {
 +) -> Int32 raise ComponentValidationError {
-@@ -1554 +1533 @@
+@@ -1554 +1538 @@
 -  n : Int,
 +  n : Int32,
-@@ -1585,5 +1564,9 @@
+@@ -1585,5 +1569,9 @@
 -  ascii_bytes_to_string(self.read_bytes(len))
 -}
 -
@@ -2050,7 +2294,7 @@
 +
 +///|
 +fn CoreTypeReader::read_limit(
-@@ -1591 +1574,23 @@
+@@ -1591 +1579,23 @@
 -) -> Unit raise ComponentValidationError {
 +  wide : Bool,
 +) -> UInt64 raise ComponentValidationError {
@@ -2075,7 +2319,7 @@
 +  self : CoreTypeReader,
 +  memory : Bool,
 +) -> (Int32, UInt64, UInt64?, Int32) raise ComponentValidationError {
-@@ -1593,4 +1598,24 @@
+@@ -1593,4 +1603,24 @@
 -  self.read_leb_u32() |> ignore
 -  if (flags & 0x01) != 0 {
 -    self.read_leb_u32() |> ignore
@@ -2104,12 +2348,12 @@
 +    }
 +  }
 +  (flags, min, max, page)
-@@ -1627,2 +1652,2 @@
+@@ -1627,2 +1657,2 @@
 -  kind : Int,
 -  func_type_bound : Int,
 +  kind : Int32,
 +  func_type_bound : Int32,
-@@ -1639,17 +1664,3 @@
+@@ -1639,17 +1669,3 @@
 -      self.skip_limits()
 -    }
 -    0x02 => {
@@ -2130,16 +2374,16 @@
 +      self.read_limits(false) |> ignore
 +    }
 +    0x02 => self.read_limits(true) |> ignore
-@@ -1679 +1690 @@
+@@ -1679 +1695 @@
 -    heap : Int,
 +    heap : Int32,
-@@ -1748 +1759 @@
+@@ -1748 +1764 @@
 -  kind : Int,
 +  kind : Int32,
-@@ -1750 +1761 @@
+@@ -1750 +1766 @@
 -  func_type_bound : Int,
 +  func_type_bound : Int32,
-@@ -1775,6 +1786,5 @@
+@@ -1775,6 +1791,5 @@
 -      let flags = self.read_u8()
 -      let min = self.read_leb_u32()
 -      let max = if (flags & 0x01) != 0 {
@@ -2151,7 +2395,7 @@
 +        (max is Some(n) && n > 9223372036854775807UL) ||
 +        (flags & 2) != 0 {
 +        return None
-@@ -1783,7 +1793,4 @@
+@@ -1783,7 +1798,4 @@
 -        min: min.to_int64(),
 -        max: match max {
 -          Some(v) => Some(v.to_int64())
@@ -2163,7 +2407,7 @@
 +        max: max.map(n => n.reinterpret_as_int64()),
 +      }
 +      Some(Table({ elem_type: elem_ty, limits, is_table64: (flags & 4) != 0, }))
-@@ -1792,14 +1799,6 @@
+@@ -1792,14 +1804,6 @@
 -      // memtype: flags + limits (track memory64 when present)
 -      let flags = self.read_u8()
 -      let min = self.read_leb_u32()
@@ -2184,7 +2428,7 @@
 +      if min > 9223372036854775807UL ||
 +        (max is Some(n) && n > 9223372036854775807UL) {
 +        return None
-@@ -1808,7 +1807,3 @@
+@@ -1808,7 +1812,3 @@
 -        min: min.to_int64(),
 -        max: match max {
 -          Some(v) => Some(v.to_int64())
@@ -2195,33 +2439,33 @@
 +        min: min.reinterpret_as_int64(),
 +        max: max.map(n => n.reinterpret_as_int64()),
 +      }
-@@ -1818,3 +1813,3 @@
+@@ -1818,3 +1818,3 @@
 -          is_memory64,
 -          is_shared: (flags & 0x02) != 0,
 -          page_size_log2: 16,
 +          is_memory64: (flags & 4) != 0,
 +          is_shared: (flags & 2) != 0,
 +          page_size_log2: page,
-@@ -1828 +1823,4 @@
+@@ -1828 +1828,4 @@
 -      let mutable = mut_ != 0
 +      if (mut_ & 2) != 0 {
 +        return None
 +      }
 +      let mutable = (mut_ & 1) != 0
-@@ -1859,3 +1857,3 @@
+@@ -1859,3 +1862,3 @@
 -  max_outer_depth : Int,
 -  current_core_type_bound : Int,
 -  outer_core_type_bounds : Array[Int],
 +  max_outer_depth : Int32,
 +  current_core_type_bound : Int32,
 +  outer_core_type_bounds : Array[Int32],
-@@ -1864 +1862 @@
+@@ -1864 +1867 @@
 -  let seen_imports : Map[String, Int] = Map([])
 +  let seen_imports : Map[(String, String), Int32] = Map([])
-@@ -1883 +1881 @@
+@@ -1883 +1886 @@
 -        let key = "\{mod_s}:\{name_s}"
 +        let key = (mod_s, name_s)
-@@ -1919 +1917,3 @@
+@@ -1919 +1922,3 @@
 -                let bound = if depth <= 1 {
 +                let bound = if depth == 0 {
 +                  func_type_bound - 1
@@ -2281,10 +2525,21 @@
 +      new_instance_sig = Some(metadata_instance_sig(metadata, child))
 +      new_instance_export_func_sigs = Some(metadata.nodes[child].functions)
 +    }
-@@ -218 +230 @@
+@@ -214,0 +227,10 @@
++    if a.sort is Value {
++      guard a.target is Export(parent, name) &&
++        counts.instance_contracts.get(parent) is Some((metadata, node)) &&
++        metadata.nodes[node].exports.values.get(name) is Some(signature) else {
++        raise SectionParseError(
++          6, "value alias requires a complete instance contract",
++        )
++      }
++      counts.values.push({ signature, used: false, })
++    }
+@@ -218 +240 @@
 -      let mut new_rid : Int? = None
 +      let mut new_rid : Int32? = None
-@@ -317,0 +330,15 @@
+@@ -317,0 +340,15 @@
 +      if a.target is Export(instance, name) &&
 +        counts.instance_metadata.get(instance) is Some((metadata, node)) &&
 +        metadata.nodes[node].types.get(name) is Some(ty) {
@@ -2300,7 +2555,7 @@
 +        counts.type_metadata.get(original) is Some(metadata) {
 +        counts.type_metadata[type_table.length()] = metadata
 +      }
-@@ -322,0 +350,8 @@
+@@ -322,0 +360,8 @@
 +      if a.target is Outer(0, original) {
 +        if named_types.contains(original) {
 +          named_types.set(type_table.length() - 1, 1)
@@ -2309,20 +2564,20 @@
 +          import_named_types.set(type_table.length() - 1, 1)
 +        }
 +      }
-@@ -324 +359 @@
+@@ -324 +369 @@
 -        interface_instance_idxs.get(instance_idx) is Some(_) {
 +        interface_instance_idxs.get(instance_idx) is Some(visibility) {
-@@ -325,0 +361,3 @@
+@@ -325,0 +371,3 @@
 +        if (visibility & 2) != 0 {
 +          import_named_types.set(type_table.length() - 1, 1)
 +        }
-@@ -364,0 +403,5 @@
+@@ -364,0 +413,5 @@
 +          if a.target is Export(parent, name) &&
 +            counts.instance_contracts.get(parent) is Some((contract, node)) &&
 +            contract.nodes[node].exports.children.get(name) is Some(child) {
 +            counts.instance_contracts[counts.instance - 1] = (contract, child)
 +          }
-@@ -365,0 +409,7 @@
+@@ -365,0 +419,7 @@
 +          if new_metadata is Some(metadata) {
 +            counts.instance_metadata[instance_sigs.length() - 1] = metadata
 +          }
@@ -2330,7 +2585,7 @@
 +            interface_instance_idxs.get(parent) is Some(visibility) {
 +            interface_instance_idxs.set(instance_sigs.length() - 1, visibility)
 +          }
-@@ -375,0 +426,5 @@
+@@ -375,0 +436,5 @@
 +          if a.target is Export(parent, name) &&
 +            counts.instance_contracts.get(parent) is Some((contract, node)) &&
 +            contract.nodes[node].exports.children.get(name) is Some(child) {
@@ -2403,21 +2658,56 @@
 -    if is_root && e.sortidx.sort is Func && e.sortidx.idx < imported_funcs {
 -      raise ExportedImportedFunc(e.sortidx.idx)
 -    }
-@@ -121 +119 @@
+@@ -121 +119,33 @@
 -    let mut ascribed_resource_id : Int? = None
++    let mut exported_value : CompleteFunctionSignature? = None
++    if e.sortidx.sort is Value {
++      let actual = counts.consume_value(e.sortidx.idx, 11)
++      let signature = match e.desc {
++        None => actual
++        Some(Value(Type(ty))) => {
++          if !valtype_valid_in_interface(
++              ty,
++              type_table,
++              resource_ids,
++              named_types,
++              Map([]),
++            ) {
++            raise SectionParseError(11, "value not valid to be used as export")
++          }
++          let expected = counts.value_signature(ty, type_table, resource_ids)
++          counts.ascription_remaining = check_function_ascription(
++            actual.function,
++            expected.function,
++            actual.types,
++            actual.resources,
++            expected_types=Some(expected.types),
++            expected_resources=Some(expected.resources),
++            budget=counts.ascription_remaining,
++          )
++          expected
++        }
++        _ => raise AscribedExportTypeIncompatible
++      }
++      check_value_export(signature, cfg)
++      exported_value = Some(signature)
++    }
 +    let mut ascribed_resource_id : Int32? = None
-@@ -247,2 +245,2 @@
+@@ -206 +236 @@
+-                  idx, type_table, type_outers,
++                  idx, type_table, type_outers, named_types,
+@@ -247,2 +277,2 @@
 -          let exported_type_idxs : Array[Int] = []
 -          let seen : Map[Int, Int] = Map([])
 +          let exported_type_idxs : Array[Int32] = []
 +          let seen : Map[Int32, Int32] = Map([])
-@@ -295 +293 @@
+@@ -295 +325 @@
 -          let inst_named : Map[Int, Int] = Map([])
 +          let inst_named : Map[Int32, Int32] = Map([])
-@@ -447 +445 @@
+@@ -447 +477 @@
 -    // the actual export (we currently model instance-type compatibility).
 +    // the actual export. Functions require complete invariant signatures.
-@@ -449,4 +447,15 @@
+@@ -449,4 +479,15 @@
 -      (Instance, Some(InstanceType(tyidx))) =>
 -        if tyidx >= 0 && tyidx < type_table.length() {
 -          let expected = instancetype_sig_of_global_idx(
@@ -2437,12 +2727,12 @@
 +        let actual = if func_types.get(e.sortidx.idx) is Some(Some(actual)) {
 +          let signature = metadata_global_function(
 +            actual,
-@@ -454 +463,3 @@
+@@ -454 +495,3 @@
 -            Map([]),
 +            resource_ids,
 +            counts.type_metadata,
 +            counts.metadata_remaining,
-@@ -456,14 +467,159 @@
+@@ -456,14 +499,159 @@
 -          let actual = if e.sortidx.idx >= 0 &&
 -            e.sortidx.idx < instance_sigs.length() {
 -            instance_sigs[e.sortidx.idx]
@@ -2616,11 +2906,14 @@
 +        )
 +        ascribed_component = Some(expected)
 +      }
-@@ -487,0 +644,3 @@
+@@ -487,0 +676,3 @@
 +        if counts.type_metadata.get(idx) is Some(metadata) {
 +          counts.type_metadata[type_table.length()] = metadata
 +        }
-@@ -524,0 +684,9 @@
+@@ -524,0 +716,12 @@
++      if exported_value is Some(signature) {
++        counts.values.push({ signature, used: true, })
++      }
 +      if e.sortidx.sort is Instance {
 +        let contract = match ascribed_instance_contract {
 +          Some(contract) => Some((contract, 0))
@@ -2630,7 +2923,7 @@
 +          counts.instance_contracts[counts.instance - 1] = contract
 +        }
 +      }
-@@ -528 +696,9 @@
+@@ -528 +731,9 @@
 -            func_types.push(func_types[e.sortidx.idx])
 +            let exported = match e.desc {
 +              Some(FuncType(index)) =>
@@ -2641,7 +2934,7 @@
 +              _ => func_types[e.sortidx.idx]
 +            }
 +            func_types.push(exported)
-@@ -540,0 +717,11 @@
+@@ -540,0 +752,11 @@
 +            if ascribed_instance is Some(metadata) {
 +              instance_sigs[instance_sigs.length() - 1] = Some(
 +                metadata_instance_sig(metadata, 0),
@@ -2653,19 +2946,19 @@
 +              is Some(metadata) {
 +              counts.instance_metadata[instance_sigs.length() - 1] = metadata
 +            }
-@@ -580,0 +768,5 @@
+@@ -580,0 +803,5 @@
 +            if ascribed_instance is Some(metadata) {
 +              instance_export_func_sigs[instance_export_func_sigs.length() - 1] = Some(
 +                metadata.nodes[0].functions,
 +              )
 +            }
-@@ -602 +794,4 @@
+@@ -602 +829,4 @@
 -            interface_instance_idxs.set(instance_sigs.length() - 1, 1)
 +            interface_instance_idxs.set(
 +              instance_sigs.length() - 1,
 +              interface_instance_idxs.get(e.sortidx.idx).unwrap_or(1),
 +            )
-@@ -616,0 +812,7 @@
+@@ -616,0 +847,7 @@
 +          let metadata = match ascribed_component {
 +            Some(metadata) => Some((metadata, 0))
 +            None => counts.component_contracts.get(src)
@@ -2746,23 +3039,37 @@
 +        if local_resource_types.get(tyidx) is Some(true) {
 +          raise SectionParseError(10, "local resource type found in imports")
 +        }
-@@ -190 +198 @@
+@@ -135,0 +144,13 @@
++    }
++    if i.desc is Value(Type(value)) {
++      if !valtype_valid_in_interface(
++          value,
++          type_table,
++          resource_ids,
++          import_named_types,
++          Map([]),
++        ) {
++        raise SectionParseError(10, "value not valid to be used as import")
++      }
++      let signature = counts.value_signature(value, type_table, resource_ids)
++      counts.values.push({ signature, used: false, })
+@@ -190 +211 @@
 -        let mut resource_exports : Map[String, Int]? = None
 +        let mut resource_exports : Map[String, Int32]? = None
-@@ -202 +210,2 @@
+@@ -202 +223,2 @@
 -                let local_resource_ids : Array[Int?] = []
 +                let local_resource_ids : Array[Int32?] = []
 +                let local_origins : Map[Int32, Int32] = Map([])
-@@ -205 +214 @@
+@@ -205 +227 @@
 -                let res : Map[String, Int] = Map([])
 +                let res : Map[String, Int32] = Map([])
-@@ -209 +218 @@
+@@ -209 +231 @@
 -                let visiting : Map[Int, Int] = Map([])
 +                let visiting : Map[Int32, Int32] = Map([])
-@@ -221 +230 @@
+@@ -221 +243 @@
 -                    AliasOuter(kind, _count, _idx) =>
 +                    AliasOuter(kind, count, index) =>
-@@ -223 +232,14 @@
+@@ -223 +245,14 @@
 -                        record_type_slot()
 +                        let slot = local_types.length()
 +                        if count == 1 && type_table.get(index) is Some(Some(_)) {
@@ -2778,11 +3085,11 @@
 +                        } else {
 +                          record_type_slot()
 +                        }
-@@ -249,0 +272,3 @@
+@@ -249,0 +285,3 @@
 +                                if local_origins.get(idx) is Some(origin) {
 +                                  local_origins[new_idx] = origin
 +                                }
-@@ -267,2 +292,6 @@
+@@ -267,2 +305,6 @@
 -                          let sig = if ft_idx >= 0 &&
 -                            ft_idx < local_types.length() {
 +                          let sig = if local_origins.get(ft_idx) is Some(origin) &&
@@ -2791,18 +3098,21 @@
 +                              funcsig_of_functype(ft, type_table, resource_ids),
 +                            )
 +                          } else if ft_idx >= 0 && ft_idx < local_types.length() {
-@@ -273 +302,4 @@
+@@ -273 +315,4 @@
 -                                    ft, local_types, local_resource_ids, type_table,
 +                                    ft,
 +                                    local_types,
 +                                    local_resource_ids,
 +                                    type_table,
-@@ -274,0 +307,4 @@
+@@ -274,0 +320,4 @@
 +                                    local_origins~,
 +                                    global_function=local_origins.contains(
 +                                      ft_idx,
 +                                    ),
-@@ -334,0 +371,57 @@
+@@ -326 +375 @@
+-                tyidx, type_table, type_outers,
++                tyidx, type_table, type_outers, import_named_types,
+@@ -334,0 +384,57 @@
 +        if type_table[tyidx] is Some(td) {
 +          let (metadata, next, remaining) = imported_instance_metadata(
 +            td,
@@ -2860,11 +3170,11 @@
 +          import_locals,
 +          counts.metadata_remaining,
 +        )
-@@ -345 +438,2 @@
+@@ -345 +451,2 @@
 -        interface_instance_idxs.set(instance_sigs.length() - 1, 1)
 +        // Bit 1 names exported types; bit 2 also permits using them in imports.
 +        interface_instance_idxs.set(instance_sigs.length() - 1, 3)
-@@ -352,0 +447,34 @@
+@@ -352,0 +460,34 @@
 +      if type_table.get(tyidx) is Some(Some(td)) {
 +        let core_scope = match counts.core_contracts {
 +          Some(graph) =>
@@ -2899,9 +3209,12 @@
 +        import_locals,
 +        counts.metadata_remaining,
 +      )
-@@ -360 +488 @@
+@@ -360 +501 @@
 -      let mut import_core_module_exports : Map[String, Map[String, Int]]? = None
 +      let mut import_core_module_exports : Map[String, Map[String, Int32]]? = None
+@@ -507 +648 @@
+-            new_idx, type_table, type_outers,
++            new_idx, type_table, type_outers, import_named_types,
 --- a/section_instance.mbt
 +++ b/section_instance.mbt
 @@ -0,0 +1,2 @@
@@ -3471,9 +3784,17 @@
 +              }
 +              core_func_types.push(signature)
 +            }
-@@ -913,0 +995 @@
+@@ -871,0 +953,7 @@
++    }
++  }
++  for value in counts.values {
++    if !value.used {
++      raise SectionParseError(
++        10, "value was not used as part of an instantiation, start function, or export",
++      )
+@@ -913,0 +1002 @@
 +  core_contracts~ : @core_types.ContractGraph? = None,
-@@ -915 +997,12 @@
+@@ -915 +1004,12 @@
 -  validate_component_inner(component, true, cfg, 0, [], [], [], []) |> ignore
 +  validate_component_inner(
 +    component,

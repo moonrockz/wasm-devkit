@@ -952,6 +952,13 @@ fn validate_component_inner(
       _ => ()
     }
   }
+  for value in counts.values {
+    if !value.used {
+      raise SectionParseError(
+        10, "value was not used as part of an instantiation, start function, or export",
+      )
+    }
+  }
   if export_size > 100000 {
     raise SectionParseError(11, "effective type size exceeds the limit")
   }

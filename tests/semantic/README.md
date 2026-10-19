@@ -414,3 +414,7 @@ repeat the same suite through the published moonx package and mise executables.
 The [verification bundles](../../examples/verification/README.md) run through
 source, archive and installed CLI smoke paths, including invalid provenance and
 stdin dependency bases. Verification never executes a component.
+
+`wac-value-externs` retains 45 complete package probes and 17 source compositions
+for component values. Full binary/WAT models, linear-use failures, scoped naming
+and the pinned resolver/encoder discrepancies are documented in its README.

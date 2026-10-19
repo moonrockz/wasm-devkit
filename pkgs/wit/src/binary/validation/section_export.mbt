@@ -116,6 +116,38 @@ fn validate_component_section_export(
       raise SectionParseError(11, "is not a func")
     }
     check_sortidx(e.sortidx, counts, type_table.length())
+    let mut exported_value : CompleteFunctionSignature? = None
+    if e.sortidx.sort is Value {
+      let actual = counts.consume_value(e.sortidx.idx, 11)
+      let signature = match e.desc {
+        None => actual
+        Some(Value(Type(ty))) => {
+          if !valtype_valid_in_interface(
+              ty,
+              type_table,
+              resource_ids,
+              named_types,
+              Map([]),
+            ) {
+            raise SectionParseError(11, "value not valid to be used as export")
+          }
+          let expected = counts.value_signature(ty, type_table, resource_ids)
+          counts.ascription_remaining = check_function_ascription(
+            actual.function,
+            expected.function,
+            actual.types,
+            actual.resources,
+            expected_types=Some(expected.types),
+            expected_resources=Some(expected.resources),
+            budget=counts.ascription_remaining,
+          )
+          expected
+        }
+        _ => raise AscribedExportTypeIncompatible
+      }
+      check_value_export(signature, cfg)
+      exported_value = Some(signature)
+    }
     let mut ascribed_resource_id : Int32? = None
     if e.sortidx.sort is Type && e.desc is Some(Type(SubResource)) {
       if !(type_sig_of_typeidx(e.sortidx.idx, type_table, resource_ids)
@@ -201,7 +233,7 @@ fn validate_component_section_export(
           match type_table[idx] {
             Some(InstanceType(_)) | Some(InstanceTypeEmpty) =>
               if !instancetype_valid_for_use_as_interface(
-                  idx, type_table, type_outers,
+                  idx, type_table, type_outers, named_types,
                 ) {
                 raise SectionParseError(
                   11, "type not valid to be used as export",
@@ -681,6 +713,9 @@ fn validate_component_section_export(
       }
     } else {
       count_alias(e.sortidx.sort, counts)
+      if exported_value is Some(signature) {
+        counts.values.push({ signature, used: true, })
+      }
       if e.sortidx.sort is Instance {
         let contract = match ascribed_instance_contract {
           Some(contract) => Some((contract, 0))

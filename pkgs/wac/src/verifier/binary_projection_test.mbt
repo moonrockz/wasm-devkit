@@ -72,6 +72,7 @@ fn project_graph(
           Instance(id) => ("instance", id)
           Component(id) => ("component", id)
           Module(id) => ("module", id)
+          Value(id) => ("value", id)
         }
         output.push(sort)
         next.push(Type(id))
