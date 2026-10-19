@@ -2,8 +2,17 @@
 priv enum CoreDeclaration {
   Definition(Bytes, Bool)
   Nested(@component.TypeDef)
-  Alias(Int32, Int32)
-  Require(@component.ExternDesc)
+  Alias(@component.Alias)
+  Describe(Bool, String, @component.ExternDesc)
+  Export(@component.Export)
+  Module(Bytes)
+}
+
+///|
+priv enum CoreBinding {
+  Scope(Int32)
+  Module(@core_types.Module)
+  Other
 }
 
 ///|
@@ -11,7 +20,15 @@ priv struct CoreScope {
   parent : Int32?
   declarations : Array[CoreDeclaration]
   definitions : Array[@core_types.Definition]
+  slots : Map[Int32, Array[CoreBinding]]
+  exports : Map[String, CoreBinding]
   mut position : Int32
+}
+
+///|
+priv struct CoreAscription {
+  actual : @core_types.Module
+  expected : @core_types.Module
 }
 
 ///|
@@ -28,79 +45,156 @@ fn core_error(error : @core_types.Diagnostic) -> Unit raise Boundary {
 }
 
 ///|
-fn core_declarations(td : @component.TypeDef) -> Array[CoreDeclaration] {
-  let out : Array[CoreDeclaration] = []
-  match td {
-    ComponentType(declarations) =>
-      for declaration in declarations {
-        match declaration {
-          CoreType(bytes) => out.push(Definition(bytes, false))
-          Type(td) => out.push(Nested(td))
-          AliasOuter(0x110, count, index) => out.push(Alias(count, index))
-          Import(_, _, desc) | Export(_, _, desc) => out.push(Require(desc))
-          _ => ()
-        }
-      }
-    InstanceType(declarations) =>
-      for declaration in declarations {
-        match declaration {
-          CoreType(bytes) => out.push(Definition(bytes, false))
-          Type(td) => out.push(Nested(td))
-          AliasOuter(0x110, count, index) => out.push(Alias(count, index))
-          Export(_, _, desc) => out.push(Require(desc))
-          _ => ()
-        }
-      }
-    _ => ()
+fn core_sort(sort : @component.Sort) -> Int32 {
+  match sort {
+    Core(kind) => 0x100 + kind
+    Func => 1
+    Value => 2
+    Type => 3
+    Component => 4
+    Instance => 5
   }
-  out
+}
+
+///|
+fn CoreScope::bind(self : CoreScope, kind : Int32, value : CoreBinding) -> Unit {
+  match self.slots.get(kind) {
+    Some(slots) => slots.push(value)
+    None => self.slots[kind] = [value]
+  }
+}
+
+///|
+fn CoreScope::lookup(
+  self : CoreScope,
+  kind : Int32,
+  index : Int32,
+) -> CoreBinding raise Boundary {
+  guard self.slots.get(kind) is Some(slots) && slots.get(index) is Some(binding) else {
+    raise Failure(
+      None,
+      "WIT-B003",
+      "core contract binding index is out of bounds",
+    )
+  }
+  binding
+}
+
+///|
+fn CoreScope::module_type(
+  self : CoreScope,
+  index : Int32,
+) -> @core_types.Module raise Boundary {
+  guard self.definitions.get(index) is Some(Module(contract)) else {
+    raise Failure(
+      None,
+      "WIT-B003",
+      "core module reference does not name a module type",
+    )
+  }
+  contract
+}
+
+///|
+fn core_text(bytes : Bytes) -> String raise Boundary {
+  @utf8.decode(bytes, ignore_bom=false) catch {
+    _ => raise Failure(None, "WIT-B001", "invalid core binding name")
+  }
+}
+
+///|
+fn core_declarations(td : @component.TypeDef) -> Array[CoreDeclaration] {
+  let declarations : Array[@component.ComponentDecl] = match td {
+    ComponentType(declarations) => declarations
+    InstanceType(declarations) =>
+      declarations.map(declaration => {
+        match declaration {
+          CoreType(bytes) => @component.ComponentDecl::CoreType(bytes)
+          Type(td) => Type(td)
+          AliasOuter(kind, count, index) => AliasOuter(kind, count, index)
+          AliasInstanceExport(kind, instance, name) =>
+            AliasInstanceExport(kind, instance, name)
+          Export(name, attrs, desc) => Export(name, attrs, desc)
+        }
+      })
+    _ => []
+  }
+  declarations.map(declaration => {
+    match declaration {
+      CoreType(bytes) => Definition(bytes, false)
+      Type(td) => Nested(td)
+      AliasOuter(kind, count, index) =>
+        Alias({ sort: core_decl_sort(kind), target: Outer(count, index), })
+      AliasInstanceExport(kind, instance, name) =>
+        Alias({ sort: core_decl_sort(kind), target: Export(instance, name), })
+      Import(name, _, desc) => Describe(true, name, desc)
+      Export(name, _, desc) => Describe(false, name, desc)
+    }
+  })
+}
+
+///|
+fn core_decl_sort(kind : Int32) -> @component.Sort {
+  match kind {
+    1 => Func
+    2 => Value
+    3 => Type
+    4 => Component
+    5 => Instance
+    _ => Core(kind - 0x100)
+  }
 }
 
 ///|
 fn validate_core_definitions(
   component : @component.Component,
-) -> Unit raise Boundary {
+) -> ReadOnlyArray[CoreAscription] raise Boundary {
   let root : Array[CoreDeclaration] = []
   for section in component.binary.sections {
-    match section.id {
-      3 => root.push(Definition(section.payload, true))
-      7 =>
-        for
-          td in (@component.parse_type_section(section.payload) catch {
-            error => raise Failure(None, "WIT-B001", error.to_string())
-          }) {
-          root.push(Nested(td))
-        }
-      6 =>
-        for
-          entry in (@component.parse_alias_section(section.payload) catch {
-            error => raise Failure(None, "WIT-B001", error.to_string())
-          }) {
-          if entry.sort is Core(0x10) {
-            guard entry.target is Outer(count, index) else {
-              raise Failure(
-                None,
-                "WIT-B003",
-                "core type aliases must target lexical scopes",
-              )
-            }
-            root.push(Alias(count, index))
+    try {
+      match section.id {
+        1 => root.push(Module(section.payload))
+        3 => root.push(Definition(section.payload, true))
+        7 =>
+          for td in @component.parse_type_section(section.payload) {
+            root.push(Nested(td))
           }
-        }
-      10 =>
-        for
-          imported in (@component.parse_import_section(section.payload) catch {
-            error => raise Failure(None, "WIT-B001", error.to_string())
-          }) {
-          root.push(Require(imported.desc))
-        }
-      _ => ()
+        6 =>
+          for entry in @component.parse_alias_section(section.payload) {
+            root.push(Alias(entry))
+          }
+        10 =>
+          for imported in @component.parse_import_section(section.payload) {
+            let name = match imported.name {
+              Plain(bytes) => core_text(bytes)
+              WithVersion(name, version) =>
+                core_text(name) + "@" + core_text(version)
+            }
+            root.push(Describe(true, name, imported.desc))
+          }
+        11 =>
+          for entry in @component.parse_export_section(section.payload) {
+            root.push(Export(entry))
+          }
+        _ => ()
+      }
+    } catch {
+      Failure(offset, code, message) => raise Failure(offset, code, message)
+      error => raise Failure(None, "WIT-B001", error.to_string())
     }
   }
   let scopes : Array[CoreScope] = [
-    { parent: None, declarations: root, definitions: [], position: 0, },
+    {
+      parent: None,
+      declarations: root,
+      definitions: [],
+      slots: Map([]),
+      exports: Map([]),
+      position: 0,
+    },
   ]
   let stack = [0]
+  let ascriptions : Array[CoreAscription] = []
   let mut remaining = 1000000
   fn step(amount : Int32) -> Unit raise Boundary {
     remaining -= amount
@@ -117,6 +211,9 @@ fn validate_core_definitions(
     let scope = scopes[index]
     if scope.position >= scope.declarations.length() {
       ignore(stack.pop())
+      if scope.parent is Some(parent) {
+        scopes[parent].bind(3, Scope(index))
+      }
       continue
     }
     let declaration = scope.declarations[scope.position]
@@ -124,7 +221,7 @@ fn validate_core_definitions(
     match declaration {
       Nested(td) =>
         match td {
-          ComponentType(_) | InstanceType(_) => {
+          ComponentType(_) | InstanceType(_) | InstanceTypeEmpty => {
             let child = scopes.length()
             let declarations = core_declarations(td)
             step(declarations.length())
@@ -132,36 +229,103 @@ fn validate_core_definitions(
               parent: Some(index),
               declarations,
               definitions: [],
+              slots: Map([]),
+              exports: Map([]),
               position: 0,
             })
             stack.push(child)
           }
-          _ => ()
+          _ => scope.bind(3, Other)
         }
-      Alias(count, original) => {
-        let mut owner = index
-        for _ in 0..<count {
-          step(1)
-          guard scopes[owner].parent is Some(parent) else {
-            raise Failure(None, "WIT-B003", "core alias exceeds lexical scopes")
+      Alias(entry) => {
+        let kind = core_sort(entry.sort)
+        let binding = match entry.target {
+          Outer(count, original) => {
+            let mut owner = index
+            for _ in 0..<count {
+              step(1)
+              guard scopes[owner].parent is Some(parent) else {
+                raise Failure(
+                  None,
+                  "WIT-B003",
+                  "core alias exceeds lexical scopes",
+                )
+              }
+              owner = parent
+            }
+            if kind == 0x110 {
+              guard scopes[owner].definitions.get(original) is Some(definition) else {
+                raise Failure(
+                  None,
+                  "WIT-B003",
+                  "core alias index is out of bounds",
+                )
+              }
+              scope.definitions.push(definition)
+              continue
+            }
+            scopes[owner].lookup(kind, original)
           }
-          owner = parent
+          Export(original, name) => {
+            guard scope.lookup(5, original) is Scope(owner) &&
+              scopes[owner].exports.get(name) is Some(binding) else {
+              raise Failure(
+                None,
+                "WIT-B003",
+                "core instance contract export is missing",
+              )
+            }
+            binding
+          }
+          CoreExport(_, _) =>
+            raise Failure(
+              None,
+              "WIT-B002",
+              "core runtime alias contract is not available",
+            )
         }
-        guard scopes[owner].definitions.get(original) is Some(definition) else {
-          raise Failure(None, "WIT-B003", "core alias index is out of bounds")
-        }
-        scope.definitions.push(definition)
+        scope.bind(kind, binding)
       }
-      Require(CoreModuleType(original)) => {
-        guard scope.definitions.get(original) is Some(Module(_)) else {
-          raise Failure(
-            None,
-            "WIT-B003",
-            "core module reference does not name a module type",
-          )
+      Describe(importing, name, desc) => {
+        let (kind, binding) = match desc {
+          CoreModuleType(original) =>
+            (0x111, CoreBinding::Module(scope.module_type(original)))
+          InstanceType(original) => (5, scope.lookup(3, original))
+          ComponentType(original) => (4, scope.lookup(3, original))
+          Type(Eq(original)) => (3, scope.lookup(3, original))
+          Type(SubResource) => (3, CoreBinding::Other)
+          FuncType(_) => (1, CoreBinding::Other)
+          Value(_) => (2, CoreBinding::Other)
+        }
+        scope.bind(kind, binding)
+        if !importing {
+          scope.exports[name] = binding
         }
       }
-      Require(_) => ()
+      Export(entry) => {
+        let kind = core_sort(entry.sortidx.sort)
+        let actual = scope.lookup(kind, entry.sortidx.idx)
+        let exported = match (actual, entry.desc) {
+          (Module(actual), Some(CoreModuleType(original))) => {
+            let expected = scope.module_type(original)
+            ascriptions.push({ actual, expected, })
+            CoreBinding::Module(expected)
+          }
+          (_, Some(CoreModuleType(_))) =>
+            raise Failure(
+              None,
+              "WIT-B003",
+              "core module ascription has the wrong external sort",
+            )
+          _ => actual
+        }
+        scope.bind(kind, exported)
+      }
+      Module(bytes) =>
+        match @core_types.decode_module(bytes) {
+          Ok(contract) => scope.bind(0x111, Module(contract))
+          Err(error) => core_error(error)
+        }
       Definition(bytes, section) => {
         let outers : Array[ReadOnlyArray[@core_types.Definition]] = []
         let mut parent = scope.parent
@@ -190,4 +354,5 @@ fn validate_core_definitions(
       }
     }
   }
+  ReadOnlyArray::from_array(ascriptions)
 }

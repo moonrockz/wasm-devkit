@@ -1,0 +1,1 @@
+(component (core type $t (module (export "f" (func)))) (type $i (instance (alias outer 1 $t (core type $t)) (export "m" (core module (type $t))))) (import "i" (instance (type $i))) (alias export 0 "m" (core module $m)) (export "m" (core module $m) (core module (type $t))))

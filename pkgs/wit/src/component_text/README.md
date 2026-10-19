@@ -53,3 +53,6 @@ shadowing outer names remains valid. Name scans have a shared compilation budget
 fields. It rejects structured instruction keywords before the pinned core WAT
 parser, whose keyword-based block nesting can exceed parenthesis nesting. Flat
 module bodies compile normally and then validate as their original bytes.
+
+Core module export annotations encode explicit type uses and inline module
+contracts using the same core type index space as module imports.

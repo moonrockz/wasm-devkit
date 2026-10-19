@@ -5206,13 +5206,43 @@ fn parse_export_ascribed_desc(
     payload.push_bytes(parse_type_bound_bytes(ascribed[bound_index], state))
     return Some(payload.to_bytes())
   }
-  if sort_tag == 0x00 {
-    if core_kind is Some(kind) {
+  if sort_tag == 0x00 && core_kind == Some(0x11) {
+    if ascribed.length() < 2 ||
+      !(ascribed[0] is Atom("core")) ||
+      !(ascribed[1] is Atom("module")) {
       raise Unsupported(
-        "core export ascription for sort \{kind} is not supported yet",
+        "core module export ascription must be `(core module ...)`",
       )
     }
-    raise Unsupported("core export ascription is not supported yet")
+    let index = if parse_optional_identifier(ascribed, 2) is Some(_) {
+      3
+    } else {
+      2
+    }
+    let type_idx = if index < ascribed.length() {
+      let first = if ascribed[index] is List(items) {
+        items
+      } else {
+        raise Unsupported("core module ascription entries must be lists")
+      }
+      if first.length() > 0 &&
+        first[0] is Atom("type") &&
+        index + 1 == ascribed.length() {
+        parse_core_type_use(first, state)
+      } else {
+        ensure_core_type_bytes(
+          state,
+          parse_core_module_type_bytes(ascribed, index, state),
+        )
+      }
+    } else {
+      ensure_empty_core_module_type(state)
+    }
+    let payload = ByteBuf::ByteBuf()
+    payload.push_u8(0x00)
+    payload.push_u8(0x11)
+    payload.push_uleb_u32(type_idx)
+    return Some(payload.to_bytes())
   }
   raise Unsupported("unsupported export ascription")
 }

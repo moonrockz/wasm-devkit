@@ -1,0 +1,1 @@
+(component (core type $a (module (export "value" (global i32)))) (core type $b (module (export "value" (global i64)))) (import "m" (core module (type $a))) (export "m" (core module 0) (core module (type $b))))

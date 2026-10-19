@@ -147,6 +147,12 @@ fn BinaryGraph::export_entry(
       Type(self.type_alias(binary_index(scope.types, index), name))
     (Function(_), Some(FuncType(index))) =>
       Function(self.follow(binary_index(scope.types, index)))
+    (Module(_), Some(CoreModuleType(index))) => {
+      guard scope.core_ids.get(index) is Some(Some(id)) else {
+        raise Invalid("core module ascription index is invalid")
+      }
+      Module(id)
+    }
     _ =>
       raise Unsupported(
         "root export ascriptions are outside the binary package profile",

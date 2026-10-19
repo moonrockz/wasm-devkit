@@ -81,7 +81,25 @@ pub fn validate_declarative_component(
     let component = @component.parse_component(bytes) catch {
       error => raise Failure(None, "WIT-B001", error.to_string())
     }
-    validate_core_definitions(component)
+    let core_ascriptions = validate_core_definitions(component)
+    let mut core_work = 1000000
+    for pair in core_ascriptions {
+      match
+        @core_types.check_module_subtype(
+          pair.actual,
+          pair.expected,
+          work_limit=core_work,
+        ) {
+        Ok(remaining) => core_work = remaining
+        Err(Mismatch(message)) => raise Failure(None, "WIT-B003", message)
+        Err(WorkLimit) =>
+          raise Failure(
+            None,
+            "WIT-B002",
+            "core module ascription comparison work limit exceeded",
+          )
+      }
+    }
     @validation.validate_component_with_config(
       component,
       @validation.ComponentValidationConfig(

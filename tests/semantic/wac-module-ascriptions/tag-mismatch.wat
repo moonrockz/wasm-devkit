@@ -1,0 +1,1 @@
+(component (core type $a (module (export "value" (tag (param i32))))) (core type $b (module (export "value" (tag (param i64))))) (import "m" (core module (type $a))) (export "m" (core module 0) (core module (type $b))))

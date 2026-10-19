@@ -1,0 +1,1 @@
+(component (core type $a (module (import "host" "m" (memory 1 10)))) (core type $b (module (import "host" "m" (memory 2 5)))) (import "m" (core module (type $a))) (export "m" (core module 0) (core module (type $b))))

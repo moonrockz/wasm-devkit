@@ -51,7 +51,7 @@ visibility. An alias of an imported resource can appear in a later function
 import; exporting a local resource does not make it importable. Current-scope
 outer aliases and instance re-exports retain that visibility. These changes are
 in `section_alias.mbt`, `section_import.mbt`, `section_export.mbt` and
-`validate.mbt`. The enclosing framing boundary rejects component values and instance/component/core-module root
+`validate.mbt`. The enclosing framing boundary rejects component values and instance/component root
 export ascriptions while their legacy parsing/compatibility rules remain
 incomplete, including a reference-rejected resource ascription this validator
 previously accepted.
@@ -86,8 +86,8 @@ step metadata budget covers imports and ascriptions. Instance aliases and
 re-exports preserve graph identities; nested resource declarations receive fresh
 IDs from the existing allocator. Private graph definitions never shift binary
 type indices. Additional whitebox tests exercise 6,000-level scope/value graphs.
-The enclosing declarative framing profile admits function and type-equality
-ascriptions. Type annotations use the same explicit-stack value comparator and
+The enclosing declarative framing profile admits function, type-equality and
+core-module ascriptions. Type annotations use the same explicit-stack value comparator and
 nominal resource IDs, including imported instance aliases. Fresh resource
 subtype annotations reject as incompatible, matching both pinned validators. The
 WIT type-only profile still rejects them all.
@@ -98,8 +98,14 @@ custom page size. Depth-zero aliases use preceding module-local function slots.
 The enclosing declarative codec retains complete unsigned/shared signatures.
 Legacy runtime metadata omits extern signatures it cannot represent, including
 limits above signed Int64 and shared globals/tables. Flat concrete core modules now validate their original instructions after bounded
-preflight. Other runtime sections and instance/component/core-module ascriptions remain excluded.
+preflight. Other runtime sections and instance/component ascriptions remain excluded.
 
 Concrete module import keys also use `(module, name)` tuples, so colons cannot
 conflate distinct imports. Invalid function bodies reject despite the pinned WAC
 package loader skipping their instruction validation.
+
+Core-module export annotations are checked by the enclosing ordered core-scope
+pass using complete immutable module contracts. Imported-instance aliases and
+re-exports preserve the annotation's contract; later declarations cannot supply
+an earlier type index. The retained legacy module tables do not determine this
+comparison.

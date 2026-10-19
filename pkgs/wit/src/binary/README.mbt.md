@@ -61,10 +61,10 @@ payloads and 10,000 physical type scopes on all four targets.
 aliases. It returns a separate `ValidatedDeclarativeComponent` with immutable
 bytes. It supports imported functions, instances and components, type aliases,
 and re-exports, plus declarative core module/function types and module externs.
-Concrete core module bodies, nested concrete component definitions,
-instantiation, canonical functions and start sections remain unsupported and
+Nested concrete component definitions, instantiation, canonical functions and
+component start sections remain unsupported and
 return `WIT-B002`. Physical type-scope nesting has the same 256 limit.
-Component-value externs and instance/component/core-module root export
+Component-value externs and instance/component root export
 ascriptions also return `WIT-B002`:
 the pinned parser's value-bound encoding is obsolete, and the retained validator
 does not yet implement complete ascription compatibility checks.
@@ -121,3 +121,10 @@ The sum across modules is limited to 1,000,000. Structured instructions,
 concrete/shared heap references, supertypes and shared globals reject before
 recursive parsing. Function-only groups without recursive references are valid.
 The type-only WIT entry point continues to reject concrete core modules.
+
+Core module export annotations use the ordered lexical module/type bindings and
+check complete module contracts. Imports are contravariant, exports covariant;
+unsigned limits, shared flags, table width and custom page sizes are preserved.
+Later reexports see the annotated contract. Comparison work is bounded across
+all annotations. The 49 retained cases compare binary and WAT package models;
+three version differences are recorded in `tests/semantic/wac-module-ascriptions`.

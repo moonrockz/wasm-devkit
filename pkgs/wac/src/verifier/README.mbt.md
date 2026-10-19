@@ -206,7 +206,7 @@ imports and re-exports. It follows WAC 0.12.0's wasmparser 0.258.0 map-key rules
 All diagnostic positions count bytes. Unknown offsets remain absent.
 
 Concrete nested components, instantiation, canonical
-functions, component start sections, component-value externs and instance/component/core-module root export
+functions, component start sections, component-value externs and instance/component root export
 ascriptions remain unsupported. Function export ascriptions validate parameter
 names, async mode, structural value types and nominal resource identities, and
 retain the ascribed function type. Type-equality export annotations compare
@@ -535,7 +535,7 @@ wasm-tools subtype witnesses in `tests/semantic/wac-core-modules/fill`.
 
 Both binary and WAT inputs support these contracts and flat concrete core module
 bodies. Core/component instantiation, canonical functions, component starts, component
-values and instance/component/core-module root export ascriptions remain outside this profile.
+values and instance/component root export ascriptions remain outside this profile.
 Concrete GC/reference types, supertypes and shared heap types remain
 unsupported. Nested component/instance core declarations with limits above u32
 or custom memory pages return `WAC-B002` before the pinned parser runs; root
@@ -562,3 +562,10 @@ Five pinned WAC package-loader successes contain invalid instructions; product
 verification rejects them, as wasm-tools does. Original witnesses, full ordered
 models and five validating compositions are retained in
 `tests/semantic/wac-runtime-modules`.
+
+Core module export annotations use the ordered lexical module/type bindings and
+check complete module contracts. Imports are contravariant, exports covariant;
+unsigned limits, shared flags, table width and custom page sizes are preserved.
+Later reexports see the annotated contract. Comparison work is bounded across
+all annotations. The 49 retained cases compare binary and WAT package models;
+three version differences are recorded in `tests/semantic/wac-module-ascriptions`.
