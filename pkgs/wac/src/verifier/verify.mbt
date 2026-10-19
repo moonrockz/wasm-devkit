@@ -192,7 +192,8 @@ fn Check::add_type(
 ) -> Int32 {
   let contains_borrow = match kind {
     Borrow(_) => true
-    Alias(id) | List(id) | Option(id) => self.borrowed[id]
+    Alias(id) | List(id) | FixedList(id, _) | Option(id) => self.borrowed[id]
+    Map(key, value) => self.borrowed[key] || self.borrowed[value]
     Tuple(ids) => ids.any(id => self.borrowed[id])
     Result(ok, error) =>
       ok.map(id => self.borrowed[id]).unwrap_or(false) ||

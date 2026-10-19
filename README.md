@@ -77,6 +77,8 @@ acceptance remains available through `parse` and `check`.
 WAC verification covers ordered local types, interfaces, worlds, resources,
 uses/includes and typed imports/exports. Package dependencies and component
 instantiation remain under development.
+The pure WAC binary package API reconstructs declarative component type graphs;
+connecting those packages to source verification and CLI lookup remains open.
 See the [WIT verifier](pkgs/wit/src/verifier/README.mbt.md) and
 [WAC verifier](pkgs/wac/src/verifier/README.mbt.md) for checked examples and exact scope.
 Unsupported semantic constructs fail explicitly. Full dependency and component verification

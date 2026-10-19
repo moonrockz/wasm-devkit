@@ -340,7 +340,8 @@ fn validate_component_section_import(
         // Imported instances contribute an entry to the instance index space.
         // We don't have a precise effective-size model here; treat as 1.
         instance_sizes.push(1)
-        interface_instance_idxs.set(instance_sigs.length() - 1, 1)
+        // Bit 1 names exported types; bit 2 also permits using them in imports.
+        interface_instance_idxs.set(instance_sigs.length() - 1, 3)
       }
       _ => ()
     }

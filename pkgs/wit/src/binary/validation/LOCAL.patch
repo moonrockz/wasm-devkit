@@ -1185,10 +1185,11 @@
 +
 --- a/section_alias.mbt
 +++ b/section_alias.mbt
-@@ -0,0 +1,2 @@
+@@ -0,0 +1,3 @@
 +// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++// Modified by wasm-devkit: retain imported-instance alias naming visibility.
 +
-@@ -8,7 +10,7 @@
+@@ -8,7 +11,8 @@
 -  resource_ids : Array[Int?],
 -  type_sizes : Array[Int],
 -  type_depths : Array[Int],
@@ -1202,29 +1203,51 @@
 +  component_sizes : Array[Int32],
 +  instance_sizes : Array[Int32],
 +  named_types : Map[Int32, Int32],
++  import_named_types : Map[Int32, Int32],
 +  core_module_exports : Array[Map[String, Int32]?],
-@@ -19 +21 @@
+@@ -19 +23 @@
 -  core_instance_exports : Array[Map[String, Int]?],
 +  core_instance_exports : Array[Map[String, Int32]?],
-@@ -26 +28 @@
+@@ -26 +30 @@
 -    Map[String, Map[String, Int]]?,
 +    Map[String, Map[String, Int32]]?,
-@@ -28 +30 @@
+@@ -28 +32 @@
 -  component_import_core_module_exports : Array[Map[String, Map[String, Int]]?],
 +  component_import_core_module_exports : Array[Map[String, Map[String, Int32]]?],
-@@ -45,3 +47,3 @@
+@@ -45,3 +49,3 @@
 -  interface_instance_idxs : Map[Int, Int],
 -  instance_export_type_idxs : Array[Array[Int]?],
 -  instance_export_func_idxs : Array[Array[Int]?],
 +  interface_instance_idxs : Map[Int32, Int32],
 +  instance_export_type_idxs : Array[Array[Int32]?],
 +  instance_export_func_idxs : Array[Array[Int32]?],
-@@ -58 +60 @@
+@@ -58 +62 @@
 -  component_size_outers : Array[Array[Int]],
 +  component_size_outers : Array[Array[Int32]],
-@@ -218 +220 @@
+@@ -218 +222 @@
 -      let mut new_rid : Int? = None
 +      let mut new_rid : Int32? = None
+@@ -322,0 +327,8 @@
++      if a.target is Outer(0, original) {
++        if named_types.contains(original) {
++          named_types.set(type_table.length() - 1, 1)
++        }
++        if import_named_types.contains(original) {
++          import_named_types.set(type_table.length() - 1, 1)
++        }
++      }
+@@ -324 +336 @@
+-        interface_instance_idxs.get(instance_idx) is Some(_) {
++        interface_instance_idxs.get(instance_idx) is Some(visibility) {
+@@ -325,0 +338,3 @@
++        if (visibility & 2) != 0 {
++          import_named_types.set(type_table.length() - 1, 1)
++        }
+@@ -365,0 +381,4 @@
++          if a.target is Export(parent, _) &&
++            interface_instance_idxs.get(parent) is Some(visibility) {
++            interface_instance_idxs.set(instance_sigs.length() - 1, visibility)
++          }
 --- a/section_export.mbt
 +++ b/section_export.mbt
 @@ -0,0 +1,3 @@
@@ -1299,6 +1322,12 @@
 @@ -295 +290 @@
 -          let inst_named : Map[Int, Int] = Map([])
 +          let inst_named : Map[Int32, Int32] = Map([])
+@@ -602 +597,4 @@
+-            interface_instance_idxs.set(instance_sigs.length() - 1, 1)
++            interface_instance_idxs.set(
++              instance_sigs.length() - 1,
++              interface_instance_idxs.get(e.sortidx.idx).unwrap_or(1),
++            )
 --- a/section_import.mbt
 +++ b/section_import.mbt
 @@ -0,0 +1,3 @@
@@ -1372,7 +1401,11 @@
 @@ -209 +207 @@
 -                let visiting : Map[Int, Int] = Map([])
 +                let visiting : Map[Int32, Int32] = Map([])
-@@ -360 +358 @@
+@@ -345 +343,2 @@
+-        interface_instance_idxs.set(instance_sigs.length() - 1, 1)
++        // Bit 1 names exported types; bit 2 also permits using them in imports.
++        interface_instance_idxs.set(instance_sigs.length() - 1, 3)
+@@ -360 +359 @@
 -      let mut import_core_module_exports : Map[String, Map[String, Int]]? = None
 +      let mut import_core_module_exports : Map[String, Map[String, Int32]]? = None
 --- a/section_instance.mbt
@@ -1440,100 +1473,103 @@
 +
 --- a/validate.mbt
 +++ b/validate.mbt
-@@ -0,0 +1,2 @@
+@@ -0,0 +1,3 @@
 +// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++// Modified by wasm-devkit: retain imported-instance alias naming visibility.
 +
-@@ -8,2 +10,2 @@
+@@ -8,2 +11,2 @@
 -  type_depths : Array[Int],
 -) -> Int {
 +  type_depths : Array[Int32],
 +) -> Int32 {
-@@ -24,2 +26,2 @@
+@@ -24,2 +27,2 @@
 -  type_depths : Array[Int],
 -) -> Int {
 +  type_depths : Array[Int32],
 +) -> Int32 {
-@@ -93 +95 @@
+@@ -93 +96 @@
 -  size : Int
 +  size : Int32
-@@ -97 +99 @@
+@@ -97 +100 @@
 -  import_instance_resource_exports : Map[String, Map[String, Int]]
 +  import_instance_resource_exports : Map[String, Map[String, Int32]]
-@@ -100 +102 @@
+@@ -100 +103 @@
 -  import_core_module_exports : Map[String, Map[String, Int]]
 +  import_core_module_exports : Map[String, Map[String, Int32]]
-@@ -116 +118 @@
+@@ -116 +119 @@
 -  depth : Int,
 +  depth : Int32,
-@@ -118,3 +120,3 @@
+@@ -118,3 +121,3 @@
 -  type_outer_depths : Array[Int],
 -  core_type_bound_outers : Array[Int],
 -  component_size_outers : Array[Array[Int]],
 +  type_outer_depths : Array[Int32],
 +  core_type_bound_outers : Array[Int32],
 +  component_size_outers : Array[Array[Int32]],
-@@ -129 +131 @@
+@@ -129 +132 @@
 -  let resource_ids : Array[Int?] = []
 +  let resource_ids : Array[Int32?] = []
-@@ -131,2 +133,2 @@
+@@ -131,2 +134,2 @@
 -  let type_sizes : Array[Int] = []
 -  let type_depths : Array[Int] = []
 +  let type_sizes : Array[Int32] = []
 +  let type_depths : Array[Int32] = []
-@@ -134,2 +136,2 @@
+@@ -134,2 +137,2 @@
 -  let component_sizes : Array[Int] = []
 -  let instance_sizes : Array[Int] = []
 +  let component_sizes : Array[Int32] = []
 +  let instance_sizes : Array[Int32] = []
-@@ -138 +140 @@
+@@ -138 +141 @@
 -  let named_types : Map[Int, Int] = Map([])
 +  let named_types : Map[Int32, Int32] = Map([])
-@@ -141,2 +143,2 @@
+@@ -141,2 +144,2 @@
 -  let import_named_types : Map[Int, Int] = Map([])
 -  let core_type_exports : Array[Map[String, Int]?] = []
 +  let import_named_types : Map[Int32, Int32] = Map([])
 +  let core_type_exports : Array[Map[String, Int32]?] = []
-@@ -145 +147 @@
+@@ -145 +148 @@
 -  let core_module_exports : Array[Map[String, Int]?] = []
 +  let core_module_exports : Array[Map[String, Int32]?] = []
-@@ -151 +153 @@
+@@ -151 +154 @@
 -  let core_instance_exports : Array[Map[String, Int]?] = []
 +  let core_instance_exports : Array[Map[String, Int32]?] = []
-@@ -158 +160 @@
+@@ -158 +161 @@
 -    Map[String, Map[String, Int]]?,
 +    Map[String, Map[String, Int32]]?,
-@@ -161 +163 @@
+@@ -161 +164 @@
 -    Map[String, Map[String, Int]]?,
 +    Map[String, Map[String, Int32]]?,
-@@ -181,3 +183,3 @@
+@@ -181,3 +184,3 @@
 -  let interface_instance_idxs : Map[Int, Int] = Map([])
 -  let instance_export_type_idxs : Array[Array[Int]?] = []
 -  let instance_export_func_idxs : Array[Array[Int]?] = []
 +  let interface_instance_idxs : Map[Int32, Int32] = Map([])
 +  let instance_export_type_idxs : Array[Array[Int32]?] = []
 +  let instance_export_func_idxs : Array[Array[Int32]?] = []
-@@ -199,2 +201,2 @@
+@@ -199,2 +202,2 @@
 -  let import_resource_names : Map[String, Int] = Map([])
 -  let export_resource_names : Map[String, Int] = Map([])
 +  let import_resource_names : Map[String, Int32] = Map([])
 +  let export_resource_names : Map[String, Int32] = Map([])
-@@ -206 +208 @@
+@@ -206 +209 @@
 -  let my_import_instance_resource_exports : Map[String, Map[String, Int]] = Map([],
 +  let my_import_instance_resource_exports : Map[String, Map[String, Int32]] = Map([],
-@@ -229 +231 @@
+@@ -229 +232 @@
 -        let seen_imports : Map[String, Int] = Map([])
 +        let seen_imports : Map[String, Int32] = Map([])
-@@ -240 +242 @@
+@@ -240 +243 @@
 -        let exports : Map[String, Int] = Map([])
 +        let exports : Map[String, Int32] = Map([])
-@@ -266 +268 @@
+@@ -266 +269 @@
 -          let mut export_map : Map[String, Int]? = None
 +          let mut export_map : Map[String, Int32]? = None
-@@ -283,2 +285,2 @@
+@@ -283,2 +286,2 @@
 -              let providers : Map[String, Int] = Map([])
 -              let seen_arg_names : Map[String, Int] = Map([])
 +              let providers : Map[String, Int32] = Map([])
 +              let seen_arg_names : Map[String, Int32] = Map([])
-@@ -428 +430 @@
+@@ -428 +431 @@
 -              let map : Map[String, Int] = Map([])
 +              let map : Map[String, Int32] = Map([])
+@@ -787,0 +791 @@
++          import_named_types,

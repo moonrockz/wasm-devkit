@@ -1,4 +1,5 @@
 // Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
+// Modified by wasm-devkit: retain imported-instance alias naming visibility.
 
 ///|
 /// Handle component alias section (id 6).
@@ -13,6 +14,7 @@ fn validate_component_section_alias(
   component_sizes : Array[Int32],
   instance_sizes : Array[Int32],
   named_types : Map[Int32, Int32],
+  import_named_types : Map[Int32, Int32],
   core_module_exports : Array[Map[String, Int32]?],
   core_module_defs : Array[@types.Module?],
   core_func_types : Array[@types.FuncType?],
@@ -322,9 +324,20 @@ fn validate_component_section_alias(
       resource_ids.push(new_rid)
       type_sizes.push(new_size)
       type_depths.push(new_depth)
+      if a.target is Outer(0, original) {
+        if named_types.contains(original) {
+          named_types.set(type_table.length() - 1, 1)
+        }
+        if import_named_types.contains(original) {
+          import_named_types.set(type_table.length() - 1, 1)
+        }
+      }
       if a.target is Export(instance_idx, _name) &&
-        interface_instance_idxs.get(instance_idx) is Some(_) {
+        interface_instance_idxs.get(instance_idx) is Some(visibility) {
         named_types.set(type_table.length() - 1, 1)
+        if (visibility & 2) != 0 {
+          import_named_types.set(type_table.length() - 1, 1)
+        }
       }
     } else {
       count_alias(a.sort, counts)
@@ -365,6 +378,10 @@ fn validate_component_section_alias(
         }
         Instance => {
           instance_sigs.push(new_instance_sig)
+          if a.target is Export(parent, _) &&
+            interface_instance_idxs.get(parent) is Some(visibility) {
+            interface_instance_idxs.set(instance_sigs.length() - 1, visibility)
+          }
           instance_export_type_idxs.push(None)
           instance_export_func_idxs.push(None)
           instance_export_type_map.push(None)

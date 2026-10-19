@@ -126,4 +126,64 @@ Binary dependency diagnostics use `Location::binary` and byte offsets. Text
 locations use `Location::text` and UTF-16 spans. `Location::span()` returns `None`
 for binary locations; unknown binary offsets render as `[binary]`. This avoids
 interpreting dependency bytes as coordinates in the root WAC source. Binary
-package reconstruction and providers remain under development.
+package providers remain under development.
+
+## Declarative component packages
+
+`decode_component_package(bytes, source_id~)` validates and reconstructs a
+declarative component into an immutable `BinaryPackage`. It performs no I/O.
+The caller supplies the lookup name separately; qualified names inside the
+binary describe interfaces and worlds rather than the package's lookup key.
+
+The model retains the original bytes and a type arena. `world()` identifies the
+root imports and exports; `instance()` identifies the component's export
+interface. `definitions()` identifies WIT interface/world wrappers exported by
+the component. Declaration order, field/case order, function parameter names,
+async signatures, resource aliases and interface uses remain available.
+Repeated generic instance imports freshen owned resources. Captured outer
+resources preserve their identity. Nongeneric instance types retain the
+reference loader's identity from their first conversion, visiting imports before
+exports. Unused templates do not determine that identity.
+
+```mbt check
+///|
+test "inspect a binary dependency contract" {
+  // (component (import "f" (func)) (export "f" (func 0)))
+  let bytes = b"\x00asm\x0d\x00\x01\x00\x07\x05\x01\x40\x00\x01\x00\x0a\x06\x01\x00\x01f\x01\x00\x0b\x07\x01\x00\x01f\x01\x00\x00"
+  let model = @verifier.decode_component_package(bytes, source_id="dep.wasm").unwrap()
+  assert_eq(model.bytes(), bytes)
+  guard model.types()[model.world()].kind
+    is World(None, [], [imported], [exported]) else {
+    fail("missing component contract")
+  }
+  assert_eq(imported.name, "f")
+  assert_eq(exported.kind, imported.kind)
+  assert_eq(imported.location.span(), None)
+}
+```
+
+This profile supports component/instance types, scoped aliases, scalar and
+aggregate value types, fixed lists, maps, resources, handles, functions,
+imports and re-exports. It follows WAC 0.12.0's wasmparser 0.258.0 map-key rules.
+`WAC-B001` reports malformed framing, `WAC-B002` an unsupported boundary,
+`WAC-B003` invalid component metadata, and `WAC-B004` reconstruction failures.
+All diagnostic positions count bytes. Unknown offsets remain absent.
+
+Core modules/types, concrete nested components, instantiation, canonical
+functions, start sections, component-value externs and root export ascriptions
+remain unsupported. The pinned external parser uses obsolete value-bound
+encoding, and the retained validator does not yet check all export ascriptions.
+Both valid and invalid examples of those forms fail explicitly rather than
+producing a package model. This API does not yet connect binary dependencies to
+source `verify` or CLI lookup.
+
+Physical type scopes are limited to 256 before the external parser runs. Graph
+construction and expansion use explicit stacks with a shared one-million-step
+limit. Tests cover 5,000 nominal aliases, immutable snapshots, malformed input
+and deep physical scopes on all four targets. Ordered type/resource/use
+projections match the pinned `wac_types::Package::from_bytes` oracle for all 49
+parseable dependency fixtures and 25 supported original packages. The 32
+original probes also cover invalid metadata and the accepted-but-unsupported
+value/ascription boundaries. The dependency fixture sources, licenses, revision
+and named-result WAT exclusion live in
+[`pkgs/wit/src/binary/fixtures/wac`](../../../wit/src/binary/fixtures/wac/README.md).

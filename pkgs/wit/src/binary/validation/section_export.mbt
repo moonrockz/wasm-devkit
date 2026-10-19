@@ -594,7 +594,10 @@ fn validate_component_section_export(
             } else {
               instance_sizes.push(1)
             }
-            interface_instance_idxs.set(instance_sigs.length() - 1, 1)
+            interface_instance_idxs.set(
+              instance_sigs.length() - 1,
+              interface_instance_idxs.get(e.sortidx.idx).unwrap_or(1),
+            )
           } else {
             instance_sigs.push(None)
             instance_export_type_idxs.push(None)

@@ -160,16 +160,11 @@ fn Reader::description(self : Reader) -> Unit raise Boundary {
       )
     1 | 4 | 5 => ignore(self.unsigned())
     2 =>
-      match self.byte() {
-        0 => ignore(self.unsigned())
-        1 => self.value_type()
-        _ =>
-          raise Failure(
-            Some(self.position - 1),
-            "WIT-B001",
-            "invalid component value bound",
-          )
-      }
+      raise Failure(
+        Some(self.position - 1),
+        "WIT-B002",
+        "component values are outside the supported binary profile",
+      )
     3 =>
       match self.byte() {
         0 => ignore(self.unsigned())
@@ -454,7 +449,12 @@ fn preflight(
           ignore(payload.unsigned())
           match payload.byte() {
             0 => ()
-            1 => payload.description()
+            1 =>
+              raise Failure(
+                Some(payload.position - 1),
+                "WIT-B002",
+                "root export ascriptions are outside the supported binary profile",
+              )
             _ =>
               raise Failure(
                 Some(payload.position - 1),

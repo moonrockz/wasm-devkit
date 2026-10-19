@@ -9,6 +9,8 @@ import {
 }
 
 // Values
+pub fn decode_component_package(Bytes, source_id? : String) -> Result[BinaryPackage, ReadOnlyArray[Diagnostic]]
+
 pub fn verify(@parser.Parse, source_id? : String, source~ : String) -> Result[Verified, ReadOnlyArray[Diagnostic]]
 
 pub fn verify_ast(@ast.Tree, source_id? : String, source~ : String) -> Result[Verified, ReadOnlyArray[Diagnostic]]
@@ -16,6 +18,17 @@ pub fn verify_ast(@ast.Tree, source_id? : String, source~ : String) -> Result[Ve
 // Errors
 
 // Types and methods
+pub struct BinaryPackage {
+  // private fields
+}
+pub fn BinaryPackage::bytes(Self) -> Bytes
+pub fn BinaryPackage::definitions(Self) -> ReadOnlyArray[Extern]
+pub fn BinaryPackage::instance(Self) -> Int
+pub fn BinaryPackage::resource_identity(Self, Int) -> Int?
+pub fn BinaryPackage::source(Self) -> String
+pub fn BinaryPackage::types(Self) -> ReadOnlyArray[ResolvedType]
+pub fn BinaryPackage::world(Self) -> Int
+
 pub(all) struct Binding {
   name : String
   scope : Int
@@ -120,6 +133,8 @@ pub(all) enum TypeKind {
   Own(Int)
   Borrow(Int)
   List(Int)
+  FixedList(Int, Int)
+  Map(Int, Int)
   Tuple(ReadOnlyArray[Int])
   Option(Int)
   Result(Int?, Int?)

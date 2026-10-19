@@ -1,4 +1,5 @@
 // Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
+// Modified by wasm-devkit: retain imported-instance alias naming visibility.
 
 ///|
 /// Compute a conservative nesting depth for defined types.
@@ -787,6 +788,7 @@ fn validate_component_inner(
           component_sizes,
           instance_sizes,
           named_types,
+          import_named_types,
           core_module_exports,
           core_module_defs,
           core_func_types,

@@ -12,7 +12,8 @@ The boundary admits component preamble version 13, layer 1, and custom, componen
 type and component export sections. Component/instance type declarations, aliases,
 imports and exports are framed with explicit work stacks. Physical type-scope
 nesting is limited to 256 before the dependency parser runs. Core declarations,
-core module descriptions and other root sections return an unsupported-encoding
+core module descriptions, component-value externs, root export ascriptions and
+other root sections return an unsupported-encoding
 diagnostic. Type indices and component type semantics then validate through
 the validator retained from `Milky2018/wasm_component@0.16.0` with a
 [licensed accessor and instance-signature compatibility patch](validation/README.md). A further explicit-stack
@@ -62,12 +63,17 @@ bytes. It supports imported functions, instances and components, type aliases,
 and re-exports. Core modules/types, nested concrete component definitions,
 instantiation, canonical functions and start sections remain unsupported and
 return `WIT-B002`. Physical type-scope nesting has the same 256 limit.
+Component-value externs and root export ascriptions also return `WIT-B002`:
+the pinned parser's value-bound encoding is obsolete, and the retained validator
+does not yet implement complete ascription compatibility checks.
 
 This entry point follows WAC 0.12.0's wasmparser 0.258.0 metadata profile. It does
 not impose the newer memory64 layout bound or primitive-only map-key rule used
 by the WIT type-only entry point. Map keys still require valid value types.
 Both profiles check fixed-list counts and aggregate field/case limits. Package
-identity, type graph reconstruction and dependency lookup remain separate work.
+identity and dependency lookup remain separate operations. The
+[WAC verifier](../../../wac/src/verifier/README.mbt.md#declarative-component-packages)
+reconstructs immutable type graphs within this declarative profile.
 
 Both profiles permit importing and exporting own/borrow handle types when their
 resource is named. An unnamed resource still makes such a type invalid.

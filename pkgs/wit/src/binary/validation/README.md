@@ -45,3 +45,13 @@ value-type validation still applies to both key and value. Own and borrow types
 may be imported or exported when their resource is named, matching both pins.
 The original probes in `version_profile_test.mbt` cover these differences and
 preserve rejection of missing type indices and unnamed resources.
+
+Imported instances and their aliases now preserve separate import/export naming
+visibility. An alias of an imported resource can appear in a later function
+import; exporting a local resource does not make it importable. Current-scope
+outer aliases and instance re-exports retain that visibility. These changes are
+in `section_alias.mbt`, `section_import.mbt`, `section_export.mbt` and
+`validate.mbt`. The enclosing framing boundary rejects component values and root
+export ascriptions while their legacy parsing/compatibility rules remain
+incomplete, including a reference-rejected resource ascription this validator
+previously accepted.

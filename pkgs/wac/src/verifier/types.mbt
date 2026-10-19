@@ -48,6 +48,8 @@ pub(all) enum TypeKind {
   Own(Int32)
   Borrow(Int32)
   List(Int32)
+  FixedList(Int32, Int32)
+  Map(Int32, Int32)
   Tuple(ReadOnlyArray[Int32])
   Option(Int32)
   Result(Int32?, Int32?)
