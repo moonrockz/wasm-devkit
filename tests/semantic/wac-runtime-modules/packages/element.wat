@@ -1,0 +1,1 @@
+(component (core module $m (func $f) (table (export "t") 1 funcref) (elem (i32.const 0) $f)) (export "module" (core module $m)))

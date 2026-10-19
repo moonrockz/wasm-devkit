@@ -1,0 +1,1 @@
+(component (type $r (resource (rep i32))) (type $i (instance (alias outer 1 $r (type $r)) (export "r" (type (eq $r))) (type $f (func (param "x" (own 1)))) (export "f" (func (type $f))))) (import "captured" (instance (type $i))))

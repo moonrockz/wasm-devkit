@@ -1,0 +1,1 @@
+(component (core type $m (module (export "t" (table 1 3 funcref)))) (import "m" (core module $m (type $m))) (export "out" (core module $m)))

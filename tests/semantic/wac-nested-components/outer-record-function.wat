@@ -1,0 +1,1 @@
+(component (type $u u32) (type $t (record (field "x" $u))) (component $c (alias outer 1 $t (type $t)) (export $named "t" (type $t)) (type $f (func (param "x" $named))) (import "f" (func $f (type $f))) (export "f" (func $f))) (export "c" (component $c)))

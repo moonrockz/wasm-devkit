@@ -1,0 +1,1 @@
+package example:app; use other as third; use api as other; interface api {type t=u8;} interface local {use third.{t};}

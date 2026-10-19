@@ -1,0 +1,1 @@
+package example:app;world first{include example:dep/base;}use example:dep/base as other;world second{include other;}package example:dep{world base{}}

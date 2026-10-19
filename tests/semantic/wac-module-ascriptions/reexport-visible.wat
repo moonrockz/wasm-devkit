@@ -1,0 +1,1 @@
+(component (core type $a (module (export "m" (memory 1 5)))) (core type $b (module)) (import "m" (core module (type $a))) (export "first" (core module 0) (core module (type $b))) (export "second" (core module 1) (core module (type $b))))

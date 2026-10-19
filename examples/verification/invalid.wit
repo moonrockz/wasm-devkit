@@ -1,0 +1,7 @@
+package example:invalid@1.0.0;
+
+interface app {
+  use example:files/files@1.0.0.{file};
+  // A borrowed handle cannot escape in a result.
+  open: func() -> borrow<file>;
+}

@@ -1,0 +1,1 @@
+package test:app targets lookup:target/w; import c as c: lookup:target/provider;

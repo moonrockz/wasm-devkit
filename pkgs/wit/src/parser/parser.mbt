@@ -899,7 +899,17 @@ fn State::external(self : State, importing : Bool, count : Int32) -> Unit {
   let inline_form = target.kind == Keyword && target.text == "interface"
   let spaced = first.span.end != colon.span.start ||
     colon.span.end != target.span.start
-  let named = colon_form && (function_form || inline_form || spaced)
+  let named = colon_form &&
+    (
+      function_form ||
+      inline_form ||
+      spaced ||
+      (
+        self.features.external_ids &&
+        !self.features.nested_names &&
+        (self.peek(3).kind == Semicolon || self.peek(3).kind == Colon)
+      )
+    )
   let name = if named {
     let n = self.name()
     self.bump()
@@ -1301,5 +1311,36 @@ pub fn parse(
       nodes: ReadOnlyArray::from_array(state.concrete),
     },
     diagnostics: ReadOnlyArray::from_array(state.diagnostics),
+  }
+}
+
+///|
+/// Grammar accepted by the pinned wasm-tools v1.262.0 semantic reference.
+/// Keeps the older default/all syntax profiles unchanged. Disabling nested
+/// namespace syntax disambiguates unspaced named interface paths.
+/// Accessors are enabled for this semantic reference revision.
+///
+/// ```mbt check
+/// test "select the current semantic-reference grammar explicitly" {
+///   let source = "package example:app;interface api{}world app{import a:api;}"
+///   assert_false(
+///     @parser.parse(source, features=@parser.Features::all()).is_valid(),
+///   )
+///   assert_true(
+///     @parser.parse(source, features=@parser.Features::reference()).is_valid(),
+///   )
+///   let accessor = "package example:app;interface api{size:get()->u64;}"
+///   assert_false(@parser.parse(accessor).is_valid())
+///   assert_true(
+///     @parser.parse(accessor, features=@parser.Features::reference()).is_valid(),
+///   )
+/// }
+/// ```
+pub fn Features::reference() -> Features {
+  {
+    nested_names: false,
+    fixed_lists: true,
+    external_ids: true,
+    accessors: true,
   }
 }

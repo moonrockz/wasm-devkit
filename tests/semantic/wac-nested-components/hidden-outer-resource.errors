@@ -1,0 +1,1 @@
+cannot alias outer type which transitively refers to resources not defined in the current component (at offset 0x46)

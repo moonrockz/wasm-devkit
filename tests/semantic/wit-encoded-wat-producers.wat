@@ -1,0 +1,1 @@
+(component (type (component (type (instance (export "r" (type (sub resource))))) (export "example:dep/api@1.0.0" (instance (type 0))))) (export "other-name" (type 0))(@producers (processed-by "tool" "1.0") (language "WIT" "1") (sdk "x" "2") (processed-by "tool" "3")))

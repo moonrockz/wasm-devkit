@@ -1,0 +1,1 @@
+package test:ids; world base{import f:func();}world app{@external-id("urn:a") include base;}

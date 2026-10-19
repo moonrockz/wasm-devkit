@@ -1,0 +1,1 @@
+package example:app;interface a-b{}interface ab{}world app{import a-b;import ab;}

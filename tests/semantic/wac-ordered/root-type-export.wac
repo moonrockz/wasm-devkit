@@ -1,0 +1,1 @@
+package example:app;type t=u8;export t as "other";

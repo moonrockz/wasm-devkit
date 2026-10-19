@@ -1,0 +1,2 @@
+// 😀
+package example:dep; interface api { type item=missing; }

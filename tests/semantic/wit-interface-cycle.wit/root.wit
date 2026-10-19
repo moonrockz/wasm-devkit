@@ -1,0 +1,1 @@
+package example:root; interface a { type first = u8; use b.{second}; } interface b { type second = u8; use a.{first}; }

@@ -1,0 +1,143 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonrockz/wit/core_types"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn check_external_subtype(External, External, work_limit? : Int) -> Result[Int, CompatibilityError]
+
+pub fn check_module_subtype(Module, Module, work_limit? : Int) -> Result[Int, CompatibilityError]
+
+pub fn decode_module(Bytes) -> Result[Module, Diagnostic]
+
+pub fn decode_section(Bytes, current? : ReadOnlyArray[Definition], outers? : ReadOnlyArray[ReadOnlyArray[Definition]]) -> Result[ReadOnlyArray[Definition], Diagnostic]
+
+pub fn decode_type(Bytes, current? : ReadOnlyArray[Definition], outers? : ReadOnlyArray[ReadOnlyArray[Definition]]) -> Result[Definition, Diagnostic]
+
+pub fn inspect_module(Bytes) -> Result[ModuleMetadata, Diagnostic]
+
+pub fn scan_type(Bytes, Int, Int, legacy_nested? : Bool) -> Result[Int, Diagnostic]
+
+// Errors
+
+// Types and methods
+pub(all) enum CompatibilityError {
+  Mismatch(String)
+  WorkLimit
+} derive(Eq, @debug.Debug)
+pub fn CompatibilityError::equal(Self, Self) -> Bool
+pub fn CompatibilityError::not_equal(Self, Self) -> Bool
+pub fn CompatibilityError::to_repr(Self) -> @debug.Repr
+
+pub(all) enum ContractBinding {
+  Scope(Int)
+  Module(Module)
+  Other
+} derive(Eq, @debug.Debug)
+pub fn ContractBinding::equal(Self, Self) -> Bool
+pub fn ContractBinding::not_equal(Self, Self) -> Bool
+pub fn ContractBinding::to_repr(Self) -> @debug.Repr
+
+pub struct ContractGraph {
+  // private fields
+}
+pub fn ContractGraph::length(Self) -> Int
+pub fn ContractGraph::new(ReadOnlyArray[ContractScope]) -> Self
+pub fn ContractGraph::scope(Self, Int) -> ContractScope?
+
+pub struct ContractScope {
+  // private fields
+}
+pub fn ContractScope::binding(Self, Int, Int) -> ContractBinding?
+pub fn ContractScope::definition(Self, Int) -> Definition?
+pub fn ContractScope::exported(Self, String) -> ContractBinding?
+pub fn ContractScope::new(ReadOnlyArray[Definition], ReadOnlyArray[(Int, ReadOnlyArray[ContractBinding])], ReadOnlyArray[(String, ContractBinding)]) -> Self
+
+pub(all) enum Definition {
+  Function(Function)
+  Module(Module)
+} derive(Eq, @debug.Debug)
+pub fn Definition::equal(Self, Self) -> Bool
+pub fn Definition::not_equal(Self, Self) -> Bool
+pub fn Definition::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Diagnostic {
+  offset : Int
+  kind : ErrorKind
+  message : String
+} derive(Eq, @debug.Debug)
+pub fn Diagnostic::equal(Self, Self) -> Bool
+pub fn Diagnostic::not_equal(Self, Self) -> Bool
+pub fn Diagnostic::to_repr(Self) -> @debug.Repr
+
+pub(all) enum ErrorKind {
+  Malformed
+  Invalid
+  Unsupported
+} derive(Eq, @debug.Debug)
+pub fn ErrorKind::equal(Self, Self) -> Bool
+pub fn ErrorKind::not_equal(Self, Self) -> Bool
+pub fn ErrorKind::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Export {
+  name : String
+  kind : External
+} derive(Eq, @debug.Debug)
+pub fn Export::equal(Self, Self) -> Bool
+pub fn Export::not_equal(Self, Self) -> Bool
+pub fn Export::to_repr(Self) -> @debug.Repr
+
+pub(all) enum External {
+  Func(Function)
+  Table(Value, UInt64, UInt64?, Bool, Bool)
+  Memory(UInt64, UInt64?, Bool, Bool, Int?)
+  Global(Value, Bool, Bool)
+  Tag(Function)
+} derive(Eq, @debug.Debug)
+pub fn External::equal(Self, Self) -> Bool
+pub fn External::not_equal(Self, Self) -> Bool
+pub fn External::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Function {
+  params : ReadOnlyArray[Value]
+  results : ReadOnlyArray[Value]
+} derive(Eq, @debug.Debug)
+pub fn Function::equal(Self, Self) -> Bool
+pub fn Function::not_equal(Self, Self) -> Bool
+pub fn Function::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Import {
+  module_name : String
+  name : String
+  kind : External
+} derive(Eq, @debug.Debug)
+pub fn Import::equal(Self, Self) -> Bool
+pub fn Import::not_equal(Self, Self) -> Bool
+pub fn Import::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Module {
+  imports : ReadOnlyArray[Import]
+  exports : ReadOnlyArray[Export]
+} derive(Eq, @debug.Debug)
+pub fn Module::equal(Self, Self) -> Bool
+pub fn Module::not_equal(Self, Self) -> Bool
+pub fn Module::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ModuleMetadata {
+  contract : Module
+  validation_work : Int
+}
+
+pub(all) enum Value {
+  Scalar(String)
+  Reference(Bool, String)
+} derive(Eq, @debug.Debug)
+pub fn Value::equal(Self, Self) -> Bool
+pub fn Value::not_equal(Self, Self) -> Bool
+pub fn Value::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

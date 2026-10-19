@@ -1,0 +1,114 @@
+[
+  {
+    "name": "empty",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "function",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "value",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "local-resource",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "outer-record",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "outer-component",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "export-nested-component",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "crossed-local-resource",
+    "reference": 1,
+    "compose": 1,
+    "validation": null,
+    "error": "failed to parse package `test:nested`\n"
+  },
+  {
+    "name": "matched-local-resource",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "crossed-nested-local-resource",
+    "reference": 1,
+    "compose": 1,
+    "validation": null,
+    "error": "failed to parse package `test:nested`\n"
+  },
+  {
+    "name": "matched-nested-local-resource",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "component-annotation",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "component-annotation-missing",
+    "reference": 1,
+    "compose": 1,
+    "validation": null,
+    "error": "failed to parse package `test:nested`\n"
+  },
+  {
+    "name": "value-grandchild",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "http-0.2.0",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "http-0.2.3",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  }
+]

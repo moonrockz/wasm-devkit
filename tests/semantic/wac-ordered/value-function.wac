@@ -1,0 +1,1 @@
+package example:app; type f = func(); type a = list<f>;

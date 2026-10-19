@@ -1,0 +1,1 @@
+(component (core module $m (func (export "f") (result v128) v128.const i32x4 0 1 2 3)) (export "module" (core module $m)))

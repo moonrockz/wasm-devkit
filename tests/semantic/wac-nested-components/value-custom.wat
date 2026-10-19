@@ -1,0 +1,1 @@
+(component (component (core module) (import "v" (value $v u32)) (export "v" (value $v)) (@custom "blob" "\ff\00\80")))

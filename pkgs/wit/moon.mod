@@ -13,3 +13,8 @@ keywords = [ "webassembly", "wit", "parser", "ast", "cst" ]
 readme = "README.mbt.md"
 
 source = "src"
+
+import {
+  "Milky2018/wasm_component@0.16.0",
+  "Milky2018/wasm_core@0.16.0",
+}

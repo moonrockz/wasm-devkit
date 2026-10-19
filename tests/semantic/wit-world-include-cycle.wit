@@ -1,0 +1,1 @@
+package example:app; world first {include second;} world second {include first;}

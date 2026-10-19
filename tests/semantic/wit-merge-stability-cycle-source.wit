@@ -1,0 +1,1 @@
+package test:dep;interface base{type b=list<u32>;type a=b;}

@@ -1,0 +1,1 @@
+(component  (type $a (instance (export "r" (type (sub resource))) (type (own 0)) (type (func (result 1))) (export "make" (func (type 2))))) (type $b (instance )) (import "a" (instance (type $a))) (export "a" (instance 0) (instance (type $b))))

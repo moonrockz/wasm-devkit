@@ -1,0 +1,1 @@
+package test:app; import a: test:actual/api; let i = new test:expected {m: a.out}; export i.out;

@@ -1,0 +1,1 @@
+package example:app; record rec { x: u8, y: string } flags flags-type { a, b } enum enumeration { a, b } variant choice { none, some(rec) } type all = tuple<rec, flags-type, enumeration, choice>; import f: async func(x: all) -> result<all, error-context>;

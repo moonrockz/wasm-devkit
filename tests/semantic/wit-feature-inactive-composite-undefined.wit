@@ -1,0 +1,1 @@
+package example:app;interface api{@unstable(feature=foo)type t=list<missing>;}

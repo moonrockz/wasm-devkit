@@ -1,0 +1,1 @@
+package example:app@1.0.0;world app{@unstable(feature=foo)import x:set(x:u8);}

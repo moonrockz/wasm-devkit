@@ -1,0 +1,1 @@
+package example:app;interface api{@unstable(feature=foo)@deprecated(version=9.0.0)f:func();}

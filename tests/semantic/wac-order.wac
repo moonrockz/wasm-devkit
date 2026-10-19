@@ -1,0 +1,4 @@
+package example:app;
+let run = greet;
+import greet: func(name: string) -> string;
+export run as "run";

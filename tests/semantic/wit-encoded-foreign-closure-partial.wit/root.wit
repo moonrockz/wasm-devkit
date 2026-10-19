@@ -1,0 +1,1 @@
+package example:consumer; world app { import example:foreign/api@1.0.0; }

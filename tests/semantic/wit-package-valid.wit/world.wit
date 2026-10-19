@@ -1,0 +1,1 @@
+package example:app@1.0.0; world app { import example:dep/api@1.0.0; }

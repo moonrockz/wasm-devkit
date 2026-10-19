@@ -1,0 +1,1 @@
+package example:app;interface api{type out=result<_,string>;type other=out;p:get()->u8;p:set(x:u8)->other;}

@@ -1,0 +1,1 @@
+(component (type $i (instance (type $a (func async (param "x" u32))) (export "f" (func (type $a))))) (import "i" (instance $i (type $i))) (alias export $i "f" (func $f)) (type $b (func (param "x" u32))) (export "out" (func $f) (func (type $b))))

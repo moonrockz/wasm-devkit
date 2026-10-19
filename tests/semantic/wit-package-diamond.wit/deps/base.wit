@@ -1,0 +1,1 @@
+package example:base; interface api { resource item; }

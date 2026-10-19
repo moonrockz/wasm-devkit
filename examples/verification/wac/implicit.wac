@@ -1,0 +1,4 @@
+package example:app;
+
+let relay = new example:relay { ... };
+export relay.run;

@@ -1,0 +1,1 @@
+(component (type $r (resource (rep i32))) (alias outer 0 $r (type $t)) (core func (canon resource.drop $t)))

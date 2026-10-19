@@ -1,0 +1,5 @@
+package example:renamed@1.0.0;
+interface first { resource same; type id=u32; }
+interface second { resource same; }
+interface aliases { use first.{same as left, id as number}; use second.{same as right}; type twice=number; run:func(a:borrow<left>, b:borrow<right>)->twice; }
+world app { use aliases.{left as l, right as r, twice}; export out:func(a:borrow<l>, b:borrow<r>)->twice; }

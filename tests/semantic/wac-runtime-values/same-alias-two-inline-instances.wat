@@ -1,0 +1,1 @@
+(component (type $c (component (export "v" (value u32)))) (import "c" (component (type $c))) (instance $i (instantiate 0)) (alias export $i "v" (value $v)) (instance $first (export "v" (value $v))) (instance $second (export "v" (value $v))) (export "first" (instance $first)) (export "second" (instance $second)))

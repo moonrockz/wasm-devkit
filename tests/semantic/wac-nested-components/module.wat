@@ -1,0 +1,1 @@
+(component (component $c (core module $m (func (export "f")))) (instance $i (instantiate $c)) (export "i" (instance $i)))

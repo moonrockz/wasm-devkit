@@ -1,0 +1,1 @@
+package test:app; let a = new test:actual {}; let i = new test:expected {m: a.module}; export i as "out";

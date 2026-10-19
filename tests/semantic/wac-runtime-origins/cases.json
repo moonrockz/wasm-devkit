@@ -1,0 +1,170 @@
+[
+  {
+    "name": "anonymous-export",
+    "reference": 1,
+    "validator": 1,
+    "error": "instance not valid to be used as export (at offset 0x55)\n",
+    "validation": "error: instance not valid to be used as export (at offset 0x55)\n"
+  },
+  {
+    "name": "named-export",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "anonymous-private",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "named-private",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "anonymous-unused",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "named-import",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "anonymous-under-named-import",
+    "reference": 1,
+    "validator": 1,
+    "error": "instance not valid to be used as export (at offset 0x55)\n",
+    "validation": "error: instance not valid to be used as export (at offset 0x55)\n"
+  },
+  {
+    "name": "named-alias-export",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "instance-alias",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "anonymous-export-function",
+    "reference": 1,
+    "validator": 1,
+    "error": "func not valid to be used as export (at offset 0x5d)\n",
+    "validation": "error: func not valid to be used as export (at offset 0x5d)\n"
+  },
+  {
+    "name": "named-export-function",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "instance-alias-function",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "imported-function-no-type-alias",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "fresh-instance-hidden-function",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "distinct-template-hidden-function",
+    "reference": 1,
+    "validator": 1,
+    "error": "func not valid to be used as export (at offset 0x78)\n",
+    "validation": "error: func not valid to be used as export (at offset 0x78)\n"
+  },
+  {
+    "name": "same-instance-visible-function",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "second-instance-visible-function",
+    "reference": 101,
+    "validator": 0,
+    "error": "\nthread 'main' (255244460) panicked at /Users/damian/.cargo/git/checkouts/wac-3beaeb5c194f5763/5a7480c/crates/wac-types/src/package.rs:621:9:\nassertion failed: prev.is_none()\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n",
+    "validation": ""
+  },
+  {
+    "name": "named-export-nested",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "anonymous-export-nested",
+    "reference": 1,
+    "validator": 1,
+    "error": "instance not valid to be used as export (at offset 0x66)\n",
+    "validation": "error: instance not valid to be used as export (at offset 0x66)\n"
+  },
+  {
+    "name": "anonymous-instance-ascribed",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "anonymous-function-ascribed",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "ascribed-function-reexport",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "same-component-type-imports",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "same-component-type-imports-later-types",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  }
+]

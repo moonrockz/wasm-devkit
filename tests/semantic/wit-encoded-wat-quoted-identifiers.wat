@@ -1,0 +1,1 @@
+(component $"name with spaces" (type $"wrapper type" (component (type $"api type" (instance (export "r" (type (sub resource))))) (export "example:dep/api@1.0.0" (instance (type $"api type"))))) (export "api" (type $"wrapper type")))

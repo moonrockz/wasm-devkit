@@ -27,7 +27,7 @@ async fn main {
   let wac = dir + "/sample.wac"
   let invalid = dir + "/invalid.wit"
   let malformed = dir + "/malformed.wit"
-  @fs.write_file(wit, "//keep\ninterface i {type t=u8;}")
+  @fs.write_file(wit, "//keep\npackage a:b; interface i {type t=u8;}")
   @fs.write_file(
     wac, "package a:b; let x = new a:b { ... }; export (x).run as \"run\";",
   )
@@ -65,6 +65,391 @@ async fn main {
       assert_false(text.is_empty())
     }
   }
+  let semantic_wac = dir + "/semantic.wac"
+  let semantic_bad = dir + "/semantic-bad.wit"
+  @fs.write_file(
+    semantic_wac, "package a:b; import f: func(); let x = f; export x as \"x\";",
+  )
+  @fs.write_file(semantic_bad, "interface api { type t = missing; }")
+  let _ = run(["verify", wit], 0, wit)
+  let _ = run(["verify", semantic_wac], 0, wit)
+  let ordered_wac = dir + "/ordered.wac"
+  let ordered_source = "package example:app; interface api { resource r { constructor(); get: func() -> r; } type id = u32; } world base { use api.{r, id}; export run: func(x: r) -> id; } world app { include base; } import component: app;"
+  @fs.write_file(ordered_wac, ordered_source)
+  let _ = run(["verify", ordered_wac], 0, wit)
+  let _ = run(
+    ["verify", "-", "--language", "wac", "--base", dir],
+    0,
+    ordered_wac,
+  )
+  assert_eq(@fs.read_file(ordered_wac).text(), ordered_source)
+
+  // Original component package fixture: encoded:original@2.0.0 with api/service.
+  // Same bytes/model oracle as verifier/packages_test.mbt; lookup key is separate.
+  let package_bytes = b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x07\x52\x01\x41\x02\x01\x42\x06\x04\x00\x06\x68\x61\x6e\x64\x6c\x65\x03\x01\x01\x79\x04\x00\x06\x6e\x75\x6d\x62\x65\x72\x03\x00\x01\x01\x68\x00\x01\x40\x01\x01\x68\x03\x00\x02\x04\x00\x04\x74\x61\x6b\x65\x01\x04\x04\x00\x1a\x65\x6e\x63\x6f\x64\x65\x64\x3a\x6f\x72\x69\x67\x69\x6e\x61\x6c\x2f\x61\x70\x69\x40\x32\x2e\x30\x2e\x30\x05\x00\x0b\x09\x01\x00\x03\x61\x70\x69\x03\x00\x00\x07\x88\x01\x01\x41\x02\x01\x41\x04\x01\x42\x06\x04\x00\x06\x68\x61\x6e\x64\x6c\x65\x03\x01\x01\x79\x04\x00\x06\x6e\x75\x6d\x62\x65\x72\x03\x00\x01\x01\x68\x00\x01\x40\x01\x01\x68\x03\x00\x02\x04\x00\x04\x74\x61\x6b\x65\x01\x04\x03\x00\x1a\x65\x6e\x63\x6f\x64\x65\x64\x3a\x6f\x72\x69\x67\x69\x6e\x61\x6c\x2f\x61\x70\x69\x40\x32\x2e\x30\x2e\x30\x05\x00\x01\x40\x00\x00\x79\x04\x00\x06\x61\x6e\x73\x77\x65\x72\x01\x01\x04\x00\x1e\x65\x6e\x63\x6f\x64\x65\x64\x3a\x6f\x72\x69\x67\x69\x6e\x61\x6c\x2f\x73\x65\x72\x76\x69\x63\x65\x40\x32\x2e\x30\x2e\x30\x04\x00\x0b\x0d\x01\x00\x07\x73\x65\x72\x76\x69\x63\x65\x03\x02\x00\x00\x10\x0c\x70\x61\x63\x6b\x61\x67\x65\x2d\x64\x6f\x63\x73\x01\x7b\x7d\x00\x2f\x09\x70\x72\x6f\x64\x75\x63\x65\x72\x73\x01\x0c\x70\x72\x6f\x63\x65\x73\x73\x65\x64\x2d\x62\x79\x01\x0d\x77\x69\x74\x2d\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x07\x30\x2e\x32\x36\x32\x2e\x30"
+  let access_wac = dir + "/access.wac"
+  @fs.write_file(
+    access_wac, "package test:app; interface api {run: func();} import service: api; let run = (service).run; export run;",
+  )
+  let _ = run(["verify", access_wac], 0, wit)
+  @fs.write_file(
+    access_wac, "package test:app; interface api {run: func();} import service: api; export service.missing;",
+  )
+  let (_, missing_access) = run(["verify", access_wac], 1, wit)
+  assert_true(missing_access.contains("WAC-C002"))
+  assert_true(missing_access.contains("instance type defined here"))
+  @fs.write_file(
+    access_wac, "package test:app; import run: func(); export run.missing;",
+  )
+  let (_, invalid_access) = run(["verify", access_wac], 1, wit)
+  assert_true(invalid_access.contains("WAC-C001"))
+  // Two original declarative components re-export a checked function argument.
+  // Both local WAT loading and the composition graph run inside the CLI.
+  let wiring_dir = dir + "/wiring"
+  @fs.mkdir(wiring_dir + "/deps/test", recursive=true, allow_exist=true)
+  let wiring = wiring_dir + "/root.wac"
+  let relay = "(component (type (func (param \"x\" u32) (result u32))) (import \"f\" (func (type 0))) (export \"out\" (func 0)))"
+  @fs.write_file(wiring_dir + "/deps/test/first.wat", relay)
+  @fs.write_file(wiring_dir + "/deps/test/second.wat", relay)
+  let wired = "package test:app; import f: func(x: u32) -> u32; let first = new test:first {f}; let second = new test:second {f: first.out}; export second.out;"
+  @fs.write_file(wiring, wired)
+  let _ = run(["verify", wiring], 0, wit)
+  let _ = run(
+    ["verify", "-", "--language", "wac", "--base", wiring_dir],
+    0,
+    wiring,
+  )
+  assert_eq(@fs.read_file(wiring).text(), wired)
+  @fs.write_file(
+    wiring, "package test:app; import f: func(x: u16) -> u32; let i = new test:first {f};",
+  )
+  let (_, signature_error) = run(["verify", wiring], 1, wit)
+  assert_true(signature_error.contains("WAC-C005"))
+  assert_true(signature_error.contains("first.wat:[binary]"))
+  assert_true(signature_error.contains("expected type declared here"))
+  @fs.write_file(
+    wiring, "package test:app; import f: func(x: u32) -> u32; let i = new test:first {f}; export i.missing;",
+  )
+  let (_, output_error) = run(["verify", wiring], 1, wit)
+  assert_true(output_error.contains("WAC-C002"))
+  @fs.write_file(wiring, "package test:app; let i = new test:first {};")
+  let (_, missing_argument) = run(["verify", wiring], 1, wit)
+  assert_true(missing_argument.contains("WAC-C004"))
+  @fs.write_file(
+    wiring, "package test:app; interface api {f: func(x: u32) -> u32;} import all: api; let i = new test:first {...all}; export i.out;",
+  )
+  let _ = run(["verify", wiring], 0, wit)
+  @fs.write_file(
+    wiring, "package test:app; import f: func(x: u32) -> u32; let i = new test:first {...f};",
+  )
+  let (_, wrong_spread) = run(["verify", wiring], 1, wit)
+  assert_true(wrong_spread.contains("WAC-C007"))
+  @fs.write_file(
+    wiring, "package test:app; interface api {f: func(x: u32) -> u32;} import all: api; let f = all.f; let i = new test:first {...all, f};",
+  )
+  let (_, empty_spread) = run(["verify", wiring], 1, wit)
+  assert_true(empty_spread.contains("WAC-C007"))
+  @fs.write_file(
+    wiring, "package test:app; import f: func(x: u32) -> u32; export new test:first {f}...;",
+  )
+  let _ = run(["verify", wiring], 0, wit)
+  @fs.write_file(
+    wiring, "package test:app; import i: interface {f: func();}; export i.f; export i...;",
+  )
+  let (_, repeated_export) = run(["verify", wiring], 1, wit)
+  assert_true(repeated_export.contains("WAC-C007"))
+  @fs.write_file(wiring, "package test:app; import f: func(); export f...;")
+  let (_, wrong_export) = run(["verify", wiring], 1, wit)
+  assert_true(wrong_export.contains("WAC-C007"))
+  let target_header = "package test:app targets test:app/w; world w {import f: func(x: u32) -> u32;export out: func(x: u32) -> u32;} "
+  @fs.write_file(
+    wiring,
+    target_header +
+    "import f: func(x: u32) -> u32;export new test:first {f}...;",
+  )
+  let _ = run(["verify", wiring], 0, wit)
+  @fs.write_file(wiring, target_header + "import f: func(x: u32) -> u32;")
+  let (_, missing_target_export) = run(["verify", wiring], 1, wit)
+  assert_true(missing_target_export.contains("WAC-T002"))
+  assert_true(missing_target_export.contains("target world declared here"))
+  let unconstrained = "package test:app; world w {} import f: func();export f;"
+  @fs.write_file(wiring, unconstrained)
+  let _ = run(["verify", wiring], 0, wit)
+  @fs.write_file(
+    wiring, "package test:app targets test:app/w; world w {} import f: func();export f;",
+  )
+  let (_, disallowed_target_import) = run(["verify", wiring], 1, wit)
+  assert_true(disallowed_target_import.contains("WAC-T001"))
+  @fs.write_file(
+    wiring,
+    target_header + "import f: func(x: u16) -> u32;export f as out;",
+  )
+  let (_, incompatible_target) = run(["verify", wiring], 1, wit)
+  assert_true(incompatible_target.contains("WAC-T003"))
+  assert_true(incompatible_target.contains("target selected here"))
+  @fs.write_file(
+    wiring_dir + "/deps/test/target.wat",
+    "(component (type $world (component (import \"f\" (func)) (export \"out\" (func)))) (type $wrapper (component (alias outer 1 $world (type $world)) (export \"test:target/w\" (component (type $world))))) (export \"w\" (type $wrapper)))",
+  )
+  @fs.write_file(
+    wiring, "package test:app targets test:target/w;import f: func();export f as out;",
+  )
+  let _ = run(["verify", wiring], 0, wit)
+  @fs.write_file(
+    wiring, "package test:app targets test:target/w;import f: func(x: u32);export f as out;",
+  )
+  let (_, binary_target) = run(["verify", wiring], 1, wit)
+  assert_true(binary_target.contains("WAC-T003"))
+  assert_true(binary_target.contains("target.wat:[binary]"))
+  @fs.write_file(
+    wiring, "package test:app; let first = new test:first {...}; let second = new test:second {f: first.out, ...}; export second.out;",
+  )
+  let _ = run(["verify", wiring], 0, wit)
+  @fs.write_file(
+    wiring, "package test:app; let first = new test:first {...}; import f: func(x: u32) -> u32;",
+  )
+  let (_, fill_conflict) = run(["verify", wiring], 1, wit)
+  assert_true(fill_conflict.contains("WAC-C008"))
+  let package_dir = dir + "/wac-packages"
+  @fs.mkdir(package_dir + "/deps/lookup/dep", recursive=true, allow_exist=true)
+  let package_source = package_dir + "/root.wac"
+  let package_text = "package test:app; import i: lookup:dep/api; export i;"
+  @fs.write_file(package_source, package_text)
+  @fs.write_file(package_dir + "/deps/lookup/dep.wasm", package_bytes)
+  @fs.write_file(package_dir + "/deps/lookup/dep/1.2.3.wasm", package_bytes)
+  // Use a separate name for the unversioned file: the versioned package directory
+  // wins over a sibling .wasm under the reference filesystem precedence.
+  @fs.write_file(package_dir + "/component.bin", package_bytes)
+  let _ = run(
+    ["verify", package_source, "--dep", "lookup:dep=component.bin"],
+    0,
+    wit,
+  )
+  let _ = run(
+    [
+      "verify", "-", "--language", "wac", "--base", package_dir, "--dep", "lookup:dep=component.bin",
+    ],
+    0,
+    package_source,
+  )
+  @fs.mkdir(
+    package_dir + "/binary-deps/lookup",
+    recursive=true,
+    allow_exist=true,
+  )
+  if @fs.exists(package_dir + "/binary-deps/lookup/dep.wat") {
+    @fs.remove(package_dir + "/binary-deps/lookup/dep.wat")
+  }
+  @fs.write_file(package_dir + "/binary-deps/lookup/dep.wasm", package_bytes)
+  let _ = run(["verify", package_source, "--deps-dir", "binary-deps"], 0, wit)
+  @fs.write_file(
+    package_source, "package test:app; import i: lookup:dep/api@1.2.3; export i;",
+  )
+  let _ = run(
+    ["verify", package_source, "--dep", "lookup:dep=missing.bin"],
+    0,
+    wit,
+  )
+  @fs.write_file(package_source, package_text)
+  let (_, missing_mapping) = run(
+    ["verify", package_source, "--dep", "lookup:dep=missing.bin"],
+    2,
+    wit,
+  )
+  assert_true(missing_mapping.contains("WAC-P003"))
+  let (_, missing_package) = run(
+    ["verify", package_source, "--deps-dir", "absent"],
+    1,
+    wit,
+  )
+  assert_true(missing_package.contains("root.wac:1:"))
+  assert_true(missing_package.contains("WAC-P003"))
+  let (_, directory_package) = run(["verify", package_source], 1, wit)
+  assert_true(directory_package.contains("WIT-S"))
+  @fs.write_file(package_dir + "/bad.bin", b"bad")
+  let (_, bad_package) = run(
+    ["verify", package_source, "--dep", "lookup:dep=bad.bin"],
+    1,
+    wit,
+  )
+  assert_true(bad_package.contains("WAC-B001"))
+  assert_true(bad_package.contains("bad.bin:[byte"))
+  assert_true(bad_package.contains("root.wac:["))
+  assert_true(bad_package.contains("requested here"))
+  // Duplicate CLI mappings follow the reference override map: the last wins.
+  let _ = run(
+    [
+      "verify", package_source, "--dep", "lookup:dep=bad.bin", "--dep", "lookup:dep=component.bin",
+    ],
+    0,
+    wit,
+  )
+  @fs.write_file(package_dir + "/text.wat", "(component)")
+  let (_, text_package) = run(
+    ["verify", package_source, "--dep", "lookup:dep=text.wat"],
+    1,
+    wit,
+  )
+  assert_true(text_package.contains("WAC-P004"))
+  @fs.write_file(
+    package_dir + "/text.wat",
+    "(component\n  (type (;0;)\n    (component\n      (type (;0;)\n        (instance\n          (export (;0;) \"handle\" (type (sub resource)))\n          (type (;1;) u32)\n          (export (;2;) \"number\" (type (eq 1)))\n          (type (;3;) (borrow 0))\n          (type (;4;) (func (param \"h\" 3) (result 2)))\n          (export (;0;) \"take\" (func (type 4)))\n        )\n      )\n      (export (;0;) \"encoded:original/api@2.0.0\" (instance (type 0)))\n    )\n  )\n  (export (;1;) \"api\" (type 0))\n  (type (;2;)\n    (component\n      (type (;0;)\n        (component\n          (type (;0;)\n            (instance\n              (export (;0;) \"handle\" (type (sub resource)))\n              (type (;1;) u32)\n              (export (;2;) \"number\" (type (eq 1)))\n              (type (;3;) (borrow 0))\n              (type (;4;) (func (param \"h\" 3) (result 2)))\n              (export (;0;) \"take\" (func (type 4)))\n            )\n          )\n          (import \"encoded:original/api@2.0.0\" (instance (;0;) (type 0)))\n          (type (;1;) (func (result u32)))\n          (export (;0;) \"answer\" (func (type 1)))\n        )\n      )\n      (export (;0;) \"encoded:original/service@2.0.0\" (component (type 0)))\n    )\n  )\n  (export (;3;) \"service\" (type 2))\n  (@custom \"package-docs\" \"\\01{}\")\n  (@producers\n    (processed-by \"wit-component\" \"0.262.0\")\n  )\n)\n",
+  )
+  let _ = run(
+    ["verify", package_source, "--dep", "lookup:dep=text.wat"],
+    0,
+    wit,
+  )
+  @fs.write_file(
+    package_dir + "/binary-deps/lookup/dep.wat",
+    "(component\n  (type (;0;)\n    (component\n      (type (;0;)\n        (instance\n          (export (;0;) \"handle\" (type (sub resource)))\n          (type (;1;) u32)\n          (export (;2;) \"number\" (type (eq 1)))\n          (type (;3;) (borrow 0))\n          (type (;4;) (func (param \"h\" 3) (result 2)))\n          (export (;0;) \"take\" (func (type 4)))\n        )\n      )\n      (export (;0;) \"encoded:original/api@2.0.0\" (instance (type 0)))\n    )\n  )\n  (export (;1;) \"api\" (type 0))\n  (type (;2;)\n    (component\n      (type (;0;)\n        (component\n          (type (;0;)\n            (instance\n              (export (;0;) \"handle\" (type (sub resource)))\n              (type (;1;) u32)\n              (export (;2;) \"number\" (type (eq 1)))\n              (type (;3;) (borrow 0))\n              (type (;4;) (func (param \"h\" 3) (result 2)))\n              (export (;0;) \"take\" (func (type 4)))\n            )\n          )\n          (import \"encoded:original/api@2.0.0\" (instance (;0;) (type 0)))\n          (type (;1;) (func (result u32)))\n          (export (;0;) \"answer\" (func (type 1)))\n        )\n      )\n      (export (;0;) \"encoded:original/service@2.0.0\" (component (type 0)))\n    )\n  )\n  (export (;3;) \"service\" (type 2))\n  (@custom \"package-docs\" \"\\01{}\")\n  (@producers\n    (processed-by \"wit-component\" \"0.262.0\")\n  )\n)\n",
+  )
+  let _ = run(["verify", package_source, "--deps-dir", "binary-deps"], 0, wit)
+  @fs.write_file(package_dir + "/invalid.wat", "(component binary \"bad\")")
+  let (_, invalid_text) = run(
+    ["verify", package_source, "--dep", "lookup:dep=invalid.wat"],
+    1,
+    wit,
+  )
+  assert_true(invalid_text.contains("invalid.wat:[binary]"))
+  assert_false(invalid_text.contains("[byte "))
+  assert_true(invalid_text.contains("requested here"))
+  @fs.write_file(package_dir + "/binary-deps/lookup/dep.wat", package_bytes)
+  let _ = run(["verify", package_source, "--deps-dir", "binary-deps"], 0, wit)
+  @fs.write_file(package_dir + "/binary-deps/lookup/dep.wat", b"\x00asm")
+  let (_, preferred_wat) = run(
+    ["verify", package_source, "--deps-dir", "binary-deps"],
+    1,
+    wit,
+  )
+  assert_true(preferred_wat.contains("dep.wat"))
+  assert_true(preferred_wat.contains("WAC-B001"))
+  @fs.write_file(package_source, "package test:app;")
+  let _ = run(
+    ["verify", package_source, "--dep", "lookup:dep=missing.bin"],
+    0,
+    wit,
+  )
+
+  let invalid_wac = dir + "/ordered-invalid.wac"
+  for
+    (source, code, related) in [
+      (
+        "package example:app; type first = later; type later = u8;", "WAC-S005",
+        false,
+      ),
+      (
+        "package example:app; interface api {} import f: func(x: api);", "WAC-S005",
+        true,
+      ),
+      (
+        "package example:app; interface api { resource r; f: func() -> borrow<r>; }",
+        "WAC-S006", false,
+      ),
+      (
+        "package example:app; interface api { resource r { f: func(self: u8); } }",
+        "WAC-S004", true,
+      ),
+    ] {
+    @fs.write_file(invalid_wac, source)
+    let _ = run(["check", invalid_wac], 0, wit)
+    let (_, diagnostic) = run(["verify", invalid_wac], 1, wit)
+    assert_true(diagnostic.contains(code))
+    assert_true(diagnostic.contains(invalid_wac + ":1:"))
+    if related {
+      assert_true(diagnostic.contains("first declared here"))
+    }
+    assert_eq(@fs.read_file(invalid_wac).text(), source)
+  }
+  let _ = run(["verify", "--language", "wit", "--base", "."], 0, wit)
+  let _ = run(["verify", semantic_bad], 1, wit)
+  let _ = run(["check", semantic_bad], 0, wit)
+  let _ = run(["verify", dir + "/missing.wit"], 2, wit)
+  let _ = run(["verify", malformed], 2, wit)
+  let _ = run(["verify"], 2, wit)
+  let resource_api = dir + "/resources.wit"
+  let resource_source = "package example:resources;interface files{resource file{constructor(path:string)->result<file,string>;read:async func()->list<u8>;open:static func(path:string)->file;position:get()->u64;position:set(value:u64);}}world app{import files;}"
+  @fs.write_file(resource_api, resource_source)
+  let _ = run(["verify", resource_api], 0, wit)
+  let _ = run(["verify", "--language", "wit", "--base", dir], 0, resource_api)
+  assert_eq(@fs.read_file(resource_api).text(), resource_source)
+  let invalid_resource = dir + "/invalid-resource.wit"
+  let invalid_resource_source = "package example:resources;interface files{resource file{constructor()->own<file>;}}"
+  @fs.write_file(invalid_resource, invalid_resource_source)
+  let _ = run(["check", invalid_resource], 0, wit)
+  let (_, resource_error) = run(["verify", invalid_resource], 1, wit)
+  assert_true(resource_error.contains("WIT-S007"))
+  assert_true(resource_error.contains(invalid_resource + ":1:"))
+  assert_eq(@fs.read_file(invalid_resource).text(), invalid_resource_source)
+  let invalid_accessor = dir + "/invalid-accessor.wit"
+  let invalid_accessor_source = "package example:resources;interface files{resource file{position:get()->u64;position:set(value:u64)->u8;}}"
+  @fs.write_file(invalid_accessor, invalid_accessor_source)
+  let _ = run(["check", invalid_accessor, "--all-features"], 0, wit)
+  let (_, accessor_error) = run(["verify", invalid_accessor], 1, wit)
+  assert_true(accessor_error.contains("WIT-S007"))
+  assert_true(accessor_error.contains(invalid_accessor + ":1:"))
+  assert_eq(@fs.read_file(invalid_accessor).text(), invalid_accessor_source)
+  let direct_names = "tests/semantic/wit-world-direct-two-names.wit"
+  let _ = run(["verify", direct_names], 0, wit)
+  let (_, direct_names_error) = run(
+    ["verify", direct_names, "--all-features"],
+    1,
+    wit,
+  )
+  assert_true(direct_names_error.contains("WIT-P003"))
+  let extended_grammar = dir + "/extended-grammar.wit"
+  let extended_source = "package a:b:c;"
+  @fs.write_file(extended_grammar, extended_source)
+  for flags in [[], ["--all-semantic-features"], ["--semantic-feature", "foo"]] {
+    let (_, error) = run(["verify", extended_grammar, ..flags], 1, wit)
+    assert_true(error.contains("WIT-P005"))
+    let (_, error) = run(
+      ["verify", extended_grammar, "--all-features", ..flags],
+      1,
+      wit,
+    )
+    assert_false(error.contains("WIT-P005"))
+    assert_true(error.contains("WIT-S001"))
+  }
+  let (_, extended_stdin_error) = run(
+    ["verify", "--language", "wit", "--base", dir, "--all-features"],
+    1,
+    extended_grammar,
+  )
+  assert_false(extended_stdin_error.contains("WIT-P005"))
+  assert_true(extended_stdin_error.contains("WIT-S001"))
+  assert_eq(@fs.read_file(extended_grammar).text(), extended_source)
+  let gated = dir + "/gated.wit"
+  let gated_source = "package example:features;interface api{@unstable(feature=foo)resource r;f:func(x:r);}"
+  @fs.write_file(gated, gated_source)
+  let _ = run(["check", gated], 0, wit)
+  let (_, gated_error) = run(["verify", gated, "--all-features"], 1, wit)
+  assert_true(gated_error.contains("WIT-S013"))
+  let _ = run(["verify", gated, "--semantic-feature", "foo"], 0, wit)
+  let _ = run(
+    ["verify", "--language", "wit", "--base", dir, "--all-semantic-features"],
+    0,
+    gated,
+  )
+  let _ = run(["verify", gated, "--semantic-feature", "other"], 1, wit)
+  let _ = run(["verify", gated, "--semantic-feature"], 2, wit)
+  assert_eq(@fs.read_file(gated).text(), gated_source)
+  let package_blocks = dir + "/package-blocks.wit"
+  let package_blocks_source = "package example:app;world app{include example:dep/base;}package example:dep{world base{import host:interface{resource item;load:func()->item;}}}"
+  @fs.write_file(package_blocks, package_blocks_source)
+  let (blocks_summary, _) = run(["verify", package_blocks, "--json"], 0, wit)
+  assert_true(blocks_summary.contains("example:dep/base"))
+  let _ = run(["verify", package_blocks, "--world", "example:dep/base"], 0, wit)
+  let _ = run(["verify", "--language", "wit", "--base", dir], 0, package_blocks)
+  assert_eq(@fs.read_file(package_blocks).text(), package_blocks_source)
+  let duplicate_block = dir + "/duplicate-package-block.wit"
+  @fs.write_file(
+    duplicate_block, "package example:app;package example:app{interface api{}}",
+  )
+  let _ = run(["check", duplicate_block], 0, wit)
+  let (_, block_error) = run(["verify", duplicate_block], 1, wit)
+  assert_true(block_error.contains("WIT-S011"))
+  assert_true(block_error.contains(duplicate_block + ":1:"))
   let (stdin_wit, _) = run(["parse", "--language", "wit"], 0, wit)
   assert_true(stdin_wit.contains("<stdin>: valid wit"))
   let (stdin_wac, _) = run(["print", "-", "--language", "wac"], 0, wac)
@@ -87,5 +472,750 @@ async fn main {
   let _ = run(["parse", malformed], 2, wit)
   let _ = run(["parse"], 2, wit)
   let _ = run(["format", "--language", "wit", "--write"], 2, wit)
+  let package_dir = dir + "/package"
+  let dependency_dir = package_dir + "/deps/dep"
+  @fs.mkdir(dependency_dir, recursive=true, allow_exist=true)
+  let world = package_dir + "/world.wit"
+  let api = dependency_dir + "/api.wit"
+  let mapped = dir + "/mapped.wit"
+  let world_source = "package example:app@1.0.0; world app { import example:dep/api@1.0.0; }"
+  let api_source = "package example:dep@1.0.0; interface api { greet: func(name: string) -> string; }"
+  @fs.write_file(world, world_source)
+  @fs.write_file(api, api_source)
+  @fs.write_file(mapped, api_source)
+  let _ = run(["verify", package_dir, "--language", "wit"], 0, wit)
+  let _ = run(["verify", world], 0, wit)
+  let _ = run(["verify", "--language", "wit", "--base", package_dir], 0, world)
+  let _ = run(["verify", "--language", "wit"], 2, world)
+  let _ = run(["verify", world, "--dep", "wrong:package=../mapped.wit"], 1, wit)
+  let _ = run(["verify", world, "--dep", "example:dep=missing.wit"], 2, wit)
+  let _ = run(["verify", world, "--deps-dir", "missing"], 2, wit)
+  @fs.write_file(
+    api, "// 😀\npackage example:dep@1.0.0; interface api { type item = missing; }",
+  )
+  let (_, dependency_error) = run(["verify", world], 1, wit)
+  assert_true(dependency_error.contains(api + ":2:"))
+  assert_true(dependency_error.contains("required by dependency"))
+  let _ = run(
+    ["verify", world, "--dep", "example:dep@1.0.0=../mapped.wit"],
+    0,
+    wit,
+  )
+  assert_eq(@fs.read_file(world).text(), world_source)
+  @fs.write_file(api, api_source)
+  let (_, _) = run(["verify", world, "--world", "app"], 0, wit)
+  let (_, _) = run(["verify", world, "--world", "missing"], 1, wit)
+  let (summary, _) = run(
+    ["verify", world, "--world", "example:app/app@1.0.0", "--json"],
+    0,
+    wit,
+  )
+  assert_true(summary.contains("example:dep/api@1.0.0"))
+  let worlds = dir + "/worlds.wit"
+  @fs.write_file(worlds, "package example:worlds;world first{}world second{}")
+  let (_, _) = run(["verify", worlds, "--world", "example:worlds"], 1, wit)
+  let encoded_dir = dir + "/encoded-package"
+  let encoded_deps = encoded_dir + "/deps"
+  @fs.mkdir(encoded_deps, recursive=true, allow_exist=true)
+  let encoded_world = encoded_dir + "/world.wit"
+  let encoded_binary = encoded_deps + "/dep.wasm"
+  let encoded_wat = encoded_dir + "/standalone/dep.wat"
+  @fs.mkdir(encoded_dir + "/standalone", recursive=true, allow_exist=true)
+  // Original fixture generated by wasm-tools 1.262.0 at the semantic corpus pin.
+  let encoded_bytes = b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x07\x4b\x01\x41\x02\x01\x42\x06\x01\x79\x04\x00\x02\x69\x64\x03\x00\x00\x01\x72\x01\x02\x69\x64\x01\x04\x00\x04\x69\x74\x65\x6d\x03\x00\x02\x01\x40\x01\x01\x78\x03\x00\x73\x04\x00\x03\x72\x75\x6e\x01\x04\x04\x00\x15\x65\x78\x61\x6d\x70\x6c\x65\x3a\x64\x65\x70\x2f\x61\x70\x69\x40\x31\x2e\x30\x2e\x30\x05\x00\x0b\x09\x01\x00\x03\x61\x70\x69\x03\x00\x00\x07\xb0\x01\x01\x41\x02\x01\x41\x04\x01\x42\x06\x01\x79\x04\x00\x02\x69\x64\x03\x00\x00\x01\x72\x01\x02\x69\x64\x01\x04\x00\x04\x69\x74\x65\x6d\x03\x00\x02\x01\x40\x01\x01\x78\x03\x00\x73\x04\x00\x03\x72\x75\x6e\x01\x04\x03\x00\x15\x65\x78\x61\x6d\x70\x6c\x65\x3a\x64\x65\x70\x2f\x61\x70\x69\x40\x31\x2e\x30\x2e\x30\x05\x00\x01\x42\x06\x01\x79\x04\x00\x02\x69\x64\x03\x00\x00\x01\x72\x01\x02\x69\x64\x01\x04\x00\x04\x69\x74\x65\x6d\x03\x00\x02\x01\x40\x01\x01\x78\x03\x00\x73\x04\x00\x03\x72\x75\x6e\x01\x04\x04\x00\x15\x65\x78\x61\x6d\x70\x6c\x65\x3a\x64\x65\x70\x2f\x61\x70\x69\x40\x31\x2e\x30\x2e\x30\x05\x01\x04\x00\x15\x65\x78\x61\x6d\x70\x6c\x65\x3a\x64\x65\x70\x2f\x61\x70\x70\x40\x31\x2e\x30\x2e\x30\x04\x00\x0b\x09\x01\x00\x03\x61\x70\x70\x03\x02\x00\x00\x10\x0c\x70\x61\x63\x6b\x61\x67\x65\x2d\x64\x6f\x63\x73\x01\x7b\x7d\x00\x2f\x09\x70\x72\x6f\x64\x75\x63\x65\x72\x73\x01\x0c\x70\x72\x6f\x63\x65\x73\x73\x65\x64\x2d\x62\x79\x01\x0d\x77\x69\x74\x2d\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x07\x30\x2e\x32\x36\x32\x2e\x30"
+  @fs.write_file(encoded_binary, encoded_bytes)
+  @fs.write_file(
+    encoded_wat, "(component\n  (type (;0;)\n    (component\n      (type (;0;)\n        (instance\n          (type (;0;) u32)\n          (export (;1;) \"id\" (type (eq 0)))\n          (type (;2;) (record (field \"id\" 1)))\n          (export (;3;) \"item\" (type (eq 2)))\n          (type (;4;) (func (param \"x\" 3) (result string)))\n          (export (;0;) \"run\" (func (type 4)))\n        )\n      )\n      (export (;0;) \"example:dep/api@1.0.0\" (instance (type 0)))\n    )\n  )\n  (export (;1;) \"api\" (type 0))\n  (type (;2;)\n    (component\n      (type (;0;)\n        (component\n          (type (;0;)\n            (instance\n              (type (;0;) u32)\n              (export (;1;) \"id\" (type (eq 0)))\n              (type (;2;) (record (field \"id\" 1)))\n              (export (;3;) \"item\" (type (eq 2)))\n              (type (;4;) (func (param \"x\" 3) (result string)))\n              (export (;0;) \"run\" (func (type 4)))\n            )\n          )\n          (import \"example:dep/api@1.0.0\" (instance (;0;) (type 0)))\n          (type (;1;)\n            (instance\n              (type (;0;) u32)\n              (export (;1;) \"id\" (type (eq 0)))\n              (type (;2;) (record (field \"id\" 1)))\n              (export (;3;) \"item\" (type (eq 2)))\n              (type (;4;) (func (param \"x\" 3) (result string)))\n              (export (;0;) \"run\" (func (type 4)))\n            )\n          )\n          (export (;1;) \"example:dep/api@1.0.0\" (instance (type 1)))\n        )\n      )\n      (export (;0;) \"example:dep/app@1.0.0\" (component (type 0)))\n    )\n  )\n  (export (;3;) \"app\" (type 2))\n  (@custom \"package-docs\" \"\\01{}\")\n  (@producers\n    (processed-by \"wit-component\" \"0.262.0\")\n  )\n)\n",
+  )
+  @fs.write_file(
+    encoded_world, "package example:app;world app{import example:dep/api@1.0.0;}",
+  )
+  let (binary_summary, _) = run(["verify", encoded_binary, "--json"], 0, wit)
+  let (wat_summary, _) = run(["verify", encoded_wat, "--json"], 0, wit)
+  assert_eq(binary_summary, wat_summary)
+  let (encoded_summary, _) = run(["verify", encoded_world, "--json"], 0, wit)
+  assert_true(encoded_summary.contains("example:dep/api@1.0.0"))
+  let _ = run(
+    ["verify", "--language", "wit", "--base", encoded_dir],
+    0,
+    encoded_world,
+  )
+  let _ = run(
+    ["verify", encoded_world, "--dep", "example:dep=standalone/dep.wat"],
+    0,
+    wit,
+  )
+  let (_, encoded_mapping_error) = run(
+    ["verify", encoded_world, "--dep", "wrong:package=deps/dep.wasm"],
+    1,
+    wit,
+  )
+  assert_true(encoded_mapping_error.contains("WIT-S011"))
+  assert_true(encoded_mapping_error.contains("dep.wasm:[binary]"))
+  let (_, encoded_world_error) = run(
+    ["verify", encoded_binary, "--world", "missing"],
+    1,
+    wit,
+  )
+  assert_true(encoded_world_error.contains("dep.wasm:[binary]"))
+  let broken_binary = encoded_dir + "/broken.wasm"
+  @fs.write_file(broken_binary, b"\x00asm")
+  let (_, encoded_error) = run(["verify", broken_binary], 1, wit)
+  assert_true(encoded_error.contains("WIT-B001"))
+  let _ = run(["verify", encoded_dir + "/missing.wasm"], 2, wit)
+  assert_eq(@fs.read_file(encoded_binary).binary(), encoded_bytes)
+  let source_with_binary_suffix = encoded_dir + "/source.wasm"
+  @fs.mkdir(source_with_binary_suffix, recursive=true, allow_exist=true)
+  @fs.write_file(
+    source_with_binary_suffix + "/api.wit",
+    "package example:source;interface api{}",
+  )
+  let _ = run(["verify", source_with_binary_suffix], 0, wit)
+  let (alias_binary, _) = run(
+    ["verify", "tests/semantic/wit-encoded-alias-renamed.wasm", "--json"],
+    0,
+    wit,
+  )
+  let (alias_wat, _) = run(
+    ["verify", "tests/semantic/wit-encoded-alias-renamed.wat", "--json"],
+    0,
+    wit,
+  )
+  assert_eq(alias_binary, alias_wat)
+  let alias_root = dir + "/alias-root.wit"
+  @fs.write_file(
+    alias_root, "package example:consumer;world app{import example:aliases/api@1.0.0;}",
+  )
+  let (alias_closure, _) = run(
+    [
+      "verify", alias_root, "--base", ".", "--dep", "example:aliases=tests/semantic/wit-encoded-alias-local.wasm",
+      "--json",
+    ],
+    0,
+    wit,
+  )
+  assert_true(alias_closure.contains("example:aliases/base@1.0.0"))
+  assert_true(alias_closure.contains("example:aliases/api@1.0.0"))
+  let (foreign_binary, _) = run(
+    ["verify", "tests/semantic/wit-encoded-foreign-unioned.wasm", "--json"],
+    0,
+    wit,
+  )
+  let (foreign_wat, _) = run(
+    ["verify", "tests/semantic/wit-encoded-foreign-unioned.wat", "--json"],
+    0,
+    wit,
+  )
+  assert_eq(foreign_binary, foreign_wat)
+  assert_true(foreign_binary.contains("example:dep/base@2.0.0"))
+  let _ = run(
+    [
+      "verify", "tests/semantic/wit-encoded-foreign-closure-complete.wit", "--language",
+      "wit", "--json",
+    ],
+    0,
+    wit,
+  )
+  let (_, foreign_merge_error) = run(
+    [
+      "verify", "tests/semantic/wit-encoded-foreign-closure-bad-result.wit", "--language",
+      "wit",
+    ],
+    1,
+    wit,
+  )
+  assert_true(foreign_merge_error.contains("WIT-B004"))
+  let foreign_source = dir + "/foreign-base.wit"
+  @fs.write_file(
+    foreign_source, "package example:dep@2.0.0;interface base{resource r;}",
+  )
+  let (foreign_mixed, _) = run(
+    [
+      "verify",
+      "tests/semantic/wit-encoded-foreign-unioned.wasm",
+      "--base",
+      ".",
+      "--dep",
+      "example:dep=" + foreign_source,
+      "--json",
+    ],
+    0,
+    wit,
+  )
+  assert_eq(foreign_mixed, foreign_binary)
+  for fixture in ["functions", "methods"] {
+    let path = "tests/semantic/wit-encoded-selected-" + fixture + ".wit"
+    let _ = run(["verify", path, "--json"], 0, wit)
+    let _ = run(["verify", path, "--semantic-feature", "other"], 0, wit)
+    let (_, selected_error) = run(
+      ["verify", path, "--semantic-feature", "hidden"],
+      1,
+      wit,
+    )
+    assert_true(selected_error.contains("WIT-B004"))
+    let _ = run(["verify", path, "--all-semantic-features"], 1, wit)
+  }
+  let (world_resources, _) = run(
+    ["verify", "tests/semantic/wit-encoded-world-rich.wasm", "--json"],
+    0,
+    wit,
+  )
+  let (world_resource_wat, _) = run(
+    ["verify", "tests/semantic/wit-encoded-world-rich.wat", "--json"],
+    0,
+    wit,
+  )
+  assert_eq(world_resources, world_resource_wat)
+  assert_true(world_resources.contains("[constructor]r"))
+  assert_true(world_resources.contains("[method]r.f"))
+  let (world_metadata, _) = run(
+    ["verify", "tests/semantic/wit-encoded-world-metadata.wasm", "--json"],
+    0,
+    wit,
+  )
+  let (world_metadata_all, _) = run(
+    [
+      "verify", "tests/semantic/wit-encoded-world-metadata.wasm", "--all-semantic-features",
+      "--json",
+    ],
+    0,
+    wit,
+  )
+  assert_eq(world_metadata, world_metadata_all)
+  for name in ["foreign-use-chain", "implements", "maps", "wasi-http"] {
+    let path = "tests/semantic/wit-encoded-upstream/" + name
+    let (binary_model, _) = run(["verify", path + ".wasm", "--json"], 0, wit)
+    let (wat_model, _) = run(["verify", path + ".wat", "--json"], 0, wit)
+    assert_eq(binary_model, wat_model)
+  }
+  let (included_handles, _) = run(
+    ["verify", "tests/semantic/wit-encoded-handle-world-include.wasm", "--json"],
+    0,
+    wit,
+  )
+  let (included_handles_wat, _) = run(
+    ["verify", "tests/semantic/wit-encoded-handle-world-include.wat", "--json"],
+    0,
+    wit,
+  )
+  assert_eq(included_handles, included_handles_wat)
+  for name in ["basic", "values", "distinct", "collision", "interface"] {
+    let path = "tests/semantic/wit-encoded-direct-" + name
+    let (binary_model, _) = run(["verify", path + ".wasm", "--json"], 0, wit)
+    let (wat_model, _) = run(["verify", path + ".wat", "--json"], 0, wit)
+    assert_eq(binary_model, wat_model)
+  }
+  for name in ["methods", "world-types", "escapes", "named-path", "underscores"] {
+    let path = "tests/semantic/wit-external-id-" + name
+    let (source_model, _) = run(["verify", path + ".wit", "--json"], 0, wit)
+    let (binary_model, _) = run(["verify", path + ".wasm", "--json"], 0, wit)
+    let (wat_model, _) = run(["verify", path + ".wat", "--json"], 0, wit)
+    assert_eq(source_model, binary_model)
+    assert_eq(binary_model, wat_model)
+  }
+  for name in ["model", "foreign"] {
+    let path = "tests/semantic/wit-version-suffix-" + name
+    let (source_model, _) = run(["verify", path + ".wit", "--json"], 0, wit)
+    let (binary_model, _) = run(["verify", path + ".wasm", "--json"], 0, wit)
+    let (wat_model, _) = run(["verify", path + ".wat", "--json"], 0, wit)
+    assert_eq(source_model, binary_model)
+    assert_eq(binary_model, wat_model)
+  }
+  for extension in ["wasm", "wat"] {
+    let _ = run(
+      [
+        "verify",
+        "tests/semantic/wit-version-suffix-foreign." + extension,
+        "--base",
+        ".",
+        "--dep",
+        "test:dep@1.0.0=tests/semantic/wit-version-suffix-supplied.wit",
+      ],
+      0,
+      wit,
+    )
+  }
+  let stability_path = "tests/semantic/wit-merge-stability-rich"
+  let stability_dep = "test:dep@1.0.0=tests/semantic/wit-merge-stability-rich-source.wit"
+  let (stability_binary, _) = run(
+    [
+      "verify",
+      stability_path + ".wasm",
+      "--base",
+      ".",
+      "--dep",
+      stability_dep,
+      "--json",
+    ],
+    0,
+    wit,
+  )
+  let (stability_wat, _) = run(
+    [
+      "verify",
+      stability_path + ".wat",
+      "--base",
+      ".",
+      "--dep",
+      stability_dep,
+      "--json",
+    ],
+    0,
+    wit,
+  )
+  assert_eq(stability_binary, stability_wat)
+  let (_, nominal_merge_error) = run(
+    [
+      "verify", "tests/semantic/wit-merge-stability-resource-body.wasm", "--base",
+      ".", "--dep", "test:dep=tests/semantic/wit-merge-stability-resource-source.wit",
+    ],
+    1,
+    wit,
+  )
+  assert_true(nominal_merge_error.contains("WIT-B004"))
+  let encoded_methods = dir + "/encoded-methods.wasm"
+  let encoded_method_bytes = b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x07\xc6\x03\x01\x41\x02\x01\x42\x1d\x04\x00\x04\x66\x69\x6c\x65\x03\x01\x04\x00\x06\x73\x74\x72\x65\x61\x6d\x03\x01\x01\x69\x00\x01\x6a\x01\x02\x01\x73\x01\x40\x01\x04\x70\x61\x74\x68\x73\x00\x03\x04\x00\x11\x5b\x63\x6f\x6e\x73\x74\x72\x75\x63\x74\x6f\x72\x5d\x66\x69\x6c\x65\x01\x04\x01\x68\x00\x01\x70\x7d\x01\x43\x02\x04\x73\x65\x6c\x66\x05\x01\x6e\x79\x00\x06\x04\x00\x11\x5b\x6d\x65\x74\x68\x6f\x64\x5d\x66\x69\x6c\x65\x2e\x72\x65\x61\x64\x01\x07\x01\x40\x01\x04\x73\x65\x6c\x66\x05\x01\x00\x04\x00\x12\x5b\x6d\x65\x74\x68\x6f\x64\x5d\x66\x69\x6c\x65\x2e\x63\x6c\x6f\x73\x65\x01\x08\x01\x40\x01\x04\x70\x61\x74\x68\x73\x00\x02\x04\x00\x11\x5b\x73\x74\x61\x74\x69\x63\x5d\x66\x69\x6c\x65\x2e\x6f\x70\x65\x6e\x01\x09\x01\x40\x01\x04\x73\x65\x6c\x66\x05\x00\x77\x04\x00\x1a\x5b\x6d\x65\x74\x68\x6f\x64\x5d\x5b\x67\x65\x74\x5d\x66\x69\x6c\x65\x2e\x70\x6f\x73\x69\x74\x69\x6f\x6e\x01\x0a\x01\x40\x02\x04\x73\x65\x6c\x66\x05\x05\x76\x61\x6c\x75\x65\x77\x01\x00\x04\x00\x1a\x5b\x6d\x65\x74\x68\x6f\x64\x5d\x5b\x73\x65\x74\x5d\x66\x69\x6c\x65\x2e\x70\x6f\x73\x69\x74\x69\x6f\x6e\x01\x0b\x01\x40\x00\x00\x77\x04\x00\x18\x5b\x73\x74\x61\x74\x69\x63\x5d\x5b\x67\x65\x74\x5d\x66\x69\x6c\x65\x2e\x73\x68\x61\x72\x65\x64\x01\x0c\x01\x40\x01\x05\x76\x61\x6c\x75\x65\x77\x01\x00\x04\x00\x18\x5b\x73\x74\x61\x74\x69\x63\x5d\x5b\x73\x65\x74\x5d\x66\x69\x6c\x65\x2e\x73\x68\x61\x72\x65\x64\x01\x0d\x01\x69\x01\x01\x40\x00\x00\x0e\x04\x00\x13\x5b\x63\x6f\x6e\x73\x74\x72\x75\x63\x74\x6f\x72\x5d\x73\x74\x72\x65\x61\x6d\x01\x0f\x01\x40\x00\x00\x7f\x04\x00\x0a\x5b\x67\x65\x74\x5d\x72\x65\x61\x64\x79\x01\x10\x01\x40\x01\x05\x76\x61\x6c\x75\x65\x7f\x01\x00\x04\x00\x0a\x5b\x73\x65\x74\x5d\x72\x65\x61\x64\x79\x01\x11\x04\x00\x1b\x65\x78\x61\x6d\x70\x6c\x65\x3a\x6d\x65\x74\x68\x6f\x64\x73\x2f\x66\x69\x6c\x65\x73\x40\x31\x2e\x30\x2e\x30\x05\x00\x0b\x0b\x01\x00\x05\x66\x69\x6c\x65\x73\x03\x00\x00\x07\xaa\x07\x01\x41\x02\x01\x41\x04\x01\x42\x1d\x04\x00\x04\x66\x69\x6c\x65\x03\x01\x04\x00\x06\x73\x74\x72\x65\x61\x6d\x03\x01\x01\x69\x00\x01\x6a\x01\x02\x01\x73\x01\x40\x01\x04\x70\x61\x74\x68\x73\x00\x03\x04\x00\x11\x5b\x63\x6f\x6e\x73\x74\x72\x75\x63\x74\x6f\x72\x5d\x66\x69\x6c\x65\x01\x04\x01\x68\x00\x01\x70\x7d\x01\x43\x02\x04\x73\x65\x6c\x66\x05\x01\x6e\x79\x00\x06\x04\x00\x11\x5b\x6d\x65\x74\x68\x6f\x64\x5d\x66\x69\x6c\x65\x2e\x72\x65\x61\x64\x01\x07\x01\x40\x01\x04\x73\x65\x6c\x66\x05\x01\x00\x04\x00\x12\x5b\x6d\x65\x74\x68\x6f\x64\x5d\x66\x69\x6c\x65\x2e\x63\x6c\x6f\x73\x65\x01\x08\x01\x40\x01\x04\x70\x61\x74\x68\x73\x00\x02\x04\x00\x11\x5b\x73\x74\x61\x74\x69\x63\x5d\x66\x69\x6c\x65\x2e\x6f\x70\x65\x6e\x01\x09\x01\x40\x01\x04\x73\x65\x6c\x66\x05\x00\x77\x04\x00\x1a\x5b\x6d\x65\x74\x68\x6f\x64\x5d\x5b\x67\x65\x74\x5d\x66\x69\x6c\x65\x2e\x70\x6f\x73\x69\x74\x69\x6f\x6e\x01\x0a\x01\x40\x02\x04\x73\x65\x6c\x66\x05\x05\x76\x61\x6c\x75\x65\x77\x01\x00\x04\x00\x1a\x5b\x6d\x65\x74\x68\x6f\x64\x5d\x5b\x73\x65\x74\x5d\x66\x69\x6c\x65\x2e\x70\x6f\x73\x69\x74\x69\x6f\x6e\x01\x0b\x01\x40\x00\x00\x77\x04\x00\x18\x5b\x73\x74\x61\x74\x69\x63\x5d\x5b\x67\x65\x74\x5d\x66\x69\x6c\x65\x2e\x73\x68\x61\x72\x65\x64\x01\x0c\x01\x40\x01\x05\x76\x61\x6c\x75\x65\x77\x01\x00\x04\x00\x18\x5b\x73\x74\x61\x74\x69\x63\x5d\x5b\x73\x65\x74\x5d\x66\x69\x6c\x65\x2e\x73\x68\x61\x72\x65\x64\x01\x0d\x01\x69\x01\x01\x40\x00\x00\x0e\x04\x00\x13\x5b\x63\x6f\x6e\x73\x74\x72\x75\x63\x74\x6f\x72\x5d\x73\x74\x72\x65\x61\x6d\x01\x0f\x01\x40\x00\x00\x7f\x04\x00\x0a\x5b\x67\x65\x74\x5d\x72\x65\x61\x64\x79\x01\x10\x01\x40\x01\x05\x76\x61\x6c\x75\x65\x7f\x01\x00\x04\x00\x0a\x5b\x73\x65\x74\x5d\x72\x65\x61\x64\x79\x01\x11\x03\x00\x1b\x65\x78\x61\x6d\x70\x6c\x65\x3a\x6d\x65\x74\x68\x6f\x64\x73\x2f\x66\x69\x6c\x65\x73\x40\x31\x2e\x30\x2e\x30\x05\x00\x01\x42\x1d\x04\x00\x04\x66\x69\x6c\x65\x03\x01\x04\x00\x06\x73\x74\x72\x65\x61\x6d\x03\x01\x01\x69\x00\x01\x6a\x01\x02\x01\x73\x01\x40\x01\x04\x70\x61\x74\x68\x73\x00\x03\x04\x00\x11\x5b\x63\x6f\x6e\x73\x74\x72\x75\x63\x74\x6f\x72\x5d\x66\x69\x6c\x65\x01\x04\x01\x68\x00\x01\x70\x7d\x01\x43\x02\x04\x73\x65\x6c\x66\x05\x01\x6e\x79\x00\x06\x04\x00\x11\x5b\x6d\x65\x74\x68\x6f\x64\x5d\x66\x69\x6c\x65\x2e\x72\x65\x61\x64\x01\x07\x01\x40\x01\x04\x73\x65\x6c\x66\x05\x01\x00\x04\x00\x12\x5b\x6d\x65\x74\x68\x6f\x64\x5d\x66\x69\x6c\x65\x2e\x63\x6c\x6f\x73\x65\x01\x08\x01\x40\x01\x04\x70\x61\x74\x68\x73\x00\x02\x04\x00\x11\x5b\x73\x74\x61\x74\x69\x63\x5d\x66\x69\x6c\x65\x2e\x6f\x70\x65\x6e\x01\x09\x01\x40\x01\x04\x73\x65\x6c\x66\x05\x00\x77\x04\x00\x1a\x5b\x6d\x65\x74\x68\x6f\x64\x5d\x5b\x67\x65\x74\x5d\x66\x69\x6c\x65\x2e\x70\x6f\x73\x69\x74\x69\x6f\x6e\x01\x0a\x01\x40\x02\x04\x73\x65\x6c\x66\x05\x05\x76\x61\x6c\x75\x65\x77\x01\x00\x04\x00\x1a\x5b\x6d\x65\x74\x68\x6f\x64\x5d\x5b\x73\x65\x74\x5d\x66\x69\x6c\x65\x2e\x70\x6f\x73\x69\x74\x69\x6f\x6e\x01\x0b\x01\x40\x00\x00\x77\x04\x00\x18\x5b\x73\x74\x61\x74\x69\x63\x5d\x5b\x67\x65\x74\x5d\x66\x69\x6c\x65\x2e\x73\x68\x61\x72\x65\x64\x01\x0c\x01\x40\x01\x05\x76\x61\x6c\x75\x65\x77\x01\x00\x04\x00\x18\x5b\x73\x74\x61\x74\x69\x63\x5d\x5b\x73\x65\x74\x5d\x66\x69\x6c\x65\x2e\x73\x68\x61\x72\x65\x64\x01\x0d\x01\x69\x01\x01\x40\x00\x00\x0e\x04\x00\x13\x5b\x63\x6f\x6e\x73\x74\x72\x75\x63\x74\x6f\x72\x5d\x73\x74\x72\x65\x61\x6d\x01\x0f\x01\x40\x00\x00\x7f\x04\x00\x0a\x5b\x67\x65\x74\x5d\x72\x65\x61\x64\x79\x01\x10\x01\x40\x01\x05\x76\x61\x6c\x75\x65\x7f\x01\x00\x04\x00\x0a\x5b\x73\x65\x74\x5d\x72\x65\x61\x64\x79\x01\x11\x04\x00\x1b\x65\x78\x61\x6d\x70\x6c\x65\x3a\x6d\x65\x74\x68\x6f\x64\x73\x2f\x66\x69\x6c\x65\x73\x40\x31\x2e\x30\x2e\x30\x05\x01\x04\x00\x19\x65\x78\x61\x6d\x70\x6c\x65\x3a\x6d\x65\x74\x68\x6f\x64\x73\x2f\x61\x70\x70\x40\x31\x2e\x30\x2e\x30\x04\x00\x0b\x09\x01\x00\x03\x61\x70\x70\x03\x02\x00\x00\x10\x0c\x70\x61\x63\x6b\x61\x67\x65\x2d\x64\x6f\x63\x73\x01\x7b\x7d\x00\x2f\x09\x70\x72\x6f\x64\x75\x63\x65\x72\x73\x01\x0c\x70\x72\x6f\x63\x65\x73\x73\x65\x64\x2d\x62\x79\x01\x0d\x77\x69\x74\x2d\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x07\x30\x2e\x32\x36\x32\x2e\x30"
+  @fs.write_file(encoded_methods, encoded_method_bytes)
+  let (method_summary, _) = run(["verify", encoded_methods, "--json"], 0, wit)
+  assert_true(method_summary.contains("example:methods/files@1.0.0#file"))
+  assert_eq(@fs.read_file(encoded_methods).binary(), encoded_method_bytes)
+  let metadata_file = dir + "/metadata.wasm"
+  let metadata_bytes = @fs.read_file(
+    "tests/semantic/wit-encoded-metadata-world.wasm",
+  ).binary()
+  @fs.write_file(metadata_file, metadata_bytes)
+  let (metadata_summary, _) = run(
+    ["verify", metadata_file, "--world", "app", "--json"],
+    0,
+    wit,
+  )
+  assert_true(metadata_summary.contains("example:metadata/app@1.0.0"))
+  let _ = run(["verify", metadata_file, "--semantic-feature", "inner"], 0, wit)
+  let _ = run(["verify", metadata_file, "--all-semantic-features"], 0, wit)
+  assert_eq(@fs.read_file(metadata_file).binary(), metadata_bytes)
+  let raw_feature_file = dir + "/metadata-feature.wasm"
+  @fs.write_file(
+    raw_feature_file,
+    @fs.read_file(
+      "tests/semantic/wit-encoded-metadata-unstable-raw-feature.wasm",
+    ).binary(),
+  )
+  let _ = run(
+    ["verify", raw_feature_file, "--semantic-feature", "foo bar"],
+    0,
+    wit,
+  )
+  let empty_feature_file = dir + "/metadata-empty-feature.wasm"
+  @fs.write_file(
+    empty_feature_file,
+    @fs.read_file(
+      "tests/semantic/wit-encoded-metadata-unstable-empty-feature.wasm",
+    ).binary(),
+  )
+  let _ = run(["verify", empty_feature_file, "--semantic-feature="], 0, wit)
+  let invalid_metadata_file = dir + "/metadata-invalid.wasm"
+  @fs.write_file(
+    invalid_metadata_file,
+    @fs.read_file("tests/semantic/wit-encoded-metadata-missing-interface.wasm").binary(),
+  )
+  let (_, metadata_error) = run(["verify", invalid_metadata_file], 1, wit)
+  assert_true(metadata_error.contains("WIT-B004"))
+  assert_true(metadata_error.contains("metadata-invalid.wasm:[binary]"))
+  let metadata_sequence = dir + "/metadata-sequence.wasm"
+  @fs.write_file(
+    metadata_sequence,
+    @fs.read_file(
+      "tests/semantic/wit-encoded-metadata-sequence-package-docs.wasm",
+    ).binary(),
+  )
+  let _ = run(["verify", metadata_sequence], 0, wit)
+  @fs.write_file(
+    metadata_sequence,
+    @fs.read_file(
+      "tests/semantic/wit-encoded-metadata-sequence-function-empty.wasm",
+    ).binary(),
+  )
+  let (_, sequence_error) = run(["verify", metadata_sequence], 1, wit)
+  assert_true(sequence_error.contains("WIT-B004"))
+  let wit_provider_dir = dir + "/wac-wit-provider"
+  let wit_provider = wit_provider_dir + "/deps/lookup/types"
+  @fs.mkdir(wit_provider + "/deps/base", recursive=true, allow_exist=true)
+  let wit_composition = wit_provider_dir + "/root.wac"
+  let wit_source = "package embedded:types; interface api {use embedded:base/types.{handle};take:func(h:handle);} world app {import api;}"
+  @fs.write_file(wit_provider + "/root.wit", wit_source)
+  @fs.write_file(
+    wit_provider + "/deps/base/types.wit",
+    "package embedded:base; interface types {resource handle;}",
+  )
+  @fs.write_file(
+    wit_composition, "package test:app; import i: lookup:types/api; export i;",
+  )
+  let _ = run(["verify", wit_composition], 0, wit)
+  let _ = run(
+    ["verify", "-", "--language", "wac", "--base", wit_provider_dir],
+    0,
+    wit_composition,
+  )
+  let (_, explicit_directory) = run(
+    ["verify", wit_composition, "--dep", "lookup:types=deps/lookup/types"],
+    2,
+    wit,
+  )
+  assert_true(explicit_directory.contains("must be a file"))
+  // A single-file override does not discover a sibling deps directory.
+  let (_, single_missing) = run(
+    [
+      "verify", wit_composition, "--dep", "lookup:types=deps/lookup/types/root.wit",
+    ],
+    1,
+    wit,
+  )
+  assert_true(single_missing.contains("root.wit:["))
+  assert_true(single_missing.contains("requested here"))
+  @fs.write_file(
+    wit_provider_dir + "/single.wit",
+    "package embedded:single; interface api {f:func();} world app {import f: func();export out:func();}",
+  )
+  let _ = run(
+    ["verify", wit_composition, "--dep", "lookup:types=single.wit"],
+    0,
+    wit,
+  )
+  @fs.write_file(
+    wit_composition, "package test:app;let i=new lookup:types {};export i.api;",
+  )
+  let _ = run(
+    ["verify", wit_composition, "--dep", "lookup:types=single.wit"],
+    0,
+    wit,
+  )
+  @fs.write_file(
+    wit_composition, "package test:app targets lookup:types/app;import f: func();export f as out;",
+  )
+  let _ = run(
+    ["verify", wit_composition, "--dep", "lookup:types=single.wit"],
+    0,
+    wit,
+  )
+  @fs.write_file(
+    wit_composition, "package test:app targets lookup:types/app;import f: func(x: u32);export f as out;",
+  )
+  let (_, wit_target) = run(
+    ["verify", wit_composition, "--dep", "lookup:types=single.wit"],
+    1,
+    wit,
+  )
+  assert_true(wit_target.contains("WAC-T003"))
+  assert_true(wit_target.contains("single.wit:["))
+  assert_eq(@fs.read_file(wit_provider + "/root.wit").text(), wit_source)
+  let mixed_provider = wit_provider_dir + "/mixed/lookup/types"
+  @fs.mkdir(mixed_provider + "/deps", recursive=true, allow_exist=true)
+  @fs.write_file(
+    mixed_provider + "/root.wit",
+    "package example:types; interface api {use example:dep/types@1.2.3.{handle};take: func(h: handle);} world app {import api;export api;}",
+  )
+  @fs.write_file(
+    mixed_provider + "/deps/dep.wasm",
+    b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x07\x2d\x01\x41\x02\x01\x42\x01\x04\x00\x06\x68\x61\x6e\x64\x6c\x65\x03\x01\x04\x00\x17\x65\x78\x61\x6d\x70\x6c\x65\x3a\x64\x65\x70\x2f\x74\x79\x70\x65\x73\x40\x31\x2e\x32\x2e\x33\x05\x00\x0b\x0b\x01\x00\x05\x74\x79\x70\x65\x73\x03\x00\x00\x00\x10\x0c\x70\x61\x63\x6b\x61\x67\x65\x2d\x64\x6f\x63\x73\x01\x7b\x7d\x00\x2f\x09\x70\x72\x6f\x64\x75\x63\x65\x72\x73\x01\x0c\x70\x72\x6f\x63\x65\x73\x73\x65\x64\x2d\x62\x79\x01\x0d\x77\x69\x74\x2d\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x07\x30\x2e\x32\x35\x38\x2e\x30",
+  )
+  @fs.write_file(
+    wit_composition, "package test:app; import i: lookup:types/api; export i;",
+  )
+  let _ = run(["verify", wit_composition, "--deps-dir", "mixed"], 0, wit)
+  let invalid_deps = wit_provider_dir + "/invalid-deps/lookup/types"
+  @fs.mkdir(invalid_deps, recursive=true, allow_exist=true)
+  @fs.write_file(
+    invalid_deps + "/root.wit",
+    "package example:types;interface api {f:func();}",
+  )
+  @fs.write_file(invalid_deps + "/deps", "not a directory")
+  let (_, invalid_deps_error) = run(
+    ["verify", wit_composition, "--deps-dir", "invalid-deps"],
+    2,
+    wit,
+  )
+  assert_true(invalid_deps_error.contains("WAC-P006"))
+  for extension in ["wasm", "wat"] {
+    for
+      (name, status) in [("function", 0), ("memory", 0), ("wrong-function", 1)] {
+      let root = "tests/semantic/wac-runtime-modules/composition/" + name
+      let (_, diagnostic) = run(
+        [
+          "verify",
+          root + "/input.wac",
+          "--dep",
+          "test:actual=actual." + extension,
+          "--dep",
+          "test:expected=expected." + extension,
+        ],
+        status,
+        wit,
+      )
+      if status == 1 {
+        assert_true(diagnostic.contains("WAC-C005"))
+      }
+    }
+  }
+  for extension in ["wasm", "wat"] {
+    for
+      (name, status) in [
+        ("memory-narrow", 0),
+        ("memory-wide", 1),
+        ("function-equal", 0),
+        ("tag-equal", 0),
+      ] {
+      let root = "tests/semantic/wac-core-modules/composition/" + name
+      let (_, diagnostic) = run(
+        [
+          "verify",
+          root + "/input.wac",
+          "--dep",
+          "test:actual=actual." + extension,
+          "--dep",
+          "test:expected=expected." + extension,
+        ],
+        status,
+        wit,
+      )
+      if status == 1 {
+        assert_true(diagnostic.contains("WAC-C005"))
+      }
+    }
+    let (_, diagnostic) = run(
+      [
+        "verify",
+        "tests/semantic/wac-core-modules/fill/memory-narrow/input.wac",
+        "--dep",
+        "test:a=a." + extension,
+        "--dep",
+        "test:b=b." + extension,
+      ],
+      1,
+      wit,
+    )
+    assert_true(diagnostic.contains("WAC-C005"))
+  }
+  for extension in ["wasm", "wat"] {
+    for
+      (name, status) in [
+        ("scalar", 0),
+        ("string", 0),
+        ("resource-own", 0),
+        ("wrong-realloc", 1),
+      ] {
+      let root = "tests/semantic/wac-canonical-functions/composition/" + name
+      let (_, diagnostic) = run(
+        [
+          "verify",
+          root + "/input.wac",
+          "--dep",
+          "test:canonical=dep." + extension,
+        ],
+        status,
+        wit,
+      )
+      if status == 1 {
+        assert_true(diagnostic.contains("WAC-B003"))
+      }
+    }
+  }
+  for extension in ["wasm", "wat"] {
+    for
+      (name, status) in [
+        ("new-alias", 0),
+        ("destructor-i64-i64", 0),
+        ("destructor-i64-i32", 1),
+      ] {
+      let root = "tests/semantic/wac-resource-intrinsics/composition/" + name
+      let (_, diagnostic) = run(
+        [
+          "verify",
+          root + "/input.wac",
+          "--dep",
+          "test:resource=dep." + extension,
+        ],
+        status,
+        wit,
+      )
+      if status == 1 {
+        assert_true(diagnostic.contains("WAC-B003"))
+      }
+    }
+  }
+  for extension in ["wasm", "wat"] {
+    for
+      (name, status) in [
+        ("function", 0),
+        ("resource-fresh", 0),
+        ("resource-fresh-wrong-use", 1),
+      ] {
+      let root = "tests/semantic/wac-runtime-instances/composition/" + name
+      let (_, diagnostic) = run(
+        [
+          "verify",
+          root + "/input.wac",
+          "--dep",
+          "test:runtime=dep." + extension,
+        ],
+        status,
+        wit,
+      )
+      if status == 1 {
+        assert_true(diagnostic.contains("WAC-B003"))
+      }
+    }
+  }
+  for name in ["hello", "greeter"] {
+    let root = "tests/semantic/wac-core-control/production/" + name
+    let (binary, _) = run(
+      ["verify", root + "/input.wac", "--dep", "test:dep=dep.wasm"],
+      0,
+      wit,
+    )
+    let (text, _) = run(
+      ["verify", root + "/input.wac", "--dep", "test:dep=dep.wat"],
+      0,
+      wit,
+    )
+    assert_eq(binary, text)
+  }
+  for extension in ["wasm", "wat"] {
+    for
+      (name, status) in [
+        ("named-export", 0),
+        ("instance-alias", 0),
+        ("anonymous-private", 0),
+        ("anonymous-export", 1),
+      ] {
+      let root = "tests/semantic/wac-runtime-origins/composition/" + name
+      let (_, diagnostic) = run(
+        [
+          "verify",
+          root + "/input.wac",
+          "--dep",
+          "test:runtime=dep." + extension,
+        ],
+        status,
+        wit,
+      )
+      if status == 1 {
+        assert_true(diagnostic.contains("WAC-B003"))
+      }
+    }
+  }
+  for extension in ["wasm", "wat"] {
+    for
+      (name, status) in [
+        ("inline", 0),
+        ("argument", 0),
+        ("resource-substitution", 0),
+        ("anonymous-value", 1),
+        ("argument-twice", 1),
+      ] {
+      let root = "tests/semantic/wac-runtime-values/composition/" + name
+      let (_, diagnostic) = run(
+        [
+          "verify",
+          root + "/input.wac",
+          "--dep",
+          "test:runtime=dep." + extension,
+        ],
+        status,
+        wit,
+      )
+      if status == 1 {
+        assert_true(diagnostic.contains("WAC-B003"))
+      }
+    }
+  }
+  for extension in ["wasm", "wat"] {
+    for
+      (name, status) in [
+        ("fill", 0),
+        ("forward", 0),
+        ("duplicate-export", 1),
+        ("unused-access", 1),
+      ] {
+      let root = "tests/semantic/wac-value-externs/composition/" + name
+      let (_, diagnostic) = run(
+        ["verify", root + "/input.wac", "--dep", "test:dep=dep." + extension],
+        status,
+        wit,
+      )
+      if status == 1 {
+        assert_true(diagnostic.contains("WAC-C010"))
+      }
+    }
+  }
+  for extension in ["wasm", "wat"] {
+    for
+      (name, status) in [
+        ("http-0.2.0", 0),
+        ("http-0.2.3", 0),
+        ("matched-nested-local-resource", 0),
+        ("crossed-nested-local-resource", 1),
+      ] {
+      let root = "tests/semantic/wac-nested-components/composition/" + name
+      let (_, diagnostic) = run(
+        ["verify", root + "/input.wac", "--dep", "test:nested=dep." + extension],
+        status,
+        wit,
+      )
+      if status == 1 {
+        assert_true(diagnostic.contains("WAC-B003"))
+      }
+    }
+  }
+  // Copyable reader-facing bundles run through every installed/source CLI path.
+  let bundle = "examples/verification/"
+  for
+    command in [
+      ["verify", bundle + "wit", "--language", "wit", "--world", "app"],
+      [
+        "verify",
+        bundle + "wit/app.wit",
+        "--dep",
+        "example:files@1.0.0=deps/files",
+      ],
+      ["verify", bundle + "wac/app.wac"],
+      [
+        "verify",
+        bundle + "wac/implicit.wac",
+        "--dep",
+        "example:relay=deps/example/relay.wat",
+      ],
+    ] {
+    run(command, 0, wit) |> ignore
+  }
+  for
+    (language, path, base) in [
+      ("wit", bundle + "wit/app.wit", bundle + "wit"),
+      ("wac", bundle + "wac/app.wac", bundle + "wac"),
+    ] {
+    let before = @fs.read_file(path).text()
+    run(["verify", "-", "--language", language, "--base", base], 0, path)
+    |> ignore
+    assert_eq(@fs.read_file(path).text(), before)
+  }
+  let (_, invalid_resource) = run(
+    ["verify", bundle + "invalid.wit", "--deps-dir", "wit/deps"],
+    1,
+    wit,
+  )
+  assert_true(invalid_resource.contains("invalid.wit:6:9: error WIT-S007"))
+  let (_, invalid_wiring) = run(["verify", bundle + "wac/invalid.wac"], 1, wit)
+  assert_true(invalid_wiring.contains("invalid.wac:4:33: error WAC-C005"))
+  assert_true(
+    invalid_wiring.contains(
+      "deps/example/relay.wat:[binary]: expected type declared here",
+    ),
+  )
+  let (_, invalid_target) = run(
+    ["verify", bundle + "wac/target-invalid.wac"],
+    1,
+    wit,
+  )
+  assert_true(invalid_target.contains("WAC-T002"))
+  assert_true(invalid_target.contains("deps/example/types/api.wit"))
   println("CLI smoke checks passed")
 }

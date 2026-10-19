@@ -1,0 +1,1 @@
+package example:types; package example:dep {interface base {type count=u32;}} interface api {use example:dep/base.{count};f:func(n:count);}

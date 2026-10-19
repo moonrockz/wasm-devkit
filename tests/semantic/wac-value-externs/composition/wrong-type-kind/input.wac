@@ -1,0 +1,1 @@
+package test:app; type v = u32; let i = new test:dep {v}; export i.v;

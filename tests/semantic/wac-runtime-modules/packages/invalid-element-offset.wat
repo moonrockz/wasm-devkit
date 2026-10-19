@@ -1,0 +1,1 @@
+(component (core module $m (table 1 funcref) (elem (i64.const 0) func)) (export "module" (core module $m)))

@@ -1,0 +1,1 @@
+(component (type $c (component)) (import "c" (component $c (type $c))) (instance $i (export "c" (component $c))) (alias export $i "c" (component $again)) (instance $result (instantiate $again)) (export "result" (instance $result)))

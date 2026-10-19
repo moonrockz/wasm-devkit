@@ -1,0 +1,1 @@
+(component (type (component (type (instance (export "r" (type (sub resource))) (export "other" (type (sub resource))) (alias outer 0 0 (type)) (type (borrow 2)) (type (func (param "self" 3))) (export "[method]r.m" (func (type 4))))) (export "example:current/api" (instance (type 0))))) (export "api" (type 0)))

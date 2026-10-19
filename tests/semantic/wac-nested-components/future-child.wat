@@ -1,0 +1,1 @@
+(component (instance $i (instantiate 0)) (component $c))

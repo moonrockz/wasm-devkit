@@ -1,0 +1,1 @@
+(component (core module $m (import "a:b" "c" (func)) (import "a" "b:c" (func))) (export "module" (core module $m)))

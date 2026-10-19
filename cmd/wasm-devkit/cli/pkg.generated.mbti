@@ -12,6 +12,12 @@ pub fn execute(Options, String) -> Output
 
 pub let help : String
 
+pub fn render_wac_diagnostics(ReadOnlyArray[@moonrockz/wac/verifier.Diagnostic], String, String) -> String
+
+pub fn render_wit_diagnostics(ReadOnlyArray[@moonrockz/wit/verifier.Diagnostic], ReadOnlyArray[(String, String)]) -> String
+
+pub fn verify_wac(Options, String, dependencies? : ReadOnlyArray[@moonrockz/wac/verifier.PackageSource], wit_dependencies? : ReadOnlyArray[@moonrockz/wac/verifier.WitPackageSource]) -> Output
+
 pub fn version() -> String
 
 // Errors
@@ -28,6 +34,7 @@ pub fn Action::to_repr(Self) -> @debug.Repr
 
 pub(all) enum Command {
   Parse
+  Verify
   Ast
   Cst
   Tokens
@@ -37,6 +44,14 @@ pub(all) enum Command {
 pub fn Command::equal(Self, Self) -> Bool
 pub fn Command::not_equal(Self, Self) -> Bool
 pub fn Command::to_repr(Self) -> @debug.Repr
+
+pub(all) struct DependencyMapping {
+  name : String
+  path : String
+} derive(Eq, @debug.Debug)
+pub fn DependencyMapping::equal(Self, Self) -> Bool
+pub fn DependencyMapping::not_equal(Self, Self) -> Bool
+pub fn DependencyMapping::to_repr(Self) -> @debug.Repr
 
 pub(all) enum Language {
   Wit
@@ -51,9 +66,17 @@ pub(all) struct Options {
   language : Language
   path : String
   all_features : Bool
+  semantic_features : ReadOnlyArray[String]
+  all_semantic_features : Bool
   indent_width : Int
   check : Bool
   write : Bool
+  base : String?
+  deps_dir : String?
+  dependencies : ReadOnlyArray[DependencyMapping]
+  world : String?
+  json : Bool
+  registry : RegistryOptions?
 } derive(Eq, @debug.Debug)
 pub fn Options::equal(Self, Self) -> Bool
 pub fn Options::not_equal(Self, Self) -> Bool
@@ -68,6 +91,19 @@ pub(all) struct Output {
 pub fn Output::equal(Self, Self) -> Bool
 pub fn Output::not_equal(Self, Self) -> Bool
 pub fn Output::to_repr(Self) -> @debug.Repr
+
+pub(all) struct RegistryOptions {
+  url : String
+  cache_dir : String?
+  lockfile : String?
+  provider : String
+  config : String?
+  offline : Bool
+  refresh : Bool
+} derive(Eq, @debug.Debug)
+pub fn RegistryOptions::equal(Self, Self) -> Bool
+pub fn RegistryOptions::not_equal(Self, Self) -> Bool
+pub fn RegistryOptions::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

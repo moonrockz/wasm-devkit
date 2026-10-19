@@ -1,0 +1,1 @@
+(component (core type $a (module (export "value" (global funcref)))) (core type $b (module (export "value" (global (ref func))))) (import "m" (core module (type $a))) (export "m" (core module 0) (core module (type $b))))

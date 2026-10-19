@@ -1,0 +1,1 @@
+package test:app; interface left {resource handle; take: func(h: handle);} interface right {resource handle; take: func(h: handle);} import a: left; import b: right; let i=new test:first {handle: a.handle, second: a.take,...}; let j=new test:first {handle: b.handle, first: b.take,...};

@@ -1,0 +1,11 @@
+{
+  "name": "branch-wrong-index",
+  "wasm": 1,
+  "reference": 0,
+  "product": 1,
+  "wasm_error": "error: func 0 failed to validate\n\nCaused by:\n    0: unknown label: branch depth too large (at offset 0x2a)\n",
+  "reference_error": "",
+  "product_error": ".dev/core-control/cases/branch-wrong-index/dep.wasm:[binary]: error WAC-B003: CoreModuleError(\"validate core module: InvalidLabelIndex(2)\")\n.dev/core-control/cases/branch-wrong-index/input.wac:[30,39): package `test:dep` requested here\n",
+  "text_product": 1,
+  "text_error": ".dev/core-control/cases/branch-wrong-index/dep.wat:[binary]: error WAC-B003: CoreModuleError(\"validate core module: InvalidLabelIndex(2)\")\n.dev/core-control/cases/branch-wrong-index/input.wac:[30,39): package `test:dep` requested here\n"
+}

@@ -1,0 +1,1 @@
+(component (core module $m (import "env" "f" (func))) (core instance (instantiate $m (with "env" (instance 0)))))

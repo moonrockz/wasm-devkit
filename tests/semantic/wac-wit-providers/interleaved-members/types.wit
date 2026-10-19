@@ -1,0 +1,1 @@
+package example:types; interface api {f:func();type count=u32;g:func(n:count);record item {x:u8}}

@@ -1,0 +1,1 @@
+package example:app;type a=u8;interface api{type b=a;}

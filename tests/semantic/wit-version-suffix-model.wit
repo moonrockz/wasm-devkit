@@ -1,0 +1,1 @@
+package test:root@1.2.3; interface api { @since(version=1.2.3) resource r { @since(version=1.2.3) constructor(); @since(version=1.2.3) method:func(x:list<u32>); } @since(version=1.2.3) type t=list<u32>; @since(version=1.2.3) f:func(x:option<t>)->tuple<t,r>; } world app { import api; export api; }

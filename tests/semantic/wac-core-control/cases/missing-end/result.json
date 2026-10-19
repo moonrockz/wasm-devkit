@@ -1,0 +1,9 @@
+{
+  "name": "missing-end",
+  "wasm": 1,
+  "reference": 0,
+  "product": 1,
+  "wasm_error": "error: func 0 failed to validate\n\nCaused by:\n    0: control frames remain at end of function body or expression (at offset 0x24)\n",
+  "reference_error": "",
+  "product_error": ".dev/core-control/cases/missing-end/dep.wasm:[byte 36]: error WAC-B001: truncated core type\n.dev/core-control/cases/missing-end/input.wac:[30,39): package `test:dep` requested here\n"
+}

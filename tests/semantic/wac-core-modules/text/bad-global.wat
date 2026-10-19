@@ -1,0 +1,1 @@
+(component (core type (module (export "g" (global (shared (mut i64)))))))

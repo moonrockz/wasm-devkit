@@ -1,0 +1,1987 @@
+// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
+// Modified by wasm-devkit: accessor names and bounded ascription validation.
+
+///|
+/// WebAssembly Component Model validator (partial).
+///
+/// This currently focuses on:
+/// - basic typeidx bounds checks for parsed component types/imports/exports/canon
+/// - basic index-space bounds checks for export/alias/instance references
+///
+/// It is intentionally incomplete; as runtime/linker work lands we can grow this
+/// into a full spec-compliant validator.
+
+///|
+pub(all) suberror ComponentValidationError {
+  InvalidTypeIndex(Int32)
+  TypeIndexNotFuncType(Int32)
+  TypeIndexNotComponentType(Int32)
+  TypeIndexNotInstanceType(Int32)
+  TypeIndexNotDefinedType(Int32)
+  TypeIndexNotResourceType(Int32)
+  InvalidFuncIndex(Int32)
+  InvalidValueIndex(Int32)
+  InvalidComponentIndex(Int32)
+  InvalidInstanceIndex(Int32)
+  InvalidCoreFuncIndex(Int32)
+  InvalidCoreModuleIndex(Int32)
+  InvalidCoreInstanceIndex(Int32)
+  InvalidCoreTypeIndex(Int32)
+  CoreTypeIndexNotModuleType(Int32)
+  InvalidCoreTableIndex(Int32)
+  InvalidCoreMemoryIndex(Int32)
+  InvalidCoreGlobalIndex(Int32)
+  InvalidCoreTagIndex(Int32)
+  DuplicateCanonOption(String)
+  MissingCanonOption(String)
+  CanonExpectedFuncType(Int32)
+  CanonAsyncTypeMismatch(Int32)
+  CanonMemoryNot32Bit(Int32)
+  CanonCoreFuncTypeMismatch(String)
+  CanonOptionNotAllowed(String)
+  ComponentScopeBudgetExceeded
+  CoreContractBudgetExceeded
+  CanonicalBudgetExceeded
+  UnsupportedCanonical
+  UnsupportedCoreSort(Int32)
+  UnsupportedComponentImport
+  UnsupportedComponentExport
+  ExportedImportedFunc(Int32)
+  InvalidKebabName(String)
+  DuplicateImportName(String)
+  DuplicateExportName(String)
+  FuncParamNameConflict(String, String)
+  DuplicateInstantiationArg(String)
+  MissingInstanceExport(Int32, String)
+  MissingCoreInstanceExport(Int32, String)
+  MissingComponentImport(String)
+  ComponentImportTypeMismatch(String)
+  MissingExpectedExport(String)
+  AscribedExportTypeIncompatible
+  UnsupportedFunctionAscription
+  UnsupportedInstanceAscription
+  UnsupportedComponentAscription
+  AliasTargetMismatch(String)
+  SectionParseError(Int32, String)
+  CoreModuleError(String)
+} derive(Debug, Eq)
+
+///|
+/// Keep `Show` behavior while migrating from deprecated `derive(Show)` to
+/// `derive(Debug)`.
+pub impl Show for ComponentValidationError with fn output(self, logger) {
+  logger.write_string(@types.compact_show_repr(Repr(self).to_string()))
+}
+
+///|
+/// Validation knobs for component-model validation.
+///
+/// This validator currently mixes:
+/// - generic component-model structural validation, and
+/// - wasm-tools' WIT-encoding-specific name rules (kebab-case / package names).
+///
+/// Some upstream suites (e.g. wasmtime) use non-kebab import names like "I1".
+/// Keep this configurable so we can validate both suites.
+pub struct ComponentValidationConfig {
+  wit_names : Bool
+  component_implements : Bool
+  canonical_version_suffix : Bool
+  restricted_map_keys : Bool
+  borrowed_value_exports : Bool
+}
+
+///|
+pub fn ComponentValidationConfig::ComponentValidationConfig(
+  wit_names : Bool,
+  component_implements~ : Bool = true,
+  canonical_version_suffix~ : Bool = true,
+  restricted_map_keys~ : Bool = true,
+  borrowed_value_exports~ : Bool = false,
+) -> ComponentValidationConfig {
+  {
+    wit_names,
+    component_implements,
+    canonical_version_suffix,
+    restricted_map_keys,
+    borrowed_value_exports,
+  }
+}
+
+///|
+pub fn ComponentValidationConfig::default() -> ComponentValidationConfig {
+  ComponentValidationConfig(true)
+}
+
+///|
+/// Evidence that a component completed structural validation successfully.
+///
+/// The constructor is package-private. Runtime instantiation boundaries accept
+/// this type instead of a raw component so validation failure cannot be
+/// swallowed before execution.
+struct ValidatedComponent {
+  component_bytes : Bytes
+}
+
+///|
+/// Return the immutable binary snapshot covered by this validation evidence.
+///
+/// `Bytes` has no mutation interface, so returning the stored value cannot
+/// invalidate the evidence or affect later instantiations.
+pub fn ValidatedComponent::component_bytes(self : ValidatedComponent) -> Bytes {
+  self.component_bytes
+}
+
+///|
+priv struct Counts {
+  mut core_scope : Int32
+  mut outer_counts : Array[Counts]
+  mut origin_scope : Int32
+  mut collect_contract : Bool
+  owned_resources : Map[Int32, Bool]
+  contract_imports : Array[(String, @component.SortIdx, Bool)]
+  contract_exports : Array[(String, @component.SortIdx, Bool)]
+  mut core_contracts : @core_types.ContractGraph?
+  type_metadata : Map[Int32, (InstanceMetadata, Int32)]
+  type_origins : Map[Int32, TypeOrigin]
+  visible_origins : Map[TypeOrigin, Bool]
+  visible_resources : Map[Int32, Bool]
+  origin_scopes : Map[(TypeOrigin, Bool), Int32]
+  mut next_origin_scope : Int32
+  instance_metadata : Map[Int32, (InstanceMetadata, Int32)]
+  component_contracts : Map[Int32, (ScopedContractMetadata, Int32)]
+  instance_contracts : Map[Int32, (ScopedContractMetadata, Int32)]
+  mut metadata_remaining : Int32
+  mut ascription_remaining : Int32
+  mut func : Int32
+  mut value : Int32
+  values : Array[ComponentValue]
+  mut component : Int32
+  mut instance : Int32
+  mut core_func : Int32
+  mut core_module : Int32
+  mut core_instance : Int32
+  mut core_type : Int32
+  mut core_table : Int32
+  mut core_memory : Int32
+  mut core_global : Int32
+  mut core_tag : Int32
+}
+
+///|
+priv enum CoreExternType {
+  Func(@types.FuncType)
+  Table(@types.TableType)
+  Memory(@types.MemoryType)
+  Global(@types.GlobalType)
+  Tag(@types.FuncType)
+}
+
+///|
+/// Core module type import signature extracted from the component core-type section.
+priv struct CoreModuleTypeImport {
+  mod_name : String
+  name : String
+  ty : CoreExternType
+}
+
+///|
+priv struct InstanceSig {
+  exports : Map[String, @component.Sort]
+  nested : Map[String, InstanceSig]
+}
+
+///|
+priv struct ParamShape {
+  name : String
+  ty : TypeSig
+} derive(Eq)
+
+///|
+priv struct FuncSigShape {
+  params : Array[ParamShape]
+  result : TypeSig?
+  complete : CompleteFunctionSignature?
+}
+
+///|
+// Preserve the retained validator's legacy equality outside ascription checks.
+// Lossless graph indices are local to each complete signature.
+impl Eq for FuncSigShape with fn equal(a, b) {
+  a.params == b.params && a.result == b.result
+}
+
+///|
+priv enum ExportedTypeInfo {
+  Existing(Int32)
+  Resource(Int32)
+  Opaque
+}
+
+///|
+/// Structural signature for type imports (used to validate instantiation args).
+priv enum TypeSig {
+  Prim(@component.PrimValType)
+  Tuple(Array[TypeSig])
+  Record(Array[TypeFieldSig])
+  Variant(Array[TypeCaseSig])
+  Option(TypeSig)
+  Result(TypeSig?, TypeSig?)
+  List(TypeSig)
+  Flags(Array[String])
+  Enum(Array[String])
+  Resource(Int32)
+  Own(Int32)
+  Borrow(Int32)
+  Other
+} derive(Debug, Eq)
+
+///|
+priv struct TypeFieldSig {
+  name : String
+  ty : TypeSig
+} derive(Debug, Eq)
+
+///|
+priv struct TypeCaseSig {
+  name : String
+  ty : TypeSig?
+} derive(Debug, Eq)
+
+///|
+fn typeidx_of_typesig(
+  sig : TypeSig,
+  type_table : Array[@component.TypeDef?],
+  resource_ids : Array[Int32?],
+) -> Int32? {
+  for i in 0..<type_table.length() {
+    if type_sig_of_typeidx(i, type_table, resource_ids) == sig {
+      return Some(i)
+    }
+  }
+  None
+}
+
+///|
+fn typeidx_of_typesig_prefer_named(
+  sig : TypeSig,
+  type_table : Array[@component.TypeDef?],
+  resource_ids : Array[Int32?],
+  preferred_named_types : Map[Int32, Int32]?,
+) -> Int32? {
+  if preferred_named_types is Some(named_types) {
+    for entry in named_types.iter() {
+      let (idx, _marker) = entry
+      if idx >= 0 &&
+        idx < type_table.length() &&
+        type_sig_of_typeidx(idx, type_table, resource_ids) == sig {
+        return Some(idx)
+      }
+    }
+  }
+  typeidx_of_typesig(sig, type_table, resource_ids)
+}
+
+///|
+fn valtype_of_typesig(
+  sig : TypeSig,
+  type_table : Array[@component.TypeDef?],
+  resource_ids : Array[Int32?],
+  preferred_named_types : Map[Int32, Int32]?,
+) -> @component.ValType? {
+  match sig {
+    Prim(p) => Some(Prim(p))
+    _ =>
+      match
+        typeidx_of_typesig_prefer_named(
+          sig, type_table, resource_ids, preferred_named_types,
+        ) {
+        Some(idx) => Some(TypeIdx(idx))
+        None => None
+      }
+  }
+}
+
+///|
+fn typedef_of_typesig(
+  sig : TypeSig,
+  type_table : Array[@component.TypeDef?],
+  resource_ids : Array[Int32?],
+  preferred_named_types : Map[Int32, Int32]?,
+) -> @component.TypeDef? {
+  match sig {
+    Prim(p) => Some(DefValType(p))
+    Tuple(ts) => {
+      let out : Array[@component.ValType] = []
+      for t in ts {
+        match
+          valtype_of_typesig(t, type_table, resource_ids, preferred_named_types) {
+          Some(v) => out.push(v)
+          None => return None
+        }
+      }
+      Some(Tuple(out))
+    }
+    Record(fields) => {
+      let out : Array[@component.RecordField] = []
+      for f in fields {
+        match
+          valtype_of_typesig(
+            f.ty,
+            type_table,
+            resource_ids,
+            preferred_named_types,
+          ) {
+          Some(v) => out.push({ label: f.name, ty: v, })
+          None => return None
+        }
+      }
+      Some(Record(out))
+    }
+    Variant(cases) => {
+      let out : Array[@component.VariantCase] = []
+      for c in cases {
+        let ty = match c.ty {
+          None => None
+          Some(t) =>
+            match
+              valtype_of_typesig(
+                t, type_table, resource_ids, preferred_named_types,
+              ) {
+              Some(v) => Some(v)
+              None => return None
+            }
+        }
+        out.push({ label: c.name, ty, refines: None, })
+      }
+      Some(Variant(out))
+    }
+    Option(t) =>
+      match
+        valtype_of_typesig(t, type_table, resource_ids, preferred_named_types) {
+        Some(v) => Some(Option(v))
+        None => None
+      }
+    Result(ok, err) => {
+      let ok_v = match ok {
+        None => None
+        Some(t) =>
+          match
+            valtype_of_typesig(
+              t, type_table, resource_ids, preferred_named_types,
+            ) {
+            Some(v) => Some(v)
+            None => return None
+          }
+      }
+      let err_v = match err {
+        None => None
+        Some(t) =>
+          match
+            valtype_of_typesig(
+              t, type_table, resource_ids, preferred_named_types,
+            ) {
+            Some(v) => Some(v)
+            None => return None
+          }
+      }
+      Some(Result(ok_v, err_v))
+    }
+    List(t) =>
+      match
+        valtype_of_typesig(t, type_table, resource_ids, preferred_named_types) {
+        Some(v) => Some(List(v))
+        None => None
+      }
+    Flags(labels) => Some(Flags(labels))
+    Enum(labels) => Some(Enum(labels))
+    Own(rid) =>
+      match
+        typeidx_of_typesig_prefer_named(
+          Resource(rid),
+          type_table,
+          resource_ids,
+          preferred_named_types,
+        ) {
+        Some(idx) => Some(Own(idx))
+        None => None
+      }
+    Borrow(rid) =>
+      match
+        typeidx_of_typesig_prefer_named(
+          Resource(rid),
+          type_table,
+          resource_ids,
+          preferred_named_types,
+        ) {
+        Some(idx) => Some(Borrow(idx))
+        None => None
+      }
+    _ => None
+  }
+}
+
+///|
+fn typesig_contains(sig : TypeSig, hay : Array[TypeSig]) -> Bool {
+  for s in hay {
+    if s == sig {
+      return true
+    }
+  }
+  false
+}
+
+///|
+fn typesig_valid_in_interface(sig : TypeSig, named : Array[TypeSig]) -> Bool {
+  match sig {
+    Prim(_) | Other => true
+    Resource(_) | Flags(_) | Enum(_) => typesig_contains(sig, named)
+    Own(rid) | Borrow(rid) => typesig_contains(Resource(rid), named)
+    Record(fields) =>
+      if !typesig_contains(sig, named) {
+        false
+      } else {
+        for f in fields {
+          if !typesig_valid_in_interface(f.ty, named) {
+            return false
+          }
+        }
+        true
+      }
+    Variant(cases) =>
+      if !typesig_contains(sig, named) {
+        false
+      } else {
+        for c in cases {
+          match c.ty {
+            None => ()
+            Some(t) => if !typesig_valid_in_interface(t, named) { return false }
+          }
+        }
+        true
+      }
+    Tuple(ts) => {
+      for t in ts {
+        if !typesig_valid_in_interface(t, named) {
+          return false
+        }
+      }
+      true
+    }
+    Option(t) => typesig_valid_in_interface(t, named)
+    Result(ok, err) => {
+      match ok {
+        None => ()
+        Some(t) => if !typesig_valid_in_interface(t, named) { return false }
+      }
+      match err {
+        None => ()
+        Some(t) => if !typesig_valid_in_interface(t, named) { return false }
+      }
+      true
+    }
+    List(t) => typesig_valid_in_interface(t, named)
+  }
+}
+
+///|
+fn funcsig_valid_in_interface(
+  sig : FuncSigShape,
+  named : Array[TypeSig],
+) -> Bool {
+  for p in sig.params {
+    if !typesig_valid_in_interface(p.ty, named) {
+      return false
+    }
+  }
+  match sig.result {
+    None => true
+    Some(r) => typesig_valid_in_interface(r, named)
+  }
+}
+
+///|
+fn InstanceSig::empty() -> InstanceSig {
+  { exports: Map([]), nested: Map([]), }
+}
+
+///|
+/// Convert a core index-space (including imports) into a type for validation.
+/// Returns None when the index is out of bounds or for kinds we don't model yet.
+fn core_func_type_of_idx(
+  m : @types.Module,
+  func_idx : Int32,
+) -> @types.FuncType? {
+  // The module here has not been validated -- this is what decides whether
+  // it will be -- so a type index naming a struct is an answer of `None`,
+  // not a crash (ISS-396). The `None` return was already the way to say
+  // "cannot model this"; a wrong-kind index is one more of those.
+  let mut imported = 0
+  for imp in m.imports {
+    if imp.desc is Func(tyidx) {
+      if imported == func_idx {
+        return m.func_type_at(tyidx)
+      }
+      imported += 1
+    }
+  }
+  let local_idx = func_idx - imported
+  if local_idx < 0 || local_idx >= m.funcs.length() {
+    return None
+  }
+  let tyidx = m.funcs[local_idx]
+  m.func_type_at(tyidx)
+}
+
+///|
+fn core_table_type_of_idx(
+  m : @types.Module,
+  table_idx : Int32,
+) -> @types.TableType? {
+  let mut imported = 0
+  for imp in m.imports {
+    if imp.desc is Table(tt) {
+      if imported == table_idx {
+        return Some(tt)
+      }
+      imported += 1
+    }
+  }
+  let local_idx = table_idx - imported
+  if local_idx < 0 || local_idx >= m.tables.length() {
+    return None
+  }
+  Some(m.tables[local_idx].type_)
+}
+
+///|
+fn core_memory_type_of_idx(
+  m : @types.Module,
+  mem_idx : Int32,
+) -> @types.MemoryType? {
+  let mut imported = 0
+  for imp in m.imports {
+    if imp.desc is Memory(mt) {
+      if imported == mem_idx {
+        return Some(mt)
+      }
+      imported += 1
+    }
+  }
+  let local_idx = mem_idx - imported
+  if local_idx < 0 || local_idx >= m.memories.length() {
+    return None
+  }
+  Some(m.memories[local_idx])
+}
+
+///|
+fn core_global_type_of_idx(
+  m : @types.Module,
+  global_idx : Int32,
+) -> @types.GlobalType? {
+  let mut imported = 0
+  for imp in m.imports {
+    if imp.desc is Global(gt) {
+      if imported == global_idx {
+        return Some(gt)
+      }
+      imported += 1
+    }
+  }
+  let local_idx = global_idx - imported
+  if local_idx < 0 || local_idx >= m.globals.length() {
+    return None
+  }
+  Some(m.globals[local_idx].type_)
+}
+
+///|
+fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int32) -> @types.FuncType? {
+  let mut imported = 0
+  for imp in m.imports {
+    if imp.desc is Tag(type_idx) {
+      if imported == tag_idx {
+        return m.func_type_at(type_idx)
+      }
+      imported += 1
+    }
+  }
+  let local_idx = tag_idx - imported
+  if local_idx < 0 || local_idx >= m.tags.length() {
+    return None
+  }
+  m.func_type_at(m.tags[local_idx].type_idx)
+}
+
+///|
+fn core_export_type_of_module(
+  m : @types.Module,
+  ex : @types.Export,
+) -> CoreExternType? {
+  match ex.desc {
+    Func(func_idx) =>
+      match core_func_type_of_idx(m, func_idx) {
+        Some(ft) => Some(Func(ft))
+        None => None
+      }
+    Table(table_idx) =>
+      core_table_type_of_idx(m, table_idx).map(fn(tt) { Table(tt) })
+    Memory(mem_idx) =>
+      core_memory_type_of_idx(m, mem_idx).map(fn(mt) { Memory(mt) })
+    Global(global_idx) =>
+      core_global_type_of_idx(m, global_idx).map(fn(gt) { Global(gt) })
+    Tag(tag_idx) => core_tag_type_of_idx(m, tag_idx).map(ft => Tag(ft))
+  }
+}
+
+///|
+fn core_import_type_of_module(
+  m : @types.Module,
+  desc : @types.ImportDesc,
+) -> CoreExternType? {
+  match desc {
+    Func(tyidx) =>
+      match m.func_type_at(tyidx) {
+        Some(ft) => Some(Func(ft))
+        None => None
+      }
+    Table(tt) => Some(Table(tt))
+    Memory(mt) => Some(Memory(mt))
+    Global(gt) => Some(Global(gt))
+    Tag(type_idx) => m.func_type_at(type_idx).map(ft => Tag(ft))
+  }
+}
+
+///|
+fn limits_import_compatible(
+  expected : @types.Limits,
+  provided : @types.Limits,
+) -> Bool {
+  if provided.min < expected.min {
+    return false
+  }
+  match expected.max {
+    None => true
+    Some(emax) =>
+      match provided.max {
+        Some(pmax) => pmax <= emax
+        None => false
+      }
+  }
+}
+
+///|
+fn core_import_compatible(
+  expected : CoreExternType,
+  provided : CoreExternType,
+) -> Bool {
+  match (expected, provided) {
+    (Func(a), Func(b)) | (Tag(a), Tag(b)) => a == b
+    (Global(a), Global(b)) => a == b
+    (Table(a), Table(b)) =>
+      a.elem_type == b.elem_type &&
+      a.is_table64 == b.is_table64 &&
+      limits_import_compatible(a.limits, b.limits)
+    (Memory(a), Memory(b)) =>
+      a.is_memory64 == b.is_memory64 &&
+      a.is_shared == b.is_shared &&
+      a.page_size_log2 == b.page_size_log2 &&
+      limits_import_compatible(a.limits, b.limits)
+    _ => false
+  }
+}
+
+///|
+fn core_kind_of_extern_type(ty : CoreExternType) -> Int32 {
+  match ty {
+    Func(_) => 0x00
+    Table(_) => 0x01
+    Memory(_) => 0x02
+    Global(_) => 0x03
+    Tag(_) => 0x04
+  }
+}
+
+///|
+/// Core module import signature keyed by "<module>::<name>".
+fn core_module_import_sig_of_module(
+  m : @types.Module,
+) -> Map[String, CoreExternType] {
+  let out : Map[String, CoreExternType] = Map([])
+  for imp in m.imports {
+    if core_import_type_of_module(m, imp.desc) is Some(ty) {
+      out.set("\{imp.mod_name}::\{imp.name}", ty)
+    }
+  }
+  out
+}
+
+///|
+fn core_module_import_sig_of_type(
+  sig : Array[CoreModuleTypeImport],
+) -> Map[String, CoreExternType] {
+  let out : Map[String, CoreExternType] = Map([])
+  for imp in sig {
+    out.set("\{imp.mod_name}::\{imp.name}", imp.ty)
+  }
+  out
+}
+
+///|
+fn core_module_import_sig_of_idx(
+  idx : Int32,
+  core_module_defs : Array[@types.Module?],
+  core_module_type_imports : Array[Array[CoreModuleTypeImport]?],
+) -> Map[String, CoreExternType]? {
+  if idx < 0 || idx >= core_module_defs.length() {
+    return None
+  }
+  match core_module_defs[idx] {
+    Some(m) => Some(core_module_import_sig_of_module(m))
+    None =>
+      if idx >= 0 && idx < core_module_type_imports.length() {
+        match core_module_type_imports[idx] {
+          Some(sig) => Some(core_module_import_sig_of_type(sig))
+          None => None
+        }
+      } else {
+        None
+      }
+  }
+}
+
+///|
+/// For core module types, imports are contravariant: a provided module may
+/// require fewer (or more general) imports than the type describes.
+fn check_core_module_import_subtype(
+  actual : Map[String, CoreExternType]?,
+  expected : Map[String, CoreExternType],
+) -> Unit raise ComponentValidationError {
+  if actual is Some(map) {
+    for kv in map.iter() {
+      let (key, actual_ty) = kv
+      match expected.get(key) {
+        None => raise ComponentImportTypeMismatch("import \{key}")
+        Some(expected_ty) =>
+          if !core_import_compatible(actual_ty, expected_ty) {
+            raise ComponentImportTypeMismatch("import \{key}")
+          }
+      }
+    }
+  }
+}
+
+///|
+fn Counts::Counts() -> Counts {
+  {
+    core_scope: 0,
+    outer_counts: [],
+    origin_scope: 0,
+    collect_contract: false,
+    owned_resources: Map([]),
+    contract_imports: [],
+    contract_exports: [],
+    type_metadata: Map([]),
+    type_origins: Map([]),
+    visible_origins: Map([]),
+    visible_resources: Map([]),
+    origin_scopes: Map([]),
+    next_origin_scope: 1,
+    instance_metadata: Map([]),
+    component_contracts: Map([]),
+    instance_contracts: Map([]),
+    core_contracts: None,
+    metadata_remaining: 1000000,
+    ascription_remaining: 1000000,
+    func: 0,
+    value: 0,
+    values: [],
+    component: 0,
+    instance: 0,
+    core_func: 0,
+    core_module: 0,
+    core_instance: 0,
+    core_type: 0,
+    core_table: 0,
+    core_memory: 0,
+    core_global: 0,
+    core_tag: 0,
+  }
+}
+
+///|
+fn is_ascii_letter(b : Byte) -> Bool {
+  let n = b.to_int()
+  (n >= 0x41 && n <= 0x5A) || (n >= 0x61 && n <= 0x7A)
+}
+
+///|
+fn is_ascii_lower(b : Byte) -> Bool {
+  let n = b.to_int()
+  n >= 0x61 && n <= 0x7A
+}
+
+///|
+fn is_ascii_digit(b : Byte) -> Bool {
+  let n = b.to_int()
+  n >= 0x30 && n <= 0x39
+}
+
+///|
+fn is_semver_ident_char(b : Byte) -> Bool {
+  is_ascii_letter(b) || is_ascii_digit(b) || b.to_int() == 0x2D // '-'
+}
+
+///|
+fn is_lower_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
+  if start < 0 || end_ < 0 || start >= end_ || end_ > name.length() {
+    return false
+  }
+  let mut first = true
+  let mut prev_dash = false
+  for i in start..<end_ {
+    let b = name[i]
+    if first {
+      if !is_ascii_lower(b) {
+        return false
+      }
+      first = false
+      continue
+    }
+    if b.to_int() == 0x2D {
+      if prev_dash {
+        return false
+      }
+      prev_dash = true
+    } else if is_ascii_lower(b) || is_ascii_digit(b) {
+      prev_dash = false
+    } else {
+      return false
+    }
+  }
+  !prev_dash
+}
+
+///|
+fn is_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
+  // wasm-tools' "kebab case" rules are stricter than "any string" but looser
+  // than "all lowercase": each dash-separated segment must not mix upper/lower
+  // case letters, and the first overall character must be a letter.
+  if start < 0 || end_ < 0 || start >= end_ || end_ > name.length() {
+    return false
+  }
+  // 0=unset, 1=lower, 2=upper
+  let mut seg_case = 0
+  let mut prev_dash = false
+  for i in start..<end_ {
+    let b = name[i]
+    if i == start {
+      if !is_ascii_letter(b) {
+        return false
+      }
+      seg_case = if is_ascii_lower(b) { 1 } else { 2 }
+      continue
+    }
+    if b.to_int() == 0x2D {
+      if prev_dash {
+        return false
+      }
+      prev_dash = true
+      seg_case = 0
+      continue
+    }
+    prev_dash = false
+    if is_ascii_digit(b) {
+      continue
+    }
+    if is_ascii_letter(b) {
+      if seg_case == 0 {
+        seg_case = if is_ascii_lower(b) { 1 } else { 2 }
+      } else if seg_case == 1 {
+        if !is_ascii_lower(b) {
+          return false
+        }
+        // seg_case == 2
+      } else if is_ascii_lower(b) {
+        return false
+      }
+      continue
+    }
+    return false
+  }
+  !prev_dash
+}
+
+///|
+fn is_semver_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
+  if start < 0 || start >= end_ || end_ > name.length() {
+    return false
+  }
+  let mut i = start
+  for component in 0..<3 {
+    let begin = i
+    while i < end_ && is_ascii_digit(name[i]) {
+      i += 1
+    }
+    let count = i - begin
+    if count == 0 || (count > 1 && name[begin] == 0x30) || count > 20 {
+      return false
+    }
+    // SemVer's numeric components are u64. Compare equal-length decimal
+    // spellings without overflowing the host's signed integer representation.
+    if count == 20 {
+      let maximum = b"18446744073709551615"
+      for digit in 0..<20 {
+        if name[begin + digit] > maximum[digit] {
+          return false
+        }
+        if name[begin + digit] < maximum[digit] {
+          break
+        }
+      }
+    }
+    if component < 2 {
+      if i >= end_ || name[i] != 0x2e {
+        return false
+      }
+      i += 1
+    }
+  }
+
+  // Numeric prerelease identifiers cannot contain leading zeroes.
+  if i < end_ && name[i] == 0x2d {
+    i += 1
+    while true {
+      let begin = i
+      let mut numeric = true
+      while i < end_ && is_semver_ident_char(name[i]) {
+        if !is_ascii_digit(name[i]) {
+          numeric = false
+        }
+        i += 1
+      }
+      if i == begin || (numeric && i - begin > 1 && name[begin] == 0x30) {
+        return false
+      }
+      if i >= end_ || name[i] != 0x2e {
+        break
+      }
+      i += 1
+    }
+  }
+
+  // Optional build metadata
+  if i < end_ && name[i].to_int() == 0x2B { // '+'
+    i += 1
+    if i >= end_ {
+      return false
+    }
+    let mut need_id = true
+    while i < end_ {
+      let b = name[i]
+      if need_id {
+        if b.to_int() == 0x2E || !is_semver_ident_char(b) { // '.' or invalid
+          return false
+        }
+        need_id = false
+        i += 1
+        continue
+      }
+      if b.to_int() == 0x2E {
+        need_id = true
+        i += 1
+        continue
+      }
+      if is_semver_ident_char(b) {
+        i += 1
+        continue
+      }
+      return false
+    }
+    if need_id {
+      return false
+    }
+  }
+  i == end_
+}
+
+///|
+fn is_package_name(name : Bytes) -> Bool {
+  if name.length() == 0 {
+    return false
+  }
+  // Allow WIT-style interface names like `wasi:http/types`.
+  let mut colon = -1
+  let mut at = -1
+  for i in 0..<name.length() {
+    if name[i].to_int() == 0x3A { // ':'
+      if colon != -1 {
+        return false
+      }
+      colon = i
+    }
+    if name[i].to_int() == 0x40 { // '@'
+      at = i
+      break
+    }
+  }
+  if colon <= 0 || colon >= name.length() - 1 {
+    return false
+  }
+  if at != -1 && at <= colon + 1 {
+    return false
+  }
+  // Version syntax is checked with the separately encoded suffix.
+  let base_end = if at == -1 { name.length() } else { at }
+  if !is_lower_kebab_case_range(name, 0, colon) {
+    return false
+  }
+  // wasm-tools WIT encoding uses exactly one '/' segment after the ':'.
+  let mut slash = -1
+  for i in (colon + 1)..<base_end {
+    if name[i].to_int() == 0x2F { // '/'
+      if slash != -1 {
+        return false
+      }
+      slash = i
+    }
+  }
+  if slash == -1 || slash == colon + 1 || slash == base_end - 1 {
+    return false
+  }
+  if !is_lower_kebab_case_range(name, colon + 1, slash) {
+    return false
+  }
+  is_kebab_case_range(name, slash + 1, base_end)
+}
+
+///|
+fn is_unlocked_dep_name(name : Bytes) -> Bool {
+  // wasm-tools supports "unlocked" dependency names:
+  //   unlocked-dep=<namespace:pkg[@*|@{range}]>
+  let prefix = "unlocked-dep=<"
+  if name.length() <= prefix.length() {
+    return false
+  }
+  // Prefix match
+  for i in 0..<prefix.length() {
+    if name[i].to_int() != prefix.code_unit_at(i).to_int() {
+      return false
+    }
+  }
+  if name[name.length() - 1].to_int() != 0x3E { // '>'
+    return false
+  }
+  // Parse inner: namespace:pkg[@...]
+  let start = prefix.length()
+  let end_ = name.length() - 1
+  if start >= end_ {
+    return false
+  }
+  let mut colon = -1
+  let mut at = -1
+  for i in start..<end_ {
+    let n = name[i].to_int()
+    if n == 0x3A { // ':'
+      if colon != -1 {
+        return false
+      }
+      colon = i
+    } else if n == 0x40 { // '@'
+      if at != -1 {
+        return false
+      }
+      at = i
+    } else if n == 0x2F { // '/'
+      // Not allowed in unlocked-dep inner name.
+      return false
+    }
+  }
+  if colon == -1 || colon == start || colon == end_ - 1 {
+    return false
+  }
+  let base_end = if at == -1 { end_ } else { at }
+  if !is_lower_kebab_case_range(name, start, colon) {
+    return false
+  }
+  if !is_lower_kebab_case_range(name, colon + 1, base_end) {
+    return false
+  }
+  if at == -1 {
+    return true
+  }
+  // '@' must be followed by '*' or '{...}'
+  if at + 1 >= end_ {
+    return false
+  }
+  let next = name[at + 1].to_int()
+  if next == 0x2A { // '*'
+    return at + 2 == end_
+  }
+  if next != 0x7B { // '{'
+    return false
+  }
+  if end_ - 1 <= at + 2 {
+    return false
+  }
+  if name[end_ - 1].to_int() != 0x7D { // '}'
+    return false
+  }
+  // Very small range parser: one-or-more constraints separated by spaces.
+  let mut i = at + 2
+  let range_end = end_ - 1
+  let mut saw = false
+  let mut saw_lt = false
+  while i < range_end {
+    // skip spaces
+    while i < range_end && name[i].to_int() == 0x20 {
+      i += 1
+    }
+    if i >= range_end {
+      break
+    }
+    let op = name[i].to_int()
+    if op == 0x3E { // '>'
+      if saw_lt {
+        return false
+      }
+      if i + 1 >= range_end || name[i + 1].to_int() != 0x3D {
+        return false
+      } // '='
+      i += 2
+    } else if op == 0x3C { // '<'
+      saw_lt = true
+      i += 1
+    } else {
+      return false
+    }
+    let ver_start = i
+    while i < range_end && name[i].to_int() != 0x20 {
+      i += 1
+    }
+    if !is_semver_range(name, ver_start, i) {
+      return false
+    }
+    saw = true
+  }
+  saw
+}
+
+///|
+fn is_base64ish_char(b : Byte) -> Bool {
+  let n = b.to_int()
+  // Allow the base64 alphabet plus a small superset used by wasm-tools tests.
+  is_ascii_letter(b) ||
+  is_ascii_digit(b) ||
+  n == 0x2B ||
+  n == 0x2F || // + /
+  n == 0x3D ||
+  n == 0x3F // = ?
+}
+
+///|
+fn is_integrity_value(name : Bytes, start : Int32, end_ : Int32) -> Bool {
+  // Parse `sha256-...` digests, allowing multiple digests separated by spaces.
+  // Content may have leading/trailing whitespace.
+  let mut i = start
+  let mut saw = false
+  while i < end_ {
+    while i < end_ && name[i].to_int() == 0x20 { // ' '
+      i += 1
+    }
+    if i >= end_ {
+      break
+    }
+    // algorithm
+    let alg_start = i
+    while i < end_ && name[i].to_int() != 0x2D && name[i].to_int() != 0x20 {
+      i += 1
+    }
+    if i >= end_ || name[i].to_int() != 0x2D { // '-'
+      return false
+    }
+    if i - alg_start != 6 {
+      return false
+    }
+    if name[alg_start].to_int() != 0x73 || // s
+      name[alg_start + 1].to_int() != 0x68 || // h
+      name[alg_start + 2].to_int() != 0x61 { // a
+      return false
+    }
+    let d1 = name[alg_start + 3].to_int()
+    let d2 = name[alg_start + 4].to_int()
+    let d3 = name[alg_start + 5].to_int()
+    let ok = (d1 == 0x32 && d2 == 0x35 && d3 == 0x36) || // 256
+      (d1 == 0x33 && d2 == 0x38 && d3 == 0x34) || // 384
+      (d1 == 0x35 && d2 == 0x31 && d3 == 0x32) // 512
+    if !ok {
+      return false
+    }
+    i += 1 // skip '-'
+    // hash token
+    let hash_start = i
+    while i < end_ && name[i].to_int() != 0x20 {
+      let b = name[i]
+      if !is_base64ish_char(b) {
+        return false
+      }
+      i += 1
+    }
+    if hash_start == i {
+      return false
+    }
+    // '=' can only appear at the end, and at most twice.
+    let mut eq_count = 0
+    let mut seen_eq = false
+    for j in hash_start..<i {
+      let n = name[j].to_int()
+      if n == 0x3D {
+        eq_count += 1
+        seen_eq = true
+      } else if seen_eq {
+        return false
+      }
+    }
+    if eq_count > 2 {
+      return false
+    }
+    // Reject hashes that are only '=' padding.
+    let mut all_eq = true
+    for j in hash_start..<i {
+      if name[j].to_int() != 0x3D {
+        all_eq = false
+        break
+      }
+    }
+    if all_eq {
+      return false
+    }
+    saw = true
+  }
+  saw
+}
+
+///|
+fn is_integrity_name(name : Bytes) -> Bool {
+  let prefix = "integrity=<"
+  if name.length() <= prefix.length() {
+    return false
+  }
+  for i in 0..<prefix.length() {
+    if name[i].to_int() != prefix.code_unit_at(i).to_int() {
+      return false
+    }
+  }
+  if name[name.length() - 1].to_int() != 0x3E { // '>'
+    return false
+  }
+  is_integrity_value(name, prefix.length(), name.length() - 1)
+}
+
+///|
+fn is_url_name(name : Bytes) -> Bool {
+  let prefix = "url=<"
+  if name.length() <= prefix.length() {
+    return false
+  }
+  for i in 0..<prefix.length() {
+    if name[i].to_int() != prefix.code_unit_at(i).to_int() {
+      return false
+    }
+  }
+  // Find closing '>' of the URL part.
+  let mut close = -1
+  for i in prefix.length()..<name.length() {
+    let n = name[i].to_int()
+    if n == 0x3C { // '<'
+      return false
+    }
+    if n == 0x3E { // '>'
+      close = i
+      break
+    }
+  }
+  if close == -1 {
+    return false
+  }
+  if close == name.length() - 1 {
+    return true
+  }
+  // Optional integrity suffix.
+  let suffix = ",integrity=<"
+  if close + suffix.length() >= name.length() {
+    return false
+  }
+  for j in 0..<suffix.length() {
+    if name[close + 1 + j].to_int() != suffix.code_unit_at(j).to_int() {
+      return false
+    }
+  }
+  if name[name.length() - 1].to_int() != 0x3E { // '>'
+    return false
+  }
+  is_integrity_value(name, close + 1 + suffix.length(), name.length() - 1)
+}
+
+///|
+fn is_locked_dep_name(name : Bytes) -> Bool {
+  let prefix = "locked-dep=<"
+  if name.length() <= prefix.length() {
+    return false
+  }
+  for i in 0..<prefix.length() {
+    if name[i].to_int() != prefix.code_unit_at(i).to_int() {
+      return false
+    }
+  }
+  // Find closing '>' of the dep spec.
+  let mut close = -1
+  for i in prefix.length()..<name.length() {
+    if name[i].to_int() == 0x3E { // '>'
+      close = i
+      break
+    }
+  }
+  if close == -1 {
+    return false
+  }
+  // Parse inner: namespace:pkg[@semver]
+  let start = prefix.length()
+  let end_ = close
+  if start >= end_ {
+    return false
+  }
+  let mut colon = -1
+  let mut at = -1
+  for i in start..<end_ {
+    let n = name[i].to_int()
+    if n == 0x3A { // ':'
+      if colon != -1 {
+        return false
+      }
+      colon = i
+    } else if n == 0x40 { // '@'
+      if at != -1 {
+        return false
+      }
+      at = i
+    } else if n == 0x2F { // '/'
+      return false
+    }
+  }
+  if colon == -1 || colon == start || colon == end_ - 1 {
+    return false
+  }
+  let base_end = if at == -1 { end_ } else { at }
+  if !is_lower_kebab_case_range(name, start, colon) {
+    return false
+  }
+  if !is_lower_kebab_case_range(name, colon + 1, base_end) {
+    return false
+  }
+  if at != -1 {
+    if at + 1 >= end_ {
+      return false
+    }
+    if !is_semver_range(name, at + 1, end_) {
+      return false
+    }
+  }
+  if close == name.length() - 1 {
+    return true
+  }
+  // Optional integrity suffix.
+  let suffix = ",integrity=<"
+  if close + suffix.length() >= name.length() {
+    return false
+  }
+  for j in 0..<suffix.length() {
+    if name[close + 1 + j].to_int() != suffix.code_unit_at(j).to_int() {
+      return false
+    }
+  }
+  if name[name.length() - 1].to_int() != 0x3E { // '>'
+    return false
+  }
+  is_integrity_value(name, close + 1 + suffix.length(), name.length() - 1)
+}
+
+///|
+fn is_kebab_case(name : Bytes) -> Bool {
+  is_kebab_case_range(name, 0, name.length())
+}
+
+///|
+fn is_bracket_resource_name(name : Bytes) -> Bool {
+  // WIT-encoding uses resource item names like:
+  //   [constructor]resource1
+  //   [static]resource1.assert
+  //   [method]resource1.take-own
+  // These are ASCII and should not be validated as kebab-case.
+  if name.length() < 3 {
+    return false
+  }
+  if name[0].to_int() != 0x5B { // '['
+    return false
+  }
+  let mut close = -1
+  for i in 1..<name.length() {
+    if name[i].to_int() == 0x5D { // ']'
+      close = i
+      break
+    }
+  }
+  if close <= 1 || close >= name.length() - 1 {
+    return false
+  }
+  fn prefix_eq(s : String) -> Bool {
+    if close - 1 != s.length() {
+      return false
+    }
+    for j in 0..<s.length() {
+      if name[1 + j].to_int() != s.code_unit_at(j).to_int() {
+        return false
+      }
+    }
+    true
+  }
+
+  let is_constructor = prefix_eq("constructor")
+  let is_method = prefix_eq("method")
+  let is_static = prefix_eq("static")
+  if prefix_eq("get") || prefix_eq("set") {
+    return is_kebab_case_range(name, close + 1, name.length())
+  }
+  if !is_constructor && !is_method && !is_static {
+    return false
+  }
+  if is_constructor {
+    return is_kebab_case_range(name, close + 1, name.length())
+  }
+  // Method/static names can have one accessor annotation before the resource.
+  let mut start = close + 1
+  if start + 5 <= name.length() &&
+    (
+      name[start:start + 5] == b"[get]".exact_view() ||
+      name[start:start + 5] == b"[set]".exact_view()
+    ) {
+    start += 5
+  }
+  let mut dot = -1
+  for k in start..<name.length() {
+    if name[k].to_int() == 0x2E { // '.'
+      if dot >= 0 {
+        return false
+      }
+      dot = k
+    }
+  }
+  if dot < 0 || dot == start || dot == name.length() - 1 {
+    return false
+  }
+  is_kebab_case_range(name, start, dot) &&
+  is_kebab_case_range(name, dot + 1, name.length())
+}
+
+///|
+fn validate_name_bytes(name : Bytes) -> Unit raise ComponentValidationError {
+  if !is_kebab_case(name) &&
+    !is_package_name(name) &&
+    !is_bracket_resource_name(name) {
+    raise InvalidKebabName(name.to_string())
+  }
+}
+
+///|
+fn validate_import_name_bytes(
+  name : Bytes,
+) -> Unit raise ComponentValidationError {
+  // Component imports allow WIT dependency specifiers like `locked-dep=...`,
+  // `unlocked-dep=...`, `url=...`, and `integrity=...`.
+  if !is_kebab_case(name) &&
+    !is_package_name(name) &&
+    !is_bracket_resource_name(name) &&
+    !is_unlocked_dep_name(name) &&
+    !is_locked_dep_name(name) &&
+    !is_url_name(name) &&
+    !is_integrity_name(name) {
+    raise InvalidKebabName(name.to_string())
+  }
+}
+
+///|
+priv struct CoreTypeReader {
+  data : Bytes
+  mut pos : Int32
+}
+
+///|
+fn CoreTypeReader::CoreTypeReader(data : Bytes) -> CoreTypeReader {
+  { data, pos: 0, }
+}
+
+///|
+fn CoreTypeReader::is_eof(self : CoreTypeReader) -> Bool {
+  self.pos >= self.data.length()
+}
+
+///|
+fn CoreTypeReader::read_u8(
+  self : CoreTypeReader,
+) -> Int32 raise ComponentValidationError {
+  if self.pos >= self.data.length() {
+    raise SectionParseError(3, "unexpected end of core type payload")
+  }
+  let b = self.data[self.pos].to_int()
+  self.pos += 1
+  b
+}
+
+///|
+fn CoreTypeReader::read_leb_u32(
+  self : CoreTypeReader,
+) -> Int32 raise ComponentValidationError {
+  let mut result = 0
+  let mut shift = 0
+  while true {
+    if shift >= 35 {
+      raise SectionParseError(3, "leb128 too large")
+    }
+    let byte = self.read_u8()
+    result = result | ((byte & 0x7F) << shift)
+    if (byte & 0x80) == 0 {
+      break
+    }
+    shift += 7
+  }
+  result
+}
+
+///|
+fn CoreTypeReader::read_bytes(
+  self : CoreTypeReader,
+  n : Int32,
+) -> Bytes raise ComponentValidationError {
+  if n < 0 || self.pos + n > self.data.length() {
+    raise SectionParseError(3, "unexpected end of core type payload")
+  }
+  let bytes : Array[Byte] = []
+  for i in 0..<n {
+    bytes.push(self.data[self.pos + i])
+  }
+  self.pos += n
+  Bytes::from_array(bytes)
+}
+
+///|
+fn ascii_bytes_to_string(bytes : Bytes) -> String? {
+  let buf = StringBuilder::StringBuilder()
+  for b in bytes {
+    let n = b.to_int()
+    if n >= 0x80 {
+      return None
+    }
+    buf.write_char(n.unsafe_to_char())
+  }
+  Some(buf.to_string())
+}
+
+///|
+fn CoreTypeReader::read_name_ascii(
+  self : CoreTypeReader,
+) -> String? raise ComponentValidationError {
+  let len = self.read_leb_u32()
+  Some(
+    @utf8.decode(self.read_bytes(len), ignore_bom=false) catch {
+      _ => raise SectionParseError(3, "invalid UTF-8 core name")
+    },
+  )
+}
+
+///|
+fn CoreTypeReader::read_limit(
+  self : CoreTypeReader,
+  wide : Bool,
+) -> UInt64 raise ComponentValidationError {
+  let bits = if wide { 64 } else { 32 }
+  let mut value = 0UL
+  for i in 0..<((bits + 6) / 7) {
+    let byte = self.read_u8()
+    let remaining = bits - i * 7
+    if remaining < 7 && byte >= 1 << remaining {
+      raise SectionParseError(3, "core limit exceeds its unsigned width")
+    }
+    value = value | ((byte & 127).to_uint64() << (i * 7))
+    if byte < 128 {
+      return value
+    }
+  }
+  raise SectionParseError(3, "unterminated core limit")
+}
+
+///|
+fn CoreTypeReader::read_limits(
+  self : CoreTypeReader,
+  memory : Bool,
+) -> (Int32, UInt64, UInt64?, Int32) raise ComponentValidationError {
+  let flags = self.read_u8()
+  if flags > (if memory { 15 } else { 7 }) {
+    raise SectionParseError(3, "invalid core limits flags")
+  }
+  let wide = (flags & 4) != 0
+  let min = self.read_limit(wide)
+  let max = if (flags & 1) != 0 { Some(self.read_limit(wide)) } else { None }
+  if max is Some(n) && n < min {
+    raise SectionParseError(3, "core limit maximum is below its minimum")
+  }
+  if (flags & 2) != 0 && max is None {
+    raise SectionParseError(3, "shared core limits require a maximum")
+  }
+  let page = if memory && (flags & 8) != 0 { self.read_leb_u32() } else { 16 }
+  if memory {
+    if page != 0 && page != 16 {
+      raise SectionParseError(3, "invalid custom page size")
+    }
+    let bits = (if wide { 64 } else { 32 }) - page
+    let bound = if bits == 64 { 18446744073709551615UL } else { 1UL << bits }
+    if min > bound || (max is Some(n) && n > bound) {
+      raise SectionParseError(3, "memory size out of bounds")
+    }
+  }
+  (flags, min, max, page)
+}
+
+///|
+fn CoreTypeReader::skip_func_type(
+  self : CoreTypeReader,
+) -> Unit raise ComponentValidationError {
+  let form = self.read_u8()
+  if form != 0x60 {
+    raise SectionParseError(3, "unsupported core functype form: \{form}")
+  }
+  self.skip_func_type_body()
+}
+
+///|
+fn CoreTypeReader::skip_func_type_body(
+  self : CoreTypeReader,
+) -> Unit raise ComponentValidationError {
+  let nparams = self.read_leb_u32()
+  for _i in 0..<nparams {
+    self.read_core_valtype() |> ignore
+  }
+  let nresults = self.read_leb_u32()
+  for _i in 0..<nresults {
+    self.read_core_valtype() |> ignore
+  }
+}
+
+///|
+fn CoreTypeReader::validate_extern_type(
+  self : CoreTypeReader,
+  kind : Int32,
+  func_type_bound : Int32,
+) -> Unit raise ComponentValidationError {
+  match kind {
+    0x00 => {
+      let idx = self.read_leb_u32()
+      if idx < 0 || idx >= func_type_bound {
+        raise SectionParseError(3, "type index out of bounds")
+      }
+    }
+    0x01 => {
+      self.read_core_valtype() |> ignore
+      self.read_limits(false) |> ignore
+    }
+    0x02 => self.read_limits(true) |> ignore
+    0x03 => {
+      self.read_core_valtype() |> ignore
+      self.read_u8() |> ignore // mut
+    }
+    0x04 => {
+      if self.read_u8() != 0x00 {
+        raise SectionParseError(3, "invalid tag attribute")
+      }
+      let idx = self.read_leb_u32()
+      if idx < 0 || idx >= func_type_bound {
+        raise SectionParseError(3, "type index out of bounds")
+      }
+    }
+    _ => raise SectionParseError(3, "unknown core extern kind: \{kind}")
+  }
+}
+
+///|
+fn CoreTypeReader::read_core_valtype(
+  self : CoreTypeReader,
+) -> @types.ValueType raise ComponentValidationError {
+  let op = self.read_u8()
+  fn abstract_ref(
+    heap : Int32,
+    nullable : Bool,
+  ) -> @types.ValueType raise ComponentValidationError {
+    match @types.ValueType::from_abstract_heap_type(heap, nullable) {
+      Some(value) => value
+      None => raise SectionParseError(3, "unsupported core heap type: \{heap}")
+    }
+  }
+  match op {
+    0x7f => I32
+    0x7e => I64
+    0x7d => F32
+    0x7c => F64
+    0x7b => V128
+    0x63 | 0x64 => {
+      let mut heap = 0L
+      let mut shift = 0
+      while true {
+        let byte = self.read_u8()
+        let payload = byte & 0x7f
+        if shift == 28 &&
+          ((byte & 0x80) != 0 || (payload > 0x0f && payload < 0x70)) {
+          raise SectionParseError(3, "heap type LEB128 out of range")
+        }
+        heap = heap | (payload.to_int64() << shift)
+        shift += 7
+        if (byte & 0x80) == 0 {
+          if (byte & 0x40) != 0 {
+            heap = heap | (-1L << shift)
+          }
+          break
+        }
+      }
+      if heap >= 0L || heap < -64L {
+        raise SectionParseError(
+          3,
+          "unsupported concrete core heap type: \{heap}",
+        )
+      }
+      abstract_ref(heap.to_int(), op == 0x63)
+    }
+    _ => abstract_ref(op - 128, true)
+  }
+}
+
+///|
+fn CoreTypeReader::read_core_functype(
+  self : CoreTypeReader,
+) -> @types.FuncType raise ComponentValidationError {
+  let form = self.read_u8()
+  if form != 0x60 {
+    raise SectionParseError(3, "unsupported core functype form: \{form}")
+  }
+  let nparams = self.read_leb_u32()
+  let params : Array[@types.ValueType] = []
+  for _i in 0..<nparams {
+    params.push(self.read_core_valtype())
+  }
+  let nresults = self.read_leb_u32()
+  let results : Array[@types.ValueType] = []
+  for _i in 0..<nresults {
+    results.push(self.read_core_valtype())
+  }
+  { params, results, }
+}
+
+///|
+fn CoreTypeReader::read_extern_type_sig(
+  self : CoreTypeReader,
+  kind : Int32,
+  func_types : Array[@types.FuncType?],
+  func_type_bound : Int32,
+) -> CoreExternType? raise ComponentValidationError {
+  match kind {
+    0x00 => {
+      let idx = self.read_leb_u32()
+      if idx < 0 || idx >= func_type_bound {
+        raise SectionParseError(3, "type index out of bounds")
+      }
+      if idx >= 0 && idx < func_types.length() {
+        match func_types[idx] {
+          Some(ft) => Some(Func(ft))
+          None => None
+        }
+      } else {
+        None
+      }
+    }
+    0x01 => {
+      // tabletype: elemtype + limits
+      let elem_ty = self.read_core_valtype()
+      match elem_ty {
+        I32 | I64 | F32 | F64 | V128 =>
+          raise SectionParseError(3, "table element type must be a reference")
+        _ => ()
+      }
+      let (flags, min, max, _) = self.read_limits(false)
+      if min > 9223372036854775807UL ||
+        (max is Some(n) && n > 9223372036854775807UL) ||
+        (flags & 2) != 0 {
+        return None
+      }
+      let limits : @types.Limits = {
+        min: min.reinterpret_as_int64(),
+        max: max.map(n => n.reinterpret_as_int64()),
+      }
+      Some(Table({ elem_type: elem_ty, limits, is_table64: (flags & 4) != 0, }))
+    }
+    0x02 => {
+      let (flags, min, max, page) = self.read_limits(true)
+      // The complete unsigned signature is retained by the declarative codec.
+      // Legacy runtime metadata has signed limits and cannot represent it.
+      if min > 9223372036854775807UL ||
+        (max is Some(n) && n > 9223372036854775807UL) {
+        return None
+      }
+      let limits : @types.Limits = {
+        min: min.reinterpret_as_int64(),
+        max: max.map(n => n.reinterpret_as_int64()),
+      }
+      Some(
+        Memory({
+          limits,
+          is_memory64: (flags & 4) != 0,
+          is_shared: (flags & 2) != 0,
+          page_size_log2: page,
+        }),
+      )
+    }
+    0x03 => {
+      // globaltype: valtype + mut
+      let vt = self.read_core_valtype()
+      let mut_ = self.read_u8()
+      if (mut_ & 2) != 0 {
+        return None
+      }
+      let mutable = (mut_ & 1) != 0
+      Some(Global({ value_type: vt, mutable, }))
+    }
+    0x04 => {
+      if self.read_u8() != 0 {
+        raise SectionParseError(3, "invalid tag attribute")
+      }
+      let idx = self.read_leb_u32()
+      if idx < 0 || idx >= func_type_bound {
+        raise SectionParseError(3, "type index out of bounds")
+      }
+      match func_types.get(idx) {
+        Some(Some(ft)) => {
+          if !ft.results.is_empty() {
+            raise SectionParseError(3, "tag type must not return values")
+          }
+          Some(Tag(ft))
+        }
+        _ => None
+      }
+    }
+    _ => {
+      self.validate_extern_type(kind, func_type_bound)
+      None
+    }
+  }
+}
+
+///|
+fn parse_core_type_module_sig(
+  r : CoreTypeReader,
+  max_outer_depth : Int32,
+  current_core_type_bound : Int32,
+  outer_core_type_bounds : Array[Int32],
+) -> (Array[CoreModuleTypeImport], Map[String, CoreExternType]) raise ComponentValidationError {
+  let ndecls = r.read_leb_u32()
+  let seen_imports : Map[(String, String), Int32] = Map([])
+  let imports : Array[CoreModuleTypeImport] = []
+  let export_types : Map[String, CoreExternType] = Map([])
+  let func_types : Array[@types.FuncType?] = []
+  let mut func_type_bound = 0
+  for _i in 0..<ndecls {
+    let tag = r.read_u8()
+    match tag {
+      0x00 => {
+        let mod_name = r.read_name_ascii()
+        let name = r.read_name_ascii()
+        let mod_s = match mod_name {
+          Some(s) => s
+          None => ""
+        }
+        let name_s = match name {
+          Some(s) => s
+          None => ""
+        }
+        let key = (mod_s, name_s)
+        if seen_imports.get(key) is Some(_) {
+          raise SectionParseError(3, "duplicate import name")
+        }
+        seen_imports.set(key, 1)
+        let kind = r.read_u8()
+        match r.read_extern_type_sig(kind, func_types, func_type_bound) {
+          Some(ty) => imports.push({ mod_name: mod_s, name: name_s, ty, })
+          None => ()
+        }
+      }
+      0x01 => {
+        func_types.push(Some(r.read_core_functype()))
+        func_type_bound += 1
+      }
+      0x02 => {
+        // Alias declarations inside module types.
+        let sort = r.read_u8()
+        if sort == 0x10 {
+          // Aliasing a core type introduces a new function-type index (we don't
+          // currently resolve its signature here).
+          func_types.push(None)
+          func_type_bound += 1
+        }
+        let target_tag = r.read_u8()
+        match target_tag {
+          0x01 => {
+            let depth = r.read_leb_u32()
+            let idx = r.read_leb_u32()
+            if max_outer_depth >= 0 {
+              if depth > max_outer_depth {
+                raise SectionParseError(3, "outer alias depth out of bounds")
+              }
+              // wasm-tools expects out-of-bounds outer indices to be rejected
+              // even when we don't fully resolve the aliased core type.
+              if sort == 0x10 {
+                let bound = if depth == 0 {
+                  func_type_bound - 1
+                } else if depth == 1 {
+                  current_core_type_bound
+                } else if depth - 2 < outer_core_type_bounds.length() {
+                  outer_core_type_bounds[depth - 2]
+                } else {
+                  raise SectionParseError(3, "outer alias depth out of bounds")
+                }
+                if idx < 0 || idx >= bound {
+                  raise SectionParseError(3, "type index out of bounds")
+                }
+              }
+            }
+          }
+          _ =>
+            raise SectionParseError(
+              3,
+              "unknown module alias target: \{target_tag}",
+            )
+        }
+      }
+      0x03 => {
+        let name = r.read_name_ascii()
+        let kind = r.read_u8()
+        let ty = r.read_extern_type_sig(kind, func_types, func_type_bound)
+        match (name, ty) {
+          (Some(s), Some(t)) =>
+            if export_types.get(s) is Some(_) {
+              raise SectionParseError(3, "duplicate export name")
+            } else {
+              export_types.set(s, t)
+            }
+          _ => ()
+        }
+      }
+      _ => raise SectionParseError(3, "unknown module type decl tag: \{tag}")
+    }
+  }
+  (imports, export_types)
+}

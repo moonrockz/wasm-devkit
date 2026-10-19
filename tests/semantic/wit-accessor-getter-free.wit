@@ -1,0 +1,1 @@
+package example:app;interface api{get-value:get()->u8;}

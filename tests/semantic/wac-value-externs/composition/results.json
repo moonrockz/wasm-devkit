@@ -1,0 +1,155 @@
+[
+  {
+    "name": "unused-access",
+    "reference": 0,
+    "compose": 1,
+    "validation": null,
+    "error": "",
+    "compose_error": "error: the encoding of the graph failed validation\n\nCaused by:\n    value index 1 was not used as part of an instantiation, start function, or export (at offset 0x98)\n",
+    "validation_error": null
+  },
+  {
+    "name": "path-import",
+    "reference": 1,
+    "compose": 1,
+    "validation": null,
+    "error": "package `test:dep` has no export named `v`\n",
+    "compose_error": "error: failed to resolve document\n\n  \u00d7 package `test:dep` has no export named `v`\n   \u256d\u2500[/Users/damian/orca/workspaces/wasm-devkit/feat-verify-wit-and-wac-semantics-and-resolve-im/.dev/wac-conformance/worktree/.dev/value-externs/composition/path-import/input.wac:1:38]\n 1 \u2502 package test:app; import v: test:dep/v; export v;\n   \u00b7                                      \u252c\n   \u00b7                                      \u2570\u2500\u2500 unknown export `v`\n   \u2570\u2500\u2500\u2500\u2500\n\n",
+    "validation_error": null
+  },
+  {
+    "name": "path-unused",
+    "reference": 1,
+    "compose": 1,
+    "validation": null,
+    "error": "package `test:dep` has no export named `v`\n",
+    "compose_error": "error: failed to resolve document\n\n  \u00d7 package `test:dep` has no export named `v`\n   \u256d\u2500[/Users/damian/orca/workspaces/wasm-devkit/feat-verify-wit-and-wac-semantics-and-resolve-im/.dev/wac-conformance/worktree/.dev/value-externs/composition/path-unused/input.wac:1:38]\n 1 \u2502 package test:app; import v: test:dep/v;\n   \u00b7                                      \u252c\n   \u00b7                                      \u2570\u2500\u2500 unknown export `v`\n   \u2570\u2500\u2500\u2500\u2500\n\n",
+    "validation_error": null
+  },
+  {
+    "name": "repeat-fill",
+    "reference": 0,
+    "compose": 1,
+    "validation": null,
+    "error": "",
+    "compose_error": "error: the encoding of the graph failed validation\n\nCaused by:\n    value 0 cannot be used more than once (at offset 0x39)\n",
+    "validation_error": null
+  },
+  {
+    "name": "fill",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": "",
+    "compose_error": "",
+    "validation_error": ""
+  },
+  {
+    "name": "explicit-type",
+    "reference": 1,
+    "compose": 1,
+    "validation": null,
+    "error": "expected either `async` keyword, `func` keyword, `interface` keyword, package path, or identifier, found `u32` keyword\n",
+    "compose_error": "error: failed to parse document\n\n  \u00d7 expected either `async` keyword, `func` keyword, `interface` keyword, package path, or identifier, found `u32` keyword\n   \u256d\u2500[/Users/damian/orca/workspaces/wasm-devkit/feat-verify-wit-and-wac-semantics-and-resolve-im/.dev/wac-conformance/worktree/.dev/value-externs/composition/explicit-type/input.wac:1:29]\n 1 \u2502 package test:app; import v: u32; let i = new test:dep {v}; export i.v;\n   \u00b7                             \u2500\u252c\u2500\n   \u00b7                              \u2570\u2500\u2500 unexpected `u32` keyword\n   \u2570\u2500\u2500\u2500\u2500\n\n",
+    "validation_error": null
+  },
+  {
+    "name": "missing",
+    "reference": 1,
+    "compose": 1,
+    "validation": null,
+    "error": "missing instantiation argument `v` for package `test:dep`\n",
+    "compose_error": "error: failed to resolve document\n\n  \u00d7 missing instantiation argument `v` for package `test:dep`\n   \u256d\u2500[/Users/damian/orca/workspaces/wasm-devkit/feat-verify-wit-and-wac-semantics-and-resolve-im/.dev/wac-conformance/worktree/.dev/value-externs/composition/missing/input.wac:1:31]\n 1 \u2502 package test:app; let i = new test:dep {}; export i.v;\n   \u00b7                               \u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\n   \u00b7                                   \u2570\u2500\u2500 missing argument `v`\n   \u2570\u2500\u2500\u2500\u2500\n\n",
+    "validation_error": null
+  },
+  {
+    "name": "instance-export",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": "",
+    "compose_error": "",
+    "validation_error": ""
+  },
+  {
+    "name": "duplicate-export",
+    "reference": 0,
+    "compose": 1,
+    "validation": null,
+    "error": "",
+    "compose_error": "error: the encoding of the graph failed validation\n\nCaused by:\n    value 1 cannot be used more than once (at offset 0x4a)\n",
+    "validation_error": null
+  },
+  {
+    "name": "forward",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": "",
+    "compose_error": "",
+    "validation_error": ""
+  },
+  {
+    "name": "duplicate-use",
+    "reference": 0,
+    "compose": 1,
+    "validation": null,
+    "error": "",
+    "compose_error": "error: the encoding of the graph failed validation\n\nCaused by:\n    value 1 cannot be used more than once (at offset 0x4b)\n",
+    "validation_error": null
+  },
+  {
+    "name": "spread-forward",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": "",
+    "compose_error": "",
+    "validation_error": ""
+  },
+  {
+    "name": "wrong-function-kind",
+    "reference": 1,
+    "compose": 1,
+    "validation": null,
+    "error": "mismatched instantiation argument `v`\n",
+    "compose_error": "error: failed to resolve document\n\n  \u00d7 mismatched instantiation argument `v`\n  \u2570\u2500\u25b6 expected value, found function\n   \u256d\u2500[/Users/damian/orca/workspaces/wasm-devkit/feat-verify-wit-and-wac-semantics-and-resolve-im/.dev/wac-conformance/worktree/.dev/value-externs/composition/wrong-function-kind/input.wac:1:59]\n 1 \u2502 package test:app; import v: func(); let i = new test:dep {v}; export i.v;\n   \u00b7                                                           \u252c\n   \u00b7                                                           \u2570\u2500\u2500 mismatched argument `v`\n   \u2570\u2500\u2500\u2500\u2500\n\n",
+    "validation_error": null
+  },
+  {
+    "name": "wrong-type-kind",
+    "reference": 1,
+    "compose": 1,
+    "validation": null,
+    "error": "mismatched instantiation argument `v`\n",
+    "compose_error": "error: failed to resolve document\n\n  \u00d7 mismatched instantiation argument `v`\n  \u2570\u2500\u25b6 expected value, found u32\n   \u256d\u2500[/Users/damian/orca/workspaces/wasm-devkit/feat-verify-wit-and-wac-semantics-and-resolve-im/.dev/wac-conformance/worktree/.dev/value-externs/composition/wrong-type-kind/input.wac:1:55]\n 1 \u2502 package test:app; type v = u32; let i = new test:dep {v}; export i.v;\n   \u00b7                                                       \u252c\n   \u00b7                                                       \u2570\u2500\u2500 mismatched argument `v`\n   \u2570\u2500\u2500\u2500\u2500\n\n",
+    "validation_error": null
+  },
+  {
+    "name": "wrong-value-type",
+    "reference": 1,
+    "compose": 1,
+    "validation": null,
+    "error": "mismatched instantiation argument `v`\n",
+    "compose_error": "error: failed to resolve document\n\n  \u00d7 mismatched instantiation argument `v`\n  \u2570\u2500\u25b6 expected u32, found u64\n   \u256d\u2500[/Users/damian/orca/workspaces/wasm-devkit/feat-verify-wit-and-wac-semantics-and-resolve-im/.dev/wac-conformance/worktree/.dev/value-externs/composition/wrong-value-type/input.wac:1:69]\n 1 \u2502 package test:app; let i = new test:dep {...}; let j = new test:dep {v: i.w, w: i.v}; export j as \"out\";\n   \u00b7                                                                     \u252c\n   \u00b7                                                                     \u2570\u2500\u2500 mismatched argument `v`\n   \u2570\u2500\u2500\u2500\u2500\n\n",
+    "validation_error": null
+  },
+  {
+    "name": "forward-two-types",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": "",
+    "compose_error": "",
+    "validation_error": ""
+  },
+  {
+    "name": "unicode-duplicate",
+    "reference": 0,
+    "compose": 1,
+    "validation": null,
+    "error": "",
+    "compose_error": "error: the encoding of the graph failed validation\n\nCaused by:\n    value 1 cannot be used more than once (at offset 0x4a)\n",
+    "validation_error": null
+  }
+]

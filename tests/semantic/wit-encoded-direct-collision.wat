@@ -1,0 +1,1 @@
+(component(type(component(type(component (type(instance(export "r"(type(sub resource)))))(import "example:dep/api"(instance(type 0)))(alias export 0 "r"(type))(import "wit-implicit-0"(type(sub resource)))(type(own 1))(type(own 2))(type(func(param "a" 3)(param "b" 4)))(import "f"(func(type 5)))))(export "example:test/app"(component(type 0)))))(export "app"(type 0)))

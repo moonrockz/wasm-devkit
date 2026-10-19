@@ -1,0 +1,1 @@
+package example:app; world app {import host: interface {type t=u8; f:func()->t;} export run:func();}

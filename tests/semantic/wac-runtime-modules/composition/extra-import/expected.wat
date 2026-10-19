@@ -1,0 +1,1 @@
+(component (core type $m (module )) (import "m" (core module (type $m))))

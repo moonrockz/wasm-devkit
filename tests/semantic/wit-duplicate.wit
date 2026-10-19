@@ -1,0 +1,2 @@
+package example:app;
+interface api { type a = u8; type a = u16; }

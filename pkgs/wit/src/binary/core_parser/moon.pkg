@@ -1,0 +1,8 @@
+import {
+  "Milky2018/wasm_core/types",
+}
+
+import {
+  "moonrockz/wit/binary/core_parser" @parser,
+  "moonbitlang/core/debug",
+} for "test"

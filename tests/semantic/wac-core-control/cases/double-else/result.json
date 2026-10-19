@@ -1,0 +1,9 @@
+{
+  "name": "double-else",
+  "wasm": 1,
+  "reference": 0,
+  "product": 1,
+  "wasm_error": "error: func 0 failed to validate\n\nCaused by:\n    0: `else` found outside `If` block (at offset 0x27)\n",
+  "reference_error": "",
+  "product_error": ".dev/core-control/cases/double-else/dep.wasm:[byte 39]: error WAC-B001: unexpected core else\n.dev/core-control/cases/double-else/input.wac:[30,39): package `test:dep` requested here\n"
+}

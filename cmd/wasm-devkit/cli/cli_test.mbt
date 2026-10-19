@@ -7,6 +7,39 @@ fn options(args : ArrayView[String]) -> @cli.Options raise {
 }
 
 ///|
+test "binary labels are never interpreted through a textual line table" {
+  let primary = @wit_verifier.Diagnostic::from_binary({
+    source: "dep.wasm",
+    offset: Some(3),
+    code: "WIT-B003",
+    message: "invalid metadata",
+  })
+  let diagnostic = {
+    ..primary,
+    related: [
+      {
+        location: @wit_verifier.Location::text("api.wit", { start: 3, end: 4, }),
+        message: "used here",
+      },
+    ],
+  }
+  let output = @cli.render_wit_diagnostics([diagnostic], [
+    ("dep.wasm", "😀\na"),
+    ("api.wit", "😀\na"),
+  ])
+  assert_true(output.contains("dep.wasm:[byte 3]: error WIT-B003"))
+  assert_true(output.contains("api.wit:2:1: used here"))
+  let unknown = @wit_verifier.Diagnostic::from_binary({
+    source: "dep.wasm",
+    offset: None,
+    code: "WIT-B003",
+    message: "invalid metadata",
+  })
+  let output = @cli.render_wit_diagnostics([unknown], [("dep.wasm", "😀\na")])
+  assert_true(output.contains("dep.wasm:[binary]: error WIT-B003"))
+}
+
+///|
 test "language inference stdin explicit paths and option validation" {
   assert_eq(options(["parse", "a.wit"]).language, Wit)
   assert_eq(options(["ast", "a.wac"]).language, Wac)
@@ -109,4 +142,204 @@ test "printing rejects original syntax errors and feature switches are explicit"
   )
   assert_eq(result.exit_code, 0)
   assert_true(result.stdout.contains("(a: u8)"))
+}
+
+///|
+test "verify distinguishes syntax and semantics without changing check" {
+  for
+    (language, good, bad) in [
+      (
+        "wit", "package example:app; interface api { type t = u8; }", "package example:app; interface api { type t = missing; }",
+      ),
+      (
+        "wac", "package a:b; import f: func(); let x = f; export x as \"x\";", "package a:b; let x = f; import f: func();",
+      ),
+    ] {
+    let verify = options(["verify", "--language", language, "--base", "."])
+    let good = @cli.execute(verify, good)
+    assert_eq(good.exit_code, 0)
+    assert_true(good.stdout.contains("verified"))
+    assert_true(good.write_text is None)
+    assert_eq(
+      @cli.execute(options(["check", "--language", language]), bad).exit_code,
+      0,
+    )
+    let bad = @cli.execute(verify, bad)
+    assert_eq(bad.exit_code, 1)
+    assert_true(bad.stderr.contains("<stdin>:1:"))
+    assert_true(bad.stderr.contains("-S005"))
+    assert_eq(bad.stdout, "")
+  }
+  assert_eq(options(["verify", "a.wit"]).language, Wit)
+  assert_eq(options(["verify", "a.wac"]).language, Wac)
+  assert_true(@cli.arguments(["verify", "a.wit", "--write"]) is Err(_))
+  assert_eq(@cli.execute(options(["verify", "a.wit"]), "?").exit_code, 1)
+}
+
+///|
+test "dependency arguments require verify and stdin supplies a resolution base" {
+  let parsed = options([
+    "verify", "wit", "--language", "wit", "--base", "work", "--deps-dir", "deps",
+    "--dep", "example:dep@1.0.0=dep.wit",
+  ])
+  assert_eq(parsed.base, Some("work"))
+  assert_eq(parsed.deps_dir, Some("deps"))
+  assert_eq(parsed.dependencies.length(), 1)
+  assert_eq(parsed.dependencies[0].name, "example:dep@1.0.0")
+  assert_eq(parsed.dependencies[0].path, "dep.wit")
+  for
+    args in [
+      ["verify", "--language", "wit"],
+      ["verify", "a.wit", "--dep", "broken"],
+      ["verify", "a.wit", "--dep", "=path"],
+      ["verify", "a.wit", "--dep", "name="],
+      ["verify", "a.wit", "--deps-dir"],
+      ["parse", "a.wit", "--base", "."],
+      ["format", "a.wit", "--dep", "a:b=path"],
+    ] {
+    assert_true(@cli.arguments(args[:]) is Err(_))
+  }
+}
+
+///|
+test "WIT semantic feature flags are explicit and independent from grammar switches" {
+  let source = "package example:app;interface api{@unstable(feature=foo)resource r;f:func(x:r);}"
+  for args in [["verify", "a.wit"], ["verify", "a.wit", "--all-features"]] {
+    let output = @cli.execute(options(args[:]), source)
+    assert_eq(output.exit_code, 1)
+    assert_true(output.stderr.contains("WIT-S013"))
+  }
+  for
+    args in [
+      ["verify", "a.wit", "--semantic-feature", "foo"],
+      [
+        "verify", "a.wit", "--semantic-feature", "bar", "--semantic-feature", "foo",
+      ],
+      ["verify", "a.wit", "--all-semantic-features"],
+    ] {
+    let output = @cli.execute(options(args[:]), source)
+    assert_eq(output.exit_code, 0)
+    assert_true(output.write_text is None)
+  }
+  for
+    args in [
+      ["verify", "a.wit", "--semantic-feature"],
+      ["verify", "a.wit", "--semantic-feature", ""],
+      ["verify", "a.wit", "--semantic-feature", "--json"],
+      ["verify", "a.wac", "--semantic-feature", "foo"],
+      ["parse", "a.wit", "--all-semantic-features"],
+    ] {
+    assert_true(@cli.arguments(args[:]) is Err(_))
+  }
+}
+
+///|
+test "world selection is explicit and summaries contain no arena indices" {
+  let source = "package example:app; interface api {} world first {import api;} world second {}"
+  let selected = @cli.execute(
+    options(["verify", "a.wit", "--world", "first", "--json"]),
+    source,
+  )
+  assert_eq(selected.exit_code, 0)
+  assert_true(selected.stdout.contains("example:app/api"))
+  assert_false(selected.stdout.contains("interface-"))
+  assert_eq(
+    @cli.execute(options(["verify", "a.wit", "--world", "missing"]), source).exit_code,
+    1,
+  )
+  let ambiguous = @cli.execute(
+    options(["verify", "a.wit", "--world", "example:app"]),
+    source,
+  )
+  assert_eq(ambiguous.exit_code, 1)
+  assert_true(ambiguous.stderr.contains("WIT-S010"))
+  assert_eq(@cli.execute(options(["verify", "a.wit"]), source).exit_code, 0)
+  for
+    args in [
+      ["verify", "a.wit", "--world"],
+      ["verify", "a.wac", "--world", "app"],
+      ["parse", "a.wit", "--json"],
+    ] {
+    assert_true(@cli.arguments(args[:]) is Err(_))
+  }
+}
+
+///|
+test "explicit feature values retain raw encoded metadata names" {
+  let parsed = options([
+    "verify", "api.wasm", "--semantic-feature=", "--semantic-feature=-preview", "--semantic-feature=😀",
+  ])
+  assert_eq(parsed.semantic_features, ["", "-preview", "😀"])
+  assert_false(parsed.all_features)
+  assert_true(
+    @cli.arguments(["verify", "api.wac", "--semantic-feature="]) is Err(_),
+  )
+}
+
+///|
+test "registry flags require explicit WAC registry and preserve offline lock settings" {
+  let result = @cli.arguments([
+    "verify", "app.wac", "--registry", "https://registry.example", "--offline", "--cache-dir",
+    "cache", "--lockfile", "packages.lock", "--warg-provider", "custom-provider",
+  ])
+  guard result is Ok(Run(options)) else { fail("expected registry options") }
+  guard options.registry is Some(settings) else {
+    fail("missing registry settings")
+  }
+  assert_eq(settings.url, "https://registry.example")
+  assert_eq(settings.cache_dir, Some("cache"))
+  assert_eq(settings.lockfile, Some("packages.lock"))
+  assert_eq(settings.provider, "custom-provider")
+  assert_true(settings.offline)
+  assert_true(!settings.refresh)
+  for
+    args in [
+      ["verify", "app.wac", "--offline"],
+      ["verify", "app.wit", "--registry", "https://registry.example"],
+      ["parse", "app.wac", "--registry", "https://registry.example"],
+      ["verify", "app.wac", "--registry", "file:///tmp/registry"],
+      [
+        "verify", "app.wac", "--registry", "https://registry.example", "--offline",
+        "--refresh",
+      ],
+      [
+        "verify", "app.wac", "--registry", "https://registry.example", "--registry",
+        "https://other.example",
+      ],
+      [
+        "verify", "app.wac", "--registry", "https://registry.example", "--lockfile",
+      ],
+    ] {
+    assert_true(@cli.arguments(args[:]) is Err(_))
+  }
+}
+
+///|
+test "WIT verification grammar extensions require all-features independently" {
+  let source = "package a:b:c;"
+  for flags in [[], ["--all-semantic-features"], ["--semantic-feature", "foo"]] {
+    let output = @cli.execute(options(["verify", "a.wit", ..flags]), source)
+    assert_eq(output.exit_code, 1)
+    assert_true(output.stderr.contains("WIT-P005"))
+    let output = @cli.execute(
+      options(["verify", "a.wit", "--all-features", ..flags]),
+      source,
+    )
+    assert_eq(output.exit_code, 1)
+    assert_false(output.stderr.contains("WIT-P005"))
+    assert_true(output.stderr.contains("WIT-S001"))
+  }
+}
+
+///|
+test "WIT verification defaults to the semantic reference grammar" {
+  let source = "package example:app; interface api {} world app {import a:api; import b:api;}"
+  let reference = @cli.execute(options(["verify", "a.wit"]), source)
+  assert_eq(reference.exit_code, 0, msg=reference.stderr)
+  let extended = @cli.execute(
+    options(["verify", "a.wit", "--all-features"]),
+    source,
+  )
+  assert_eq(extended.exit_code, 1)
+  assert_true(extended.stderr.contains("WIT-P003"))
 }

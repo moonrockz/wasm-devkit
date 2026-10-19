@@ -1,0 +1,6 @@
+package example:app targets example:types/app;
+
+import api: example:types/api;
+let first = new example:relay-versioned@1.0.0 { run: api.run };
+let second = new example:relay { ...first };
+export second.run;

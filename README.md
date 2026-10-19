@@ -67,6 +67,29 @@ available for invalid input, and the CST always reconstructs the original text.
 | Apply source edits while retaining comments | [WIT editor recipe](pkgs/wit/README.mbt.md#edit-one-token-and-retain-comments), [WAC editor recipe](pkgs/wac/README.mbt.md#edit-one-token-and-retain-comments) |
 | Work from a terminal or check formatting in CI | [CLI scenarios](cmd/wasm-devkit/README.md#scenarios) |
 
+## Semantic verification
+
+`wasm-devkit verify api.wit` and `wasm-devkit verify app.wac` check the current
+semantic profiles. WIT source-package dependencies also work through
+`wasm-devkit verify ./wit --language wit`, with local dependency roots and explicit mappings. Encoded WIT `.wasm` and `.wat`
+packages have a strict v1/v2 type-wrapper profile through the same provider paths. Syntax
+acceptance remains available through `parse` and `check`.
+WAC verification covers ordered local types, interfaces, worlds, resources,
+uses/includes, typed imports/exports, checked named/inferred/spread/implicit instantiation arguments,
+instance member access, export spreads and target-world checks. Caller-supplied binary dependencies resolve
+exact package keys and nested definition paths through immutable type graphs.
+The CLI loads binary, portable WAT and WIT dependencies from local paths. Pure APIs accept WIT source/encoded closures.
+WAC registry lookup is opt-in through an optional authenticated Warg transport,
+with checked caches, offline verification and exact-version lockfiles. Native
+archives include the helper. Complete [verification bundles](examples/verification/README.md)
+include local dependencies and deliberate failures. See the
+[CLI registry guide](cmd/wasm-devkit/README.md#registry-packages).
+See the [WIT verifier](pkgs/wit/src/verifier/README.mbt.md) and
+[WAC verifier](pkgs/wac/src/verifier/README.mbt.md) for checked examples and exact scope.
+Dependency and component verification is implemented for the documented v0.2.0 profile.
+Unsupported constructs fail explicitly; optional binary proposal extensions are tracked
+in `wasm-devkit-p5m.10`.
+
 ## Status
 
 WIT source positions, structured diagnostics, a lossless scanner, typed immutable ASTs/CSTs,
@@ -140,7 +163,7 @@ mise run clean
 ## Documentation checks
 
 `mise run test` executes checked API comments and package README examples.
-`mise run test:docs` additionally compiles all 21 library guides using exactly their
+`mise run test:docs` additionally compiles all 24 library guides using exactly their
 documented imports, including the root and module READMEs outside package source directories.
 Both commands run on wasm, wasm-gc, js and native by default.
 
@@ -205,3 +228,17 @@ See [AGENTS.md](AGENTS.md) and the release-manager skill for the exact sequence.
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
+
+Runtime component type arguments preserve named declaration origins through
+substitution. Private anonymous arguments remain valid, while escaping functions
+and instances require visible names. Imported instance names, explicit export
+ascriptions and repeated component templates retain their reference identities.
+The runtime-origin fixtures compare binary and WAT acceptance and complete
+ordered models with the pinned loader; one loader projection panic is recorded
+separately. Runtime value arguments and outputs retain complete substituted
+contracts, exact consuming uses and escaping-type visibility. Their fixtures also
+compare public composition resource contexts with the pinned reference models.
+Concrete nested definitions preserve scoped contracts and generative resource
+identities through explicit validation and reconstruction stacks. Both pinned
+WASI HTTP production components pass binary/WAT package and composition model
+comparisons, with independently validated emitted compositions.

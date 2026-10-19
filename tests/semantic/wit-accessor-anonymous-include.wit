@@ -1,0 +1,1 @@
+package example:app;world base{import host:interface{resource r{p:get()->r;p:set(value:borrow<r>);}}}world app{include base;}

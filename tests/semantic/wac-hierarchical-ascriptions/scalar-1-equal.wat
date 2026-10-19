@@ -1,0 +1,1 @@
+(component (type $i (instance (type $c (instance (type $f (func (param "x" u32))) (export "f" (func (type $f))))) (export "child" (instance (type $c))))) (import "i" (instance $i (type $i))) (alias export 0 "child" (instance)) (alias export 1 "f" (func $f)) (type $f (func (param "x" u32))) (export "out" (func $f) (func (type $f))))

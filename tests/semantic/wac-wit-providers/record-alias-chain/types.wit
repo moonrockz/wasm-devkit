@@ -1,0 +1,1 @@
+package example:types; interface a {record value {x:u32}} interface b {use a.{value};type second=value;} interface api {use b.{second};f: func(v: second);}

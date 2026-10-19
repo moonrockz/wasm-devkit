@@ -1,0 +1,5187 @@
+--- a/canon_abi.mbt
++++ b/canon_abi.mbt
+@@ -0,0 +1,3 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++// Modified by wasm-devkit: retain current-scope alias sizes.
++
+@@ -5,14 +8,13 @@
+-) -> Array[@types.ValueType]? {
+-  match @component.canonical_abi_plan(ty, type_table, false, max_flat=17) {
+-    Some(plan) => if plan.contains_memory { None } else { Some(plan.flat) }
+-    None => None
+-  }
+-}
+-
+-///|
+-fn core_functype_for_component_functype(
+-  ft : @component.FuncType,
+-  type_table : Array[@component.TypeDef?],
+-  pointer_type : @types.ValueType,
+-) -> @types.FuncType? {
+-  @component.canonical_lift_core_func_type(ft, type_table, pointer_type)
++) -> Array[@types.ValueType]? raise ComponentValidationError {
++  let context : CanonicalContext = {
++    types: type_table,
++    pointer: @types.I32,
++    budget: { remaining: 1000000, },
++    cache: Map([]),
++  }
++  let shape = context.shape(ty)
++  if shape.dynamic {
++    None
++  } else {
++    Some(shape.flat)
++  }
+@@ -26 +28 @@
+-) -> @types.FuncType? {
++) -> @types.FuncType? raise ComponentValidationError {
+@@ -32,5 +34,8 @@
+-        @component.canonical_flat_types(
+-          vt,
+-          type_table,
+-          pointer_type,
+-          max_flat=17,
++        Some(
++          (
++            {
++              types: type_table,
++              pointer: pointer_type,
++              budget: { remaining: 1000000, },
++              cache: Map([]),
++            } : CanonicalContext).shape(vt).flat,
+@@ -57 +62,3 @@
+-) -> @types.FuncType? {
++  functions : Array[@component.FuncType?],
++  budget : CanonicalBudget,
++) -> @types.FuncType? raise ComponentValidationError {
+@@ -58,0 +66,12 @@
++    Lower(index, opts) => {
++      guard functions.get(index) is Some(Some(function)) else {
++        raise InvalidFuncIndex(index)
++      }
++      let context : CanonicalContext = {
++        types: type_table,
++        pointer: canon_address_type(opts, core_memory_types),
++        budget,
++        cache: Map([]),
++      }
++      Some(context.function(function).lowered)
++    }
+@@ -105 +124 @@
+-  type_bound : Int,
++  type_bound : Int32,
+@@ -108,0 +128 @@
++  budget~ : CanonicalBudget = { remaining: 1000000, },
+@@ -140,0 +161,10 @@
++          if ft.is_async {
++            raise UnsupportedCanonical
++          }
++          let context : CanonicalContext = {
++            types: type_table,
++            pointer: canon_address_type(opts, core_memory_types),
++            budget,
++            cache: Map([]),
++          }
++          let shape = context.function(ft)
+@@ -185,5 +215 @@
+-          let needs_memory = if canon_has_async(opts) {
+-            functype_async_lift_needs_memory(ft, type_table)
+-          } else {
+-            functype_needs_memory(ft, type_table)
+-          }
++          let needs_memory = shape.memory
+@@ -193,2 +219 @@
+-          if functype_needs_realloc_for_lift(ft, type_table) &&
+-            !canon_has_realloc(opts) {
++          if shape.lift_realloc && !canon_has_realloc(opts) {
+@@ -200,9 +225 @@
+-            match
+-              (
+-                core_func_types[core_func_idx],
+-                core_functype_for_component_functype(
+-                  ft,
+-                  type_table,
+-                  canon_address_type(opts, core_memory_types),
+-                ),
+-              ) {
++            match (core_func_types[core_func_idx], Some(shape.lifted)) {
+@@ -246,0 +264,10 @@
++          if ft.is_async {
++            raise UnsupportedCanonical
++          }
++          let context : CanonicalContext = {
++            types: type_table,
++            pointer: canon_address_type(opts, core_memory_types),
++            budget,
++            cache: Map([]),
++          }
++          let shape = context.function(ft)
+@@ -273 +300 @@
+-          if functype_needs_memory(ft, type_table) && !canon_has_memory(opts) {
++          if shape.memory && !canon_has_memory(opts) {
+@@ -276,2 +303 @@
+-          if functype_needs_realloc_for_lower(ft, type_table) &&
+-            !canon_has_realloc(opts) {
++          if shape.lower_realloc && !canon_has_realloc(opts) {
+@@ -367 +393 @@
+-  visiting : Map[Int, Int],
++  visiting : Map[Int32, Int32],
+@@ -392 +418 @@
+-  visiting : Map[Int, Int],
++  visiting : Map[Int32, Int32],
+@@ -495 +521 @@
+-  visiting : Map[Int, Int],
++  visiting : Map[Int32, Int32],
+@@ -626 +652 @@
+-fn clamp_type_size(size : Int) -> Int {
++fn clamp_type_size(size : Int32) -> Int32 {
+@@ -635 +661 @@
+-fn add_type_size(acc : Int, delta : Int) -> Int {
++fn add_type_size(acc : Int32, delta : Int32) -> Int32 {
+@@ -645 +671 @@
+-fn local_type_size_of(idx : Int, local_sizes : Array[Int]) -> Int {
++fn local_type_size_of(idx : Int32, local_sizes : Array[Int32]) -> Int32 {
+@@ -655,2 +681,2 @@
+-  local_sizes : Array[Int],
+-) -> Int {
++  local_sizes : Array[Int32],
++) -> Int32 {
+@@ -670,3 +696,3 @@
+-  outer_sizes : Array[Int],
+-) -> Int {
+-  fn valtype_size(ty : @component.ValType) -> Int {
++  outer_sizes : Array[Int32],
++) -> Int32 {
++  fn valtype_size(ty : @component.ValType) -> Int32 {
+@@ -681 +707 @@
+-      let local_sizes : Array[Int] = []
++      let local_sizes : Array[Int32] = []
+@@ -688 +714,3 @@
+-              let s = if count == 1 && idx >= 0 && idx < outer_sizes.length() {
++              let s = if count == 0 && idx >= 0 && idx < local_sizes.length() {
++                local_sizes[idx]
++              } else if count == 1 && idx >= 0 && idx < outer_sizes.length() {
+@@ -722 +750 @@
+-      let local_sizes : Array[Int] = []
++      let local_sizes : Array[Int32] = []
+@@ -729 +757,3 @@
+-              let s = if count == 1 && idx >= 0 && idx < outer_sizes.length() {
++              let s = if count == 0 && idx >= 0 && idx < local_sizes.length() {
++                local_sizes[idx]
++              } else if count == 1 && idx >= 0 && idx < outer_sizes.length() {
+--- a/canon_abi_wbtest.mbt
++++ b/canon_abi_wbtest.mbt
+@@ -0,0 +1,2 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++
+@@ -154,0 +157,28 @@
++
++///|
++fn functype_needs_realloc_for_lift(
++  ft : @component.FuncType,
++  types : Array[@component.TypeDef?],
++) -> Bool raise ComponentValidationError {
++  let context : CanonicalContext = {
++    types,
++    pointer: @types.I32,
++    budget: { remaining: 1000000, },
++    cache: Map([]),
++  }
++  context.function(ft).lift_realloc
++}
++
++///|
++fn functype_needs_realloc_for_lower(
++  ft : @component.FuncType,
++  types : Array[@component.TypeDef?],
++) -> Bool raise ComponentValidationError {
++  let context : CanonicalContext = {
++    types,
++    pointer: @types.I32,
++    budget: { remaining: 1000000, },
++    cache: Map([]),
++  }
++  context.function(ft).lower_realloc
++}
+--- a/component_type_sig.mbt
++++ b/component_type_sig.mbt
+@@ -0,0 +1,3 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++// Modified by wasm-devkit: retain instance type aliases and validate accessor/resource contracts.
++
+@@ -5 +8 @@
+-  global_resource_ids : Array[Int?],
++  global_resource_ids : Array[Int32?],
+@@ -9 +12 @@
+-  let local_resource_ids : Array[Int?] = []
++  let local_resource_ids : Array[Int32?] = []
+@@ -102 +105 @@
+-  global_resource_ids : Array[Int?],
++  global_resource_ids : Array[Int32?],
+@@ -106 +109 @@
+-  let local_resource_ids : Array[Int?] = []
++  let local_resource_ids : Array[Int32?] = []
+@@ -114 +117 @@
+-  fn record_type_slot(as_resource : Bool) -> Int {
++  fn record_type_slot(as_resource : Bool) -> Int32 {
+@@ -215 +218 @@
+-  global_resource_ids : Array[Int?],
++  global_resource_ids : Array[Int32?],
+@@ -219 +222 @@
+-  let local_resource_ids : Array[Int?] = []
++  let local_resource_ids : Array[Int32?] = []
+@@ -232 +235 @@
+-  fn push_resource() -> Int {
++  fn push_resource() -> Int32 {
+@@ -240 +243 @@
+-  fn push_eq(idx : Int) -> Unit {
++  fn push_eq(idx : Int32) -> Unit {
+@@ -312 +315 @@
+-  global_resource_ids : Array[Int?],
++  global_resource_ids : Array[Int32?],
+@@ -316 +319 @@
+-  let local_resource_ids : Array[Int?] = []
++  let local_resource_ids : Array[Int32?] = []
+@@ -408,4 +411,19 @@
+-  c : @component.Component,
+-) -> Map[String, Map[String, Int]] raise ComponentValidationError {
+-  let core_type_exports : Array[Map[String, Int]?] = []
+-  for payload in c.core_types {
++  c : @component.ComponentBinary,
++) -> Map[String, Map[String, Int32]] raise ComponentValidationError {
++  let core_types : Array[Bytes] = []
++  let imports : Array[@component.Import] = []
++  for section in c.sections {
++    if section.id == 3 {
++      core_types.push(section.payload)
++    }
++    if section.id == 10 {
++      let parsed = @component.parse_import_section(section.payload) catch {
++        error => raise SectionParseError(10, error.to_string())
++      }
++      for item in parsed {
++        imports.push(item)
++      }
++    }
++  }
++  let core_type_exports : Array[Map[String, Int32]?] = []
++  for payload in core_types {
+@@ -417,2 +435,2 @@
+-  let result : Map[String, Map[String, Int]] = Map([])
+-  for i in c.imports {
++  let result : Map[String, Map[String, Int32]] = Map([])
++  for i in imports {
+@@ -432 +450 @@
+-  c : @component.Component,
++  c : @component.ComponentBinary,
+@@ -433,0 +452,15 @@
++  let core_types : Array[Bytes] = []
++  let imports : Array[@component.Import] = []
++  for section in c.sections {
++    if section.id == 3 {
++      core_types.push(section.payload)
++    }
++    if section.id == 10 {
++      let parsed = @component.parse_import_section(section.payload) catch {
++        error => raise SectionParseError(10, error.to_string())
++      }
++      for item in parsed {
++        imports.push(item)
++      }
++    }
++  }
+@@ -436 +469 @@
+-  for payload in c.core_types {
++  for payload in core_types {
+@@ -449 +482 @@
+-  for i in c.imports {
++  for i in imports {
+@@ -468 +501 @@
+-) -> (Map[String, Map[String, CoreExternType]], Map[String, Map[String, Int]]) raise ComponentValidationError {
++) -> (Map[String, Map[String, CoreExternType]], Map[String, Map[String, Int32]]) raise ComponentValidationError {
+@@ -470 +503 @@
+-  let local_core_export_kinds : Array[Map[String, Int]?] = []
++  let local_core_export_kinds : Array[Map[String, Int32]?] = []
+@@ -488 +521 @@
+-          let exp_kinds : Map[String, Int] = Map([])
++          let exp_kinds : Map[String, Int32] = Map([])
+@@ -524 +557 @@
+-  let export_kinds : Map[String, Map[String, Int]] = Map([])
++  let export_kinds : Map[String, Map[String, Int32]] = Map([])
+@@ -542 +575,4 @@
+-fn check_typeidx(idx : Int, bound : Int) -> Unit raise ComponentValidationError {
++fn check_typeidx(
++  idx : Int32,
++  bound : Int32,
++) -> Unit raise ComponentValidationError {
+@@ -552 +588 @@
+-  type_bound : Int,
++  type_bound : Int32,
+@@ -687,2 +723,2 @@
+-  idx : Int,
+-  bound : Int,
++  idx : Int32,
++  bound : Int32,
+@@ -698,2 +734,2 @@
+-  count : Int,
+-  idx : Int,
++  count : Int32,
++  idx : Int32,
+@@ -711,4 +747,4 @@
+-  core_type_outers : Array[Array[Map[String, Int]?]],
+-  count : Int,
+-  idx : Int,
+-) -> Map[String, Int]? raise ComponentValidationError {
++  core_type_outers : Array[Array[Map[String, Int32]?]],
++  count : Int32,
++  idx : Int32,
++) -> Map[String, Int32]? raise ComponentValidationError {
+@@ -727 +763 @@
+-  visiting : Map[Int, Int],
++  visiting : Map[Int32, Int32],
+@@ -808 +844 @@
+-  visiting : Map[Int, Int],
++  visiting : Map[Int32, Int32],
+@@ -843,3 +879,3 @@
+-  type_outer_depths : Array[Int],
+-  component_depth : Int,
+-  core_type_outers : Array[Array[Map[String, Int]?]],
++  type_outer_depths : Array[Int32],
++  component_depth : Int32,
++  core_type_outers : Array[Array[Map[String, Int32]?]],
+@@ -856 +892 @@
+-  let outer_core_type_bounds : Array[Int] = []
++  let outer_core_type_bounds : Array[Int32] = []
+@@ -872 +908,3 @@
+-      if !is_map_key_type(key, type_table, Map([])) {
++      // wasmparser 0.258 permits any valid value type as a map key; 0.262
++      // restricts keys to the component model's primitive keytype grammar.
++      if cfg.restricted_map_keys && !is_map_key_type(key, type_table, Map([])) {
+@@ -1013,2 +1051,4 @@
+-      if rep != 0x7f {
+-        raise SectionParseError(7, "resources can only be represented by `i32`")
++      if rep != 0x7f && rep != 0x7e {
++        raise SectionParseError(
++          7, "resources require an i32 or i64 representation",
++        )
+@@ -1021 +1061 @@
+-      let local_resource_ids : Array[Int?] = []
++      let local_resource_ids : Array[Int32?] = []
+@@ -1025,6 +1065,9 @@
+-      let local_named_types : Map[Int, Int] = Map([])
+-      let local_import_resource_names : Map[String, Int] = Map([])
+-      let local_export_resource_names : Map[String, Int] = Map([])
+-      let local_import_resource_type_idxs : Map[Int, Int] = Map([])
+-      let local_export_resource_type_idxs : Map[Int, Int] = Map([])
+-      let local_core_type_exports : Array[Map[String, Int]?] = []
++      let import_functions : Map[String, @component.FuncType] = Map([])
++      let export_functions : Map[String, @component.FuncType] = Map([])
++      let local_named_types : Map[Int32, Int32] = Map([])
++      let local_import_resource_names : Map[String, Int32] = Map([])
++      let local_export_resource_names : Map[String, Int32] = Map([])
++      let local_import_resource_type_idxs : Map[Int32, Int32] = Map([])
++      let local_instance_imports : Array[Bool] = []
++      let local_export_resource_type_idxs : Map[Int32, Int32] = Map([])
++      let local_core_type_exports : Array[Map[String, Int32]?] = []
+@@ -1043,2 +1086,8 @@
+-              let outer = outer_type_of_alias(type_outers, count, idx)
+-              if type_outer_depths[count - 1] < component_depth {
++              // Count zero aliases an earlier type in the current lexical scope.
++              let outer = if count == 0 {
++                check_typeidx(idx, local_type_table.length())
++                local_type_table[idx]
++              } else {
++                outer_type_of_alias(type_outers, count, idx)
++              }
++              if count > 0 && type_outer_depths[count - 1] < component_depth {
+@@ -1058,0 +1108,7 @@
++              let rid = if count == 0 { local_resource_ids[idx] } else { None }
++              if count == 0 && local_named_types.contains(idx) {
++                local_named_types[local_type_table.length()] = 1
++              }
++              if count == 0 && local_import_resource_type_idxs.contains(idx) {
++                local_import_resource_type_idxs[local_type_table.length()] = 1
++              }
+@@ -1060 +1116 @@
+-              local_resource_ids.push(None)
++              local_resource_ids.push(rid)
+@@ -1069 +1125,6 @@
+-          AliasInstanceExport(kind, _instance_idx, _name) =>
++          AliasInstanceExport(kind, instance_idx, _name) => {
++            guard instance_idx >= 0 &&
++              instance_idx < local_instance_imports.length() else {
++              raise SectionParseError(7, "instance index out of bounds")
++            }
++            let imported = local_instance_imports[instance_idx]
+@@ -1070,0 +1132,4 @@
++              local_named_types[local_type_table.length()] = 1
++              if imported {
++                local_import_resource_type_idxs[local_type_table.length()] = 1
++              }
+@@ -1073 +1138,3 @@
+-            } else if kind != 0x05 {
++            } else if kind == 0x05 {
++              local_instance_imports.push(imported)
++            } else {
+@@ -1077,0 +1145 @@
++          }
+@@ -1122,0 +1191,3 @@
++            if desc is InstanceType(_) {
++              local_instance_imports.push(true)
++            }
+@@ -1128,0 +1200,3 @@
++                      if local_import_resource_type_idxs.contains(tyidx) {
++                        local_import_resource_type_idxs[new_idx] = 1
++                      }
+@@ -1139 +1213 @@
+-                    local_resource_ids.push(None)
++                    local_resource_ids.push(Some(new_idx))
+@@ -1161,0 +1236,18 @@
++              Value(Type(value)) =>
++                if valtype_uses_disallowed_resources(
++                    value,
++                    local_type_table,
++                    local_import_resource_type_idxs,
++                    Map([]),
++                  ) ||
++                  !valtype_valid_in_interface(
++                    value,
++                    local_type_table,
++                    local_resource_ids,
++                    local_named_types,
++                    Map([]),
++                  ) {
++                  raise SectionParseError(
++                    7, "value not valid to be used as import",
++                  )
++                }
+@@ -1168,0 +1261,4 @@
++                      validate_accessor_pair(
++                        7, name, ft, local_type_table, local_resource_ids, import_functions,
++                      )
++                      import_functions[name] = ft
+@@ -1221,0 +1318,3 @@
++            if desc is InstanceType(_) {
++              local_instance_imports.push(false)
++            }
+@@ -1238 +1337 @@
+-                    local_resource_ids.push(None)
++                    local_resource_ids.push(Some(new_idx))
+@@ -1260,0 +1360,19 @@
++              Value(Type(value)) => {
++                if !valtype_valid_in_interface(
++                    value,
++                    local_type_table,
++                    local_resource_ids,
++                    local_named_types,
++                    Map([]),
++                  ) {
++                  raise SectionParseError(
++                    7, "value not valid to be used as export",
++                  )
++                }
++                if !cfg.borrowed_value_exports &&
++                  valtype_contains_borrow(value, local_type_table, Map([])) {
++                  raise SectionParseError(
++                    7, "exported value type cannot contain a borrow type",
++                  )
++                }
++              }
+@@ -1267,0 +1386,4 @@
++                      validate_accessor_pair(
++                        7, name, ft, local_type_table, local_resource_ids, export_functions,
++                      )
++                      export_functions[name] = ft
+@@ -1289,0 +1412,3 @@
++      let local_resource_ids : Array[Int32?] = []
++      let resource_names : Map[String, Int32] = Map([])
++      let export_functions : Map[String, @component.FuncType] = Map([])
+@@ -1292 +1417 @@
+-      let local_core_type_exports : Array[Map[String, Int]?] = []
++      let local_core_type_exports : Array[Map[String, Int32]?] = []
+@@ -1317,2 +1442,8 @@
+-              let outer = outer_type_of_alias(type_outers, count, idx)
+-              if type_outer_depths[count - 1] < component_depth {
++              // Count zero aliases an earlier type in the current lexical scope.
++              let outer = if count == 0 {
++                check_typeidx(idx, local_type_table.length())
++                local_type_table[idx]
++              } else {
++                outer_type_of_alias(type_outers, count, idx)
++              }
++              if count > 0 && type_outer_depths[count - 1] < component_depth {
+@@ -1332,0 +1464 @@
++              let rid = if count == 0 { local_resource_ids[idx] } else { None }
+@@ -1333,0 +1466 @@
++              local_resource_ids.push(rid)
+@@ -1344,0 +1478 @@
++              local_resource_ids.push(None)
+@@ -1360,0 +1495 @@
++            local_resource_ids.push(None)
+@@ -1394,4 +1529,38 @@
+-            // Like the component export section, exporting a type introduces
+-            // a fresh type index in this instance type's local type space.
+-            if desc is Type(_) {
+-              local_type_table.push(None)
++            match desc {
++              Type(bound) => {
++                let new_index = local_type_table.length()
++                match bound {
++                  Eq(index) => {
++                    local_type_table.push(local_type_table[index])
++                    local_resource_ids.push(local_resource_ids[index])
++                  }
++                  SubResource => {
++                    local_type_table.push(
++                      Some(ResourceType(-1, 0x7f, None, HostDefined)),
++                    )
++                    local_resource_ids.push(Some(new_index))
++                    resource_names[name] = new_index
++                  }
++                }
++              }
++              Value(Type(value)) =>
++                if !cfg.borrowed_value_exports &&
++                  valtype_contains_borrow(value, local_type_table, Map([])) {
++                  raise SectionParseError(
++                    7, "exported value type cannot contain a borrow type",
++                  )
++                }
++              FuncType(index) =>
++                match local_type_table[index] {
++                  Some(FuncType(ft)) => {
++                    validate_bracketed_func_name(
++                      7, name, ft, local_type_table, local_resource_ids, resource_names,
++                    )
++                    validate_accessor_pair(
++                      7, name, ft, local_type_table, local_resource_ids, export_functions,
++                    )
++                    export_functions[name] = ft
++                  }
++                  _ => ()
++                }
++              _ => ()
+@@ -1433 +1602 @@
+-  core_type_bound : Int,
++  core_type_bound : Int32,
+@@ -1578 +1747 @@
+-fn canon_memory_idx(opts : Array[@component.CanonOpt]) -> Int? {
++fn canon_memory_idx(opts : Array[@component.CanonOpt]) -> Int32? {
+@@ -1588 +1757 @@
+-fn canon_realloc_idx(opts : Array[@component.CanonOpt]) -> Int? {
++fn canon_realloc_idx(opts : Array[@component.CanonOpt]) -> Int32? {
+@@ -1598 +1767 @@
+-fn canon_post_return_idx(opts : Array[@component.CanonOpt]) -> Int? {
++fn canon_post_return_idx(opts : Array[@component.CanonOpt]) -> Int32? {
+@@ -1608 +1777 @@
+-fn functype_needs_memory(
++fn functype_params_need_memory(
+@@ -1611,5 +1780 @@
+-) -> Bool {
+-  // Canonical ABI uses linear memory when:
+-  // - any param/result type itself needs memory (e.g. string/list), or
+-  // - the flattened parameter list is too large (>16), or
+-  // - the result can't be represented as a single core value.
++) -> Bool raise ComponentValidationError {
+@@ -1628,27 +1792,0 @@
+-  match ft.result {
+-    None => false
+-    Some(r) =>
+-      match core_valtypes_for_component_valtype(r, type_table) {
+-        None => true
+-        Some(ts) => ts.length() != 1
+-      }
+-  }
+-}
+-
+-///|
+-fn functype_params_need_memory(
+-  ft : @component.FuncType,
+-  type_table : Array[@component.TypeDef?],
+-) -> Bool {
+-  let mut param_count = 0
+-  for p in ft.params {
+-    match core_valtypes_for_component_valtype(p.ty, type_table) {
+-      Some(ts) => {
+-        param_count += ts.length()
+-        if param_count > 16 {
+-          return true
+-        }
+-      }
+-      None => return true
+-    }
+-  }
+@@ -1662 +1800 @@
+-) -> Bool {
++) -> Bool raise ComponentValidationError {
+@@ -1675,136 +1812,0 @@
+-
+-///|
+-fn valtype_contains_list_or_string(
+-  ty : @component.ValType,
+-  type_table : Array[@component.TypeDef?],
+-  visiting : Map[Int, Unit],
+-) -> Bool {
+-  match ty {
+-    Prim(String) => true
+-    Prim(_) => false
+-    TypeIdx(idx) =>
+-      if idx < 0 || idx >= type_table.length() || visiting.get(idx) is Some(_) {
+-        false
+-      } else {
+-        visiting.set(idx, ())
+-        let found = match type_table[idx] {
+-          None => false
+-          Some(td) =>
+-            match td {
+-              DefValType(String) | List(_) | MapType(_, _) => true
+-              DefValType(_)
+-              | Flags(_)
+-              | Enum(_)
+-              | Own(_)
+-              | Borrow(_)
+-              | ResourceType(_, _, _, _)
+-              | Stream(_)
+-              | Future(_)
+-              | InstanceTypeEmpty => false
+-              FixedList(element, _) =>
+-                valtype_contains_list_or_string(element, type_table, visiting)
+-              Record(fields) => {
+-                let mut any = false
+-                for field in fields {
+-                  if valtype_contains_list_or_string(
+-                      field.ty,
+-                      type_table,
+-                      visiting,
+-                    ) {
+-                    any = true
+-                    break
+-                  }
+-                }
+-                any
+-              }
+-              Variant(cases) => {
+-                let mut any = false
+-                for variant_case in cases {
+-                  if variant_case.ty is Some(case_ty) &&
+-                    valtype_contains_list_or_string(
+-                      case_ty, type_table, visiting,
+-                    ) {
+-                    any = true
+-                    break
+-                  }
+-                }
+-                any
+-              }
+-              Tuple(types) => {
+-                let mut any = false
+-                for element in types {
+-                  if valtype_contains_list_or_string(
+-                      element, type_table, visiting,
+-                    ) {
+-                    any = true
+-                    break
+-                  }
+-                }
+-                any
+-              }
+-              Option(inner) =>
+-                valtype_contains_list_or_string(inner, type_table, visiting)
+-              Result(ok, err) => {
+-                let ok_has = match ok {
+-                  Some(inner) =>
+-                    valtype_contains_list_or_string(inner, type_table, visiting)
+-                  None => false
+-                }
+-                let err_has = match err {
+-                  Some(inner) =>
+-                    valtype_contains_list_or_string(inner, type_table, visiting)
+-                  None => false
+-                }
+-                ok_has || err_has
+-              }
+-              FuncType(_) | ComponentType(_) | InstanceType(_) => false
+-            }
+-        }
+-        visiting.remove(idx) |> ignore
+-        found
+-      }
+-  }
+-}
+-
+-///|
+-fn functype_needs_realloc_for_lift(
+-  ft : @component.FuncType,
+-  type_table : Array[@component.TypeDef?],
+-) -> Bool {
+-  // For canon lift, `realloc` is required when the wrapper must allocate/write
+-  // linear memory to pass params (strings/lists or indirect args).
+-  let mut param_count = 0
+-  for p in ft.params {
+-    if valtype_contains_list_or_string(p.ty, type_table, Map([])) {
+-      return true
+-    }
+-    match core_valtypes_for_component_valtype(p.ty, type_table) {
+-      Some(ts) => {
+-        param_count += ts.length()
+-        if param_count > 16 {
+-          return true
+-        }
+-      }
+-      None => return true
+-    }
+-  }
+-  // Results are lifted from memory written by the core callee. Reading a
+-  // string/list result needs `memory`, but does not allocate through the
+-  // component's realloc function.
+-  false
+-}
+-
+-///|
+-fn functype_needs_realloc_for_lower(
+-  ft : @component.FuncType,
+-  type_table : Array[@component.TypeDef?],
+-) -> Bool {
+-  // Canon lower reads parameters already written by the core caller, so
+-  // dynamic parameters only require `memory`. A dynamic result is written
+-  // back into that memory and therefore requires the supplied allocator.
+-  match ft.result {
+-    Some(result_ty) =>
+-      valtype_contains_list_or_string(result_ty, type_table, Map([]))
+-    None => false
+-  }
+-}
+--- a/core_type.mbt
++++ b/core_type.mbt
+@@ -0,0 +1,3 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++// Modified by wasm-devkit: validate accessor and async-constructor contracts.
++
+@@ -4,4 +7,4 @@
+-  max_outer_depth : Int,
+-  current_core_type_bound : Int,
+-  outer_core_type_bounds : Array[Int],
+-) -> Map[String, Int] raise ComponentValidationError {
++  max_outer_depth : Int32,
++  current_core_type_bound : Int32,
++  outer_core_type_bounds : Array[Int32],
++) -> Map[String, Int32] raise ComponentValidationError {
+@@ -9,2 +12,2 @@
+-  let exports : Map[String, Int] = Map([])
+-  let seen_imports : Map[String, Int] = Map([])
++  let exports : Map[String, Int32] = Map([])
++  let seen_imports : Map[(String, String), Int32] = Map([])
+@@ -26 +29 @@
+-        let key = "\{mod_s}:\{name_s}"
++        let key = (mod_s, name_s)
+@@ -60 +63,3 @@
+-                let bound = if depth <= 1 {
++                let bound = if depth == 0 {
++                  func_type_bound - 1
++                } else if depth == 1 {
+@@ -120,4 +125,4 @@
+-  max_outer_depth : Int,
+-  base_core_type_bound : Int,
+-  outer_core_type_bounds : Array[Int],
+-) -> Array[Map[String, Int]?] raise ComponentValidationError {
++  max_outer_depth : Int32,
++  base_core_type_bound : Int32,
++  outer_core_type_bounds : Array[Int32],
++) -> Array[Map[String, Int32]?] raise ComponentValidationError {
+@@ -126 +131 @@
+-  let out : Array[Map[String, Int]?] = []
++  let out : Array[Map[String, Int32]?] = []
+@@ -159,3 +164,3 @@
+-  max_outer_depth : Int,
+-  base_core_type_bound : Int,
+-  outer_core_type_bounds : Array[Int],
++  max_outer_depth : Int32,
++  base_core_type_bound : Int32,
++  outer_core_type_bounds : Array[Int32],
+@@ -199,3 +204,3 @@
+-  current_core_type_bound : Int,
+-  outer_core_type_bounds : Array[Int],
+-) -> Map[String, Int]? raise ComponentValidationError {
++  current_core_type_bound : Int32,
++  outer_core_type_bounds : Array[Int32],
++) -> Map[String, Int32]? raise ComponentValidationError {
+@@ -313 +318 @@
+-  section : Int,
++  section : Int32,
+@@ -320 +325,2 @@
+-  let mut has_version = false
++  let mut suffix : Bytes? = None
++  let mut interface_name = name
+@@ -322,0 +329,6 @@
++    let bytes = match attribute {
++      Implements(bytes) | VersionSuffix(bytes) | ExternalId(bytes) => bytes
++    }
++    (@utf8.decode(bytes, ignore_bom=false) |> ignore) catch {
++      _ => raise SectionParseError(section, "name attribute is not UTF-8")
++    }
+@@ -324 +336 @@
+-      Implements(interface_name) => {
++      Implements(implemented) => {
+@@ -343,0 +356 @@
++        interface_name = implemented
+@@ -354 +367 @@
+-        if has_version {
++        if suffix is Some(_) {
+@@ -356 +369 @@
+-            section, "duplicate `versionsuffix` attribute",
++            section, "duplicate `version-suffix` attribute",
+@@ -359,22 +372,6 @@
+-        has_version = true
+-        let mut at = -1
+-        for i in 0..<name.length() {
+-          if name[i].to_int() == 0x40 {
+-            at = i
+-          }
+-        }
+-        let merged : Array[Byte] = []
+-        if at >= 0 {
+-          for i in (at + 1)..<name.length() {
+-            merged.push(name[i])
+-          }
+-        }
+-        for byte in version {
+-          merged.push(byte)
+-        }
+-        let full_version = Bytes::from_array(merged)
+-        if at < 0 ||
+-          !is_canonversion_range(name, at + 1, name.length()) ||
+-          !is_semver_range(full_version, 0, full_version.length()) {
+-          raise SectionParseError(section, "invalid version suffix")
+-        }
++        if !(sort is Instance) {
++          raise SectionParseError(
++            section, "only instances can have a `version-suffix`",
++          )
++        }
++        suffix = Some(version)
+@@ -389,0 +387,71 @@
++  if !cfg.canonical_version_suffix && has_implements {
++    return
++  }
++  let is_interface = is_package_name(interface_name)
++  if cfg.canonical_version_suffix && suffix is Some(_) && !is_interface {
++    raise SectionParseError(section, "invalid version suffix")
++  }
++  if !is_interface {
++    return
++  }
++  let mut at = -1
++  for i in 0..<interface_name.length() {
++    if interface_name[i] == 0x40 {
++      at = i
++      break
++    }
++  }
++  if at < 0 {
++    if cfg.canonical_version_suffix && suffix is Some(_) {
++      raise SectionParseError(section, "invalid version suffix")
++    }
++    return
++  }
++  let merged : Array[Byte] = []
++  for i in (at + 1)..<interface_name.length() {
++    merged.push(interface_name[i])
++  }
++  let prefix_length = merged.length()
++  if suffix is Some(bytes) {
++    for byte in bytes {
++      merged.push(byte)
++    }
++  }
++  let full = Bytes::from_array(merged)
++  if !is_semver_range(full, 0, full.length()) {
++    raise SectionParseError(section, "invalid interface version")
++  }
++  if cfg.canonical_version_suffix && suffix is Some(bytes) {
++    if bytes.length() == 0 {
++      raise SectionParseError(section, "invalid version suffix")
++    }
++    let mut first_dot = -1
++    let mut second_dot = -1
++    let mut build = full.length()
++    let mut prerelease = false
++    for i in 0..<full.length() {
++      if full[i] == 0x2b {
++        build = i
++        break
++      }
++      if full[i] == 0x2d {
++        prerelease = true
++      }
++      if full[i] == 0x2e && first_dot < 0 {
++        first_dot = i
++      } else if full[i] == 0x2e && second_dot < 0 {
++        second_dot = i
++      }
++    }
++    let canonical = if !prerelease && !(first_dot == 1 && full[0] == 0x30) {
++      first_dot
++    } else if !prerelease &&
++      !(second_dot - first_dot == 2 && full[first_dot + 1] == 0x30) {
++      second_dot
++    } else {
++      build
++    }
++    if prefix_length != canonical {
++      raise SectionParseError(section, "invalid version suffix")
++    }
++  }
+@@ -394 +462 @@
+-  section : Int,
++  section : Int32,
+@@ -426 +494 @@
+-  fn parse_resource_prefix(name : String, prefix_len : Int) -> String {
++  fn parse_resource_prefix(name : String, prefix_len : Int32) -> String {
+@@ -541 +609,7 @@
+-  let s = suffix.to_string()
++  let raw_suffix = suffix.to_string()
++  let s = if (p == "method" || p == "static") &&
++    (raw_suffix.has_prefix("[get]") || raw_suffix.has_prefix("[set]")) {
++    raw_suffix[5:].to_owned()
++  } else {
++    raw_suffix
++  }
+@@ -567 +641 @@
+-) -> Int? {
++) -> Int32? {
+@@ -586 +660 @@
+-) -> Int? {
++) -> Int32? {
+@@ -603 +677 @@
+-  section : Int,
++  section : Int32,
+@@ -607,2 +681,2 @@
+-  resource_ids : Array[Int?],
+-  known_resources : Map[String, Int],
++  resource_ids : Array[Int32?],
++  known_resources : Map[String, Int32],
+@@ -609,0 +684 @@
++  validate_accessor_function(section, name, ft, type_table)
+@@ -610,0 +686,3 @@
++  if br is Some(info) && info.kind is Constructor && ft.is_async {
++    raise SectionParseError(section, "constructor cannot be async")
++  }
+@@ -702,2 +780,2 @@
+-  allowed_resource_type_idxs : Map[Int, Int],
+-  visiting : Map[Int, Int],
++  allowed_resource_type_idxs : Map[Int32, Int32],
++  visiting : Map[Int32, Int32],
+@@ -705,23 +783,21 @@
+-  match ty {
+-    Prim(_) => false
+-    TypeIdx(idx) =>
+-      if idx < 0 || idx >= type_table.length() {
+-        false
+-      } else if visiting.get(idx) is Some(_) {
+-        false
+-      } else {
+-        visiting.set(idx, 1)
+-        let bad = match type_table[idx] {
+-          Some(Own(t)) | Some(Borrow(t)) =>
+-            allowed_resource_type_idxs.get(t) is None
+-          Some(Tuple(tys)) => {
+-            let mut bad = false
+-            for t in tys {
+-              if valtype_uses_disallowed_resources(
+-                  t, type_table, allowed_resource_type_idxs, visiting,
+-                ) {
+-                bad = true
+-                break
+-              }
+-            }
+-            bad
++  let work : Array[@component.ValType] = [ty]
++  while work.pop() is Some(value) {
++    guard value is TypeIdx(idx) else { continue }
++    if idx < 0 || idx >= type_table.length() || visiting.contains(idx) {
++      continue
++    }
++    visiting[idx] = 1
++    match type_table[idx] {
++      Some(Own(target)) | Some(Borrow(target)) =>
++        if !allowed_resource_type_idxs.contains(target) {
++          return true
++        }
++      Some(Tuple(values)) => work.append(values)
++      Some(Record(fields)) =>
++        for field in fields {
++          work.push(field.ty)
++        }
++      Some(Variant(cases)) =>
++        for item in cases {
++          if item.ty is Some(value) {
++            work.push(value)
+@@ -729,71 +805,23 @@
+-          Some(Record(fields)) => {
+-            let mut bad = false
+-            for f in fields {
+-              if valtype_uses_disallowed_resources(
+-                  f.ty,
+-                  type_table,
+-                  allowed_resource_type_idxs,
+-                  visiting,
+-                ) {
+-                bad = true
+-                break
+-              }
+-            }
+-            bad
+-          }
+-          Some(Variant(cases)) => {
+-            let mut bad = false
+-            for c in cases {
+-              match c.ty {
+-                None => ()
+-                Some(t) =>
+-                  if valtype_uses_disallowed_resources(
+-                      t, type_table, allowed_resource_type_idxs, visiting,
+-                    ) {
+-                    bad = true
+-                    break
+-                  }
+-              }
+-            }
+-            bad
+-          }
+-          Some(Option(v)) =>
+-            valtype_uses_disallowed_resources(
+-              v, type_table, allowed_resource_type_idxs, visiting,
+-            )
+-          Some(Result(ok, err)) => {
+-            let ok_bad = match ok {
+-              None => false
+-              Some(v) =>
+-                valtype_uses_disallowed_resources(
+-                  v, type_table, allowed_resource_type_idxs, visiting,
+-                )
+-            }
+-            let err_bad = match err {
+-              None => false
+-              Some(v) =>
+-                valtype_uses_disallowed_resources(
+-                  v, type_table, allowed_resource_type_idxs, visiting,
+-                )
+-            }
+-            ok_bad || err_bad
+-          }
+-          Some(List(v)) =>
+-            valtype_uses_disallowed_resources(
+-              v, type_table, allowed_resource_type_idxs, visiting,
+-            )
+-          Some(Stream(v)) | Some(Future(v)) =>
+-            match v {
+-              None => false
+-              Some(inner) =>
+-                valtype_uses_disallowed_resources(
+-                  inner, type_table, allowed_resource_type_idxs, visiting,
+-                )
+-            }
+-          // Other type defs either don't contain resources or are validated elsewhere.
+-          _ => false
+-        }
+-        visiting.remove(idx) |> ignore
+-        bad
+-      }
+-  }
++        }
++      Some(Option(value)) | Some(List(value)) | Some(FixedList(value, _)) =>
++        work.push(value)
++      Some(MapType(key, value)) => {
++        work.push(key)
++        work.push(value)
++      }
++      Some(Result(ok, error)) => {
++        if ok is Some(value) {
++          work.push(value)
++        }
++        if error is Some(value) {
++          work.push(value)
++        }
++      }
++      Some(Stream(value)) | Some(Future(value)) =>
++        if value is Some(value) {
++          work.push(value)
++        }
++      _ => ()
++    }
++  }
++  false
+@@ -806 +834 @@
+-  allowed_resource_type_idxs : Map[Int, Int],
++  allowed_resource_type_idxs : Map[Int32, Int32],
+@@ -808 +836 @@
+-  let visiting : Map[Int, Int] = Map([])
++  let visiting : Map[Int32, Int32] = Map([])
+@@ -832 +860 @@
+-  resource_ids : Array[Int?],
++  resource_ids : Array[Int32?],
+@@ -834 +862 @@
+-  let visiting : Map[Int, Int] = Map([])
++  let visiting : Map[Int32, Int32] = Map([])
+@@ -846 +874,5 @@
+-  { params, result, }
++  {
++    params,
++    result,
++    complete: complete_function_signature(ft, [], [], type_table, resource_ids),
++  }
+@@ -853 +885 @@
+-  local_resource_ids : Array[Int?],
++  local_resource_ids : Array[Int32?],
+@@ -855,2 +887,2 @@
+-  global_resource_ids : Array[Int?],
+-  visiting : Map[Int, Int],
++  global_resource_ids : Array[Int32?],
++  visiting : Map[Int32, Int32],
+@@ -973 +1005 @@
+-  local_resource_ids : Array[Int?],
++  local_resource_ids : Array[Int32?],
+@@ -975,2 +1007,2 @@
+-  global_resource_ids : Array[Int?],
+-  visiting : Map[Int, Int],
++  global_resource_ids : Array[Int32?],
++  visiting : Map[Int32, Int32],
+@@ -1024 +1056 @@
+-  local_resource_ids : Array[Int?],
++  local_resource_ids : Array[Int32?],
+@@ -1026 +1058,3 @@
+-  global_resource_ids : Array[Int?],
++  global_resource_ids : Array[Int32?],
++  local_origins~ : Map[Int32, Int32] = Map([]),
++  global_function~ : Bool = false,
+@@ -1028 +1062 @@
+-  let visiting : Map[Int, Int] = Map([])
++  let visiting : Map[Int32, Int32] = Map([])
+@@ -1053 +1087,13 @@
+-  { params, result, }
++  {
++    params,
++    result,
++    complete: complete_function_signature(
++      ft,
++      local_types,
++      local_resource_ids,
++      global_types,
++      global_resource_ids,
++      local_origins~,
++      global_function~,
++    ),
++  }
+@@ -1060,2 +1106,2 @@
+-  resource_ids : Array[Int?],
+-  visiting : Map[Int, Int],
++  resource_ids : Array[Int32?],
++  visiting : Map[Int32, Int32],
+@@ -1140,2 +1186,2 @@
+-  resource_ids : Array[Int?],
+-  visiting : Map[Int, Int],
++  resource_ids : Array[Int32?],
++  visiting : Map[Int32, Int32],
+@@ -1170,3 +1216,3 @@
+-  idx : Int,
+-  type_table : Array[@component.TypeDef?],
+-  resource_ids : Array[Int?],
++  idx : Int32,
++  type_table : Array[@component.TypeDef?],
++  resource_ids : Array[Int32?],
+@@ -1178 +1224,4 @@
+-fn type_sig_subst_resources(sig : TypeSig, subst : Map[Int, Int]) -> TypeSig {
++fn type_sig_subst_resources(
++  sig : TypeSig,
++  subst : Map[Int32, Int32],
++) -> TypeSig {
+@@ -1307 +1356 @@
+-  subst : Map[Int, Int],
++  subst : Map[Int32, Int32],
+@@ -1317 +1366,5 @@
+-  { params, result, }
++  {
++    params,
++    result,
++    complete: complete_signature_substitute(sig.complete, subst),
++  }
+@@ -1355,3 +1408,3 @@
+-  resource_ids : Array[Int?],
+-  named_types : Map[Int, Int],
+-  visiting : Map[Int, Int],
++  _resource_ids : Array[Int32?],
++  named_types : Map[Int32, Int32],
++  _visiting : Map[Int32, Int32],
+@@ -1359,112 +1412 @@
+-  match ty {
+-    Prim(_) => true
+-    TypeIdx(idx) =>
+-      if idx < 0 || idx >= type_table.length() {
+-        true
+-      } else if visiting.get(idx) is Some(_) {
+-        true
+-      } else {
+-        match type_table[idx] {
+-          None => true
+-          Some(td) => {
+-            if typedef_requires_name_for_interface(td) &&
+-              named_types.get(idx) is None {
+-              return false
+-            }
+-            visiting.set(idx, 1)
+-            let ok = match td {
+-              DefValType(_) => true
+-              Tuple(tys) => {
+-                let mut ok = true
+-                for t in tys {
+-                  if !valtype_valid_in_interface(
+-                      t, type_table, resource_ids, named_types, visiting,
+-                    ) {
+-                    ok = false
+-                    break
+-                  }
+-                }
+-                ok
+-              }
+-              Record(fields) => {
+-                let mut ok = true
+-                for f in fields {
+-                  if !valtype_valid_in_interface(
+-                      f.ty,
+-                      type_table,
+-                      resource_ids,
+-                      named_types,
+-                      visiting,
+-                    ) {
+-                    ok = false
+-                    break
+-                  }
+-                }
+-                ok
+-              }
+-              Variant(cases) => {
+-                let mut ok = true
+-                for c in cases {
+-                  match c.ty {
+-                    None => ()
+-                    Some(t) =>
+-                      if !valtype_valid_in_interface(
+-                          t, type_table, resource_ids, named_types, visiting,
+-                        ) {
+-                        ok = false
+-                        break
+-                      }
+-                  }
+-                }
+-                ok
+-              }
+-              Option(v) =>
+-                valtype_valid_in_interface(
+-                  v, type_table, resource_ids, named_types, visiting,
+-                )
+-              Result(ok, err) => {
+-                let ok_ok = match ok {
+-                  None => true
+-                  Some(v) =>
+-                    valtype_valid_in_interface(
+-                      v, type_table, resource_ids, named_types, visiting,
+-                    )
+-                }
+-                let err_ok = match err {
+-                  None => true
+-                  Some(v) =>
+-                    valtype_valid_in_interface(
+-                      v, type_table, resource_ids, named_types, visiting,
+-                    )
+-                }
+-                ok_ok && err_ok
+-              }
+-              List(v) =>
+-                valtype_valid_in_interface(
+-                  v, type_table, resource_ids, named_types, visiting,
+-                )
+-              Own(idx) | Borrow(idx) =>
+-                valtype_valid_in_interface(
+-                  TypeIdx(idx),
+-                  type_table,
+-                  resource_ids,
+-                  named_types,
+-                  visiting,
+-                )
+-              // Nominal-ish types still need their payloads checked.
+-              Future(v) | Stream(v) =>
+-                match v {
+-                  None => true
+-                  Some(inner) =>
+-                    valtype_valid_in_interface(
+-                      inner, type_table, resource_ids, named_types, visiting,
+-                    )
+-                }
+-              _ => true
+-            }
+-            visiting.remove(idx) |> ignore
+-            ok
+-          }
+-        }
+-      }
+-  }
++  interface_value_work(ty, type_table, named_types, false)
+@@ -1477,3 +1419,3 @@
+-  resource_ids : Array[Int?],
+-  named_types : Map[Int, Int],
+-  visiting : Map[Int, Int],
++  _resource_ids : Array[Int32?],
++  named_types : Map[Int32, Int32],
++  _visiting : Map[Int32, Int32],
+@@ -1481,7 +1423,7 @@
+-  valtype_valid_for_type_import_export_inner(
+-    ty, type_table, resource_ids, named_types, visiting, false,
+-  )
+-}
+-
+-///|
+-fn valtype_valid_for_type_import_export_inner(
++  interface_value_work(ty, type_table, named_types, true)
++}
++
++///|
++// Type index chains are input-controlled even when physical scopes are shallow.
++// Keep this check iterative, including fixed lists and maps from WAC packages.
++fn interface_value_work(
+@@ -1490,4 +1432,2 @@
+-  resource_ids : Array[Int?],
+-  named_types : Map[Int, Int],
+-  visiting : Map[Int, Int],
+-  nested : Bool,
++  named_types : Map[Int32, Int32],
++  type_external : Bool,
+@@ -1495,121 +1435,29 @@
+-  match ty {
+-    Prim(_) => true
+-    TypeIdx(idx) =>
+-      if idx < 0 || idx >= type_table.length() {
+-        true
+-      } else if visiting.get(idx) is Some(_) {
+-        true
+-      } else {
+-        match type_table[idx] {
+-          None => true
+-          Some(td) => {
+-            match td {
+-              Own(_) | Borrow(_) => if !nested { return false }
+-              FuncType(ft) =>
+-                return functype_valid_in_interface(
+-                  ft, type_table, resource_ids, named_types,
+-                )
+-              _ => ()
+-            }
+-            if typedef_requires_name_for_interface(td) &&
+-              named_types.get(idx) is None {
+-              return false
+-            }
+-            visiting.set(idx, 1)
+-            let ok = match td {
+-              DefValType(_) => true
+-              Tuple(tys) => {
+-                let mut ok = true
+-                for t in tys {
+-                  if !valtype_valid_for_type_import_export_inner(
+-                      t, type_table, resource_ids, named_types, visiting, true,
+-                    ) {
+-                    ok = false
+-                    break
+-                  }
+-                }
+-                ok
+-              }
+-              Record(fields) => {
+-                let mut ok = true
+-                for f in fields {
+-                  if !valtype_valid_for_type_import_export_inner(
+-                      f.ty,
+-                      type_table,
+-                      resource_ids,
+-                      named_types,
+-                      visiting,
+-                      true,
+-                    ) {
+-                    ok = false
+-                    break
+-                  }
+-                }
+-                ok
+-              }
+-              Variant(cases) => {
+-                let mut ok = true
+-                for c in cases {
+-                  match c.ty {
+-                    None => ()
+-                    Some(t) =>
+-                      if !valtype_valid_for_type_import_export_inner(
+-                          t, type_table, resource_ids, named_types, visiting, true,
+-                        ) {
+-                        ok = false
+-                        break
+-                      }
+-                  }
+-                }
+-                ok
+-              }
+-              Option(v) =>
+-                valtype_valid_for_type_import_export_inner(
+-                  v, type_table, resource_ids, named_types, visiting, true,
+-                )
+-              Result(ok_v, err_v) => {
+-                let ok_ok = match ok_v {
+-                  None => true
+-                  Some(v) =>
+-                    valtype_valid_for_type_import_export_inner(
+-                      v, type_table, resource_ids, named_types, visiting, true,
+-                    )
+-                }
+-                let err_ok = match err_v {
+-                  None => true
+-                  Some(v) =>
+-                    valtype_valid_for_type_import_export_inner(
+-                      v, type_table, resource_ids, named_types, visiting, true,
+-                    )
+-                }
+-                ok_ok && err_ok
+-              }
+-              List(v) =>
+-                valtype_valid_for_type_import_export_inner(
+-                  v, type_table, resource_ids, named_types, visiting, true,
+-                )
+-              Flags(_) | Enum(_) => true
+-              Own(idx) | Borrow(idx) =>
+-                valtype_valid_in_interface(
+-                  TypeIdx(idx),
+-                  type_table,
+-                  resource_ids,
+-                  named_types,
+-                  visiting,
+-                )
+-              ResourceType(_, _, _, _) => true
+-              Future(v) | Stream(v) =>
+-                match v {
+-                  None => true
+-                  Some(inner) =>
+-                    valtype_valid_for_type_import_export_inner(
+-                      inner, type_table, resource_ids, named_types, visiting, true,
+-                    )
+-                }
+-              InstanceTypeEmpty => true
+-              InstanceType(_) => true
+-              ComponentType(_) => true
+-              _ => false
+-            }
+-            visiting.remove(idx) |> ignore
+-            ok
++  let work : Array[(@component.ValType, Bool)] = [(ty, type_external)]
++  let seen : Map[(Int32, Bool), Bool] = Map([])
++  while work.pop() is Some((value, top_external)) {
++    guard value is TypeIdx(index) else { continue }
++    if index < 0 || index >= type_table.length() {
++      continue
++    }
++    if seen.get((index, top_external)) is Some(_) {
++      continue
++    }
++    seen[(index, top_external)] = true
++    guard type_table[index] is Some(definition) else { continue }
++    if typedef_requires_name_for_interface(definition) &&
++      named_types.get(index) is None {
++      return false
++    }
++    match definition {
++      Tuple(values) =>
++        for value in values {
++          work.push((value, false))
++        }
++      Record(fields) =>
++        for field in fields {
++          work.push((field.ty, false))
++        }
++      Variant(cases) =>
++        for case in cases {
++          if case.ty is Some(value) {
++            work.push((value, false))
+@@ -1618,2 +1466,32 @@
+-      }
+-  }
++      Option(value) | List(value) | FixedList(value, _) =>
++        work.push((value, false))
++      MapType(key, value) => {
++        work.push((key, false))
++        work.push((value, false))
++      }
++      Result(ok, error) => {
++        if ok is Some(value) {
++          work.push((value, false))
++        }
++        if error is Some(value) {
++          work.push((value, false))
++        }
++      }
++      Own(index) | Borrow(index) => work.push((TypeIdx(index), false))
++      Future(value) | Stream(value) =>
++        if value is Some(value) {
++          work.push((value, false))
++        }
++      FuncType(function) =>
++        if top_external {
++          for param in function.params {
++            work.push((param.ty, false))
++          }
++          if function.result is Some(result) {
++            work.push((result, false))
++          }
++        }
++      _ => ()
++    }
++  }
++  true
+@@ -1626,2 +1504,2 @@
+-  resource_ids : Array[Int?],
+-  named_types : Map[Int, Int],
++  resource_ids : Array[Int32?],
++  named_types : Map[Int32, Int32],
+@@ -1629 +1507 @@
+-  let visiting : Map[Int, Int] = Map([])
++  let visiting : Map[Int32, Int32] = Map([])
+@@ -1654 +1532 @@
+-  visiting_global : Map[Int, Int],
++  visiting_global : Map[Int32, Int32],
+@@ -1666,3 +1544,3 @@
+-  tyidx : Int,
+-  type_table : Array[@component.TypeDef?],
+-  visiting_global : Map[Int, Int],
++  tyidx : Int32,
++  type_table : Array[@component.TypeDef?],
++  visiting_global : Map[Int32, Int32],
+@@ -1687 +1565 @@
+-  tyidx : Int,
++  tyidx : Int32,
+@@ -1690,2 +1568,2 @@
+-  visiting_local : Map[Int, Int],
+-  visiting_global : Map[Int, Int],
++  visiting_local : Map[Int32, Int32],
++  visiting_global : Map[Int32, Int32],
+@@ -1717 +1595 @@
+-  visiting_global : Map[Int, Int],
++  visiting_global : Map[Int32, Int32],
+@@ -1724 +1602 @@
+-  let visiting_local : Map[Int, Int] = Map([])
++  let visiting_local : Map[Int32, Int32] = Map([])
+@@ -1749 +1627 @@
+-  tyidx : Int,
++  tyidx : Int32,
+@@ -1751,0 +1630 @@
++  named_types : Map[Int32, Int32],
+@@ -1753,16 +1632,25 @@
+-  if tyidx < 0 || tyidx >= type_table.length() {
+-    return true
+-  }
+-  match type_table[tyidx] {
+-    Some(InstanceTypeEmpty) => true
+-    Some(InstanceType(decls)) => {
+-      let local_type_table : Array[@component.TypeDef?] = []
+-      let local_resource_ids : Array[Int?] = []
+-      let local_named_types : Map[Int, Int] = Map([])
+-      let mut next_rid = 0
+-      fn push_local(td : @component.TypeDef?) -> Unit {
+-        local_type_table.push(td)
+-        match td {
+-          Some(ResourceType(_, _, _, _)) => {
+-            local_resource_ids.push(Some(next_rid))
+-            next_rid += 1
++  let work = [(tyidx, type_table, [type_table] + type_outers, [named_types])]
++  let mut remaining = 1000000
++  while work.pop() is Some((tyidx, type_table, type_outers, named_outers)) {
++    remaining -= 1
++    if remaining < 0 {
++      return false
++    }
++    if tyidx < 0 || tyidx >= type_table.length() {
++      return false
++    }
++    match type_table[tyidx] {
++      Some(InstanceTypeEmpty) => ()
++      Some(InstanceType(decls)) => {
++        let local_type_table : Array[@component.TypeDef?] = []
++        let local_resource_ids : Array[Int32?] = []
++        let local_named_types : Map[Int32, Int32] = Map([])
++        let mut next_rid = 0
++        fn push_local(td : @component.TypeDef?) -> Unit {
++          local_type_table.push(td)
++          match td {
++            Some(ResourceType(_, _, _, _)) => {
++              local_resource_ids.push(Some(next_rid))
++              next_rid += 1
++            }
++            _ => local_resource_ids.push(None)
+@@ -1770,31 +1658,17 @@
+-          _ => local_resource_ids.push(None)
+-        }
+-      }
+-
+-      for d in decls {
+-        match d {
+-          Type(t) => push_local(Some(t))
+-          AliasOuter(kind, count, idx) =>
+-            if kind == 0x03 {
+-              let td = outer_type_of_alias(type_outers, count, idx) catch {
+-                _ => None
+-              }
+-              push_local(td)
+-            }
+-          AliasInstanceExport(kind, _inst, _name) =>
+-            if kind == 0x03 {
+-              push_local(None)
+-            }
+-          Export(_name, _attributes, desc) =>
+-            match desc {
+-              Type(bound) => {
+-                let new_idx = local_type_table.length()
+-                match bound {
+-                  Eq(src) =>
+-                    if src >= 0 && src < local_type_table.length() {
+-                      push_local(local_type_table[src])
+-                    } else {
+-                      push_local(None)
+-                    }
+-                  SubResource =>
+-                    push_local(Some(ResourceType(-1, 0x7f, None, HostDefined)))
++        }
++
++        for d in decls {
++          remaining -= 1
++          if remaining < 0 {
++            return false
++          }
++          match d {
++            Type(t) => push_local(Some(t))
++            AliasOuter(kind, count, idx) =>
++              if kind == 0x03 {
++                let td = if count == 0 {
++                  local_type_table.get(idx).unwrap_or(None)
++                } else {
++                  outer_type_of_alias(type_outers, count, idx) catch {
++                    _ => None
++                  }
+@@ -1802,9 +1676,14 @@
+-                local_named_types.set(new_idx, 1)
+-                if !valtype_valid_for_type_import_export(
+-                    TypeIdx(new_idx),
+-                    local_type_table,
+-                    local_resource_ids,
+-                    local_named_types,
+-                    Map([]),
+-                  ) {
+-                  return false
++                let rid = if count == 0 {
++                  local_resource_ids.get(idx).unwrap_or(None)
++                } else {
++                  None
++                }
++                push_local(td)
++                if count == 0 {
++                  local_resource_ids[local_resource_ids.length() - 1] = rid
++                  if local_named_types.contains(idx) {
++                    local_named_types[local_type_table.length() - 1] = 1
++                  }
++                } else if named_outers.get(count - 1) is Some(names) &&
++                  names.contains(idx) {
++                  local_named_types[local_type_table.length() - 1] = 1
+@@ -1813,8 +1692,14 @@
+-              FuncType(ft_idx) =>
+-                if ft_idx >= 0 && ft_idx < local_type_table.length() {
+-                  match local_type_table[ft_idx] {
+-                    Some(FuncType(ft)) =>
+-                      if !functype_valid_in_interface(
+-                          ft, local_type_table, local_resource_ids, local_named_types,
+-                        ) {
+-                        return false
++            AliasInstanceExport(kind, _inst, _name) =>
++              if kind == 0x03 {
++                push_local(None)
++              }
++            Export(_name, _attributes, desc) =>
++              match desc {
++                Type(bound) => {
++                  let new_idx = local_type_table.length()
++                  match bound {
++                    Eq(src) =>
++                      if src >= 0 && src < local_type_table.length() {
++                        push_local(local_type_table[src])
++                      } else {
++                        push_local(None)
+@@ -1822 +1707,14 @@
+-                    _ => ()
++                    SubResource =>
++                      push_local(
++                        Some(ResourceType(-1, 0x7f, None, HostDefined)),
++                      )
++                  }
++                  local_named_types.set(new_idx, 1)
++                  if !valtype_valid_for_type_import_export(
++                      TypeIdx(new_idx),
++                      local_type_table,
++                      local_resource_ids,
++                      local_named_types,
++                      Map([]),
++                    ) {
++                    return false
+@@ -1825,9 +1723,49 @@
+-              _ => ()
+-            }
+-          _ => ()
+-        }
+-      }
+-      true
+-    }
+-    _ => true
+-  }
++                InstanceType(child) => {
++                  remaining -= local_type_table.length() +
++                    type_outers.length() +
++                    local_named_types.length()
++                  if remaining < 0 {
++                    return false
++                  }
++                  let snapshot = local_type_table.copy()
++                  work.push(
++                    (
++                      child,
++                      snapshot,
++                      [snapshot] + type_outers,
++                      [local_named_types.copy()] + named_outers,
++                    ),
++                  )
++                }
++                Value(Type(value)) =>
++                  if !valtype_valid_in_interface(
++                      value,
++                      local_type_table,
++                      local_resource_ids,
++                      local_named_types,
++                      Map([]),
++                    ) {
++                    return false
++                  }
++                FuncType(ft_idx) =>
++                  if ft_idx >= 0 && ft_idx < local_type_table.length() {
++                    match local_type_table[ft_idx] {
++                      Some(FuncType(ft)) =>
++                        if !functype_valid_in_interface(
++                            ft, local_type_table, local_resource_ids, local_named_types,
++                          ) {
++                          return false
++                        }
++                      _ => ()
++                    }
++                  }
++                _ => ()
++              }
++            _ => ()
++          }
++        }
++      }
++      _ => ()
++    }
++  }
++  true
+@@ -1853,2 +1791,2 @@
+-  let visiting_local : Map[Int, Int] = Map([])
+-  let visiting_global : Map[Int, Int] = Map([])
++  let visiting_local : Map[Int32, Int32] = Map([])
++  let visiting_global : Map[Int32, Int32] = Map([])
+@@ -1935,2 +1873,2 @@
+-  actual : Map[String, Int]?,
+-  expected : Map[String, Int],
++  actual : Map[String, Int32]?,
++  expected : Map[String, Int32],
+@@ -1950,0 +1889,85 @@
++
++///|
++fn validate_accessor_function(
++  section : Int32,
++  name : String,
++  ft : @component.FuncType,
++  type_table : Array[@component.TypeDef?],
++) -> Unit raise ComponentValidationError {
++  let is_method = name.has_prefix("[method]")
++  let rest = if is_method || name.has_prefix("[static]") {
++    name[8:].to_owned()
++  } else {
++    name
++  }
++  let getter = rest.has_prefix("[get]")
++  let setter = rest.has_prefix("[set]")
++  if !getter && !setter {
++    return
++  }
++  if ft.is_async {
++    raise SectionParseError(section, "accessor cannot be async")
++  }
++  let parameters = ft.params.length() - (if is_method { 1 } else { 0 })
++  if (getter && parameters != 0) || (setter && parameters != 1) {
++    raise SectionParseError(section, "invalid accessor parameter count")
++  }
++  let result_without_success = match ft.result {
++    Some(TypeIdx(index)) if index >= 0 && index < type_table.length() =>
++      type_table[index] is Some(Result(None, _))
++    _ => false
++  }
++  if getter && (ft.result is None || result_without_success) {
++    raise SectionParseError(section, "getter must return a value")
++  }
++  if setter && ft.result is Some(_) && !result_without_success {
++    raise SectionParseError(
++      section, "setter may return only a result without success",
++    )
++  }
++}
++
++///|
++fn validate_accessor_pair(
++  section : Int32,
++  name : String,
++  ft : @component.FuncType,
++  type_table : Array[@component.TypeDef?],
++  resource_ids : Array[Int32?],
++  preceding : Map[String, @component.FuncType],
++) -> Unit raise ComponentValidationError {
++  let rest = if name.has_prefix("[method]") || name.has_prefix("[static]") {
++    name[8:].to_owned()
++  } else {
++    name
++  }
++  if !rest.has_prefix("[set]") {
++    return
++  }
++  let getter_name = name.replace(old="[set]", new="[get]")
++  guard preceding.get(getter_name) is Some(getter) else {
++    raise SectionParseError(section, "setter requires a preceding getter")
++  }
++  guard getter.result is Some(property) && !ft.params.is_empty() else {
++    raise SectionParseError(section, "accessor pair has an invalid signature")
++  }
++  let property = match property {
++    TypeIdx(index) if index >= 0 && index < type_table.length() =>
++      match type_table[index] {
++        Some(Result(Some(success), _)) => success
++        _ => property
++      }
++    _ => property
++  }
++  if type_sig_of_valtype(
++      ft.params[ft.params.length() - 1].ty,
++      type_table,
++      resource_ids,
++      Map([]),
++    ) !=
++    type_sig_of_valtype(property, type_table, resource_ids, Map([])) {
++    raise SectionParseError(
++      section, "setter parameter does not match getter property type",
++    )
++  }
++}
+--- a/moon.pkg
++++ b/moon.pkg
+@@ -1,0 +2,2 @@
++  "moonrockz/wit/core_types",
++  "moonbitlang/core/encoding/utf8",
+@@ -3 +5 @@
+-  "Milky2018/wasm_core/parser",
++  "moonrockz/wit/binary/core_parser" @parser,
+@@ -5,2 +7 @@
+-  "Milky2018/wasm_core/validator" @core_validator,
+-  "moonbitlang/core/hashset",
++  "moonrockz/wit/binary/core_validation" @core_validator,
+--- a/prelude.mbt
++++ b/prelude.mbt
+@@ -0,0 +1,3 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++// Modified by wasm-devkit: accessor names and bounded ascription validation.
++
+@@ -13,19 +16,19 @@
+-  InvalidTypeIndex(Int)
+-  TypeIndexNotFuncType(Int)
+-  TypeIndexNotComponentType(Int)
+-  TypeIndexNotInstanceType(Int)
+-  TypeIndexNotDefinedType(Int)
+-  TypeIndexNotResourceType(Int)
+-  InvalidFuncIndex(Int)
+-  InvalidValueIndex(Int)
+-  InvalidComponentIndex(Int)
+-  InvalidInstanceIndex(Int)
+-  InvalidCoreFuncIndex(Int)
+-  InvalidCoreModuleIndex(Int)
+-  InvalidCoreInstanceIndex(Int)
+-  InvalidCoreTypeIndex(Int)
+-  CoreTypeIndexNotModuleType(Int)
+-  InvalidCoreTableIndex(Int)
+-  InvalidCoreMemoryIndex(Int)
+-  InvalidCoreGlobalIndex(Int)
+-  InvalidCoreTagIndex(Int)
++  InvalidTypeIndex(Int32)
++  TypeIndexNotFuncType(Int32)
++  TypeIndexNotComponentType(Int32)
++  TypeIndexNotInstanceType(Int32)
++  TypeIndexNotDefinedType(Int32)
++  TypeIndexNotResourceType(Int32)
++  InvalidFuncIndex(Int32)
++  InvalidValueIndex(Int32)
++  InvalidComponentIndex(Int32)
++  InvalidInstanceIndex(Int32)
++  InvalidCoreFuncIndex(Int32)
++  InvalidCoreModuleIndex(Int32)
++  InvalidCoreInstanceIndex(Int32)
++  InvalidCoreTypeIndex(Int32)
++  CoreTypeIndexNotModuleType(Int32)
++  InvalidCoreTableIndex(Int32)
++  InvalidCoreMemoryIndex(Int32)
++  InvalidCoreGlobalIndex(Int32)
++  InvalidCoreTagIndex(Int32)
+@@ -34,3 +37,3 @@
+-  CanonExpectedFuncType(Int)
+-  CanonAsyncTypeMismatch(Int)
+-  CanonMemoryNot32Bit(Int)
++  CanonExpectedFuncType(Int32)
++  CanonAsyncTypeMismatch(Int32)
++  CanonMemoryNot32Bit(Int32)
+@@ -39 +42,5 @@
+-  UnsupportedCoreSort(Int)
++  ComponentScopeBudgetExceeded
++  CoreContractBudgetExceeded
++  CanonicalBudgetExceeded
++  UnsupportedCanonical
++  UnsupportedCoreSort(Int32)
+@@ -42 +49 @@
+-  ExportedImportedFunc(Int)
++  ExportedImportedFunc(Int32)
+@@ -48,2 +55,2 @@
+-  MissingInstanceExport(Int, String)
+-  MissingCoreInstanceExport(Int, String)
++  MissingInstanceExport(Int32, String)
++  MissingCoreInstanceExport(Int32, String)
+@@ -53,0 +61,3 @@
++  UnsupportedFunctionAscription
++  UnsupportedInstanceAscription
++  UnsupportedComponentAscription
+@@ -55 +65 @@
+-  SectionParseError(Int, String)
++  SectionParseError(Int32, String)
+@@ -77,0 +88,3 @@
++  canonical_version_suffix : Bool
++  restricted_map_keys : Bool
++  borrowed_value_exports : Bool
+@@ -83 +96,4 @@
+-  component_implements? : Bool = true,
++  component_implements~ : Bool = true,
++  canonical_version_suffix~ : Bool = true,
++  restricted_map_keys~ : Bool = true,
++  borrowed_value_exports~ : Bool = false,
+@@ -85 +101,7 @@
+-  { wit_names, component_implements, }
++  {
++    wit_names,
++    component_implements,
++    canonical_version_suffix,
++    restricted_map_keys,
++    borrowed_value_exports,
++  }
+@@ -114,12 +136,32 @@
+-  mut func : Int
+-  mut value : Int
+-  mut component : Int
+-  mut instance : Int
+-  mut core_func : Int
+-  mut core_module : Int
+-  mut core_instance : Int
+-  mut core_type : Int
+-  mut core_table : Int
+-  mut core_memory : Int
+-  mut core_global : Int
+-  mut core_tag : Int
++  mut core_scope : Int32
++  mut outer_counts : Array[Counts]
++  mut origin_scope : Int32
++  mut collect_contract : Bool
++  owned_resources : Map[Int32, Bool]
++  contract_imports : Array[(String, @component.SortIdx, Bool)]
++  contract_exports : Array[(String, @component.SortIdx, Bool)]
++  mut core_contracts : @core_types.ContractGraph?
++  type_metadata : Map[Int32, (InstanceMetadata, Int32)]
++  type_origins : Map[Int32, TypeOrigin]
++  visible_origins : Map[TypeOrigin, Bool]
++  visible_resources : Map[Int32, Bool]
++  origin_scopes : Map[(TypeOrigin, Bool), Int32]
++  mut next_origin_scope : Int32
++  instance_metadata : Map[Int32, (InstanceMetadata, Int32)]
++  component_contracts : Map[Int32, (ScopedContractMetadata, Int32)]
++  instance_contracts : Map[Int32, (ScopedContractMetadata, Int32)]
++  mut metadata_remaining : Int32
++  mut ascription_remaining : Int32
++  mut func : Int32
++  mut value : Int32
++  values : Array[ComponentValue]
++  mut component : Int32
++  mut instance : Int32
++  mut core_func : Int32
++  mut core_module : Int32
++  mut core_instance : Int32
++  mut core_type : Int32
++  mut core_table : Int32
++  mut core_memory : Int32
++  mut core_global : Int32
++  mut core_tag : Int32
+@@ -161 +203,9 @@
+-} derive(Eq)
++  complete : CompleteFunctionSignature?
++}
++
++///|
++// Preserve the retained validator's legacy equality outside ascription checks.
++// Lossless graph indices are local to each complete signature.
++impl Eq for FuncSigShape with fn equal(a, b) {
++  a.params == b.params && a.result == b.result
++}
+@@ -165,2 +215,2 @@
+-  Existing(Int)
+-  Resource(Int)
++  Existing(Int32)
++  Resource(Int32)
+@@ -182,3 +232,3 @@
+-  Resource(Int)
+-  Own(Int)
+-  Borrow(Int)
++  Resource(Int32)
++  Own(Int32)
++  Borrow(Int32)
+@@ -204,2 +254,2 @@
+-  resource_ids : Array[Int?],
+-) -> Int? {
++  resource_ids : Array[Int32?],
++) -> Int32? {
+@@ -218,3 +268,3 @@
+-  resource_ids : Array[Int?],
+-  preferred_named_types : Map[Int, Int]?,
+-) -> Int? {
++  resource_ids : Array[Int32?],
++  preferred_named_types : Map[Int32, Int32]?,
++) -> Int32? {
+@@ -238,2 +288,2 @@
+-  resource_ids : Array[Int?],
+-  preferred_named_types : Map[Int, Int]?,
++  resource_ids : Array[Int32?],
++  preferred_named_types : Map[Int32, Int32]?,
+@@ -258,2 +308,2 @@
+-  resource_ids : Array[Int?],
+-  preferred_named_types : Map[Int, Int]?,
++  resource_ids : Array[Int32?],
++  preferred_named_types : Map[Int32, Int32]?,
+@@ -460 +510,4 @@
+-fn core_func_type_of_idx(m : @types.Module, func_idx : Int) -> @types.FuncType? {
++fn core_func_type_of_idx(
++  m : @types.Module,
++  func_idx : Int32,
++) -> @types.FuncType? {
+@@ -485 +538 @@
+-  table_idx : Int,
++  table_idx : Int32,
+@@ -506 +559 @@
+-  mem_idx : Int,
++  mem_idx : Int32,
+@@ -527 +580 @@
+-  global_idx : Int,
++  global_idx : Int32,
+@@ -546 +599 @@
+-fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int) -> @types.FuncType? {
++fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int32) -> @types.FuncType? {
+@@ -642 +695 @@
+-fn core_kind_of_extern_type(ty : CoreExternType) -> Int {
++fn core_kind_of_extern_type(ty : CoreExternType) -> Int32 {
+@@ -679 +732 @@
+-  idx : Int,
++  idx : Int32,
+@@ -723,0 +777,19 @@
++    core_scope: 0,
++    outer_counts: [],
++    origin_scope: 0,
++    collect_contract: false,
++    owned_resources: Map([]),
++    contract_imports: [],
++    contract_exports: [],
++    type_metadata: Map([]),
++    type_origins: Map([]),
++    visible_origins: Map([]),
++    visible_resources: Map([]),
++    origin_scopes: Map([]),
++    next_origin_scope: 1,
++    instance_metadata: Map([]),
++    component_contracts: Map([]),
++    instance_contracts: Map([]),
++    core_contracts: None,
++    metadata_remaining: 1000000,
++    ascription_remaining: 1000000,
+@@ -725,0 +798 @@
++    values: [],
+@@ -763 +836 @@
+-fn is_lower_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
++fn is_lower_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
+@@ -793 +866 @@
+-fn is_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
++fn is_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
+@@ -843,2 +916,2 @@
+-fn is_canonversion_range(name : Bytes, start : Int, end_ : Int) -> Bool {
+-  if start < 0 || end_ <= start || end_ > name.length() {
++fn is_semver_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
++  if start < 0 || start >= end_ || end_ > name.length() {
+@@ -848,2 +921,2 @@
+-  if name[i].to_int() >= 0x31 && name[i].to_int() <= 0x39 {
+-    i += 1
++  for component in 0..<3 {
++    let begin = i
+@@ -853,11 +926,27 @@
+-    return i == end_
+-  }
+-  if name[i].to_int() != 0x30 || i + 1 >= end_ {
+-    return false
+-  }
+-  i += 1
+-  if name[i].to_int() != 0x2E || i + 1 >= end_ {
+-    return false
+-  }
+-  i += 1
+-  if name[i].to_int() >= 0x31 && name[i].to_int() <= 0x39 {
++    let count = i - begin
++    if count == 0 || (count > 1 && name[begin] == 0x30) || count > 20 {
++      return false
++    }
++    // SemVer's numeric components are u64. Compare equal-length decimal
++    // spellings without overflowing the host's signed integer representation.
++    if count == 20 {
++      let maximum = b"18446744073709551615"
++      for digit in 0..<20 {
++        if name[begin + digit] > maximum[digit] {
++          return false
++        }
++        if name[begin + digit] < maximum[digit] {
++          break
++        }
++      }
++    }
++    if component < 2 {
++      if i >= end_ || name[i] != 0x2e {
++        return false
++      }
++      i += 1
++    }
++  }
++
++  // Numeric prerelease identifiers cannot contain leading zeroes.
++  if i < end_ && name[i] == 0x2d {
+@@ -865 +954,15 @@
+-    while i < end_ && is_ascii_digit(name[i]) {
++    while true {
++      let begin = i
++      let mut numeric = true
++      while i < end_ && is_semver_ident_char(name[i]) {
++        if !is_ascii_digit(name[i]) {
++          numeric = false
++        }
++        i += 1
++      }
++      if i == begin || (numeric && i - begin > 1 && name[begin] == 0x30) {
++        return false
++      }
++      if i >= end_ || name[i] != 0x2e {
++        break
++      }
+@@ -867,95 +969,0 @@
+-    }
+-    return i == end_
+-  }
+-  if name[i].to_int() != 0x30 || i + 1 >= end_ {
+-    return false
+-  }
+-  i += 1
+-  if name[i].to_int() != 0x2E || i + 1 >= end_ {
+-    return false
+-  }
+-  i += 1
+-  if name[i].to_int() == 0x30 {
+-    return i + 1 == end_
+-  }
+-  if name[i].to_int() < 0x31 || name[i].to_int() > 0x39 {
+-    return false
+-  }
+-  i += 1
+-  while i < end_ && is_ascii_digit(name[i]) {
+-    i += 1
+-  }
+-  i == end_
+-}
+-
+-///|
+-fn is_semver_range(name : Bytes, start : Int, end_ : Int) -> Bool {
+-  // Minimal SemVer parser (enough to match wasm-tools component-spec tests).
+-  // Accepts: MAJOR.MINOR.PATCH[-prerelease][+build]
+-  if start < 0 || end_ < 0 || start >= end_ || end_ > name.length() {
+-    return false
+-  }
+-  let mut i = start
+-  let mut saw = false
+-  while i < end_ && is_ascii_digit(name[i]) {
+-    saw = true
+-    i += 1
+-  }
+-  if !saw {
+-    return false
+-  }
+-  if i >= end_ || name[i].to_int() != 0x2E {
+-    return false
+-  } // '.'
+-  i += 1
+-  saw = false
+-  while i < end_ && is_ascii_digit(name[i]) {
+-    saw = true
+-    i += 1
+-  }
+-  if !saw {
+-    return false
+-  }
+-  if i >= end_ || name[i].to_int() != 0x2E {
+-    return false
+-  } // '.'
+-  i += 1
+-  saw = false
+-  while i < end_ && is_ascii_digit(name[i]) {
+-    saw = true
+-    i += 1
+-  }
+-  if !saw {
+-    return false
+-  }
+-
+-  // Optional prerelease
+-  if i < end_ && name[i].to_int() == 0x2D { // '-'
+-    i += 1
+-    if i >= end_ {
+-      return false
+-    }
+-    let mut need_id = true
+-    while i < end_ && name[i].to_int() != 0x2B { // '+'
+-      let b = name[i]
+-      if need_id {
+-        if b.to_int() == 0x2E || !is_semver_ident_char(b) { // '.' or invalid
+-          return false
+-        }
+-        need_id = false
+-        i += 1
+-        continue
+-      }
+-      if b.to_int() == 0x2E {
+-        need_id = true
+-        i += 1
+-        continue
+-      }
+-      if is_semver_ident_char(b) {
+-        i += 1
+-        continue
+-      }
+-      return false
+-    }
+-    if need_id {
+-      return false
+@@ -1016,3 +1023,0 @@
+-      if at != -1 {
+-        return false
+-      }
+@@ -1019,0 +1025 @@
++      break
+@@ -1028,9 +1034 @@
+-  if at != -1 {
+-    if at >= name.length() - 1 {
+-      return false
+-    }
+-    if !is_semver_range(name, at + 1, name.length()) &&
+-      !is_canonversion_range(name, at + 1, name.length()) {
+-      return false
+-    }
+-  }
++  // Version syntax is checked with the separately encoded suffix.
+@@ -1185 +1183 @@
+-fn is_integrity_value(name : Bytes, start : Int, end_ : Int) -> Bool {
++fn is_integrity_value(name : Bytes, start : Int32, end_ : Int32) -> Bool {
+@@ -1453,0 +1452,3 @@
++  if prefix_eq("get") || prefix_eq("set") {
++    return is_kebab_case_range(name, close + 1, name.length())
++  }
+@@ -1460 +1461,9 @@
+-  // method/static: require exactly one '.' and kebab-case around it.
++  // Method/static names can have one accessor annotation before the resource.
++  let mut start = close + 1
++  if start + 5 <= name.length() &&
++    (
++      name[start:start + 5] == b"[get]".exact_view() ||
++      name[start:start + 5] == b"[set]".exact_view()
++    ) {
++    start += 5
++  }
+@@ -1462 +1471 @@
+-  for k in (close + 1)..<name.length() {
++  for k in start..<name.length() {
+@@ -1470,4 +1479,4 @@
+-  if dot < 0 || dot == close + 1 || dot == name.length() - 1 {
+-    return false
+-  }
+-  is_kebab_case_range(name, close + 1, dot) &&
++  if dot < 0 || dot == start || dot == name.length() - 1 {
++    return false
++  }
++  is_kebab_case_range(name, start, dot) &&
+@@ -1506 +1515 @@
+-  mut pos : Int
++  mut pos : Int32
+@@ -1522 +1531 @@
+-) -> Int raise ComponentValidationError {
++) -> Int32 raise ComponentValidationError {
+@@ -1534 +1543 @@
+-) -> Int raise ComponentValidationError {
++) -> Int32 raise ComponentValidationError {
+@@ -1554 +1563 @@
+-  n : Int,
++  n : Int32,
+@@ -1585,5 +1594,9 @@
+-  ascii_bytes_to_string(self.read_bytes(len))
+-}
+-
+-///|
+-fn CoreTypeReader::skip_limits(
++  Some(
++    @utf8.decode(self.read_bytes(len), ignore_bom=false) catch {
++      _ => raise SectionParseError(3, "invalid UTF-8 core name")
++    },
++  )
++}
++
++///|
++fn CoreTypeReader::read_limit(
+@@ -1591 +1604,23 @@
+-) -> Unit raise ComponentValidationError {
++  wide : Bool,
++) -> UInt64 raise ComponentValidationError {
++  let bits = if wide { 64 } else { 32 }
++  let mut value = 0UL
++  for i in 0..<((bits + 6) / 7) {
++    let byte = self.read_u8()
++    let remaining = bits - i * 7
++    if remaining < 7 && byte >= 1 << remaining {
++      raise SectionParseError(3, "core limit exceeds its unsigned width")
++    }
++    value = value | ((byte & 127).to_uint64() << (i * 7))
++    if byte < 128 {
++      return value
++    }
++  }
++  raise SectionParseError(3, "unterminated core limit")
++}
++
++///|
++fn CoreTypeReader::read_limits(
++  self : CoreTypeReader,
++  memory : Bool,
++) -> (Int32, UInt64, UInt64?, Int32) raise ComponentValidationError {
+@@ -1593,4 +1628,24 @@
+-  self.read_leb_u32() |> ignore
+-  if (flags & 0x01) != 0 {
+-    self.read_leb_u32() |> ignore
+-  }
++  if flags > (if memory { 15 } else { 7 }) {
++    raise SectionParseError(3, "invalid core limits flags")
++  }
++  let wide = (flags & 4) != 0
++  let min = self.read_limit(wide)
++  let max = if (flags & 1) != 0 { Some(self.read_limit(wide)) } else { None }
++  if max is Some(n) && n < min {
++    raise SectionParseError(3, "core limit maximum is below its minimum")
++  }
++  if (flags & 2) != 0 && max is None {
++    raise SectionParseError(3, "shared core limits require a maximum")
++  }
++  let page = if memory && (flags & 8) != 0 { self.read_leb_u32() } else { 16 }
++  if memory {
++    if page != 0 && page != 16 {
++      raise SectionParseError(3, "invalid custom page size")
++    }
++    let bits = (if wide { 64 } else { 32 }) - page
++    let bound = if bits == 64 { 18446744073709551615UL } else { 1UL << bits }
++    if min > bound || (max is Some(n) && n > bound) {
++      raise SectionParseError(3, "memory size out of bounds")
++    }
++  }
++  (flags, min, max, page)
+@@ -1627,2 +1682,2 @@
+-  kind : Int,
+-  func_type_bound : Int,
++  kind : Int32,
++  func_type_bound : Int32,
+@@ -1639,17 +1694,3 @@
+-      self.skip_limits()
+-    }
+-    0x02 => {
+-      // Memory limits are bounded for 32-bit memories (wasm-tools expects this
+-      // validation in module types).
+-      let flags = self.read_u8()
+-      let min = self.read_leb_u32()
+-      if min > 65536 {
+-        raise SectionParseError(3, "memory size out of bounds")
+-      }
+-      if (flags & 0x01) != 0 {
+-        let max = self.read_leb_u32()
+-        if max > 65536 || max < min {
+-          raise SectionParseError(3, "memory size out of bounds")
+-        }
+-      }
+-    }
++      self.read_limits(false) |> ignore
++    }
++    0x02 => self.read_limits(true) |> ignore
+@@ -1679 +1720 @@
+-    heap : Int,
++    heap : Int32,
+@@ -1748 +1789 @@
+-  kind : Int,
++  kind : Int32,
+@@ -1750 +1791 @@
+-  func_type_bound : Int,
++  func_type_bound : Int32,
+@@ -1775,6 +1816,5 @@
+-      let flags = self.read_u8()
+-      let min = self.read_leb_u32()
+-      let max = if (flags & 0x01) != 0 {
+-        Some(self.read_leb_u32())
+-      } else {
+-        None
++      let (flags, min, max, _) = self.read_limits(false)
++      if min > 9223372036854775807UL ||
++        (max is Some(n) && n > 9223372036854775807UL) ||
++        (flags & 2) != 0 {
++        return None
+@@ -1783,7 +1823,4 @@
+-        min: min.to_int64(),
+-        max: match max {
+-          Some(v) => Some(v.to_int64())
+-          None => None
+-        },
+-      }
+-      Some(Table({ elem_type: elem_ty, limits, is_table64: false, }))
++        min: min.reinterpret_as_int64(),
++        max: max.map(n => n.reinterpret_as_int64()),
++      }
++      Some(Table({ elem_type: elem_ty, limits, is_table64: (flags & 4) != 0, }))
+@@ -1792,14 +1829,6 @@
+-      // memtype: flags + limits (track memory64 when present)
+-      let flags = self.read_u8()
+-      let min = self.read_leb_u32()
+-      if min > 65536 {
+-        raise SectionParseError(3, "memory size out of bounds")
+-      }
+-      let max = if (flags & 0x01) != 0 {
+-        let maxv = self.read_leb_u32()
+-        if maxv > 65536 || maxv < min {
+-          raise SectionParseError(3, "memory size out of bounds")
+-        }
+-        Some(maxv)
+-      } else {
+-        None
++      let (flags, min, max, page) = self.read_limits(true)
++      // The complete unsigned signature is retained by the declarative codec.
++      // Legacy runtime metadata has signed limits and cannot represent it.
++      if min > 9223372036854775807UL ||
++        (max is Some(n) && n > 9223372036854775807UL) {
++        return None
+@@ -1808,7 +1837,3 @@
+-        min: min.to_int64(),
+-        max: match max {
+-          Some(v) => Some(v.to_int64())
+-          None => None
+-        },
+-      }
+-      let is_memory64 = (flags & 0x04) != 0
++        min: min.reinterpret_as_int64(),
++        max: max.map(n => n.reinterpret_as_int64()),
++      }
+@@ -1818,3 +1843,3 @@
+-          is_memory64,
+-          is_shared: (flags & 0x02) != 0,
+-          page_size_log2: 16,
++          is_memory64: (flags & 4) != 0,
++          is_shared: (flags & 2) != 0,
++          page_size_log2: page,
+@@ -1828 +1853,4 @@
+-      let mutable = mut_ != 0
++      if (mut_ & 2) != 0 {
++        return None
++      }
++      let mutable = (mut_ & 1) != 0
+@@ -1859,3 +1887,3 @@
+-  max_outer_depth : Int,
+-  current_core_type_bound : Int,
+-  outer_core_type_bounds : Array[Int],
++  max_outer_depth : Int32,
++  current_core_type_bound : Int32,
++  outer_core_type_bounds : Array[Int32],
+@@ -1864 +1892 @@
+-  let seen_imports : Map[String, Int] = Map([])
++  let seen_imports : Map[(String, String), Int32] = Map([])
+@@ -1883 +1911 @@
+-        let key = "\{mod_s}:\{name_s}"
++        let key = (mod_s, name_s)
+@@ -1919 +1947,3 @@
+-                let bound = if depth <= 1 {
++                let bound = if depth == 0 {
++                  func_type_bound - 1
++                } else if depth == 1 {
+--- a/prelude_wbtest.mbt
++++ b/prelude_wbtest.mbt
+@@ -0,0 +1,2 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++
+--- a/section_alias.mbt
++++ b/section_alias.mbt
+@@ -0,0 +1,3 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++// Modified by wasm-devkit: retain imported-instance alias naming visibility.
++
+@@ -8,7 +11,8 @@
+-  resource_ids : Array[Int?],
+-  type_sizes : Array[Int],
+-  type_depths : Array[Int],
+-  component_sizes : Array[Int],
+-  instance_sizes : Array[Int],
+-  named_types : Map[Int, Int],
+-  core_module_exports : Array[Map[String, Int]?],
++  resource_ids : Array[Int32?],
++  type_sizes : Array[Int32],
++  type_depths : Array[Int32],
++  component_sizes : Array[Int32],
++  instance_sizes : Array[Int32],
++  named_types : Map[Int32, Int32],
++  import_named_types : Map[Int32, Int32],
++  core_module_exports : Array[Map[String, Int32]?],
+@@ -19 +23 @@
+-  core_instance_exports : Array[Map[String, Int]?],
++  core_instance_exports : Array[Map[String, Int32]?],
+@@ -26 +30 @@
+-    Map[String, Map[String, Int]]?,
++    Map[String, Map[String, Int32]]?,
+@@ -28 +32 @@
+-  component_import_core_module_exports : Array[Map[String, Map[String, Int]]?],
++  component_import_core_module_exports : Array[Map[String, Map[String, Int32]]?],
+@@ -45,3 +49,3 @@
+-  interface_instance_idxs : Map[Int, Int],
+-  instance_export_type_idxs : Array[Array[Int]?],
+-  instance_export_func_idxs : Array[Array[Int]?],
++  interface_instance_idxs : Map[Int32, Int32],
++  instance_export_type_idxs : Array[Array[Int32]?],
++  instance_export_func_idxs : Array[Array[Int32]?],
+@@ -58 +62 @@
+-  component_size_outers : Array[Array[Int]],
++  component_size_outers : Array[Array[Int32]],
+@@ -107,0 +112,11 @@
++    if a.sort is Component && a.target is Outer(ct, idx) {
++      let source = if ct == 0 {
++        Some(counts)
++      } else {
++        counts.outer_counts.get(ct - 1)
++      }
++      if source is Some(source) &&
++        source.component_contracts.get(idx) is Some(contract) {
++        counts.component_contracts[counts.component] = contract
++      }
++    }
+@@ -131,0 +147,8 @@
++    }
++    let mut new_metadata : (InstanceMetadata, Int32)? = None
++    if (a.sort, a.target) is (Instance, Export(parent, name)) &&
++      counts.instance_metadata.get(parent) is Some((metadata, node)) &&
++      metadata.nodes[node].children.get(name) is Some(child) {
++      new_metadata = Some((metadata, child))
++      new_instance_sig = Some(metadata_instance_sig(metadata, child))
++      new_instance_export_func_sigs = Some(metadata.nodes[child].functions)
+@@ -214,0 +238,10 @@
++    if a.sort is Value {
++      guard a.target is Export(parent, name) &&
++        counts.instance_contracts.get(parent) is Some((metadata, node)) &&
++        metadata.nodes[node].exports.values.get(name) is Some(signature) else {
++        raise SectionParseError(
++          6, "value alias requires a complete instance contract",
++        )
++      }
++      counts.values.push({ signature, used: false, })
++    }
+@@ -218 +251 @@
+-      let mut new_rid : Int? = None
++      let mut new_rid : Int32? = None
+@@ -317,0 +351,60 @@
++      if a.target is Export(instance, name) &&
++        counts.instance_metadata.get(instance) is Some((metadata, node)) &&
++        metadata.nodes[node].types.get(name) is Some(ty) {
++        counts.type_metadata[type_table.length()] = (metadata, ty)
++        if metadata.resources.get(ty) is Some(Some(resource)) {
++          new_td = Some(ResourceType(-1, 0x7f, None, HostDefined))
++          new_rid = Some(resource)
++        } else if metadata.types.get(ty) is Some(Some(DefValType(primitive))) {
++          new_td = Some(DefValType(primitive))
++        }
++      }
++      if a.target is Outer(ct, original) &&
++        ct > 0 &&
++        counts.outer_counts.get(ct - 1) is Some(source) &&
++        type_outers.get(ct - 1) is Some(source_types) {
++        if source_types.length() > counts.metadata_remaining {
++          raise UnsupportedComponentAscription
++        }
++        counts.metadata_remaining -= source_types.length()
++        let origins : Array[TypeOrigin?] = []
++        let (types, resources, remaining) = metadata_global_types(
++          source_types,
++          [],
++          source.type_metadata,
++          counts.metadata_remaining,
++          origins=Some(origins),
++          global_origins=Array::makei(source_types.length(), i => {
++            source.type_origin(i)
++          }),
++        ) catch {
++          _ => raise UnsupportedComponentAscription
++        }
++        counts.metadata_remaining = remaining
++        if source.type_metadata.contains(original) {
++          counts.check_outer_value_resources(types, original)
++        }
++        let metadata : InstanceMetadata = {
++          nodes: [],
++          signatures: [],
++          types,
++          resources,
++          origins,
++        }
++        counts.type_metadata[type_table.length()] = (metadata, original)
++        if source.type_origin(original) is Some(origin) {
++          counts.type_origins[type_table.length()] = origin
++        }
++        new_td = match types.get(original) {
++          Some(Some(DefValType(p))) => Some(DefValType(p))
++          _ => None
++        }
++      }
++      if a.target is Outer(0, original) &&
++        counts.type_metadata.get(original) is Some(metadata) {
++        counts.type_metadata[type_table.length()] = metadata
++      }
++      if a.target is Outer(0, original) &&
++        counts.type_origin(original) is Some(origin) {
++        counts.type_origins[type_table.length()] = origin
++      }
+@@ -322,0 +416,8 @@
++      if a.target is Outer(0, original) {
++        if named_types.contains(original) {
++          named_types.set(type_table.length() - 1, 1)
++        }
++        if import_named_types.contains(original) {
++          import_named_types.set(type_table.length() - 1, 1)
++        }
++      }
+@@ -324 +425 @@
+-        interface_instance_idxs.get(instance_idx) is Some(_) {
++        interface_instance_idxs.get(instance_idx) is Some(visibility) {
+@@ -325,0 +427,3 @@
++        if (visibility & 2) != 0 {
++          import_named_types.set(type_table.length() - 1, 1)
++        }
+@@ -364,0 +469,5 @@
++          if a.target is Export(parent, name) &&
++            counts.instance_contracts.get(parent) is Some((contract, node)) &&
++            contract.nodes[node].exports.children.get(name) is Some(child) {
++            counts.instance_contracts[counts.instance - 1] = (contract, child)
++          }
+@@ -365,0 +475,7 @@
++          if new_metadata is Some(metadata) {
++            counts.instance_metadata[instance_sigs.length() - 1] = metadata
++          }
++          if a.target is Export(parent, _) &&
++            interface_instance_idxs.get(parent) is Some(visibility) {
++            interface_instance_idxs.set(instance_sigs.length() - 1, visibility)
++          }
+@@ -375,0 +492,5 @@
++          if a.target is Export(parent, name) &&
++            counts.instance_contracts.get(parent) is Some((contract, node)) &&
++            contract.nodes[node].exports.children.get(name) is Some(child) {
++            counts.component_contracts[counts.component - 1] = (contract, child)
++          }
+--- a/section_export.mbt
++++ b/section_export.mbt
+@@ -0,0 +1,3 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++// Modified by wasm-devkit: permit re-exports and validate function/type ascriptions.
++
+@@ -6 +9 @@
+-  is_root : Bool,
++  _is_root : Bool,
+@@ -10,8 +13,8 @@
+-  resource_ids : Array[Int?],
+-  type_sizes : Array[Int],
+-  type_depths : Array[Int],
+-  component_sizes : Array[Int],
+-  instance_sizes : Array[Int],
+-  export_size : Int,
+-  named_types : Map[Int, Int],
+-  core_module_exports : Array[Map[String, Int]?],
++  resource_ids : Array[Int32?],
++  type_sizes : Array[Int32],
++  type_depths : Array[Int32],
++  component_sizes : Array[Int32],
++  instance_sizes : Array[Int32],
++  export_size : Int32,
++  named_types : Map[Int32, Int32],
++  core_module_exports : Array[Map[String, Int32]?],
+@@ -22 +25 @@
+-  core_instance_exports : Array[Map[String, Int]?],
++  core_instance_exports : Array[Map[String, Int32]?],
+@@ -29 +32 @@
+-    Map[String, Map[String, Int]]?,
++    Map[String, Map[String, Int32]]?,
+@@ -31 +34 @@
+-  component_import_core_module_exports : Array[Map[String, Map[String, Int]]?],
++  component_import_core_module_exports : Array[Map[String, Map[String, Int32]]?],
+@@ -48,3 +51,3 @@
+-  interface_instance_idxs : Map[Int, Int],
+-  instance_export_type_idxs : Array[Array[Int]?],
+-  instance_export_func_idxs : Array[Array[Int]?],
++  interface_instance_idxs : Map[Int32, Int32],
++  instance_export_type_idxs : Array[Array[Int32]?],
++  instance_export_func_idxs : Array[Array[Int32]?],
+@@ -60 +63 @@
+-  imported_funcs : Int,
++  _imported_funcs : Int32,
+@@ -62 +65 @@
+-  export_resource_names : Map[String, Int],
++  export_resource_names : Map[String, Int32],
+@@ -70,2 +73,2 @@
+-  next_resource_id : Int,
+-) -> (Int, Int) raise ComponentValidationError {
++  next_resource_id : Int32,
++) -> (Int32, Int32) raise ComponentValidationError {
+@@ -77,0 +81,3 @@
++    let mut ascribed_instance : InstanceMetadata? = None
++    let mut ascribed_instance_contract : ScopedContractMetadata? = None
++    let mut ascribed_component : ScopedContractMetadata? = None
+@@ -78,0 +85,12 @@
++    if counts.collect_contract && exportname_to_string(e.name) is Some(name) {
++      counts.contract_exports.push(
++        (
++          name,
++          {
++            sort: e.sortidx.sort,
++            idx: counts.contract_index(e.sortidx.sort, type_table.length()),
++          },
++          false,
++        ),
++      )
++    }
+@@ -86,5 +103,0 @@
+-    if is_root && e.sortidx.sort is Component {
+-      raise SectionParseError(
+-        11, "exporting a component from the root component is not supported",
+-      )
+-    }
+@@ -117,3 +129,0 @@
+-    if is_root && e.sortidx.sort is Func && e.sortidx.idx < imported_funcs {
+-      raise ExportedImportedFunc(e.sortidx.idx)
+-    }
+@@ -121 +131,34 @@
+-    let mut ascribed_resource_id : Int? = None
++    let mut exported_value : CompleteFunctionSignature? = None
++    if e.sortidx.sort is Value {
++      let actual = counts.consume_value(e.sortidx.idx, 11)
++      let signature = match e.desc {
++        None => actual
++        Some(Value(Type(ty))) => {
++          if !valtype_valid_in_interface(
++              ty,
++              type_table,
++              resource_ids,
++              named_types,
++              Map([]),
++            ) {
++            raise SectionParseError(11, "value not valid to be used as export")
++          }
++          let expected = counts.value_signature(ty, type_table, resource_ids)
++          counts.ascription_remaining = check_function_ascription(
++            actual.function,
++            expected.function,
++            actual.types,
++            actual.resources,
++            expected_types=Some(expected.types),
++            expected_resources=Some(expected.resources),
++            budget=counts.ascription_remaining,
++          )
++          expected
++        }
++        _ => raise AscribedExportTypeIncompatible
++      }
++      check_value_export(signature, cfg)
++      counts.check_function_origins(signature, named_types, resource_ids)
++      exported_value = Some(signature)
++    }
++    let mut ascribed_resource_id : Int32? = None
+@@ -206 +249 @@
+-                  idx, type_table, type_outers,
++                  idx, type_table, type_outers, named_types,
+@@ -217,0 +261,5 @@
++          if e.desc is None &&
++            func_sig_shapes.get(e.sortidx.idx) is Some(Some(shape)) &&
++            shape.complete is Some(signature) {
++            counts.check_function_origins(signature, named_types, resource_ids)
++          }
+@@ -245,0 +294,4 @@
++        if e.desc is None &&
++          counts.instance_contracts.get(inst_idx) is Some((graph, root)) {
++          counts.check_instance_origins(graph, root, named_types, resource_ids)
++        }
+@@ -247,2 +299,2 @@
+-          let exported_type_idxs : Array[Int] = []
+-          let seen : Map[Int, Int] = Map([])
++          let exported_type_idxs : Array[Int32] = []
++          let seen : Map[Int32, Int32] = Map([])
+@@ -295 +347 @@
+-          let inst_named : Map[Int, Int] = Map([])
++          let inst_named : Map[Int32, Int32] = Map([])
+@@ -447 +499 @@
+-    // the actual export (we currently model instance-type compatibility).
++    // the actual export. Functions require complete invariant signatures.
+@@ -449,6 +501,10 @@
+-      (Instance, Some(InstanceType(tyidx))) =>
+-        if tyidx >= 0 && tyidx < type_table.length() {
+-          let expected = instancetype_sig_of_global_idx(
+-            tyidx,
+-            type_table,
+-            Map([]),
++      (Func, Some(FuncType(index))) => {
++        guard type_table.get(index) is Some(Some(FuncType(expected))) else {
++          raise AscribedExportTypeIncompatible
++        }
++        let expected = counts.function_signature(
++          expected, type_table, resource_ids,
++        )
++        let actual = if func_types.get(e.sortidx.idx) is Some(Some(actual)) {
++          let signature = counts.function_signature(
++            actual, type_table, resource_ids,
+@@ -456,11 +512,4 @@
+-          let actual = if e.sortidx.idx >= 0 &&
+-            e.sortidx.idx < instance_sigs.length() {
+-            instance_sigs[e.sortidx.idx]
+-          } else {
+-            None
+-          }
+-          check_instance_subtype(actual, expected)
+-          match exportname_to_string(e.name) {
+-            Some(name) => my_export_instance_sigs.set(name, expected)
+-            None => ()
+-          }
++          signature
++        } else if func_sig_shapes.get(e.sortidx.idx) is Some(Some(shape)) &&
++          shape.complete is Some(actual) {
++          actual
+@@ -468,2 +517,166 @@
+-          raise AscribedExportTypeIncompatible
+-        }
++          raise UnsupportedFunctionAscription
++        }
++        counts.ascription_remaining = check_function_ascription(
++          actual.function,
++          expected.function,
++          actual.types,
++          actual.resources,
++          expected_types=Some(expected.types),
++          expected_resources=Some(expected.resources),
++          budget=counts.ascription_remaining,
++        )
++      }
++      (Type, Some(Type(Eq(index)))) => {
++        let (types, resources, remaining) = metadata_global_types(
++          type_table,
++          resource_ids,
++          counts.type_metadata,
++          counts.metadata_remaining,
++        ) catch {
++          SignatureBudgetExceeded =>
++            raise SectionParseError(
++              11, "type ascription metadata exceeds the verification work limit",
++            )
++          IncompleteFunctionSignature => raise UnsupportedFunctionAscription
++        }
++        counts.metadata_remaining = remaining
++        counts.ascription_remaining = check_value_ascriptions(
++          [Value(TypeIdx(e.sortidx.idx), TypeIdx(index))],
++          types,
++          resources,
++          counts.ascription_remaining,
++        )
++      }
++      (Type, Some(Type(SubResource))) => raise AscribedExportTypeIncompatible
++      (Instance, Some(InstanceType(tyidx))) => {
++        guard type_table.get(tyidx) is Some(Some(td)) &&
++          counts.instance_contracts.get(e.sortidx.idx)
++          is Some((actual, actual_node)) else {
++          raise UnsupportedInstanceAscription
++        }
++        let type_origins = counts.origin_table(type_table.length())
++        let origin_scope = Some(counts.contract_origin_scope(tyidx, false))
++        let (expected, next, remaining) = imported_instance_metadata(
++          td,
++          type_table,
++          resource_ids,
++          Map([]),
++          counts.type_metadata,
++          next_resource_id,
++          counts.metadata_remaining,
++          global_origins=type_origins,
++          origin_scope~,
++        )
++        counts.metadata_remaining = remaining
++        next_resource_id = next
++        guard expected is Some(expected) else {
++          if remaining == 0 {
++            raise SectionParseError(
++              11, "instance ascription metadata exceeds the verification work limit",
++            )
++          }
++          raise UnsupportedInstanceAscription
++        }
++        let core_scopes = match counts.core_contracts {
++          Some(graph) =>
++            match graph.scope(counts.core_scope) {
++              Some(root) =>
++                match (root.binding(5, e.sortidx.idx), root.binding(3, tyidx)) {
++                  (Some(Scope(a)), Some(Scope(b))) => Some((a, b))
++                  _ => None
++                }
++              None => None
++            }
++          None => None
++        }
++        let type_origins = counts.origin_table(type_table.length())
++        let origin_scope = Some(counts.contract_origin_scope(tyidx, true))
++        let (contract, next, remaining) = scoped_contract_metadata(
++          td,
++          type_table,
++          resource_ids,
++          counts.type_metadata,
++          next_resource_id,
++          counts.metadata_remaining,
++          core_contracts=counts.core_contracts,
++          core_scope=core_scopes.map(pair => pair.1),
++          seed=Some((expected, 0)),
++          global_origins=type_origins,
++          origin_scope~,
++        )
++        next_resource_id = next
++        counts.metadata_remaining = remaining
++        guard contract is Some(contract) else {
++          if remaining == 0 {
++            raise SectionParseError(
++              11, "instance contract exceeds the verification work limit",
++            )
++          }
++          raise UnsupportedInstanceAscription
++        }
++        counts.ascription_remaining = check_scoped_contract(
++          actual,
++          contract,
++          counts.ascription_remaining,
++          core_contracts=counts.core_contracts,
++          actual_node~,
++        )
++        counts.check_instance_origins(contract, 0, named_types, resource_ids)
++        ascribed_instance_contract = Some(contract)
++        ascribed_instance = Some(expected)
++        if exportname_to_string(e.name) is Some(name) {
++          my_export_instance_sigs[name] = metadata_instance_sig(expected, 0)
++          my_export_instance_func_sigs[name] = expected.nodes[0].functions
++        }
++      }
++      (Component, Some(ComponentType(tyidx))) => {
++        guard type_table.get(tyidx) is Some(Some(td)) &&
++          counts.component_contracts.get(e.sortidx.idx)
++          is Some((actual, actual_node)) else {
++          raise UnsupportedComponentAscription
++        }
++        let core_scope = match counts.core_contracts {
++          Some(graph) =>
++            match graph.scope(counts.core_scope) {
++              Some(root) =>
++                match root.binding(3, tyidx) {
++                  Some(Scope(id)) => Some(id)
++                  _ => None
++                }
++              None => None
++            }
++          None => None
++        }
++        let type_origins = counts.origin_table(type_table.length())
++        let origin_scope = Some(counts.contract_origin_scope(tyidx, true))
++        let (expected, next, remaining) = scoped_contract_metadata(
++          td,
++          type_table,
++          resource_ids,
++          counts.type_metadata,
++          next_resource_id,
++          counts.metadata_remaining,
++          core_contracts=counts.core_contracts,
++          core_scope~,
++          global_origins=type_origins,
++          origin_scope~,
++        )
++        counts.metadata_remaining = remaining
++        next_resource_id = next
++        guard expected is Some(expected) else {
++          if remaining == 0 {
++            raise SectionParseError(
++              11, "component contract exceeds the verification work limit",
++            )
++          }
++          raise UnsupportedComponentAscription
++        }
++        counts.ascription_remaining = check_scoped_contract(
++          actual,
++          expected,
++          counts.ascription_remaining,
++          core_contracts=counts.core_contracts,
++          actual_node~,
++        )
++        ascribed_component = Some(expected)
++      }
+@@ -480,0 +694,5 @@
++      let created = type_table.length()
++      counts.type_origins[created] = {
++        scope: counts.origin_scope,
++        index: created,
++      }
+@@ -487,0 +706,3 @@
++        if counts.type_metadata.get(idx) is Some(metadata) {
++          counts.type_metadata[type_table.length()] = metadata
++        }
+@@ -524,0 +746,13 @@
++      if exported_value is Some(signature) {
++        counts.values.push({ signature, used: true, })
++      }
++      if e.sortidx.sort is Instance {
++        let contract = match ascribed_instance_contract {
++          Some(contract) => Some((contract, 0))
++          None => counts.instance_contracts.get(e.sortidx.idx)
++        }
++        if contract is Some(contract) {
++          counts.name_instance_origins(contract.0, contract.1)
++          counts.instance_contracts[counts.instance - 1] = contract
++        }
++      }
+@@ -528,2 +762,22 @@
+-            func_types.push(func_types[e.sortidx.idx])
+-            if e.sortidx.idx >= 0 && e.sortidx.idx < func_sig_shapes.length() {
++            let exported = match e.desc {
++              Some(FuncType(index)) =>
++                match type_table.get(index) {
++                  Some(Some(FuncType(ft))) => Some(ft)
++                  _ => None
++                }
++              _ => func_types[e.sortidx.idx]
++            }
++            func_types.push(exported)
++            if e.desc is Some(FuncType(_)) && exported is Some(function) {
++              func_sig_shapes.push(
++                Some({
++                  ..funcsig_of_functype(function, type_table, resource_ids),
++                  complete: Some(
++                    counts.function_signature(
++                      function, type_table, resource_ids,
++                    ),
++                  ),
++                }),
++              )
++            } else if e.sortidx.idx >= 0 &&
++              e.sortidx.idx < func_sig_shapes.length() {
+@@ -540,0 +795,11 @@
++            if ascribed_instance is Some(metadata) {
++              instance_sigs[instance_sigs.length() - 1] = Some(
++                metadata_instance_sig(metadata, 0),
++              )
++              counts.instance_metadata[instance_sigs.length() - 1] = (
++                metadata, 0,
++              )
++            } else if counts.instance_metadata.get(e.sortidx.idx)
++              is Some(metadata) {
++              counts.instance_metadata[instance_sigs.length() - 1] = metadata
++            }
+@@ -580,0 +846,5 @@
++            if ascribed_instance is Some(metadata) {
++              instance_export_func_sigs[instance_export_func_sigs.length() - 1] = Some(
++                metadata.nodes[0].functions,
++              )
++            }
+@@ -602 +872,4 @@
+-            interface_instance_idxs.set(instance_sigs.length() - 1, 1)
++            interface_instance_idxs.set(
++              instance_sigs.length() - 1,
++              interface_instance_idxs.get(e.sortidx.idx).unwrap_or(1),
++            )
+@@ -616,0 +890,7 @@
++          let metadata = match ascribed_component {
++            Some(metadata) => Some((metadata, 0))
++            None => counts.component_contracts.get(src)
++          }
++          if metadata is Some(metadata) {
++            counts.component_contracts[counts.component - 1] = metadata
++          }
+--- a/section_import.mbt
++++ b/section_import.mbt
+@@ -0,0 +1,3 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++// Modified by wasm-devkit: permit root component imports.
++
+@@ -6 +9 @@
+-  is_root : Bool,
++  _is_root : Bool,
+@@ -10,8 +13,8 @@
+-  resource_ids : Array[Int?],
+-  type_sizes : Array[Int],
+-  type_depths : Array[Int],
+-  component_sizes : Array[Int],
+-  instance_sizes : Array[Int],
+-  named_types : Map[Int, Int],
+-  import_named_types : Map[Int, Int],
+-  core_type_exports : Array[Map[String, Int]?],
++  resource_ids : Array[Int32?],
++  type_sizes : Array[Int32],
++  type_depths : Array[Int32],
++  component_sizes : Array[Int32],
++  instance_sizes : Array[Int32],
++  named_types : Map[Int32, Int32],
++  import_named_types : Map[Int32, Int32],
++  core_type_exports : Array[Map[String, Int32]?],
+@@ -20 +23 @@
+-  core_module_exports : Array[Map[String, Int]?],
++  core_module_exports : Array[Map[String, Int32]?],
+@@ -28 +31 @@
+-    Map[String, Map[String, Int]]?,
++    Map[String, Map[String, Int32]]?,
+@@ -30 +33 @@
+-  component_import_core_module_exports : Array[Map[String, Map[String, Int]]?],
++  component_import_core_module_exports : Array[Map[String, Map[String, Int32]]?],
+@@ -47,3 +50,3 @@
+-  interface_instance_idxs : Map[Int, Int],
+-  instance_export_type_idxs : Array[Array[Int]?],
+-  instance_export_func_idxs : Array[Array[Int]?],
++  interface_instance_idxs : Map[Int32, Int32],
++  instance_export_type_idxs : Array[Array[Int32]?],
++  instance_export_func_idxs : Array[Array[Int32]?],
+@@ -60 +63 @@
+-  import_resource_names : Map[String, Int],
++  import_resource_names : Map[String, Int32],
+@@ -64 +67 @@
+-  my_import_instance_resource_exports : Map[String, Map[String, Int]],
++  my_import_instance_resource_exports : Map[String, Map[String, Int32]],
+@@ -68,3 +71,3 @@
+-  next_resource_id : Int,
+-  imported_funcs : Int,
+-) -> (Int, Int) raise ComponentValidationError {
++  next_resource_id : Int32,
++  imported_funcs : Int32,
++) -> (Int32, Int32) raise ComponentValidationError {
+@@ -72,0 +76,6 @@
++  let (import_locals, remaining) = import_local_resources(
++    local_resource_types,
++    resource_ids,
++    counts.metadata_remaining,
++  )
++  counts.metadata_remaining = remaining
+@@ -76,0 +86,10 @@
++    if counts.collect_contract && importname_to_string(i.name) is Some(name) {
++      let sort = sort_of_externdesc(i.desc)
++      counts.contract_imports.push(
++        (
++          name,
++          { sort, idx: counts.contract_index(sort, type_table.length()), },
++          i.desc is Type(SubResource),
++        ),
++      )
++    }
+@@ -85,5 +103,0 @@
+-    if is_root && i.desc is ComponentType(_) {
+-      raise SectionParseError(
+-        10, "root-level component imports are not supported",
+-      )
+-    }
+@@ -115,0 +130,4 @@
++      Type(Eq(tyidx)) =>
++        if local_resource_types.get(tyidx) is Some(true) {
++          raise SectionParseError(10, "local resource type found in imports")
++        }
+@@ -136,0 +155,19 @@
++    if i.desc is Value(Type(value)) {
++      if !valtype_valid_in_interface(
++          value,
++          type_table,
++          resource_ids,
++          import_named_types,
++          Map([]),
++        ) {
++        raise SectionParseError(10, "value not valid to be used as import")
++      }
++      let signature = counts.value_signature(value, type_table, resource_ids)
++      counts.check_function_origins(
++        signature,
++        import_named_types,
++        resource_ids,
++        visible=false,
++      )
++      counts.values.push({ signature, used: false, })
++    }
+@@ -140 +177,14 @@
+-          let sig = funcsig_of_functype(ft, type_table, resource_ids)
++          let sig = {
++            ..funcsig_of_functype(ft, type_table, resource_ids),
++            complete: Some(
++              counts.function_signature(ft, type_table, resource_ids),
++            ),
++          }
++          if sig.complete is Some(signature) {
++            counts.check_function_origins(
++              signature,
++              import_named_types,
++              resource_ids,
++              visible=false,
++            )
++          }
+@@ -190 +240 @@
+-        let mut resource_exports : Map[String, Int]? = None
++        let mut resource_exports : Map[String, Int32]? = None
+@@ -202 +252,2 @@
+-                let local_resource_ids : Array[Int?] = []
++                let local_resource_ids : Array[Int32?] = []
++                let local_origins : Map[Int32, Int32] = Map([])
+@@ -205 +256 @@
+-                let res : Map[String, Int] = Map([])
++                let res : Map[String, Int32] = Map([])
+@@ -209 +260 @@
+-                let visiting : Map[Int, Int] = Map([])
++                let visiting : Map[Int32, Int32] = Map([])
+@@ -221 +272 @@
+-                    AliasOuter(kind, _count, _idx) =>
++                    AliasOuter(kind, count, index) =>
+@@ -223 +274,14 @@
+-                        record_type_slot()
++                        let slot = local_types.length()
++                        if count == 1 && type_table.get(index) is Some(Some(_)) {
++                          record_type_slot()
++                          local_origins[slot] = index
++                        } else if count == 0 &&
++                          local_types.get(index) is Some(td) {
++                          local_types.push(td)
++                          local_resource_ids.push(local_resource_ids[index])
++                          if local_origins.get(index) is Some(origin) {
++                            local_origins[slot] = origin
++                          }
++                        } else {
++                          record_type_slot()
++                        }
+@@ -249,0 +314,3 @@
++                                if local_origins.get(idx) is Some(origin) {
++                                  local_origins[new_idx] = origin
++                                }
+@@ -267,2 +334,6 @@
+-                          let sig = if ft_idx >= 0 &&
+-                            ft_idx < local_types.length() {
++                          let sig = if local_origins.get(ft_idx) is Some(origin) &&
++                            type_table.get(origin) is Some(Some(FuncType(ft))) {
++                            Some(
++                              funcsig_of_functype(ft, type_table, resource_ids),
++                            )
++                          } else if ft_idx >= 0 && ft_idx < local_types.length() {
+@@ -273 +344,4 @@
+-                                    ft, local_types, local_resource_ids, type_table,
++                                    ft,
++                                    local_types,
++                                    local_resource_ids,
++                                    type_table,
+@@ -274,0 +349,4 @@
++                                    local_origins~,
++                                    global_function=local_origins.contains(
++                                      ft_idx,
++                                    ),
+@@ -326 +404 @@
+-                tyidx, type_table, type_outers,
++                tyidx, type_table, type_outers, import_named_types,
+@@ -334,0 +413,66 @@
++        if type_table[tyidx] is Some(td) {
++          let type_origins = counts.origin_table(type_table.length())
++          let origin_scope = Some(counts.contract_origin_scope(tyidx, false))
++          let (metadata, next, remaining) = imported_instance_metadata(
++            td,
++            type_table,
++            resource_ids,
++            resource_exports.unwrap_or(Map([])),
++            counts.type_metadata,
++            next_resource_id,
++            counts.metadata_remaining,
++            global_origins=type_origins,
++            origin_scope~,
++          )
++          counts.metadata_remaining = remaining
++          next_resource_id = next
++          if metadata is Some(metadata) {
++            func_export_sigs = Some(metadata.nodes[0].functions)
++            counts.instance_metadata[instance_sigs.length() - 1] = (metadata, 0)
++            let core_scope = match counts.core_contracts {
++              Some(graph) =>
++                match graph.scope(counts.core_scope) {
++                  Some(root) =>
++                    match root.binding(3, tyidx) {
++                      Some(Scope(id)) => Some(id)
++                      _ => None
++                    }
++                  None => None
++                }
++              None => None
++            }
++            let type_origins = counts.origin_table(type_table.length())
++            let origin_scope = Some(counts.contract_origin_scope(tyidx, true))
++            let (contract, next, remaining) = scoped_contract_metadata(
++              td,
++              type_table,
++              resource_ids,
++              counts.type_metadata,
++              next_resource_id,
++              counts.metadata_remaining,
++              core_contracts=counts.core_contracts,
++              core_scope~,
++              seed=Some((metadata, 0)),
++              global_origins=type_origins,
++              origin_scope~,
++            )
++            next_resource_id = next
++            counts.metadata_remaining = remaining
++            if contract is Some(contract) {
++              counts.name_instance_origins(contract, 0)
++              counts.instance_contracts[instance_sigs.length() - 1] = (
++                contract, 0,
++              )
++            }
++            instance_sigs[instance_sigs.length() - 1] = Some(
++              metadata_instance_sig(metadata, 0),
++            )
++          }
++        }
++        counts.metadata_remaining = check_import_resources(
++          counts.instance_contracts
++          .get(instance_sigs.length() - 1)
++          .map(pair => pair.0),
++          import_locals,
++          counts.metadata_remaining,
++        )
+@@ -345 +489,2 @@
+-        interface_instance_idxs.set(instance_sigs.length() - 1, 1)
++        // Bit 1 names exported types; bit 2 also permits using them in imports.
++        interface_instance_idxs.set(instance_sigs.length() - 1, 3)
+@@ -352,0 +498,38 @@
++      if type_table.get(tyidx) is Some(Some(td)) {
++        let core_scope = match counts.core_contracts {
++          Some(graph) =>
++            match graph.scope(counts.core_scope) {
++              Some(root) =>
++                match root.binding(3, tyidx) {
++                  Some(Scope(id)) => Some(id)
++                  _ => None
++                }
++              None => None
++            }
++          None => None
++        }
++        let type_origins = counts.origin_table(type_table.length())
++        let origin_scope = Some(counts.contract_origin_scope(tyidx, true))
++        let (metadata, next, remaining) = scoped_contract_metadata(
++          td,
++          type_table,
++          resource_ids,
++          counts.type_metadata,
++          next_resource_id,
++          counts.metadata_remaining,
++          core_contracts=counts.core_contracts,
++          core_scope~,
++          global_origins=type_origins,
++          origin_scope~,
++        )
++        next_resource_id = next
++        counts.metadata_remaining = remaining
++        if metadata is Some(metadata) {
++          counts.component_contracts[counts.component] = (metadata, 0)
++        }
++      }
++      counts.metadata_remaining = check_import_resources(
++        counts.component_contracts.get(counts.component).map(pair => pair.0),
++        import_locals,
++        counts.metadata_remaining,
++      )
+@@ -360 +543 @@
+-      let mut import_core_module_exports : Map[String, Map[String, Int]]? = None
++      let mut import_core_module_exports : Map[String, Map[String, Int32]]? = None
+@@ -433,0 +617,8 @@
++            let created = type_table.length()
++            counts.type_origins[created] = {
++              scope: counts.origin_scope,
++              index: created,
++            }
++            if counts.type_metadata.get(tyidx) is Some(metadata) {
++              counts.type_metadata[created] = metadata
++            }
+@@ -507 +698 @@
+-            new_idx, type_table, type_outers,
++            new_idx, type_table, type_outers, import_named_types,
+--- a/section_instance.mbt
++++ b/section_instance.mbt
+@@ -0,0 +1,2 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++
+@@ -8,4 +10,4 @@
+-  resource_ids : Array[Int?],
+-  component_sizes : Array[Int],
+-  instance_sizes : Array[Int],
+-  core_module_exports : Array[Map[String, Int]?],
++  resource_ids : Array[Int32?],
++  component_sizes : Array[Int32],
++  instance_sizes : Array[Int32],
++  core_module_exports : Array[Map[String, Int32]?],
+@@ -18 +20 @@
+-    Map[String, Map[String, Int]]?,
++    Map[String, Map[String, Int32]]?,
+@@ -20 +22 @@
+-  component_import_core_module_exports : Array[Map[String, Map[String, Int]]?],
++  component_import_core_module_exports : Array[Map[String, Map[String, Int32]]?],
+@@ -37,2 +39,2 @@
+-  instance_export_type_idxs : Array[Array[Int]?],
+-  instance_export_func_idxs : Array[Array[Int]?],
++  instance_export_type_idxs : Array[Array[Int32]?],
++  instance_export_func_idxs : Array[Array[Int32]?],
+@@ -48,2 +50,2 @@
+-  next_resource_id : Int,
+-) -> Int raise ComponentValidationError {
++  next_resource_id : Int32,
++) -> Int32 raise ComponentValidationError {
+@@ -54,0 +57,34 @@
++    if counts.core_contracts is Some(_) {
++      let (graph, root, next) = runtime_component_instance(
++        inst, cfg, counts, type_table, resource_ids, func_sig_shapes, next_resource_id,
++      )
++      next_resource_id = next
++      let metadata = runtime_instance_metadata(graph, root, counts)
++      counts.instance_contracts[counts.instance] = (graph, root)
++      counts.instance_metadata[counts.instance] = (metadata, root)
++      instance_sigs.push(Some(metadata.signatures[root]))
++      instance_sizes.push(1)
++      instance_export_type_idxs.push(None)
++      instance_export_func_idxs.push(None)
++      instance_export_type_map.push(None)
++      let type_signatures : Map[String, TypeSig] = Map([])
++      for (name, index) in metadata.nodes[root].types {
++        let (signature, remaining) = metadata_function(
++          { is_async: false, params: [], result: Some(TypeIdx(index)), },
++          metadata.types,
++          metadata.resources,
++          counts.metadata_remaining,
++          origins=metadata.origins,
++        ) catch {
++          _ => raise UnsupportedComponentAscription
++        }
++        counts.metadata_remaining = remaining
++        type_signatures[name] = signature.result.unwrap_or(Other)
++      }
++      instance_export_type_sigs.push(Some(type_signatures))
++      instance_export_func_sigs.push(Some(metadata.nodes[root].functions))
++      instance_nested_instance_type_sigs.push(None)
++      instance_nested_instance_func_sigs.push(None)
++      counts.instance += 1
++      continue
++    }
+@@ -57,2 +93,2 @@
+-    let mut inst_type_idxs : Array[Int]? = None
+-    let mut inst_func_idxs : Array[Int]? = None
++    let mut inst_type_idxs : Array[Int32]? = None
++    let mut inst_func_idxs : Array[Int32]? = None
+@@ -124,4 +160,4 @@
+-        let pending_type_args : Array[(String, Int)] = []
+-        let pending_func_args : Array[(String, Int)] = []
+-        let pending_instance_args : Array[(String, Int)] = []
+-        let seen_args : Map[String, Int] = Map([])
++        let pending_type_args : Array[(String, Int32)] = []
++        let pending_func_args : Array[(String, Int32)] = []
++        let pending_instance_args : Array[(String, Int32)] = []
++        let seen_args : Map[String, Int32] = Map([])
+@@ -217 +253 @@
+-        let rid_subst : Map[Int, Int] = Map([])
++        let rid_subst : Map[Int32, Int32] = Map([])
+@@ -421 +457 @@
+-                        let mut found : Int? = None
++                        let mut found : Int32? = None
+@@ -443 +479 @@
+-                    let mut found : Int? = None
++                    let mut found : Int32? = None
+@@ -519,2 +555,2 @@
+-        let t_idxs : Array[Int] = []
+-        let f_idxs : Array[Int] = []
++        let t_idxs : Array[Int32] = []
++        let f_idxs : Array[Int32] = []
+--- a/trait_extensions.mbt
++++ b/trait_extensions.mbt
+@@ -0,0 +1,2 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++
+--- a/validate.mbt
++++ b/validate.mbt
+@@ -0,0 +1,3 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++// Modified by wasm-devkit: retain imported-instance alias naming visibility.
++
+@@ -8,2 +11,2 @@
+-  type_depths : Array[Int],
+-) -> Int {
++  type_depths : Array[Int32],
++) -> Int32 {
+@@ -24,2 +27,2 @@
+-  type_depths : Array[Int],
+-) -> Int {
++  type_depths : Array[Int32],
++) -> Int32 {
+@@ -93 +96,2 @@
+-  size : Int
++  size : Int32
++  contract : ScopedContractMetadata?
+@@ -97 +101 @@
+-  import_instance_resource_exports : Map[String, Map[String, Int]]
++  import_instance_resource_exports : Map[String, Map[String, Int32]]
+@@ -100 +104 @@
+-  import_core_module_exports : Map[String, Map[String, Int]]
++  import_core_module_exports : Map[String, Map[String, Int32]]
+@@ -110,0 +115,24 @@
++priv struct ComponentValidationState {
++  mut resource : Int32
++  mut origin : Int32
++  mut metadata : Int32
++  mut ascriptions : Int32
++  mut frames : Int32
++  core_work : CoreContractWork
++  canonical_work : CanonicalBudget
++}
++
++///|
++// Suspended lexical state lives in a continuation. The driver owns the only
++// nesting stack; advancing a frame never advances a child frame.
++priv struct ComponentValidationFrame {
++  advance : (ValidatedComponentInfo?) -> ComponentValidationStep raise ComponentValidationError
++}
++
++///|
++priv enum ComponentValidationStep {
++  Descend(ComponentValidationFrame)
++  Complete(ValidatedComponentInfo)
++}
++
++///|
+@@ -112,2 +140,2 @@
+-fn validate_component_inner(
+-  component : @component.Component,
++fn component_validation_frame(
++  component : @component.ComponentBinary,
+@@ -116 +144 @@
+-  depth : Int,
++  depth : Int32,
+@@ -118,4 +146,8 @@
+-  type_outer_depths : Array[Int],
+-  core_type_bound_outers : Array[Int],
+-  component_size_outers : Array[Array[Int]],
+-) -> ValidatedComponentInfo raise ComponentValidationError {
++  type_outer_depths : Array[Int32],
++  core_type_bound_outers : Array[Int32],
++  component_size_outers : Array[Array[Int32]],
++  shared : ComponentValidationState,
++  core_scope : Int32,
++  outer_counts : Array[Counts],
++  core_contracts~ : @core_types.ContractGraph? = None,
++) -> ComponentValidationFrame {
+@@ -122,0 +155,14 @@
++  counts.core_contracts = core_contracts
++  counts.core_scope = core_scope
++  counts.outer_counts = outer_counts
++  counts.origin_scope = shared.origin
++  shared.origin += 1
++  counts.collect_contract = !is_root
++  let contract_scope = match counts.core_contracts {
++    Some(graph) => graph.scope(core_scope)
++    None => None
++  }
++  let contract_work = shared.core_work
++  let instance_contracts : Array[Map[String, @core_types.External]] = []
++  let external_contracts : Map[(Int32, Int32), @core_types.External] = Map([])
++  let canonical_budget = shared.canonical_work
+@@ -129,4 +175,4 @@
+-  let resource_ids : Array[Int?] = []
+-  let mut next_resource_id = 0
+-  let type_sizes : Array[Int] = []
+-  let type_depths : Array[Int] = []
++  let resource_ids : Array[Int32?] = []
++  let mut next_resource_id = shared.resource
++  let type_sizes : Array[Int32] = []
++  let type_depths : Array[Int32] = []
+@@ -134,2 +180,2 @@
+-  let component_sizes : Array[Int] = []
+-  let instance_sizes : Array[Int] = []
++  let component_sizes : Array[Int32] = []
++  let instance_sizes : Array[Int32] = []
+@@ -138 +184 @@
+-  let named_types : Map[Int, Int] = Map([])
++  let named_types : Map[Int32, Int32] = Map([])
+@@ -141,2 +187,2 @@
+-  let import_named_types : Map[Int, Int] = Map([])
+-  let core_type_exports : Array[Map[String, Int]?] = []
++  let import_named_types : Map[Int32, Int32] = Map([])
++  let core_type_exports : Array[Map[String, Int32]?] = []
+@@ -145 +191 @@
+-  let core_module_exports : Array[Map[String, Int]?] = []
++  let core_module_exports : Array[Map[String, Int32]?] = []
+@@ -151 +197 @@
+-  let core_instance_exports : Array[Map[String, Int]?] = []
++  let core_instance_exports : Array[Map[String, Int32]?] = []
+@@ -158 +204 @@
+-    Map[String, Map[String, Int]]?,
++    Map[String, Map[String, Int32]]?,
+@@ -161 +207 @@
+-    Map[String, Map[String, Int]]?,
++    Map[String, Map[String, Int32]]?,
+@@ -181,3 +227,3 @@
+-  let interface_instance_idxs : Map[Int, Int] = Map([])
+-  let instance_export_type_idxs : Array[Array[Int]?] = []
+-  let instance_export_func_idxs : Array[Array[Int]?] = []
++  let interface_instance_idxs : Map[Int32, Int32] = Map([])
++  let instance_export_type_idxs : Array[Array[Int32]?] = []
++  let instance_export_func_idxs : Array[Array[Int32]?] = []
+@@ -199,2 +245,2 @@
+-  let import_resource_names : Map[String, Int] = Map([])
+-  let export_resource_names : Map[String, Int] = Map([])
++  let import_resource_names : Map[String, Int32] = Map([])
++  let export_resource_names : Map[String, Int32] = Map([])
+@@ -206 +252 @@
+-  let my_import_instance_resource_exports : Map[String, Map[String, Int]] = Map([],
++  let my_import_instance_resource_exports : Map[String, Map[String, Int32]] = Map([],
+@@ -217,43 +263,18 @@
+-  for s in component.binary.sections {
+-    match s.id {
+-      // Core module/instance/type sections each declare a single core item.
+-      1 => {
+-        // Validate embedded core modules using the existing core validator.
+-        if @component.sniff_binary_kind(s.payload) != Some(CoreModule) {
+-          raise CoreModuleError("unknown binary version")
+-        }
+-        let core_mod = @parser.parse_module(s.payload) catch {
+-          e => raise CoreModuleError("parse core module: \{e}")
+-        }
+-        // wasm-tools expects duplicate import names in core modules to be invalid.
+-        let seen_imports : Map[String, Int] = Map([])
+-        for imp in core_mod.imports {
+-          let key = "\{imp.mod_name}:\{imp.name}"
+-          if seen_imports.get(key) is Some(_) {
+-            raise CoreModuleError("duplicate import name `\{key}`")
+-          }
+-          seen_imports.set(key, 1)
+-        }
+-        @core_validator.validate_module(core_mod) catch {
+-          e => raise CoreModuleError("validate core module: \{e}")
+-        }
+-        let exports : Map[String, Int] = Map([])
+-        let export_types : Map[String, CoreExternType] = Map([])
+-        for ex in core_mod.exports {
+-          match ex.desc {
+-            Func(_) => exports.set(ex.name, 0x00)
+-            Table(_) => exports.set(ex.name, 0x01)
+-            Memory(_) => exports.set(ex.name, 0x02)
+-            Global(_) => exports.set(ex.name, 0x03)
+-            Tag(_) => exports.set(ex.name, 0x04)
+-          }
+-          match core_export_type_of_module(core_mod, ex) {
+-            Some(t) => export_types.set(ex.name, t)
+-            None => ()
+-          }
+-        }
+-        core_module_exports.push(Some(exports))
+-        core_module_export_types.push(Some(export_types))
+-        core_module_type_imports.push(None)
+-        core_module_defs.push(Some(core_mod))
+-        counts.core_module += 1
++  let mut section_position = 0
++  let advance = fn(
++    completed : ValidatedComponentInfo?,
++  ) -> ComponentValidationStep raise ComponentValidationError {
++    counts.next_origin_scope = shared.origin
++    counts.metadata_remaining = shared.metadata
++    counts.ascription_remaining = shared.ascriptions
++    next_resource_id = shared.resource
++    shared.frames -= depth + 1
++    if shared.frames < 0 || depth > 256 {
++      raise ComponentScopeBudgetExceeded
++    }
++    if counts.core_contracts is Some(graph) && graph.scope(core_scope) is None {
++      raise SectionParseError(0, "core contract metadata has no root scope")
++    }
++    if completed is Some(nested_info) {
++      if nested_info.contract is Some(contract) {
++        counts.component_contracts[counts.component] = (contract, 0)
+@@ -261,30 +282,101 @@
+-      2 => {
+-        let core_instances = @component.parse_core_instance_section(s.payload) catch {
+-          e => raise SectionParseError(2, "\{e}")
+-        }
+-        for inst in core_instances {
+-          let mut export_map : Map[String, Int]? = None
+-          let mut export_types : Map[String, CoreExternType]? = None
+-          match inst.expr {
+-            Instantiate(module_idx, args) => {
+-              if module_idx < 0 || module_idx >= counts.core_module {
+-                raise InvalidCoreModuleIndex(module_idx)
+-              }
+-              if module_idx >= 0 && module_idx < core_module_exports.length() {
+-                export_map = core_module_exports[module_idx]
+-              }
+-              if module_idx >= 0 &&
+-                module_idx < core_module_export_types.length() {
+-                export_types = core_module_export_types[module_idx]
+-              }
+-              // Validate that instantiation args satisfy the core module's
+-              // imports when we have enough type information (either a full
+-              // core module body, or a core module type signature).
+-              let providers : Map[String, Int] = Map([])
+-              let seen_arg_names : Map[String, Int] = Map([])
+-              for a in args {
+-                check_sortidx(a.sortidx, counts, type_table.length())
+-                if seen_arg_names.get(a.name) is Some(_) {
+-                  raise CoreModuleError(
+-                    "duplicate module instantiation argument named `\{a.name}`",
+-                  )
++      component_import_sorts.push(Some(nested_info.import_sorts))
++      component_import_instance_sigs.push(
++        Some(nested_info.import_instance_sigs),
++      )
++      component_import_func_sigs.push(Some(nested_info.import_func_sigs))
++      component_import_instance_resource_exports.push(
++        Some(nested_info.import_instance_resource_exports),
++      )
++      component_import_core_module_exports.push(
++        Some(nested_info.import_core_module_exports),
++      )
++      component_import_core_module_import_sigs.push(
++        Some(nested_info.import_core_module_import_sigs),
++      )
++      component_import_type_bounds.push(Some(nested_info.import_type_bounds))
++      component_import_type_sigs.push(Some(nested_info.import_type_sigs))
++      component_export_sorts.push(Some(nested_info.export_sorts))
++      component_export_instance_sigs.push(
++        Some(nested_info.export_instance_sigs),
++      )
++      component_export_instance_type_sigs.push(
++        Some(nested_info.export_instance_type_sigs),
++      )
++      component_export_instance_func_sigs.push(
++        Some(nested_info.export_instance_func_sigs),
++      )
++      component_export_type_sigs.push(Some(nested_info.export_type_sigs))
++      component_export_func_sigs.push(Some(nested_info.export_func_sigs))
++      component_sizes.push(nested_info.size)
++      // Nested component definitions contribute to the overall effective
++      // size of the component graph (wasm-tools/very-nested.wast).
++      export_size = add_type_size(export_size, nested_info.size)
++      counts.component += 1
++    }
++    while section_position < component.sections.length() {
++      let s = component.sections[section_position]
++      section_position += 1
++
++      match s.id {
++        // Core module/instance/type sections each declare a single core item.
++        1 => {
++          // Validate embedded core modules using the existing core validator.
++          if @component.sniff_binary_kind(s.payload) != Some(CoreModule) {
++            raise CoreModuleError("unknown binary version")
++          }
++          let core_mod = @parser.parse_module(s.payload) catch {
++            e => raise CoreModuleError("parse core module: \{e}")
++          }
++          // wasm-tools expects duplicate import names in core modules to be invalid.
++          let seen_imports : Map[(String, String), Int32] = Map([])
++          for imp in core_mod.imports {
++            let key = (imp.mod_name, imp.name)
++            if seen_imports.get(key) is Some(_) {
++              raise CoreModuleError(
++                "duplicate import name `\{imp.mod_name}:\{imp.name}`",
++              )
++            }
++            seen_imports.set(key, 1)
++          }
++          @core_validator.validate_module(core_mod) catch {
++            e => raise CoreModuleError("validate core module: \{e}")
++          }
++          let exports : Map[String, Int32] = Map([])
++          let export_types : Map[String, CoreExternType] = Map([])
++          for ex in core_mod.exports {
++            match ex.desc {
++              Func(_) => exports.set(ex.name, 0x00)
++              Table(_) => exports.set(ex.name, 0x01)
++              Memory(_) => exports.set(ex.name, 0x02)
++              Global(_) => exports.set(ex.name, 0x03)
++              Tag(_) => exports.set(ex.name, 0x04)
++            }
++            match core_export_type_of_module(core_mod, ex) {
++              Some(t) => export_types.set(ex.name, t)
++              None => ()
++            }
++          }
++          core_module_exports.push(Some(exports))
++          core_module_export_types.push(Some(export_types))
++          core_module_type_imports.push(None)
++          core_module_defs.push(Some(core_mod))
++          counts.core_module += 1
++        }
++        2 => {
++          let core_instances = @component.parse_core_instance_section(s.payload) catch {
++            e => raise SectionParseError(2, "\{e}")
++          }
++          for inst in core_instances {
++            if contract_scope is Some(scope) {
++              instance_contracts.push(
++                core_contract_instance(
++                  inst, scope, instance_contracts, external_contracts, contract_work,
++                ),
++              )
++            }
++            let mut export_map : Map[String, Int32]? = None
++            let mut export_types : Map[String, CoreExternType]? = None
++            match inst.expr {
++              Instantiate(module_idx, args) => {
++                if module_idx < 0 || module_idx >= counts.core_module {
++                  raise InvalidCoreModuleIndex(module_idx)
+@@ -292,4 +384,2 @@
+-                seen_arg_names.set(a.name, 1)
+-                match a.sortidx.sort {
+-                  Core(0x12) => providers.set(a.name, a.sortidx.idx)
+-                  _ => ()
++                if module_idx >= 0 && module_idx < core_module_exports.length() {
++                  export_map = core_module_exports[module_idx]
+@@ -297,67 +387,15 @@
+-              }
+-              let mod_def = if module_idx >= 0 &&
+-                module_idx < core_module_defs.length() {
+-                core_module_defs[module_idx]
+-              } else {
+-                None
+-              }
+-              match mod_def {
+-                Some(mod_) =>
+-                  for imp in mod_.imports {
+-                    match providers.get(imp.mod_name) {
+-                      None =>
+-                        raise CoreModuleError(
+-                          "module import `\{imp.mod_name}::\{imp.name}` not defined",
+-                        )
+-                      Some(provider_idx) => {
+-                        if provider_idx < 0 ||
+-                          provider_idx >= core_instance_export_types.length() {
+-                          raise InvalidCoreInstanceIndex(provider_idx)
+-                        }
+-                        let expected = core_import_type_of_module(
+-                          mod_,
+-                          imp.desc,
+-                        )
+-                        match expected {
+-                          None => ()
+-                          Some(exp_ty) => {
+-                            let expected_kind = core_kind_of_extern_type(exp_ty)
+-                            // Check presence/kind first (even if we don't have full type info).
+-                            if provider_idx < 0 ||
+-                              provider_idx >= core_instance_exports.length() {
+-                              raise InvalidCoreInstanceIndex(provider_idx)
+-                            }
+-                            match core_instance_exports[provider_idx] {
+-                              Some(kinds) =>
+-                                match kinds.get(imp.name) {
+-                                  None =>
+-                                    raise CoreModuleError(
+-                                      "module import `\{imp.mod_name}::\{imp.name}` not defined",
+-                                    )
+-                                  Some(actual_kind) =>
+-                                    if actual_kind != expected_kind {
+-                                      raise CoreModuleError(
+-                                        "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
+-                                      )
+-                                    }
+-                                }
+-                              None => ()
+-                            }
+-                            // If we also know full types, enforce type compatibility.
+-                            match core_instance_export_types[provider_idx] {
+-                              Some(map) =>
+-                                match map.get(imp.name) {
+-                                  Some(prov_ty) =>
+-                                    if !core_import_compatible(exp_ty, prov_ty) {
+-                                      raise CoreModuleError(
+-                                        "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
+-                                      )
+-                                    }
+-                                  None => ()
+-                                }
+-                              None => ()
+-                            }
+-                          }
+-                        }
+-                      }
+-                    }
++                if module_idx >= 0 &&
++                  module_idx < core_module_export_types.length() {
++                  export_types = core_module_export_types[module_idx]
++                }
++                // Validate that instantiation args satisfy the core module's
++                // imports when we have enough type information (either a full
++                // core module body, or a core module type signature).
++                let providers : Map[String, Int32] = Map([])
++                let seen_arg_names : Map[String, Int32] = Map([])
++                for a in args {
++                  check_sortidx(a.sortidx, counts, type_table.length())
++                  if seen_arg_names.get(a.name) is Some(_) {
++                    raise CoreModuleError(
++                      "duplicate module instantiation argument named `\{a.name}`",
++                    )
+@@ -365,10 +403,16 @@
+-                None =>
+-                  match
+-                    (if module_idx >= 0 &&
+-                      module_idx < core_module_type_imports.length() {
+-                      core_module_type_imports[module_idx]
+-                    } else {
+-                      None
+-                    }) {
+-                    Some(sigs) =>
+-                      for imp in sigs {
++                  seen_arg_names.set(a.name, 1)
++                  match a.sortidx.sort {
++                    Core(0x12) => providers.set(a.name, a.sortidx.idx)
++                    _ => ()
++                  }
++                }
++                let mod_def = if module_idx >= 0 &&
++                  module_idx < core_module_defs.length() {
++                  core_module_defs[module_idx]
++                } else {
++                  None
++                }
++                if contract_scope is None {
++                  match mod_def {
++                    Some(mod_) =>
++                      for imp in mod_.imports {
+@@ -386,18 +430,14 @@
+-                            let expected_kind = core_kind_of_extern_type(imp.ty)
+-                            if provider_idx < 0 ||
+-                              provider_idx >= core_instance_exports.length() {
+-                              raise InvalidCoreInstanceIndex(provider_idx)
+-                            }
+-                            match core_instance_exports[provider_idx] {
+-                              Some(kinds) =>
+-                                match kinds.get(imp.name) {
+-                                  None =>
+-                                    raise CoreModuleError(
+-                                      "module import `\{imp.mod_name}::\{imp.name}` not defined",
+-                                    )
+-                                  Some(actual_kind) =>
+-                                    if actual_kind != expected_kind {
+-                                      raise CoreModuleError(
+-                                        "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
+-                                      )
+-                                    }
++                            let expected = core_import_type_of_module(
++                              mod_,
++                              imp.desc,
++                            )
++                            match expected {
++                              None => ()
++                              Some(exp_ty) => {
++                                let expected_kind = core_kind_of_extern_type(
++                                  exp_ty,
++                                )
++                                // Check presence/kind first (even if we don't have full type info).
++                                if provider_idx < 0 ||
++                                  provider_idx >= core_instance_exports.length() {
++                                  raise InvalidCoreInstanceIndex(provider_idx)
+@@ -405,10 +445,13 @@
+-                              None => ()
+-                            }
+-                            match core_instance_export_types[provider_idx] {
+-                              Some(map) =>
+-                                match map.get(imp.name) {
+-                                  Some(prov_ty) =>
+-                                    if !core_import_compatible(imp.ty, prov_ty) {
+-                                      raise CoreModuleError(
+-                                        "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
+-                                      )
++                                match core_instance_exports[provider_idx] {
++                                  Some(kinds) =>
++                                    match kinds.get(imp.name) {
++                                      None =>
++                                        raise CoreModuleError(
++                                          "module import `\{imp.mod_name}::\{imp.name}` not defined",
++                                        )
++                                      Some(actual_kind) =>
++                                        if actual_kind != expected_kind {
++                                          raise CoreModuleError(
++                                            "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
++                                          )
++                                        }
+@@ -418 +461,17 @@
+-                              None => ()
++                                // If we also know full types, enforce type compatibility.
++                                match core_instance_export_types[provider_idx] {
++                                  Some(map) =>
++                                    match map.get(imp.name) {
++                                      Some(prov_ty) =>
++                                        if !core_import_compatible(
++                                            exp_ty, prov_ty,
++                                          ) {
++                                          raise CoreModuleError(
++                                            "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
++                                          )
++                                        }
++                                      None => ()
++                                    }
++                                  None => ()
++                                }
++                              }
+@@ -423 +482,65 @@
+-                    None => ()
++                    None =>
++                      match
++                        (if module_idx >= 0 &&
++                          module_idx < core_module_type_imports.length() {
++                          core_module_type_imports[module_idx]
++                        } else {
++                          None
++                        }) {
++                        Some(sigs) =>
++                          for imp in sigs {
++                            match providers.get(imp.mod_name) {
++                              None =>
++                                raise CoreModuleError(
++                                  "module import `\{imp.mod_name}::\{imp.name}` not defined",
++                                )
++                              Some(provider_idx) => {
++                                if provider_idx < 0 ||
++                                  provider_idx >=
++                                  core_instance_export_types.length() {
++                                  raise InvalidCoreInstanceIndex(provider_idx)
++                                }
++                                let expected_kind = core_kind_of_extern_type(
++                                  imp.ty,
++                                )
++                                if provider_idx < 0 ||
++                                  provider_idx >= core_instance_exports.length() {
++                                  raise InvalidCoreInstanceIndex(provider_idx)
++                                }
++                                match core_instance_exports[provider_idx] {
++                                  Some(kinds) =>
++                                    match kinds.get(imp.name) {
++                                      None =>
++                                        raise CoreModuleError(
++                                          "module import `\{imp.mod_name}::\{imp.name}` not defined",
++                                        )
++                                      Some(actual_kind) =>
++                                        if actual_kind != expected_kind {
++                                          raise CoreModuleError(
++                                            "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
++                                          )
++                                        }
++                                    }
++                                  None => ()
++                                }
++                                match core_instance_export_types[provider_idx] {
++                                  Some(map) =>
++                                    match map.get(imp.name) {
++                                      Some(prov_ty) =>
++                                        if !core_import_compatible(
++                                            imp.ty,
++                                            prov_ty,
++                                          ) {
++                                          raise CoreModuleError(
++                                            "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
++                                          )
++                                        }
++                                      None => ()
++                                    }
++                                  None => ()
++                                }
++                              }
++                            }
++                          }
++                        None => ()
++                      }
+@@ -424,0 +548,38 @@
++                }
++              }
++              InlineExports(inline_exports) => {
++                let map : Map[String, Int32] = Map([])
++                let type_map : Map[String, CoreExternType] = Map([])
++                for ex in inline_exports {
++                  check_sortidx(ex.sortidx, counts, type_table.length())
++                  if map.get(ex.name) is Some(_) {
++                    raise DuplicateExportName(ex.name)
++                  }
++                  match ex.sortidx.sort {
++                    Core(core_sort) => {
++                      map.set(ex.name, core_sort)
++                      match core_sort {
++                        0x00 =>
++                          if ex.sortidx.idx >= 0 &&
++                            ex.sortidx.idx < core_func_types.length() {
++                            match core_func_types[ex.sortidx.idx] {
++                              Some(ft) => type_map.set(ex.name, Func(ft))
++                              None => ()
++                            }
++                          }
++                        0x02 =>
++                          if ex.sortidx.idx >= 0 &&
++                            ex.sortidx.idx < core_memory_types.length() {
++                            match core_memory_types[ex.sortidx.idx] {
++                              Some(mt) => type_map.set(ex.name, Memory(mt))
++                              None => ()
++                            }
++                          }
++                        _ => ()
++                      }
++                    }
++                    _ => ()
++                  }
++                }
++                export_map = Some(map)
++                export_types = Some(type_map)
+@@ -427,33 +588,47 @@
+-            InlineExports(inline_exports) => {
+-              let map : Map[String, Int] = Map([])
+-              let type_map : Map[String, CoreExternType] = Map([])
+-              for ex in inline_exports {
+-                check_sortidx(ex.sortidx, counts, type_table.length())
+-                if map.get(ex.name) is Some(_) {
+-                  raise DuplicateExportName(ex.name)
+-                }
+-                match ex.sortidx.sort {
+-                  Core(core_sort) => {
+-                    map.set(ex.name, core_sort)
+-                    match core_sort {
+-                      0x00 =>
+-                        if ex.sortidx.idx >= 0 &&
+-                          ex.sortidx.idx < core_func_types.length() {
+-                          match core_func_types[ex.sortidx.idx] {
+-                            Some(ft) => type_map.set(ex.name, Func(ft))
+-                            None => ()
+-                          }
+-                        }
+-                      0x02 =>
+-                        if ex.sortidx.idx >= 0 &&
+-                          ex.sortidx.idx < core_memory_types.length() {
+-                          match core_memory_types[ex.sortidx.idx] {
+-                            Some(mt) => type_map.set(ex.name, Memory(mt))
+-                            None => ()
+-                          }
+-                        }
+-                      _ => ()
+-                    }
+-                  }
+-                  _ => ()
+-                }
++            core_instance_exports.push(export_map)
++            core_instance_export_types.push(export_types)
++            counts.core_instance += 1
++          }
++        }
++        3 => {
++          // Validate core module type signatures, including `alias outer` bounds.
++          // The `outer` depth counts enclosing component scopes.
++          let max_outer_depth = depth + 1
++          let base_core_type_bound = counts.core_type
++          let exports = parse_core_type_section(
++            s.payload,
++            max_outer_depth,
++            base_core_type_bound,
++            core_type_bound_outers,
++          )
++          let (module_imports, module_export_types) = parse_core_type_section_module_sigs(
++            s.payload,
++            max_outer_depth,
++            base_core_type_bound,
++            core_type_bound_outers,
++          )
++          for e in exports {
++            core_type_exports.push(e)
++          }
++          for m in module_imports {
++            core_type_module_imports.push(m)
++          }
++          for t in module_export_types {
++            core_type_module_export_types.push(t)
++          }
++          counts.core_type += exports.length()
++        }
++        4 => {
++          // Nested component payloads are also component binaries.
++          let nested = @component.parse_component_binary(s.payload) catch {
++            e => raise SectionParseError(4, "parse nested component: \{e}")
++          }
++          shared.resource = next_resource_id
++          shared.origin = counts.next_origin_scope
++          shared.metadata = counts.metadata_remaining
++          shared.ascriptions = counts.ascription_remaining
++          let child_scope = match contract_scope {
++            Some(scope) =>
++              match scope.binding(4, counts.component) {
++                Some(Scope(child)) => child
++                _ => raise UnsupportedComponentAscription
+@@ -461,101 +636,17 @@
+-              export_map = Some(map)
+-              export_types = Some(type_map)
+-            }
+-          }
+-          core_instance_exports.push(export_map)
+-          core_instance_export_types.push(export_types)
+-          counts.core_instance += 1
+-        }
+-      }
+-      3 => {
+-        // Validate core module type signatures, including `alias outer` bounds.
+-        // The `outer` depth counts enclosing component scopes.
+-        let max_outer_depth = depth + 1
+-        let base_core_type_bound = counts.core_type
+-        let exports = parse_core_type_section(
+-          s.payload,
+-          max_outer_depth,
+-          base_core_type_bound,
+-          core_type_bound_outers,
+-        )
+-        let (module_imports, module_export_types) = parse_core_type_section_module_sigs(
+-          s.payload,
+-          max_outer_depth,
+-          base_core_type_bound,
+-          core_type_bound_outers,
+-        )
+-        for e in exports {
+-          core_type_exports.push(e)
+-        }
+-        for m in module_imports {
+-          core_type_module_imports.push(m)
+-        }
+-        for t in module_export_types {
+-          core_type_module_export_types.push(t)
+-        }
+-        counts.core_type += exports.length()
+-      }
+-      4 => {
+-        // Nested component payloads are also component binaries.
+-        let nested = @component.parse_component(s.payload) catch {
+-          e => raise SectionParseError(4, "parse nested component: \{e}")
+-        }
+-        let nested_info = validate_component_inner(
+-          nested,
+-          false,
+-          cfg,
+-          depth + 1,
+-          [type_table] + type_outers,
+-          [depth] + type_outer_depths,
+-          [counts.core_type] + core_type_bound_outers,
+-          [component_sizes] + component_size_outers,
+-        )
+-        component_import_sorts.push(Some(nested_info.import_sorts))
+-        component_import_instance_sigs.push(
+-          Some(nested_info.import_instance_sigs),
+-        )
+-        component_import_func_sigs.push(Some(nested_info.import_func_sigs))
+-        component_import_instance_resource_exports.push(
+-          Some(nested_info.import_instance_resource_exports),
+-        )
+-        component_import_core_module_exports.push(
+-          Some(nested_info.import_core_module_exports),
+-        )
+-        component_import_core_module_import_sigs.push(
+-          Some(nested_info.import_core_module_import_sigs),
+-        )
+-        component_import_type_bounds.push(Some(nested_info.import_type_bounds))
+-        component_import_type_sigs.push(Some(nested_info.import_type_sigs))
+-        component_export_sorts.push(Some(nested_info.export_sorts))
+-        component_export_instance_sigs.push(
+-          Some(nested_info.export_instance_sigs),
+-        )
+-        component_export_instance_type_sigs.push(
+-          Some(nested_info.export_instance_type_sigs),
+-        )
+-        component_export_instance_func_sigs.push(
+-          Some(nested_info.export_instance_func_sigs),
+-        )
+-        component_export_type_sigs.push(Some(nested_info.export_type_sigs))
+-        component_export_func_sigs.push(Some(nested_info.export_func_sigs))
+-        component_sizes.push(nested_info.size)
+-        // Nested component definitions contribute to the overall effective
+-        // size of the component graph (wasm-tools/very-nested.wast).
+-        export_size = add_type_size(export_size, nested_info.size)
+-        counts.component += 1
+-      }
+-      7 => {
+-        // Definitions extend the type index space.
+-        let defs = @component.parse_type_section(s.payload) catch {
+-          e => raise SectionParseError(7, "\{e}")
+-        }
+-        for d in defs {
+-          // This is still a subset: we only allow referencing earlier types.
+-          validate_typedef(
+-            d,
+-            cfg,
+-            [type_table] + type_outers,
+-            [depth] + type_outer_depths,
+-            depth,
+-            [core_type_exports],
+-            true,
++            None => 0
++          }
++          return Descend(
++            component_validation_frame(
++              nested,
++              false,
++              cfg,
++              depth + 1,
++              [type_table] + type_outers,
++              [depth] + type_outer_depths,
++              [counts.core_type] + core_type_bound_outers,
++              [component_sizes] + component_size_outers,
++              shared,
++              child_scope,
++              [counts] + outer_counts,
++              core_contracts~,
++            ),
+@@ -563,20 +654,44 @@
+-          // Resource types refer to the core-func index space for their dtor.
+-          // Validate bounds/signature here where we have access to the current
+-          // core-func types.
+-          match d {
+-            ResourceType(_, _rep, dtor_idx, _kind) =>
+-              match dtor_idx {
+-                Some(idx) =>
+-                  if idx < 0 || idx >= counts.core_func {
+-                    raise SectionParseError(7, "function index out of bounds")
+-                  } else {
+-                    match core_func_types.get(idx) {
+-                      Some(Some(ft)) => {
+-                        let expected : @types.FuncType = {
+-                          params: [I32],
+-                          results: [],
+-                        }
+-                        if ft != expected {
+-                          raise SectionParseError(
+-                            7, "wrong signature for a destructor",
+-                          )
++        }
++        7 => {
++          // Definitions extend the type index space.
++          let defs = @component.parse_type_section(s.payload) catch {
++            e => raise SectionParseError(7, "\{e}")
++          }
++          for d in defs {
++            // This is still a subset: we only allow referencing earlier types.
++            validate_typedef(
++              d,
++              cfg,
++              [type_table] + type_outers,
++              [depth] + type_outer_depths,
++              depth,
++              [core_type_exports],
++              true,
++            )
++            // Resource types refer to the core-func index space for their dtor.
++            // Validate bounds/signature here where we have access to the current
++            // core-func types.
++            match d {
++              ResourceType(_, rep, dtor_idx, _kind) =>
++                match dtor_idx {
++                  Some(idx) =>
++                    if idx < 0 || idx >= counts.core_func {
++                      raise SectionParseError(7, "function index out of bounds")
++                    } else {
++                      let expected : @types.FuncType = {
++                        params: [if rep == 0x7e { I64 } else { I32 }],
++                        results: [],
++                      }
++                      if contract_scope is Some(_) {
++                        check_canonical_core_function(
++                          idx, expected, external_contracts, contract_work,
++                        )
++                      } else {
++                        match core_func_types.get(idx) {
++                          Some(Some(ft)) =>
++                            if ft != expected {
++                              raise SectionParseError(
++                                7, "wrong signature for a destructor",
++                              )
++                            }
++                          _ => ()
+@@ -585 +699,0 @@
+-                      _ => ()
+@@ -587,2 +701,21 @@
+-                  }
+-                None => ()
++                  None => ()
++                }
++              _ => ()
++            }
++            let size = effective_typedef_size(d, type_sizes)
++            if size > 100000 {
++              raise SectionParseError(
++                7, "effective type size exceeds the limit",
++              )
++            }
++            let depth = effective_typedef_depth(d, type_depths)
++            if depth > 100 {
++              raise SectionParseError(7, "type nesting is too deep")
++            }
++            type_table.push(Some(d))
++            local_resource_types.push(d is ResourceType(_, _, _, _))
++            match d {
++              ResourceType(_, _, _, _) => {
++                counts.owned_resources[next_resource_id] = true
++                resource_ids.push(Some(next_resource_id))
++                next_resource_id += 1
+@@ -590,16 +723 @@
+-            _ => ()
+-          }
+-          let size = effective_typedef_size(d, type_sizes)
+-          if size > 100000 {
+-            raise SectionParseError(7, "effective type size exceeds the limit")
+-          }
+-          let depth = effective_typedef_depth(d, type_depths)
+-          if depth > 100 {
+-            raise SectionParseError(7, "type nesting is too deep")
+-          }
+-          type_table.push(Some(d))
+-          local_resource_types.push(d is ResourceType(_, _, _, _))
+-          match d {
+-            ResourceType(_, _, _, _) => {
+-              resource_ids.push(Some(next_resource_id))
+-              next_resource_id += 1
++              _ => resource_ids.push(None)
+@@ -607,224 +725,10 @@
+-            _ => resource_ids.push(None)
+-          }
+-          type_sizes.push(size)
+-          type_depths.push(depth)
+-        }
+-      }
+-      10 => {
+-        let (new_next_resource_id, new_imported_funcs) = validate_component_section_import(
+-          s.payload,
+-          cfg,
+-          is_root,
+-          counts,
+-          type_table,
+-          local_resource_types,
+-          resource_ids,
+-          type_sizes,
+-          type_depths,
+-          component_sizes,
+-          instance_sizes,
+-          named_types,
+-          import_named_types,
+-          core_type_exports,
+-          core_type_module_imports,
+-          core_type_module_export_types,
+-          core_module_exports,
+-          core_module_defs,
+-          core_module_export_types,
+-          core_module_type_imports,
+-          component_import_sorts,
+-          component_import_instance_sigs,
+-          component_import_func_sigs,
+-          component_import_instance_resource_exports,
+-          component_import_core_module_exports,
+-          component_import_core_module_import_sigs,
+-          component_import_type_bounds,
+-          component_import_type_sigs,
+-          component_export_sorts,
+-          component_export_instance_sigs,
+-          component_export_instance_type_sigs,
+-          component_export_instance_func_sigs,
+-          component_export_type_sigs,
+-          component_export_func_sigs,
+-          instance_sigs,
+-          interface_instance_idxs,
+-          instance_export_type_idxs,
+-          instance_export_func_idxs,
+-          instance_export_type_map,
+-          instance_export_type_sigs,
+-          instance_export_func_sigs,
+-          instance_nested_instance_type_sigs,
+-          instance_nested_instance_func_sigs,
+-          func_types,
+-          func_sig_shapes,
+-          seen_import_names,
+-          import_resource_names,
+-          my_import_sorts,
+-          my_import_instance_sigs,
+-          my_import_func_sigs,
+-          my_import_instance_resource_exports,
+-          my_import_type_bounds,
+-          my_import_type_sigs,
+-          type_outers,
+-          next_resource_id,
+-          imported_funcs,
+-        )
+-        next_resource_id = new_next_resource_id
+-        imported_funcs = new_imported_funcs
+-      }
+-      11 => {
+-        let (new_export_size, new_next_resource_id) = validate_component_section_export(
+-          s.payload,
+-          cfg,
+-          is_root,
+-          counts,
+-          type_table,
+-          local_resource_types,
+-          resource_ids,
+-          type_sizes,
+-          type_depths,
+-          component_sizes,
+-          instance_sizes,
+-          export_size,
+-          named_types,
+-          core_module_exports,
+-          core_module_defs,
+-          core_func_types,
+-          core_module_export_types,
+-          core_module_type_imports,
+-          core_instance_exports,
+-          core_instance_export_types,
+-          core_memory_types,
+-          component_import_sorts,
+-          component_import_instance_sigs,
+-          component_import_func_sigs,
+-          component_import_instance_resource_exports,
+-          component_import_core_module_exports,
+-          component_import_core_module_import_sigs,
+-          component_import_type_bounds,
+-          component_import_type_sigs,
+-          component_export_sorts,
+-          component_export_instance_sigs,
+-          component_export_instance_type_sigs,
+-          component_export_instance_func_sigs,
+-          component_export_type_sigs,
+-          component_export_func_sigs,
+-          instance_sigs,
+-          interface_instance_idxs,
+-          instance_export_type_idxs,
+-          instance_export_func_idxs,
+-          instance_export_type_map,
+-          instance_export_type_sigs,
+-          instance_export_func_sigs,
+-          instance_nested_instance_type_sigs,
+-          instance_nested_instance_func_sigs,
+-          func_types,
+-          func_sig_shapes,
+-          imported_funcs,
+-          seen_export_names,
+-          export_resource_names,
+-          my_export_sorts,
+-          my_export_instance_sigs,
+-          my_export_instance_type_sigs,
+-          my_export_instance_func_sigs,
+-          my_export_type_sigs,
+-          my_export_func_sigs,
+-          type_outers,
+-          next_resource_id,
+-        )
+-        export_size = new_export_size
+-        next_resource_id = new_next_resource_id
+-      }
+-      5 =>
+-        next_resource_id = validate_component_section_instance(
+-          s.payload,
+-          cfg,
+-          counts,
+-          type_table,
+-          resource_ids,
+-          component_sizes,
+-          instance_sizes,
+-          core_module_exports,
+-          core_module_defs,
+-          core_module_type_imports,
+-          component_import_sorts,
+-          component_import_instance_sigs,
+-          component_import_func_sigs,
+-          component_import_instance_resource_exports,
+-          component_import_core_module_exports,
+-          component_import_core_module_import_sigs,
+-          component_import_type_bounds,
+-          component_import_type_sigs,
+-          component_export_sorts,
+-          component_export_instance_sigs,
+-          component_export_instance_type_sigs,
+-          component_export_instance_func_sigs,
+-          component_export_type_sigs,
+-          component_export_func_sigs,
+-          instance_sigs,
+-          instance_export_type_idxs,
+-          instance_export_func_idxs,
+-          instance_export_type_map,
+-          instance_export_type_sigs,
+-          instance_export_func_sigs,
+-          instance_nested_instance_type_sigs,
+-          instance_nested_instance_func_sigs,
+-          func_types,
+-          func_sig_shapes,
+-          next_resource_id,
+-        )
+-      6 =>
+-        validate_component_section_alias(
+-          s.payload,
+-          counts,
+-          type_table,
+-          local_resource_types,
+-          resource_ids,
+-          type_sizes,
+-          type_depths,
+-          component_sizes,
+-          instance_sizes,
+-          named_types,
+-          core_module_exports,
+-          core_module_defs,
+-          core_func_types,
+-          core_module_export_types,
+-          core_module_type_imports,
+-          core_instance_exports,
+-          core_instance_export_types,
+-          core_memory_types,
+-          component_import_sorts,
+-          component_import_instance_sigs,
+-          component_import_func_sigs,
+-          component_import_instance_resource_exports,
+-          component_import_core_module_exports,
+-          component_import_core_module_import_sigs,
+-          component_import_type_bounds,
+-          component_import_type_sigs,
+-          component_export_sorts,
+-          component_export_instance_sigs,
+-          component_export_instance_type_sigs,
+-          component_export_instance_func_sigs,
+-          component_export_type_sigs,
+-          component_export_func_sigs,
+-          instance_sigs,
+-          interface_instance_idxs,
+-          instance_export_type_idxs,
+-          instance_export_func_idxs,
+-          instance_export_type_map,
+-          instance_export_type_sigs,
+-          instance_export_func_sigs,
+-          instance_nested_instance_type_sigs,
+-          instance_nested_instance_func_sigs,
+-          func_types,
+-          func_sig_shapes,
+-          type_outers,
+-          component_size_outers,
+-        )
+-      8 => {
+-        let canons = @component.parse_canon_section(s.payload) catch {
+-          e => raise SectionParseError(8, "\{e}")
+-        }
+-        for c in canons {
+-          validate_canon(
+-            c,
++            type_sizes.push(size)
++            type_depths.push(depth)
++          }
++        }
++        10 => {
++          let (new_next_resource_id, new_imported_funcs) = validate_component_section_import(
++            s.payload,
++            cfg,
++            is_root,
++            counts,
+@@ -833 +737,76 @@
+-            type_table.length(),
++            resource_ids,
++            type_sizes,
++            type_depths,
++            component_sizes,
++            instance_sizes,
++            named_types,
++            import_named_types,
++            core_type_exports,
++            core_type_module_imports,
++            core_type_module_export_types,
++            core_module_exports,
++            core_module_defs,
++            core_module_export_types,
++            core_module_type_imports,
++            component_import_sorts,
++            component_import_instance_sigs,
++            component_import_func_sigs,
++            component_import_instance_resource_exports,
++            component_import_core_module_exports,
++            component_import_core_module_import_sigs,
++            component_import_type_bounds,
++            component_import_type_sigs,
++            component_export_sorts,
++            component_export_instance_sigs,
++            component_export_instance_type_sigs,
++            component_export_instance_func_sigs,
++            component_export_type_sigs,
++            component_export_func_sigs,
++            instance_sigs,
++            interface_instance_idxs,
++            instance_export_type_idxs,
++            instance_export_func_idxs,
++            instance_export_type_map,
++            instance_export_type_sigs,
++            instance_export_func_sigs,
++            instance_nested_instance_type_sigs,
++            instance_nested_instance_func_sigs,
++            func_types,
++            func_sig_shapes,
++            seen_import_names,
++            import_resource_names,
++            my_import_sorts,
++            my_import_instance_sigs,
++            my_import_func_sigs,
++            my_import_instance_resource_exports,
++            my_import_type_bounds,
++            my_import_type_sigs,
++            type_outers,
++            next_resource_id,
++            imported_funcs,
++          )
++          next_resource_id = new_next_resource_id
++          imported_funcs = new_imported_funcs
++        }
++        11 => {
++          let (new_export_size, new_next_resource_id) = validate_component_section_export(
++            s.payload,
++            cfg,
++            is_root,
++            counts,
++            type_table,
++            local_resource_types,
++            resource_ids,
++            type_sizes,
++            type_depths,
++            component_sizes,
++            instance_sizes,
++            export_size,
++            named_types,
++            core_module_exports,
++            core_module_defs,
++            core_func_types,
++            core_module_export_types,
++            core_module_type_imports,
++            core_instance_exports,
++            core_instance_export_types,
+@@ -834,0 +814,107 @@
++            component_import_sorts,
++            component_import_instance_sigs,
++            component_import_func_sigs,
++            component_import_instance_resource_exports,
++            component_import_core_module_exports,
++            component_import_core_module_import_sigs,
++            component_import_type_bounds,
++            component_import_type_sigs,
++            component_export_sorts,
++            component_export_instance_sigs,
++            component_export_instance_type_sigs,
++            component_export_instance_func_sigs,
++            component_export_type_sigs,
++            component_export_func_sigs,
++            instance_sigs,
++            interface_instance_idxs,
++            instance_export_type_idxs,
++            instance_export_func_idxs,
++            instance_export_type_map,
++            instance_export_type_sigs,
++            instance_export_func_sigs,
++            instance_nested_instance_type_sigs,
++            instance_nested_instance_func_sigs,
++            func_types,
++            func_sig_shapes,
++            imported_funcs,
++            seen_export_names,
++            export_resource_names,
++            my_export_sorts,
++            my_export_instance_sigs,
++            my_export_instance_type_sigs,
++            my_export_instance_func_sigs,
++            my_export_type_sigs,
++            my_export_func_sigs,
++            type_outers,
++            next_resource_id,
++          )
++          export_size = new_export_size
++          next_resource_id = new_next_resource_id
++        }
++        5 => {
++          let resource_start = next_resource_id
++          next_resource_id = validate_component_section_instance(
++            s.payload,
++            cfg,
++            counts,
++            type_table,
++            resource_ids,
++            component_sizes,
++            instance_sizes,
++            core_module_exports,
++            core_module_defs,
++            core_module_type_imports,
++            component_import_sorts,
++            component_import_instance_sigs,
++            component_import_func_sigs,
++            component_import_instance_resource_exports,
++            component_import_core_module_exports,
++            component_import_core_module_import_sigs,
++            component_import_type_bounds,
++            component_import_type_sigs,
++            component_export_sorts,
++            component_export_instance_sigs,
++            component_export_instance_type_sigs,
++            component_export_instance_func_sigs,
++            component_export_type_sigs,
++            component_export_func_sigs,
++            instance_sigs,
++            instance_export_type_idxs,
++            instance_export_func_idxs,
++            instance_export_type_map,
++            instance_export_type_sigs,
++            instance_export_func_sigs,
++            instance_nested_instance_type_sigs,
++            instance_nested_instance_func_sigs,
++            func_types,
++            func_sig_shapes,
++            next_resource_id,
++          )
++          for resource in resource_start..<next_resource_id {
++            counts.owned_resources[resource] = true
++          }
++        }
++        6 => {
++          if contract_scope is Some(_) {
++            core_contract_aliases(
++              s.payload,
++              counts,
++              instance_contracts,
++              external_contracts,
++              contract_work,
++            )
++          }
++          validate_component_section_alias(
++            s.payload,
++            counts,
++            type_table,
++            local_resource_types,
++            resource_ids,
++            type_sizes,
++            type_depths,
++            component_sizes,
++            instance_sizes,
++            named_types,
++            import_named_types,
++            core_module_exports,
++            core_module_defs,
+@@ -835,0 +922,28 @@
++            core_module_export_types,
++            core_module_type_imports,
++            core_instance_exports,
++            core_instance_export_types,
++            core_memory_types,
++            component_import_sorts,
++            component_import_instance_sigs,
++            component_import_func_sigs,
++            component_import_instance_resource_exports,
++            component_import_core_module_exports,
++            component_import_core_module_import_sigs,
++            component_import_type_bounds,
++            component_import_type_sigs,
++            component_export_sorts,
++            component_export_instance_sigs,
++            component_export_instance_type_sigs,
++            component_export_instance_func_sigs,
++            component_export_type_sigs,
++            component_export_func_sigs,
++            instance_sigs,
++            interface_instance_idxs,
++            instance_export_type_idxs,
++            instance_export_func_idxs,
++            instance_export_type_map,
++            instance_export_type_sigs,
++            instance_export_func_sigs,
++            instance_nested_instance_type_sigs,
++            instance_nested_instance_func_sigs,
+@@ -836,0 +951,3 @@
++            func_sig_shapes,
++            type_outers,
++            component_size_outers,
+@@ -838,8 +955,64 @@
+-          count_canon(c, counts)
+-          match c {
+-            Lift(_, _, tyidx) =>
+-              match type_table[tyidx] {
+-                Some(FuncType(ft)) => {
+-                  func_types.push(Some(ft))
+-                  func_sig_shapes.push(
+-                    Some(funcsig_of_functype(ft, type_table, resource_ids)),
++        }
++        8 => {
++          let canons = @component.parse_canon_section(s.payload) catch {
++            e => raise SectionParseError(8, "\{e}")
++          }
++          for c in canons {
++            let complete_lower = if contract_scope is Some(_) {
++              match c {
++                ResourceNew(_) | ResourceDrop(_) | ResourceRep(_) =>
++                  Some(
++                    canonical_resource_function(
++                      c, type_table, local_resource_types, resource_ids, contract_work,
++                    ),
++                  )
++                _ =>
++                  check_canonical_contract(
++                    c, type_table, func_types, func_sig_shapes, external_contracts,
++                    canonical_budget, contract_work,
++                  )
++              }
++            } else {
++              validate_canon(
++                c,
++                type_table,
++                local_resource_types,
++                type_table.length(),
++                core_memory_types,
++                core_func_types,
++                func_types,
++                budget=canonical_budget,
++              )
++              None
++            }
++            count_canon(c, counts)
++            match c {
++              Lift(_, _, tyidx) =>
++                match type_table[tyidx] {
++                  Some(FuncType(ft)) => {
++                    func_types.push(Some(ft))
++                    func_sig_shapes.push(
++                      Some({
++                        ..funcsig_of_functype(ft, type_table, resource_ids),
++                        complete: Some(
++                          counts.function_signature(
++                            ft, type_table, resource_ids,
++                          ),
++                        ),
++                      }),
++                    )
++                  }
++                  _ => {
++                    func_types.push(None)
++                    func_sig_shapes.push(None)
++                  }
++                }
++              // All non-lift canonical items append a core function to the core-func
++              // index space. Model known intrinsic signatures so core module
++              // instantiation validates imports against canonical builtins.
++              _ => {
++                let signature = if contract_scope is Some(_) {
++                  complete_lower
++                } else {
++                  core_functype_for_canon(
++                    c, type_table, core_memory_types, func_types, canonical_budget,
+@@ -848,3 +1021,4 @@
+-                _ => {
+-                  func_types.push(None)
+-                  func_sig_shapes.push(None)
++                if contract_scope is Some(_) && signature is Some(ft) {
++                  external_contracts[(0, core_func_types.length())] = Func(
++                    canonical_contract_function(ft),
++                  )
+@@ -851,0 +1026 @@
++                core_func_types.push(signature)
+@@ -853,9 +1028,12 @@
+-            // All non-lift canonical items append a core function to the core-func
+-            // index space. Model known intrinsic signatures so core module
+-            // instantiation validates imports against canonical builtins.
+-            _ =>
+-              core_func_types.push(
+-                core_functype_for_canon(c, type_table, core_memory_types),
+-              )
+-          }
+-        }
++            }
++          }
++        }
++        9 => {
++          let start = @component.parse_start_section(s.payload) catch {
++            e => raise SectionParseError(9, "\{e}")
++          }
++          if start.func_idx < 0 || start.func_idx >= counts.func {
++            raise InvalidFuncIndex(start.func_idx)
++          }
++        }
++        _ => ()
+@@ -863,7 +1041,6 @@
+-      9 => {
+-        let start = @component.parse_start_section(s.payload) catch {
+-          e => raise SectionParseError(9, "\{e}")
+-        }
+-        if start.func_idx < 0 || start.func_idx >= counts.func {
+-          raise InvalidFuncIndex(start.func_idx)
+-        }
++    }
++    for value in counts.values {
++      if !value.used {
++        raise SectionParseError(
++          10, "value was not used as part of an instantiation, start function, or export",
++        )
+@@ -871 +1047,0 @@
+-      _ => ()
+@@ -872,0 +1049,38 @@
++    if export_size > 100000 {
++      raise SectionParseError(11, "effective type size exceeds the limit")
++    }
++    let contract = if is_root {
++      None
++    } else {
++      Some(
++        concrete_component_contract(
++          counts, type_table, resource_ids, func_sig_shapes,
++        ),
++      )
++    }
++    shared.resource = next_resource_id
++    shared.origin = counts.next_origin_scope
++    shared.metadata = counts.metadata_remaining
++    shared.ascriptions = counts.ascription_remaining
++    Complete({
++      size: export_size,
++      contract,
++      import_sorts: my_import_sorts,
++      import_instance_sigs: my_import_instance_sigs,
++      import_func_sigs: my_import_func_sigs,
++      import_instance_resource_exports: my_import_instance_resource_exports,
++      import_type_bounds: my_import_type_bounds,
++      import_type_sigs: my_import_type_sigs,
++      import_core_module_exports: component_import_core_module_exports_of(
++        component,
++      ),
++      import_core_module_import_sigs: component_import_core_module_import_sigs_of(
++        component,
++      ),
++      export_sorts: my_export_sorts,
++      export_instance_sigs: my_export_instance_sigs,
++      export_instance_type_sigs: my_export_instance_type_sigs,
++      export_instance_func_sigs: my_export_instance_func_sigs,
++      export_type_sigs: my_export_type_sigs,
++      export_func_sigs: my_export_func_sigs,
++    })
+@@ -874,24 +1088 @@
+-  if export_size > 100000 {
+-    raise SectionParseError(11, "effective type size exceeds the limit")
+-  }
+-  {
+-    size: export_size,
+-    import_sorts: my_import_sorts,
+-    import_instance_sigs: my_import_instance_sigs,
+-    import_func_sigs: my_import_func_sigs,
+-    import_instance_resource_exports: my_import_instance_resource_exports,
+-    import_type_bounds: my_import_type_bounds,
+-    import_type_sigs: my_import_type_sigs,
+-    import_core_module_exports: component_import_core_module_exports_of(
+-      component,
+-    ),
+-    import_core_module_import_sigs: component_import_core_module_import_sigs_of(
+-      component,
+-    ),
+-    export_sorts: my_export_sorts,
+-    export_instance_sigs: my_export_instance_sigs,
+-    export_instance_type_sigs: my_export_instance_type_sigs,
+-    export_instance_func_sigs: my_export_instance_func_sigs,
+-    export_type_sigs: my_export_type_sigs,
+-    export_func_sigs: my_export_func_sigs,
+-  }
++  { advance, }
+@@ -913,0 +1105 @@
++  core_contracts~ : @core_types.ContractGraph? = None,
+@@ -915 +1107,47 @@
+-  validate_component_inner(component, true, cfg, 0, [], [], [], []) |> ignore
++  validate_component_binary_with_config(component.binary, cfg, core_contracts~)
++}
++
++///|
++/// Validate binary sections with an explicit stack for nested components.
++/// The caller must apply its framing/depth profile before parsing type sections.
++pub fn validate_component_binary_with_config(
++  component : @component.ComponentBinary,
++  cfg : ComponentValidationConfig,
++  core_contracts~ : @core_types.ContractGraph? = None,
++) -> Unit raise ComponentValidationError {
++  let shared : ComponentValidationState = {
++    resource: 0,
++    origin: 0,
++    metadata: 1000000,
++    ascriptions: 1000000,
++    frames: 1000000,
++    core_work: { remaining: 1000000, },
++    canonical_work: { remaining: 1000000, },
++  }
++  let root = component_validation_frame(
++    component,
++    true,
++    cfg,
++    0,
++    [],
++    [],
++    [],
++    [],
++    shared,
++    0,
++    [],
++    core_contracts~,
++  )
++  let work = [root]
++  let mut completed : ValidatedComponentInfo? = None
++  while work.last() is Some(frame) {
++    let step = (frame.advance)(completed)
++    completed = None
++    match step {
++      Descend(child) => work.push(child)
++      Complete(info) => {
++        ignore(work.pop())
++        completed = Some(info)
++      }
++    }
++  }
+@@ -942 +1180 @@
+-  let snapshot = @component.parse_component(component_bytes) catch {
++  let snapshot = @component.parse_component_binary(component_bytes) catch {
+@@ -945 +1183 @@
+-  validate_component_with_config(snapshot, cfg)
++  validate_component_binary_with_config(snapshot, cfg)

@@ -26,6 +26,23 @@ async fn main {
     (mode == "moonx" || mode == "mise") else {
     fail("Usage: verify-cli.mbtx moonx|mise X.Y.Z")
   }
+  let build = @process.run(
+    "moonx",
+    ["scripts/build-registry.mbtx", "--with-reference"],
+    stdout=@stdio.stdout,
+    stderr=@stdio.stderr,
+  )
+  if build != 0 {
+    fail("registry installation-check tools failed to build")
+  }
+  let suffix = if @env.get_env_var("OS") == Some("Windows_NT") {
+    ".exe"
+  } else {
+    ""
+  }
+  let provider = ".dev/warg-target/release/wasm-devkit-warg" + suffix
+  let reference = ".dev/warg-target/release/wasm-devkit-registry-reference" +
+    suffix
   let tool = "github:moonrockz/wasm-devkit@" + version
   let (program, args) = if mode == "moonx" {
     ("moonx", ["scripts/test-cli.mbtx", "--moonx", version])
@@ -57,6 +74,31 @@ async fn main {
       if version_code != 0 ||
         text.text().trim().to_owned() != "wasm-devkit " + version {
         fail("installed version differs: " + text.text() + version_error.text())
+      }
+      let (registry_program, registry_args) = if mode == "moonx" {
+        (
+          "moonx",
+          [
+            "scripts/test-registry.mbtx", "--moonx", version, provider, reference,
+          ],
+        )
+      } else {
+        (
+          "mise",
+          [
+            "exec", tool, "--", "moonx", "scripts/test-registry.mbtx", "--binary",
+            "wasm-devkit", "wasm-devkit-warg", reference,
+          ],
+        )
+      }
+      let registry_code = @process.run(
+        registry_program,
+        registry_args,
+        stdout=@stdio.stdout,
+        stderr=@stdio.stderr,
+      )
+      if registry_code != 0 {
+        fail("installed registry verification failed")
       }
       return
     }

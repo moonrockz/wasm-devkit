@@ -1,0 +1,1 @@
+package example:app;interface api{resource r;@unstable(feature=foo)type alias=r;f:func(x:own<alias>);}

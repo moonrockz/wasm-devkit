@@ -1,0 +1,9 @@
+{
+  "name": "invalid-block-type",
+  "wasm": 1,
+  "reference": 0,
+  "product": 1,
+  "wasm_error": "error: func 0 failed to validate\n\nCaused by:\n    0: invalid value type (at offset 0x22)\n",
+  "reference_error": "",
+  "product_error": ".dev/core-control/cases/invalid-block-type/dep.wasm:[byte 35]: error WAC-B001: invalid core value type\n.dev/core-control/cases/invalid-block-type/input.wac:[30,39): package `test:dep` requested here\n"
+}

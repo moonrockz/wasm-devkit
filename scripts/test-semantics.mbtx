@@ -1,0 +1,376 @@
+///|
+/// Compare identical fixture bytes against pinned semantic reference CLIs.
+/// Usage: test-semantics.mbtx WASM_TOOLS_1_262_0 WAC_0_12_0
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/async@0.22.5/process",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+}
+
+///|
+async fn main {
+  guard @env.args()[1:] is [wasm_tools, wac] else {
+    fail("Usage: test-semantics.mbtx WASM_TOOLS_1_262_0 WAC_0_12_0")
+  }
+  for
+    (tool, version) in [
+      (wasm_tools, "wasm-tools 1.262.0"),
+      (wac, "wac-cli 0.12.0"),
+    ] {
+    let (code, out, _) = @process.collect_output(tool, ["--version"])
+    if code != 0 ||
+      (!out.text().has_prefix(version + " ") && out.text().trim() != version) {
+      fail("Expected " + version + ", got " + out.text())
+    }
+  }
+  let oracle = ".dev/reference-target/release/wasm-devkit-semantic-reference" +
+    (if @env.get_env_var("OS") == Some("Windows_NT") { ".exe" } else { "" })
+  if !@fs.exists(oracle) {
+    fail("Run mise run build:semantic-reference first")
+  }
+  let wac_oracle = ".dev/reference-target/release/wac-semantic-reference" +
+    (if @env.get_env_var("OS") == Some("Windows_NT") { ".exe" } else { "" })
+  if !@fs.exists(wac_oracle) {
+    fail("Run mise run build:semantic-reference first")
+  }
+  let mut count = 0
+  let mut models = 0
+  for line in @fs.read_file("tests/semantic/manifest.tsv").text().split("\n") {
+    if line.is_empty() || line.has_prefix("#") {
+      continue
+    }
+    let fields = line.split("\t").map(StringView::to_owned).to_array()
+    guard fields.length() == 3 || fields.length() == 4 else {
+      fail("invalid semantic fixture manifest row")
+    }
+    let profile = if fields.length() == 4 { fields[3] } else { "default" }
+    let reference_features : Array[String] = []
+    let verifier_features : Array[String] = []
+    if profile == "all" {
+      reference_features.push("--all-features")
+      verifier_features.push("--all-semantic-features")
+    } else if profile.has_prefix("feature=") {
+      let names = profile[8:].to_owned()
+      if names.is_empty() {
+        fail("empty semantic feature profile")
+      }
+      reference_features.append(["--features", names])
+      for name in names.split(",") {
+        if name.is_empty() {
+          fail("empty semantic feature name")
+        }
+        verifier_features.append(["--semantic-feature", name.to_owned()])
+      }
+    } else if profile != "default" {
+      fail("unknown semantic feature profile")
+    }
+    let path = "tests/semantic/" + fields[0]
+    let expected = match fields[1] {
+      "true" => 0
+      "false" => 1
+      _ => fail("acceptance must be true or false")
+    }
+    let is_wit = @fs.kind(path) is Directory ||
+      path.has_suffix(".wit") ||
+      path.has_suffix(".wasm") ||
+      path.has_suffix(".wat")
+    if !is_wit && !path.has_suffix(".wac") {
+      fail("unknown fixture language")
+    }
+    let (hash_code, digest, hash_error) = @process.collect_output("node", [
+      "--input-type=module", "-e", "import {createHash} from 'node:crypto'; import {readFileSync,readdirSync,statSync} from 'node:fs'; import {join} from 'node:path'; const root=process.argv[1], h=createHash('sha256'); if(statSync(root).isDirectory()){const files=[],todo=[['',root]]; while(todo.length){const [rel,p]=todo.pop(); for(const name of readdirSync(p).sort()){const child=join(p,name),r=rel?rel+'/'+name:name; if(statSync(child).isDirectory())todo.push([r,child]); else files.push([r,child]);}} for(const [rel,p] of files.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0)){h.update(rel+String.fromCharCode(0));h.update(readFileSync(p));}} else h.update(readFileSync(root)); console.log(h.digest('hex'))",
+      path,
+    ])
+    if hash_code != 0 || digest.text().trim() != fields[2] {
+      fail(path + ": fixture hash mismatch " + hash_error.text())
+    }
+    let (tool, args) = if is_wit {
+      (wasm_tools, ["component", "wit", "--json", path, ..reference_features])
+    } else {
+      if profile != "default" {
+        fail("WAC feature profiles are not defined")
+      }
+      (wac, ["resolve", "--deps-dir", "tests/semantic/deps", path])
+    }
+    let (code, _, error) = @process.collect_output(tool, args)
+    if code != expected {
+      fail(path + ": reference acceptance mismatch: " + error.text())
+    }
+    let (code, actual, error) = @process.collect_output(
+      "moon",
+      [
+        "run",
+        "cmd/wasm-devkit",
+        "--target",
+        "wasm",
+        "--quiet",
+        "--",
+        "verify",
+        path,
+        ..if is_wit {
+          ["--language", "wit"]
+        } else {
+          ["--all-features"]
+        },
+        ..verifier_features,
+        ..if expected == 0 && is_wit {
+          ["--json"]
+        } else {
+          []
+        },
+      ],
+    )
+    if code != expected {
+      fail(path + ": verifier acceptance mismatch: " + error.text())
+    }
+    if !is_wit {
+      let (oracle_code, _, oracle_error) = @process.collect_output(wac_oracle, [
+        path,
+      ])
+      if oracle_code != expected {
+        fail(
+          path + ": WAC API oracle acceptance mismatch: " + oracle_error.text(),
+        )
+      }
+    }
+    if is_wit {
+      let (oracle_code, reference, oracle_error) = @process.collect_output(
+        oracle,
+        [path, ..reference_features],
+      )
+      if oracle_code != expected {
+        fail(path + ": API oracle acceptance mismatch: " + oracle_error.text())
+      }
+      if expected == 0 {
+        let expected = reference_worlds(@json.parse(reference.text()))
+        let actual = @json.parse(actual.text())
+        if actual != expected {
+          fail(
+            path +
+            ": world summary mismatch; expected " +
+            expected.stringify() +
+            ", actual " +
+            actual.stringify(),
+          )
+        }
+        models += 1
+      }
+    }
+    count += 1
+  }
+  let (corpus_code, corpus_output, corpus_error) = @process.collect_output(
+    "moonx",
+    ["scripts/test-wac-corpus.mbtx", wasm_tools, wac],
+  )
+  if corpus_code != 0 {
+    fail("WAC corpus gate: " + corpus_error.text())
+  }
+  println(corpus_output.text().trim())
+  println(
+    "\{count} semantic fixture comparisons and \{models} normalized WIT world summaries passed",
+  )
+}
+
+///|
+fn reference_worlds(reference : Json) -> Json raise {
+  guard reference
+    is {
+      "worlds": Array(worlds),
+      "interfaces": Array(interfaces),
+      "packages": Array(packages),
+      "world-entries": Array(entries),
+      "types": Array(types),
+      ..
+    } else {
+    fail("invalid reference resolution JSON")
+  }
+  let qualified = fn(package_id : Int32, name : String) -> String raise {
+    guard package_id >= 0 &&
+      package_id < packages.length() &&
+      packages[package_id] is { "name": String(identity), .. } else {
+      fail("invalid package ID")
+    }
+    let parts = identity.split("@").to_array()
+    parts[0].to_owned() +
+    "/" +
+    name +
+    (if parts.length() == 2 { "@" + parts[1].to_owned() } else { "" })
+  }
+  let interface_name = fn(id : Int32) -> String raise {
+    guard id >= 0 &&
+      id < interfaces.length() &&
+      interfaces[id] is { "name": name, "package": Number(package_id, ..), .. } else {
+      fail("invalid interface ID")
+    }
+    match name {
+      String(name) => qualified(package_id.to_int(), name)
+      Null => "inline"
+      _ => fail("invalid interface name")
+    }
+  }
+  let world_scopes : Map[Int32, String] = Map([])
+  let interface_scopes : Map[Int32, String] = Map([])
+  for id, interface_ in interfaces {
+    if interface_ is { "name": String(_), .. } {
+      interface_scopes[id] = interface_name(id)
+    }
+  }
+  for world_id, world in worlds {
+    guard world
+      is { "name": String(name), "package": Number(package_id, ..), .. } else {
+      fail("invalid world")
+    }
+    let label = qualified(package_id.to_int(), name)
+    world_scopes[world_id] = label
+    guard entries[world_id]
+      is { "imports": Array(imports), "exports": Array(exports), .. } else {
+      fail("missing structured world keys")
+    }
+    for (side, direction) in [(imports, "/import:"), (exports, "/export:")] {
+      for entry in side {
+        if entry
+          is {
+            "key": { "name": String(name), .. },
+            "item": { "interface": { "id": Number(id, ..), .. }, .. },
+            ..
+          } &&
+          interface_name(id.to_int()) == "inline" {
+          interface_scopes[id.to_int()] = label + direction + name
+        }
+      }
+    }
+  }
+  let resource = fn(initial : Int32) -> String? raise {
+    let mut id = initial
+    for _ in 0..<=types.length() {
+      guard id >= 0 && id < types.length() else {
+        fail("invalid type reference")
+      }
+      match types[id] {
+        { "kind": { "type": Number(target, ..), .. }, .. } =>
+          id = target.to_int()
+        { "kind": String("resource"), "name": String(name), "owner": owner, .. } => {
+          let scope = match owner {
+            { "world": Number(id, ..), .. } => world_scopes[id.to_int()]
+            { "interface": Number(id, ..), .. } => interface_scopes[id.to_int()]
+            _ => fail("invalid resource owner")
+          }
+          return Some(scope + "#" + name)
+        }
+        _ => return None
+      }
+    }
+    fail("cyclic reference type aliases")
+  }
+  let result : Map[String, Json] = Map([])
+  for world_index, world in worlds {
+    guard world
+      is { "name": String(name), "package": Number(package_id, ..), .. } else {
+      fail("invalid world")
+    }
+    let sides : Array[Json] = []
+    guard world_index < entries.length() &&
+      entries[world_index]
+      is { "imports": Array(imports), "exports": Array(exports), .. } else {
+      fail("missing structured world keys")
+    }
+    for fields in [imports, exports] {
+      let normalized : Map[String, Json] = Map([])
+      for entry in fields {
+        guard entry is { "key": key, "item": item, .. } else {
+          fail("invalid world entry")
+        }
+        let key = match key {
+          { "name": String(name), .. } => name
+          { "interface": Number(id, ..), .. } => interface_name(id.to_int())
+          _ => fail("invalid world key")
+        }
+        match item {
+          { "interface": { "id": Number(id, ..), .. }, .. } => {
+            let name = interface_name(id.to_int())
+            let resources : Map[String, Json] = Map([])
+            guard interfaces[id.to_int()]
+              is { "types": Object(declarations), .. } else {
+              fail("missing interface types")
+            }
+            for (name, ty) in declarations {
+              guard ty is Number(id, ..) else {
+                fail("invalid interface type reference")
+              }
+              if resource(id.to_int()) is Some(identity) {
+                resources[name] = Json::string(identity)
+              }
+            }
+            normalized[key] = if resources.is_empty() {
+              Json::object({ "interface": Json::string(name) })
+            } else {
+              Json::object({
+                "interface": Json::string(name),
+                "resources": Json::object(resources),
+              })
+            }
+          }
+          { "function": _, .. } =>
+            normalized[key] = Json::object({ "function": Json::boolean(true) })
+          { "type": Number(id, ..), .. } =>
+            normalized[key] = match resource(id.to_int()) {
+              Some(identity) =>
+                Json::object({
+                  "type": Json::boolean(true),
+                  "resource": Json::string(identity),
+                })
+              None => Json::object({ "type": Json::boolean(true) })
+            }
+          _ => fail("unknown world item")
+        }
+      }
+      sides.push(Json::object(normalized))
+    }
+    result[qualified(package_id.to_int(), name)] = Json::object({
+      "imports": sides[0],
+      "exports": sides[1],
+    })
+  }
+  Json::object(result)
+}
+
+///|
+test "reference normalization preserves key discriminants despite JSON map collisions" {
+  let reference : Json = {
+    "packages": [{ "name": "example:app@1.0.0" }],
+    "types": [],
+    "interfaces": [{ "name": "api", "package": 0, "types": {} }],
+    "worlds": [{ "name": "app", "package": 0 }],
+    "world-entries": [
+      {
+        "imports": [
+          {
+            "key": { "name": "interface-0" },
+            "item": { "interface": { "id": 0 } },
+          },
+          { "key": { "interface": 0 }, "item": { "interface": { "id": 0 } } },
+        ],
+        "exports": [],
+      },
+    ],
+  }
+  let expected : Json = {
+    "example:app/app@1.0.0": {
+      "imports": {
+        "interface-0": { "interface": "example:app/api@1.0.0" },
+        "example:app/api@1.0.0": { "interface": "example:app/api@1.0.0" },
+      },
+      "exports": {},
+    },
+  }
+  assert_eq(reference_worlds(reference), expected)
+  let rejected = try {
+    ignore(reference_worlds(Json::object(Map([]))))
+    false
+  } catch {
+    _ => true
+  }
+  assert_true(rejected)
+}

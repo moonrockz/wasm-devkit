@@ -1,0 +1,23 @@
+# case	pinned-resolve-or-aggregate	witness	product	compose
+empty	true	true	true	panic
+export-width	true	true	true	panic
+missing-export	false	false	false	false
+import-width	true	true	true	panic
+extra-import	false	false	false	false
+memory-narrow	true	true	true	panic
+memory-wide	false	false	false	false
+memory-import-narrow	true	true	true	panic
+memory-import-wide	false	false	false	false
+memory64-mismatch	false	false	false	false
+shared-mismatch	false	false	false	false
+table-narrow	true	true	true	panic
+table-element	false	false	false	false
+global-equal	true	true	true	panic
+global-mutability	false	false	false	false
+global-shared	false	false	false	false
+function-equal	true	true	true	panic
+function-parameter	false	false	false	false
+function-result	false	false	false	false
+tag-equal	true	true	true	panic
+tag-parameter	false	false	false	false
+tuple-imports	false	false	false	false

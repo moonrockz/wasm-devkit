@@ -1,0 +1,1 @@
+package example:app;use example:dep/api@1.0.0 as other;world app{import other;}

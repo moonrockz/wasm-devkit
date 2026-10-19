@@ -1,0 +1,79 @@
+[
+  {
+    "name": "export-instance",
+    "reference": 0,
+    "compose": 101,
+    "validation": null,
+    "error": ""
+  },
+  {
+    "name": "alias-value",
+    "reference": 0,
+    "compose": 101,
+    "validation": null,
+    "error": ""
+  },
+  {
+    "name": "argument",
+    "reference": 0,
+    "compose": 101,
+    "validation": null,
+    "error": ""
+  },
+  {
+    "name": "inline",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "resource-substitution",
+    "reference": 0,
+    "compose": 101,
+    "validation": null,
+    "error": ""
+  },
+  {
+    "name": "named-value",
+    "reference": 0,
+    "compose": 101,
+    "validation": null,
+    "error": ""
+  },
+  {
+    "name": "anonymous-private",
+    "reference": 0,
+    "compose": 101,
+    "validation": null,
+    "error": ""
+  },
+  {
+    "name": "anonymous-value",
+    "reference": 1,
+    "compose": 1,
+    "validation": null,
+    "error": "failed to parse package `test:runtime`\n"
+  },
+  {
+    "name": "argument-twice",
+    "reference": 1,
+    "compose": 1,
+    "validation": null,
+    "error": "failed to parse package `test:runtime`\n"
+  },
+  {
+    "name": "fresh-resource-argument",
+    "reference": 0,
+    "compose": 101,
+    "validation": null,
+    "error": ""
+  },
+  {
+    "name": "crossed-fresh-resource-argument",
+    "reference": 1,
+    "compose": 1,
+    "validation": null,
+    "error": "failed to parse package `test:runtime`\n"
+  }
+]

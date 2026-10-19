@@ -1,0 +1,1 @@
+package test:ids;interface api{}world app{@external-id("first") import one:api;@external-id("second") import two:api;}

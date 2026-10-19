@@ -1,0 +1,1 @@
+(component  (type $a (component (import "r" (type (sub resource))) (import "s" (type (sub resource))))) (type $b (component (import "r" (type (sub resource))) (import "s" (type (eq 0))))) (import "c" (component (type $a))) (export "c" (component 0) (component (type $b))))

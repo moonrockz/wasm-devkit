@@ -1,0 +1,1 @@
+(component (import "handle" (type (sub resource))) (type (func (param "h" (own 0)))) (import "take" (func (type 2))) (export "take" (func 0)))

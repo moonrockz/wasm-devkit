@@ -1,0 +1,1 @@
+(component (core module $m (func (export "drop") (param i64))) (core instance $i (instantiate $m)) (alias core export $i "drop" (core func $drop)) (type $r (resource (rep i32) (dtor $drop))) (core func (canon resource.new $r)))

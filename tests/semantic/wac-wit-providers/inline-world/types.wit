@@ -1,0 +1,1 @@
+package example:types; world app {import i: interface {resource handle;f: func(h: handle);} export o: interface {f: func();}}

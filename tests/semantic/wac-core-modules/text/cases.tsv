@@ -1,0 +1,9 @@
+# case	wasm-tools-parse	product
+duplicate-root-alias	false	false
+duplicate-nested-alias	false	false
+duplicate-root	false	false
+duplicate-nested	false	false
+duplicate-module	false	false
+overflow-limit	false	false
+bad-separator	false	false
+bad-global	false	false

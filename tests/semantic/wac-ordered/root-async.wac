@@ -1,0 +1,1 @@
+package example:app;import f: async func()->future<u8>;

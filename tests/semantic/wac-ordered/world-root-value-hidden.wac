@@ -1,0 +1,1 @@
+package example:app; type t = u8; world app { import f: func(x: t); }

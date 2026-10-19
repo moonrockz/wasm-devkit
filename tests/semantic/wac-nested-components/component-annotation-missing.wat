@@ -1,0 +1,1 @@
+(component (component $c (type $r (resource (rep i32))) (export "r" (type $r))) (type $expected (component (export "other" (type (sub resource))))) (export "c" (component $c) (component (type $expected))))

@@ -1,0 +1,1 @@
+package example:app;world app{resource r;export f:func()->borrow<r>;}

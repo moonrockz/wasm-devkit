@@ -1,0 +1,1 @@
+(component (type $c (component (export "r" (type $r (sub resource))) (type $o (own $r)) (export "v" (value (type $o))))) (import "c" (component $c (type $c))) (instance $i (instantiate $c)) (export "i" (instance $i)) (alias export $i "v" (value $v)) (export "v" (value $v)))

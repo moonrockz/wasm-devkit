@@ -1,0 +1,16 @@
+[package]
+name = "wasm-devkit-semantic-reference"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.94.1"
+publish = false
+license = "Apache-2.0"
+
+[dependencies]
+wit-parser = { version = "=0.262.0", features = ["wat"] }
+serde_json = "=1.0.149"
+wac-parser = { git = "https://github.com/bytecodealliance/wac", rev = "5a7480c69ae7a4dc9eb161f485cbcb8c95e372c9" }
+wac-types = { git = "https://github.com/bytecodealliance/wac", rev = "5a7480c69ae7a4dc9eb161f485cbcb8c95e372c9", features = ["serde"] }
+wit-parser-wac = { package = "wit-parser", version = "=0.258.0", features = ["wat"] }
+wit-component-wac = { package = "wit-component", version = "=0.258.0" }
+wac-resolver = { git = "https://github.com/bytecodealliance/wac", rev = "5a7480c69ae7a4dc9eb161f485cbcb8c95e372c9", default-features = false, features = ["wit", "wat"] }

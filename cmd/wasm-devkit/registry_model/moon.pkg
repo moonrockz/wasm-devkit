@@ -1,0 +1,11 @@
+import {
+  "moonbitlang/x/crypto",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/debug",
+  "moonrockz/wac/parser",
+  "moonrockz/wac/verifier",
+}
+
+import {
+  "moonrockz/wasm-devkit/registry_model",
+} for "test"

@@ -1,10 +1,13 @@
 import {
+  "moonrockz/wasm-devkit/registry_model",
+  "moonrockz/wit/verifier" @wit_verifier,
   "moonrockz/wit/parser" @wit_parser,
   "moonrockz/wit/scanner" @wit_scanner,
   "moonrockz/wit/span" @wit_span,
   "moonrockz/wit/diagnostic" @wit_diagnostic,
   "moonrockz/wit/printer" @wit_printer,
   "moonrockz/wit/formatter" @wit_formatter,
+  "moonrockz/wac/verifier" @wac_verifier,
   "moonrockz/wac/parser" @wac_parser,
   "moonrockz/wac/scanner" @wac_scanner,
   "moonrockz/wac/span" @wac_span,
@@ -16,4 +19,5 @@ import {
 
 import {
   "moonrockz/wasm-devkit/cli",
+  "moonrockz/wit/verifier" @wit_verifier,
 } for "test"

@@ -1,0 +1,1 @@
+(component (core type $m (module (export "g" (global (mut i32))))) (import "m" (core module (type $m))))

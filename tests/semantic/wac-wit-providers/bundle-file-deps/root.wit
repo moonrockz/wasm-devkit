@@ -1,0 +1,1 @@
+package example:types; interface api {use example:dep/types.{handle};take: func(h: handle);}

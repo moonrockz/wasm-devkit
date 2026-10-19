@@ -1,0 +1,1 @@
+(component (instance (export "m" (core module 0))) (core type $m (module)) (import "m" (core module (type $m))))

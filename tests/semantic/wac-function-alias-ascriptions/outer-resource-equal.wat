@@ -1,0 +1,1 @@
+(component (import "r" (type $r (sub resource))) (import "s" (type $s (sub resource))) (type $i (instance (alias outer 1 $r (type $r)) (type $h (own $r)) (type $f (func (param "x" $h))) (export "f" (func (type $f))))) (import "i" (instance $i (type $i))) (alias export $i "f" (func $f)) (type $h (own $r)) (type $f (func (param "x" $h))) (export "out" (func $f) (func (type $f))))

@@ -1,0 +1,1 @@
+package example:app;interface api{resource r{p:get()->u8;p:static set(x:u8);}}

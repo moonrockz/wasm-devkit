@@ -1,0 +1,1 @@
+(component (import "m" (core module (export "f" (func)))) (export "m" (core module 0) (core module (export "f" (func)))))

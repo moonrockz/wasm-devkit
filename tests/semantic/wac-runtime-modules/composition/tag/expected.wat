@@ -1,0 +1,1 @@
+(component (core type $m (module (export "t" (tag (param i32))))) (import "m" (core module (type $m))))

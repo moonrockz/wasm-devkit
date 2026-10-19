@@ -1,0 +1,1 @@
+package example:app; world base { import f: func(); export g: func(); } world app { include base; include base; }

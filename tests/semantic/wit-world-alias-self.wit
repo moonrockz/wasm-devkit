@@ -1,0 +1,1 @@
+package example:app; use other as other; interface api {}

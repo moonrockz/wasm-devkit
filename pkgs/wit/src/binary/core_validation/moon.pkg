@@ -1,0 +1,10 @@
+import {
+  "Milky2018/wasm_core/types",
+  "moonbitlang/core/hashset",
+}
+
+import {
+  "Milky2018/wasm_core/wat",
+  "Milky2018/wasm_core/encoder",
+  "moonrockz/wit/binary/core_parser" @parser,
+} for "test"

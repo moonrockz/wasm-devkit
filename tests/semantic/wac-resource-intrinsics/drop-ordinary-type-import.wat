@@ -1,0 +1,1 @@
+(component (type $v u32) (import "v" (type $t (eq $v))) (core func (canon resource.drop $t)))

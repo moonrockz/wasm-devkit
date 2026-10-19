@@ -1,0 +1,287 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonrockz/wac/verifier"
+
+import {
+  "moonbitlang/core/debug",
+  "moonrockz/wac/ast",
+  "moonrockz/wac/parser",
+  "moonrockz/wac/span",
+  "moonrockz/wit/core_types",
+}
+
+// Values
+pub fn adapt_wit_package(@moonrockz/wit/verifier.Resolution) -> Result[WitPackage, ReadOnlyArray[Diagnostic]]
+
+pub fn decode_component_package(Bytes, source_id? : String) -> Result[BinaryPackage, ReadOnlyArray[Diagnostic]]
+
+pub fn decode_wat_component_package(String, source_id? : String) -> Result[BinaryPackage, ReadOnlyArray[Diagnostic]]
+
+pub fn package_requests(@parser.Parse, source~ : String, source_id? : String) -> Result[ReadOnlyArray[PackageRequest], ReadOnlyArray[Diagnostic]]
+
+pub fn resolve_wit_package(@moonrockz/wit/verifier.PackageInput, dependencies? : ReadOnlyArray[@moonrockz/wit/verifier.PackageInput]) -> Result[WitPackage, ReadOnlyArray[Diagnostic]]
+
+pub fn verify(@parser.Parse, source_id? : String, source~ : String, dependencies? : ReadOnlyArray[PackageSource], wit_dependencies? : ReadOnlyArray[WitPackageSource]) -> Result[Verified, ReadOnlyArray[Diagnostic]]
+
+pub fn verify_ast(@ast.Tree, source_id? : String, source~ : String, dependencies? : ReadOnlyArray[PackageSource], wit_dependencies? : ReadOnlyArray[WitPackageSource]) -> Result[Verified, ReadOnlyArray[Diagnostic]]
+
+// Errors
+
+// Types and methods
+pub struct BinaryPackage {
+  // private fields
+}
+pub fn BinaryPackage::bytes(Self) -> Bytes
+pub fn BinaryPackage::definitions(Self) -> ReadOnlyArray[Extern]
+pub fn BinaryPackage::instance(Self) -> Int
+pub fn BinaryPackage::resource_identity(Self, Int) -> Int?
+pub fn BinaryPackage::source(Self) -> String
+pub fn BinaryPackage::types(Self) -> ReadOnlyArray[ResolvedType]
+pub fn BinaryPackage::world(Self) -> Int
+
+pub(all) struct Binding {
+  name : String
+  scope : Int
+  node : Int
+  target : Int
+} derive(Eq, @debug.Debug)
+pub fn Binding::equal(Self, Self) -> Bool
+pub fn Binding::not_equal(Self, Self) -> Bool
+pub fn Binding::to_repr(Self) -> @debug.Repr
+
+pub(all) struct CompositionExport {
+  name : String
+  value : Int
+  location : Location
+} derive(Eq, @debug.Debug)
+pub fn CompositionExport::equal(Self, Self) -> Bool
+pub fn CompositionExport::not_equal(Self, Self) -> Bool
+pub fn CompositionExport::to_repr(Self) -> @debug.Repr
+
+pub(all) struct CompositionNode {
+  id : Int
+  operation : CompositionOperation
+  kind : ItemKind
+  resources : ReadOnlyArray[ResourceBinding]
+  location : Location
+} derive(Eq, @debug.Debug)
+pub fn CompositionNode::equal(Self, Self) -> Bool
+pub fn CompositionNode::not_equal(Self, Self) -> Bool
+pub fn CompositionNode::to_repr(Self) -> @debug.Repr
+
+pub(all) enum CompositionOperation {
+  Definition
+  Import(String)
+  Access(Int, String)
+  Instantiate(String, String?, ReadOnlyArray[InstantiationArgument])
+} derive(Eq, @debug.Debug)
+pub fn CompositionOperation::equal(Self, Self) -> Bool
+pub fn CompositionOperation::not_equal(Self, Self) -> Bool
+pub fn CompositionOperation::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Diagnostic {
+  code : String
+  message : String
+  primary : Label
+  related : ReadOnlyArray[Label]
+} derive(Eq, @debug.Debug)
+pub fn Diagnostic::equal(Self, Self) -> Bool
+pub fn Diagnostic::not_equal(Self, Self) -> Bool
+pub fn Diagnostic::render(Self) -> String
+pub fn Diagnostic::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Extern {
+  name : String
+  kind : ItemKind
+  location : Location
+} derive(Eq, @debug.Debug)
+pub fn Extern::equal(Self, Self) -> Bool
+pub fn Extern::not_equal(Self, Self) -> Bool
+pub fn Extern::to_repr(Self) -> @debug.Repr
+
+pub(all) struct InstantiationArgument {
+  name : String
+  value : Int
+  location : Location
+} derive(Eq, @debug.Debug)
+pub fn InstantiationArgument::equal(Self, Self) -> Bool
+pub fn InstantiationArgument::not_equal(Self, Self) -> Bool
+pub fn InstantiationArgument::to_repr(Self) -> @debug.Repr
+
+pub(all) enum ItemKind {
+  Type(Int)
+  Function(Int)
+  Instance(Int)
+  Component(Int)
+  Module(Int)
+  Value(Int)
+} derive(Eq, @debug.Debug)
+pub fn ItemKind::equal(Self, Self) -> Bool
+pub fn ItemKind::not_equal(Self, Self) -> Bool
+pub fn ItemKind::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Label {
+  location : Location
+  message : String
+} derive(Eq, @debug.Debug)
+pub fn Label::equal(Self, Self) -> Bool
+pub fn Label::not_equal(Self, Self) -> Bool
+pub fn Label::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Location {
+  source : String
+  position : Position
+} derive(Eq, @debug.Debug)
+pub fn Location::binary(String, offset? : Int?) -> Self
+pub fn Location::equal(Self, Self) -> Bool
+pub fn Location::not_equal(Self, Self) -> Bool
+pub fn Location::render(Self) -> String
+pub fn Location::span(Self) -> @span.Span?
+pub fn Location::text(String, @span.Span) -> Self
+pub fn Location::to_repr(Self) -> @debug.Repr
+
+pub(all) struct PackageRequest {
+  name : String
+  version : String?
+  location : Location
+} derive(Eq, @debug.Debug)
+pub fn PackageRequest::equal(Self, Self) -> Bool
+pub fn PackageRequest::not_equal(Self, Self) -> Bool
+pub fn PackageRequest::to_repr(Self) -> @debug.Repr
+
+pub(all) struct PackageSource {
+  name : String
+  version : String?
+  source : String
+  bytes : Bytes
+} derive(Eq, @debug.Debug)
+pub fn PackageSource::equal(Self, Self) -> Bool
+pub fn PackageSource::not_equal(Self, Self) -> Bool
+pub fn PackageSource::to_repr(Self) -> @debug.Repr
+
+pub(all) enum Position {
+  SourceSpan(@span.Span)
+  BinaryOffset(Int?)
+} derive(Eq, @debug.Debug)
+pub fn Position::equal(Self, Self) -> Bool
+pub fn Position::not_equal(Self, Self) -> Bool
+pub fn Position::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ResolvedDeclaration {
+  name : String
+  scope : Int
+  node : Int
+  kind : ItemKind
+} derive(Eq, @debug.Debug)
+pub fn ResolvedDeclaration::equal(Self, Self) -> Bool
+pub fn ResolvedDeclaration::not_equal(Self, Self) -> Bool
+pub fn ResolvedDeclaration::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ResolvedType {
+  id : Int
+  name : String?
+  kind : TypeKind
+  location : Location
+} derive(Eq, @debug.Debug)
+pub fn ResolvedType::equal(Self, Self) -> Bool
+pub fn ResolvedType::not_equal(Self, Self) -> Bool
+pub fn ResolvedType::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ResourceBinding {
+  ty : Int
+  identity : Int
+} derive(Eq, @debug.Debug)
+pub fn ResourceBinding::equal(Self, Self) -> Bool
+pub fn ResourceBinding::not_equal(Self, Self) -> Bool
+pub fn ResourceBinding::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TypeCase {
+  name : String
+  payload : Int?
+  location : Location
+} derive(Eq, @debug.Debug)
+pub fn TypeCase::equal(Self, Self) -> Bool
+pub fn TypeCase::not_equal(Self, Self) -> Bool
+pub fn TypeCase::to_repr(Self) -> @debug.Repr
+
+pub(all) enum TypeKind {
+  Module(@core_types.Module)
+  Scalar(String)
+  Alias(Int)
+  Resource(Int?)
+  Own(Int)
+  Borrow(Int)
+  List(Int)
+  FixedList(Int, Int)
+  Map(Int, Int)
+  Tuple(ReadOnlyArray[Int])
+  Option(Int)
+  Result(Int?, Int?)
+  Future(Int?)
+  Stream(Int?)
+  Record(ReadOnlyArray[TypeMember])
+  Flags(ReadOnlyArray[String])
+  Enum(ReadOnlyArray[String])
+  Variant(ReadOnlyArray[TypeCase])
+  Function(ReadOnlyArray[TypeMember], Int?, Bool)
+  Interface(String?, ReadOnlyArray[UsedType], ReadOnlyArray[Extern])
+  World(String?, ReadOnlyArray[UsedType], ReadOnlyArray[Extern], ReadOnlyArray[Extern])
+} derive(Eq, @debug.Debug)
+pub fn TypeKind::equal(Self, Self) -> Bool
+pub fn TypeKind::not_equal(Self, Self) -> Bool
+pub fn TypeKind::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TypeMember {
+  name : String
+  ty : Int
+  location : Location
+} derive(Eq, @debug.Debug)
+pub fn TypeMember::equal(Self, Self) -> Bool
+pub fn TypeMember::not_equal(Self, Self) -> Bool
+pub fn TypeMember::to_repr(Self) -> @debug.Repr
+
+pub(all) struct UsedType {
+  name : String
+  original_name : String
+  interface : Int
+  ty : Int
+  location : Location
+} derive(Eq, @debug.Debug)
+pub fn UsedType::equal(Self, Self) -> Bool
+pub fn UsedType::not_equal(Self, Self) -> Bool
+pub fn UsedType::to_repr(Self) -> @debug.Repr
+
+pub struct Verified {
+  // private fields
+}
+pub fn Verified::ast(Self) -> @ast.Tree
+pub fn Verified::composition(Self) -> ReadOnlyArray[CompositionNode]
+pub fn Verified::composition_exports(Self) -> ReadOnlyArray[CompositionExport]
+pub fn Verified::declarations(Self) -> ReadOnlyArray[Binding]
+pub fn Verified::exports(Self) -> ReadOnlyArray[Extern]
+pub fn Verified::imports(Self) -> ReadOnlyArray[Extern]
+pub fn Verified::items(Self) -> ReadOnlyArray[ResolvedDeclaration]
+pub fn Verified::resource_identity(Self, Int) -> Int?
+pub fn Verified::source(Self) -> String
+pub fn Verified::text(Self) -> String
+pub fn Verified::types(Self) -> ReadOnlyArray[ResolvedType]
+
+pub struct WitPackage {
+  // private fields
+}
+pub fn WitPackage::definitions(Self) -> ReadOnlyArray[Extern]
+pub fn WitPackage::instance(Self) -> Int
+pub fn WitPackage::resource_identity(Self, Int) -> Int?
+pub fn WitPackage::types(Self) -> ReadOnlyArray[ResolvedType]
+pub fn WitPackage::world(Self) -> Int
+
+pub(all) struct WitPackageSource {
+  name : String
+  version : String?
+  source : String
+  root : @moonrockz/wit/verifier.PackageInput
+  dependencies : ReadOnlyArray[@moonrockz/wit/verifier.PackageInput]
+}
+
+// Type aliases
+
+// Traits

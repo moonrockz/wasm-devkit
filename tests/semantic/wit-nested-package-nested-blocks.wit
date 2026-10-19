@@ -1,0 +1,1 @@
+package example:root;world app{import example:inner/api;}package example:outer{world app{import example:inner/api;}package example:inner{interface api{}}}

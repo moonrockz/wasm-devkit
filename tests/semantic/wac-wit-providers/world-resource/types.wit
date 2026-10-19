@@ -1,0 +1,1 @@
+package example:types; world app {resource handle {constructor();take: func();} export make: func() -> handle;}

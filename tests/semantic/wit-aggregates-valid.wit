@@ -1,0 +1,1 @@
+package example:app; interface api { record item { value: scalar, other: option<scalar> } type scalar = u32; flags mode { read, write } enum color { red, blue } variant value { number(item), none } type output = result<tuple<item, color>, string>; }

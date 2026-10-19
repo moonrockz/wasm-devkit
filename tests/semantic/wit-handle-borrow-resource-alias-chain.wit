@@ -1,0 +1,1 @@
+package example:app; interface api {resource r;type a=r;type b=a;f:func(x:borrow<b>);}

@@ -1,0 +1,10 @@
+{
+  "name": "import-invalid-item-name",
+  "parse": 1,
+  "parse_error": "error: malformed UTF-8 encoding\n     --> .dev/core-control/text/import-invalid-item-name/dep.wat:1:47\n      |\n    1 | (component (core module $m (import \"env\" \"\\ff\" (func))) (export \"module\" (core module $m)))\n      |                                               ^\n",
+  "validate": null,
+  "reference": null,
+  "reference_error": null,
+  "product": 1,
+  "product_error": ".dev/core-control/text/import-invalid-item-name/dep.wat:[binary]: error WAC-B001: core WAT name is not UTF-8\n.dev/core-control/text/import-invalid-item-name/input.wac:[30,39): package `test:dep` requested here\n"
+}

@@ -1,0 +1,1 @@
+package example:app; record rec { x: u8, x: u32 }

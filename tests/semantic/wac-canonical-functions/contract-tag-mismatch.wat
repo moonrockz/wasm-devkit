@@ -1,0 +1,1 @@
+(component (core type $p (module (export "x" (tag (param i32))))) (core type $c (module (import "env" "x" (tag (param i64))))) (import "provider" (core module $p (type $p))) (import "consumer" (core module $c (type $c))) (core instance $p (instantiate $p)) (core instance (instantiate $c (with "env" (instance $p)))))

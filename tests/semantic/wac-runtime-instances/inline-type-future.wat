@@ -1,0 +1,1 @@
+(component (instance (export "t" (type 0))) (type u32))

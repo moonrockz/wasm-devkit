@@ -1,0 +1,9 @@
+Warning: [0001]
+     ╭─[ /Users/damian/orca/workspaces/wasm-devkit/feat-wac-binary-packages/pkgs/wit/src/binary/validation/type_origins.mbt:359:12 ]
+     │
+ 359 │ fn Counts::check_outer_value_resources(
+     │            ─────────────┬─────────────
+     │                         ╰─────────────── Warning (unused_value): Unused function 'check_outer_value_resources'
+─────╯
+[moonrockz/wac] test verifier/nested_component_probes_test.mbt:1161 ("concrete component hidden-outer-resource") failed: src/verifier/nested_component_probes_test.mbt:1166:3-1173:4@moonrockz/wac FAILED: accepted
+Total tests: 1, passed: 0, failed: 1.

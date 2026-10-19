@@ -1,0 +1,1688 @@
+--- a/component_wat.mbt
++++ b/component_wat.mbt
+@@ -23,0 +24 @@
++  ByteStr(Bytes)
+@@ -30 +31 @@
+-  mut pos : Int
++  mut pos : Int32
+@@ -139,69 +140,12 @@
+-fn is_hex_digit(ch : Char) -> Bool {
+-  ('0' <= ch && ch <= '9') ||
+-  ('a' <= ch && ch <= 'f') ||
+-  ('A' <= ch && ch <= 'F')
+-}
+-
+-///|
+-fn hex_digit_value(ch : Char) -> Int {
+-  if '0' <= ch && ch <= '9' {
+-    ch.to_int() - '0'.to_int()
+-  } else if 'a' <= ch && ch <= 'f' {
+-    ch.to_int() - 'a'.to_int() + 10
+-  } else if 'A' <= ch && ch <= 'F' {
+-    ch.to_int() - 'A'.to_int() + 10
+-  } else {
+-    -1
+-  }
+-}
+-
+-///|
+-fn TextReader::read_string(
+-  self : TextReader,
+-) -> String raise ComponentTextError {
+-  let out = StringBuilder::StringBuilder()
+-  self.next_char() |> ignore // consume opening quote
+-  while !self.is_eof() {
+-    let ch = match self.next_char() {
+-      Some(ch) => ch
+-      None => raise ParseError("unterminated string literal")
+-    }
+-    if ch == '"' {
+-      return out.to_string()
+-    }
+-    if ch != '\\' {
+-      out.write_char(ch)
+-      continue
+-    }
+-    if self.is_eof() {
+-      raise ParseError("unterminated string escape")
+-    }
+-    let esc = match self.next_char() {
+-      Some(ch) => ch
+-      None => raise ParseError("unterminated string escape")
+-    }
+-    if esc == 'n' {
+-      out.write_char('\n')
+-    } else if esc == 'r' {
+-      out.write_char('\r')
+-    } else if esc == 't' {
+-      out.write_char('\t')
+-    } else if esc == '"' {
+-      out.write_char('"')
+-    } else if esc == '\\' {
+-      out.write_char('\\')
+-    } else if is_hex_digit(esc) &&
+-      self.peek_char() is Some(next_ch) &&
+-      is_hex_digit(next_ch) {
+-      let hi = hex_digit_value(esc)
+-      let lo_ch = match self.next_char() {
+-        Some(ch) => ch
+-        None => raise ParseError("unterminated hex escape")
+-      }
+-      let lo = hex_digit_value(lo_ch)
+-      out.write_char((hi * 16 + lo).unsafe_to_char())
+-    } else {
+-      out.write_char(esc)
+-    }
+-  }
+-  raise ParseError("unterminated string literal")
++fn TextReader::read_string(self : TextReader) -> SExpr raise ComponentTextError {
++  let (bytes, end) = wat_quoted(self.input, self.pos)
++  self.pos = end
++  match
++    (try @utf8.decode(bytes, ignore_bom=false) catch {
++      _ => None
++    } noraise {
++      text => Some(text)
++    }) {
++    Some(text) => Str(text)
++    None => ByteStr(bytes)
++  }
+@@ -235,3 +179,37 @@
+-  reader.skip_ws_and_comments()
+-  let first = reader.peek_char()
+-  if first is None {
++  let stack : Array[Array[SExpr]] = []
++  while true {
++    reader.skip_ws_and_comments()
++    let next = reader.peek_char()
++    if next is None {
++      raise ParseError(
++        if stack.is_empty() {
++          "unexpected end of input"
++        } else {
++          "unterminated list"
++        },
++      )
++    }
++    if next == Some('(') {
++      guard stack.length() < 256 else {
++        raise Unsupported("component text nesting exceeds 256 scopes")
++      }
++      reader.next_char() |> ignore
++      stack.push([])
++      continue
++    }
++    let expr = if next == Some(')') {
++      reader.next_char() |> ignore
++      guard stack.pop() is Some(items) else {
++        raise ParseError("unexpected ')'")
++      }
++      List(items)
++    } else if next == Some('"') {
++      reader.read_string()
++    } else {
++      Atom(reader.read_atom())
++    }
++    if stack.is_empty() {
++      return expr
++    }
++    stack[stack.length() - 1].push(expr)
++  } nobreak {
+@@ -240,23 +217,0 @@
+-  if first == Some('(') {
+-    reader.next_char() |> ignore
+-    let list : Array[SExpr] = []
+-    while true {
+-      reader.skip_ws_and_comments()
+-      let next = reader.peek_char()
+-      if next is None {
+-        raise ParseError("unterminated list")
+-      }
+-      if next == Some(')') {
+-        reader.next_char() |> ignore
+-        return List(list)
+-      }
+-      list.push(parse_sexpr(reader))
+-    }
+-  }
+-  if first == Some(')') {
+-    raise ParseError("unexpected ')'")
+-  }
+-  if first == Some('"') {
+-    return Str(reader.read_string())
+-  }
+-  Atom(reader.read_atom())
+@@ -267,2 +222,2 @@
+-  Prim(Int)
+-  TypeIdx(Int)
++  Prim(Int32)
++  TypeIdx(Int32)
+@@ -293 +248 @@
+-  idx : Int
++  idx : Int32
+@@ -300 +255 @@
+-  idx : Int
++  idx : Int32
+@@ -308,3 +263,3 @@
+-  sort_tag : Int
+-  core_kind : Int?
+-  idx : Int
++  sort_tag : Int32
++  core_kind : Int32?
++  idx : Int32
+@@ -317 +272 @@
+-  idx : Int
++  idx : Int32
+@@ -322,2 +277,2 @@
+-  kind : Int
+-  instance_idx : Int
++  kind : Int32
++  instance_idx : Int32
+@@ -325 +280 @@
+-  idx : Int
++  idx : Int32
+@@ -330 +285 @@
+-  section_id : Int
++  section_id : Int32
+@@ -337,2 +292,2 @@
+-  kind : Int
+-  idx : Int
++  kind : Int32
++  idx : Int32
+@@ -343,2 +298,2 @@
+-  sort_tag : Int
+-  core_kind : Int?
++  sort_tag : Int32
++  core_kind : Int32?
+@@ -350 +305 @@
+-  Instantiate(Int, Array[CoreSortRef])
++  Instantiate(Int32, Array[CoreSortRef])
+@@ -363,3 +318,3 @@
+-  sort_tag : Int
+-  core_kind : Int?
+-  idx : Int
++  sort_tag : Int32
++  core_kind : Int32?
++  idx : Int32
+@@ -370 +325 @@
+-  Instantiate(Int, Array[SortRef])
++  Instantiate(Int32, Array[SortRef])
+@@ -393,0 +349 @@
++  value_names : Array[NamedBinding]
+@@ -404,12 +360,14 @@
+-  mut next_type_idx : Int
+-  mut next_func_idx : Int
+-  mut next_core_type_idx : Int
+-  mut next_core_module_idx : Int
+-  mut next_core_instance_idx : Int
+-  mut next_component_idx : Int
+-  mut next_instance_idx : Int
+-  mut next_core_func_idx : Int
+-  mut next_core_table_idx : Int
+-  mut next_core_memory_idx : Int
+-  mut next_core_global_idx : Int
+-  mut next_core_tag_idx : Int
++  mut next_type_idx : Int32
++  mut next_func_idx : Int32
++  mut next_value_idx : Int32
++  mut core_name_work : Int32
++  mut next_core_type_idx : Int32
++  mut next_core_module_idx : Int32
++  mut next_core_instance_idx : Int32
++  mut next_component_idx : Int32
++  mut next_instance_idx : Int32
++  mut next_core_func_idx : Int32
++  mut next_core_table_idx : Int32
++  mut next_core_memory_idx : Int32
++  mut next_core_global_idx : Int32
++  mut next_core_tag_idx : Int32
+@@ -438,0 +397 @@
++    value_names: [],
+@@ -450,0 +410,2 @@
++    next_value_idx: 0,
++    core_name_work: 1000000,
+@@ -475 +436 @@
+-fn ByteBuf::push_u8(self : ByteBuf, value : Int) -> Unit {
++fn ByteBuf::push_u8(self : ByteBuf, value : Int32) -> Unit {
+@@ -487 +448 @@
+-fn ByteBuf::push_uleb_u32(self : ByteBuf, value : Int) -> Unit {
++fn ByteBuf::push_uleb_u32(self : ByteBuf, value : Int32) -> Unit {
+@@ -502 +463 @@
+-fn ByteBuf::push_sleb_i32(self : ByteBuf, value : Int) -> Unit {
++fn ByteBuf::push_sleb_i32(self : ByteBuf, value : Int32) -> Unit {
+@@ -563,3 +524,8 @@
+-fn parse_decimal_index(atom : String) -> Int? {
+-  if atom.length() == 0 {
+-    return None
++fn parse_index_literal(atom : String) -> Int32? {
++  let mut start = if atom.has_prefix("+") { 1 } else { 0 }
++  let mut radix = 10
++  if start + 1 < atom.length() &&
++    atom.code_unit_at(start) == 48 &&
++    atom.code_unit_at(start + 1) == 120 {
++    radix = 16
++    start += 2
+@@ -568,2 +534,17 @@
+-  for ch in atom {
+-    if ch < '0' || ch > '9' {
++  let mut previous_digit = false
++  for index in start..<atom.length() {
++    let code = atom.code_unit_at(index).to_int()
++    if code == 95 {
++      if !previous_digit {
++        return None
++      }
++      previous_digit = false
++      continue
++    }
++    let digit = if code >= 48 && code <= 57 {
++      code - 48
++    } else if code >= 65 && code <= 70 {
++      code - 65 + 10
++    } else if code >= 97 && code <= 102 {
++      code - 97 + 10
++    } else {
+@@ -572,7 +553,15 @@
+-    value = value * 10 + (ch.to_int() - '0'.to_int())
+-  }
+-  Some(value)
+-}
+-
+-///|
+-fn lookup_named_index(bindings : Array[NamedBinding], name : String) -> Int? {
++    if digit >= radix || value > (2147483647 - digit) / radix {
++      return None
++    }
++    value = value * radix + digit
++    previous_digit = true
++  }
++  if previous_digit {
++    Some(value)
++  } else {
++    None
++  }
++}
++
++///|
++fn lookup_named_index(bindings : Array[NamedBinding], name : String) -> Int32? {
+@@ -594 +583 @@
+-  idx : Int,
++  idx : Int32,
+@@ -628,0 +618,8 @@
++    // Explicit aliases resolve in their stated outer scope. Treating their
++    // target as an implicit reference inserts another alias and shifts numeric
++    // type references in the source.
++    if items.length() >= 2 &&
++      items[0] is Atom("alias") &&
++      items[1] is Atom("outer") {
++      return
++    }
+@@ -636 +633,4 @@
+-fn collect_inline_ref_names(desc : Array[SExpr], start : Int) -> Array[String] {
++fn collect_inline_ref_names(
++  desc : Array[SExpr],
++  start : Int32,
++) -> Array[String] {
+@@ -637,0 +638 @@
++  let bindings : Array[String] = []
+@@ -638,0 +640,22 @@
++    if desc[i] is List(field) && field.length() > 0 {
++      let declaration = if field[0] is Atom("type") {
++        Some(field)
++      } else if field.length() == 5 &&
++        field[0] is Atom("alias") &&
++        field[4] is List(sort) {
++        Some(sort)
++      } else if field.length() >= 3 &&
++        (field[0] is Atom("import") || field[0] is Atom("export")) &&
++        field[field.length() - 1] is List(sort) {
++        Some(sort)
++      } else {
++        None
++      }
++      if declaration is Some(items) &&
++        items.length() >= 2 &&
++        items[0] is Atom("type") &&
++        items[1] is Atom(name) &&
++        name.has_prefix("$") {
++        add_unique_ref_name(bindings, name)
++      }
++    }
+@@ -641 +664 @@
+-  names
++  names.filter(name => !contains_ref_name(bindings, name))
+@@ -658,0 +682,3 @@
++  if expr is ByteStr(_) {
++    raise ParseError("WAT name is not UTF-8")
++  }
+@@ -682,2 +708,2 @@
+-  start : Int,
+-) -> (Bytes?, Int) raise ComponentTextError {
++  start : Int32,
++) -> (Bytes?, Int32) raise ComponentTextError {
+@@ -697 +723 @@
+-    if kind != "implements" && kind != "versionsuffix" && kind != "external-id" {
++    if kind != "implements" && kind != "version-suffix" && kind != "external-id" {
+@@ -702,0 +729,3 @@
++    guard items[1] is Str(value) else {
++      raise Unsupported("name attribute value must be a string")
++    }
+@@ -703,0 +733,5 @@
++      if has_version || has_external_id {
++        raise Unsupported(
++          "name attributes must be ordered implements, version-suffix, external-id",
++        )
++      }
+@@ -709 +743,6 @@
+-    } else if kind == "versionsuffix" {
++    } else if kind == "version-suffix" {
++      if has_external_id {
++        raise Unsupported(
++          "name attributes must be ordered implements, version-suffix, external-id",
++        )
++      }
+@@ -711 +750 @@
+-        raise Unsupported("duplicate `versionsuffix` attribute")
++        raise Unsupported("duplicate `version-suffix` attribute")
+@@ -722,3 +761 @@
+-    attributes.push_utf8_name(
+-      parse_name_text(items[1], "\{kind} attribute value"),
+-    )
++    attributes.push_utf8_name(value)
+@@ -756 +793 @@
+-fn parse_optional_identifier(field : Array[SExpr], at : Int) -> String? {
++fn parse_optional_identifier(field : Array[SExpr], at : Int32) -> String? {
+@@ -770 +807 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -778 +815 @@
+-    if parse_decimal_index(text) is Some(idx) {
++    if parse_index_literal(text) is Some(idx) {
+@@ -790 +827 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -815 +852 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -841 +878 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -872 +909 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -900 +937 @@
+-fn int_array_to_bytes(values : Array[Int]) -> Bytes {
++fn int_array_to_bytes(values : Array[Int32]) -> Bytes {
+@@ -931,0 +969,6 @@
++priv enum RenderSExpr {
++  Expression(SExpr)
++  Text(String)
++}
++
++///|
+@@ -933,9 +976,23 @@
+-  match expr {
+-    Atom(text) => text
+-    Str(text) => escape_wat_string(text)
+-    List(items) => {
+-      let out = StringBuilder::StringBuilder()
+-      out.write_char('(')
+-      for i in 0..<items.length() {
+-        if i > 0 {
+-          out.write_char(' ')
++  let out = StringBuilder()
++  let work : Array[RenderSExpr] = [Expression(expr)]
++  while work.pop() is Some(task) {
++    match task {
++      Text(text) => out.write_string(text)
++      Expression(Atom(text)) => out.write_string(text)
++      Expression(Str(text)) => out.write_string(escape_wat_string(text))
++      Expression(ByteStr(bytes)) => out.write_string(wat_literal(bytes))
++      Expression(List(items)) => {
++        out.write_char('(')
++        work.push(Text(")"))
++        let data = items.get(0) is Some(Atom("data"))
++        for i = items.length() - 1; i >= 0; i = i - 1 {
++          if data && items[i] is Str(text) {
++            // The retained core lexer represents data characters as bytes.
++            // Explicit UTF-8 escapes avoid truncating Unicode scalar values.
++            work.push(Text(wat_literal(@utf8.encode(text))))
++          } else {
++            work.push(Expression(items[i]))
++          }
++          if i > 0 {
++            work.push(Text(" "))
++          }
+@@ -943,10 +1000,8 @@
+-        out.write_string(sexpr_to_wat(items[i]))
+-      }
+-      out.write_char(')')
+-      out.to_string()
+-    }
+-  }
+-}
+-
+-///|
+-fn prim_type_opcode(name : String) -> Int? {
++      }
++    }
++  }
++  out.to_string()
++}
++
++///|
++fn prim_type_opcode(name : String) -> Int32? {
+@@ -975 +1030 @@
+-    TypeIdx(idx) => payload.push_uleb_u32(idx)
++    TypeIdx(idx) => payload.push_sleb_i32(idx)
+@@ -988 +1043 @@
+-    if name.has_prefix("$") || parse_decimal_index(name) is Some(_) {
++    if name.has_prefix("$") || parse_index_literal(name) is Some(_) {
+@@ -996,0 +1052,7 @@
++    }
++    if items.length() == 3 && items[0] is Atom("map") {
++      let payload = ByteBuf::ByteBuf()
++      payload.push_u8(0x63)
++      push_valtype_encoding(payload, parse_valtype(items[1], state))
++      push_valtype_encoding(payload, parse_valtype(items[2], state))
++      return TypeIdx(ensure_type_bytes(state, payload.to_bytes()))
+@@ -1168 +1230 @@
+-) -> Int {
++) -> Int32 {
+@@ -1178 +1240 @@
+-fn ensure_func_type(state : ComponentBuildState, sig : FuncTypeSig) -> Int {
++fn ensure_func_type(state : ComponentBuildState, sig : FuncTypeSig) -> Int32 {
+@@ -1189 +1251 @@
+-fn ensure_type_bytes(state : ComponentBuildState, type_bytes : Bytes) -> Int {
++fn ensure_type_bytes(state : ComponentBuildState, type_bytes : Bytes) -> Int32 {
+@@ -1202 +1264 @@
+-) -> Int {
++) -> Int32 {
+@@ -1216 +1278 @@
+-fn ensure_empty_component_type(state : ComponentBuildState) -> Int {
++fn ensure_empty_component_type(state : ComponentBuildState) -> Int32 {
+@@ -1224 +1286 @@
+-fn ensure_empty_instance_type(state : ComponentBuildState) -> Int {
++fn ensure_empty_instance_type(state : ComponentBuildState) -> Int32 {
+@@ -1232 +1294 @@
+-fn ensure_empty_core_module_type(state : ComponentBuildState) -> Int {
++fn ensure_empty_core_module_type(state : ComponentBuildState) -> Int32 {
+@@ -1243 +1305 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -1254 +1316 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -1289 +1351 @@
+-) -> (String?, Int) raise ComponentTextError {
++) -> (String?, Int32) raise ComponentTextError {
+@@ -1291 +1353 @@
+-  let mut type_use : Int? = None
++  let mut type_use : Int32? = None
+@@ -1320 +1382 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -1334 +1396 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -1372 +1434 @@
+-  local_type_count : Int,
++  local_type_count : Int32,
+@@ -1374 +1436 @@
+-) -> (ValTypeEncoding, Int, Int) raise ComponentTextError {
++) -> (ValTypeEncoding, Int32, Int32) raise ComponentTextError {
+@@ -1379 +1441 @@
+-    if name.has_prefix("$") || parse_decimal_index(name) is Some(_) {
++    if name.has_prefix("$") || parse_index_literal(name) is Some(_) {
+@@ -1414,0 +1477,21 @@
++    }
++    if items.length() == 3 && items[0] is Atom("map") {
++      let payload = ByteBuf::ByteBuf()
++      payload.push_u8(0x63)
++      let mut next_count = local_type_count
++      let mut total_count = 0
++      for i in 1..<3 {
++        let (ty, next, count) = parse_inline_valtype_encoding(
++          items[i],
++          state,
++          decls,
++          next_count,
++          local_type_names,
++        )
++        next_count = next
++        total_count += count
++        push_valtype_encoding(payload, ty)
++      }
++      decls.push_u8(0x01)
++      decls.push_bytes(payload.to_bytes())
++      return (TypeIdx(next_count), next_count + 1, total_count + 1)
+@@ -1584 +1667 @@
+-  local_type_count : Int,
++  local_type_count : Int32,
+@@ -1586 +1669 @@
+-) -> (FuncTypeSig, Int, Int) raise ComponentTextError {
++) -> (FuncTypeSig, Int32, Int32) raise ComponentTextError {
+@@ -1677,2 +1760,2 @@
+-  local_type_count : Int,
+-) -> (String?, Bytes, Int, Int) raise ComponentTextError {
++  local_type_count : Int32,
++) -> (String?, Bytes, Int32, Int32) raise ComponentTextError {
+@@ -1828,0 +1912,20 @@
++    if items[0] is Atom("map") {
++      if items.length() != 3 {
++        raise Unsupported("map type must be `(map <valtype> <valtype>)`")
++      }
++      let payload = ByteBuf::ByteBuf()
++      payload.push_u8(0x63)
++      for i in 1..<3 {
++        let (ty, next_count, count) = parse_inline_valtype_encoding(
++          items[i],
++          state,
++          decls,
++          next_type_count,
++          local_type_names,
++        )
++        next_type_count = next_count
++        decl_count += count
++        push_valtype_encoding(payload, ty)
++      }
++      return (name_opt, payload.to_bytes(), next_type_count, decl_count)
++    }
+@@ -2027,2 +2130,2 @@
+-  local_type_count : Int,
+-  local_core_type_count : Int,
++  local_type_count : Int32,
++  local_core_type_count : Int32,
+@@ -2030 +2133,2 @@
+-) -> (Bytes, Int, Int, Int) raise ComponentTextError {
++  core_name_start : Int32,
++) -> (Bytes, Int32, Int32, Int32) raise ComponentTextError {
+@@ -2037,0 +2142,19 @@
++  if desc[0] is Atom("value") {
++    let name = parse_optional_identifier(desc, 1)
++    let index = if name is Some(_) { 2 } else { 1 }
++    guard desc.length() == index + 1 else {
++      raise Unsupported("value descriptor needs one value type")
++    }
++    let (ty, next, added) = parse_inline_valtype_encoding(
++      desc[index],
++      state,
++      decls,
++      type_count,
++      local_type_names,
++    )
++    let encoded = ByteBuf::ByteBuf()
++    encoded.push_u8(0x02)
++    push_valtype_encoding(encoded, ty)
++    return (encoded.to_bytes(), next, core_type_count, added)
++  }
++
+@@ -2039 +2162 @@
+-    let mut type_use : Int? = None
++    let mut type_use : Int32? = None
+@@ -2167,9 +2290,19 @@
+-          let outer_type_idx = parse_core_type_use(type_field, state)
+-          decls.push_u8(0x02)
+-          decls.push_bytes(
+-            encode_alias_outer_decl(0x00, Some(0x05), 1, outer_type_idx),
+-          )
+-          decl_count += 1
+-          let idx = core_type_count
+-          core_type_count += 1
+-          idx
++          let mut local_index : Int32? = None
++          for i in core_name_start..<state.core_type_names.length() {
++            if state.core_type_names[i].name == name {
++              local_index = Some(state.core_type_names[i].idx)
++            }
++          }
++          if local_index is Some(idx) {
++            idx
++          } else {
++            let outer_type_idx = parse_core_type_use(type_field, state)
++            decls.push_u8(0x02)
++            decls.push_bytes(
++              encode_alias_outer_decl(0x00, Some(0x05), 1, outer_type_idx),
++            )
++            decl_count += 1
++            let idx = core_type_count
++            core_type_count += 1
++            idx
++          }
+@@ -2201 +2334 @@
+-) -> (Int, Int?, String?) raise ComponentTextError {
++) -> (Int32, Int32?, String?) raise ComponentTextError {
+@@ -2203,0 +2337,3 @@
++  }
++  if desc[0] is Atom("value") {
++    return (0x02, None, parse_optional_identifier(desc, 1))
+@@ -2226,0 +2363 @@
++  ambient_type_names : Array[NamedBinding],
+@@ -2229,4 +2366,5 @@
+-  local_type_count : Int,
+-  local_core_type_count : Int,
+-  local_instance_count : Int,
+-) -> (Bytes, Int, Int, Int) raise ComponentTextError {
++  local_type_count : Int32,
++  local_core_type_count : Int32,
++  local_instance_count : Int32,
++  core_name_start : Int32,
++) -> (Bytes, Int32, Int32, Int32) raise ComponentTextError {
+@@ -2295 +2433 @@
+-        if lookup_named_index(state.type_names, target_name) is Some(_) {
++        if lookup_named_index(ambient_type_names, target_name) is Some(_) {
+@@ -2298 +2436 @@
+-          let mut found : Int? = None
++          let mut found : Int32? = None
+@@ -2312 +2450 @@
+-          let mut found : Int? = None
++          let mut found : Int32? = None
+@@ -2329 +2467 @@
+-          let mut found : Int? = None
++          let mut found : Int32? = None
+@@ -2346 +2484 @@
+-        let mut found : Int? = None
++        let mut found : Int32? = None
+@@ -2363 +2501 @@
+-      if parse_decimal_index(count_atom) is Some(count) {
++      if parse_index_literal(count_atom) is Some(count) {
+@@ -2379 +2517 @@
+-          lookup_named_index(state.type_names, target_name) is Some(idx) {
++          lookup_named_index(ambient_type_names, target_name) is Some(idx) {
+@@ -2461 +2599,12 @@
+-    } else {
++    } else if is_core_type_alias {
++      core_unique_name(
++        state,
++        state.core_type_names,
++        sort_spec.name_opt,
++        core_name_start,
++      )
++      bind_named_index(
++        state.core_type_names,
++        sort_spec.name_opt,
++        next_local_core_type_count,
++      )
+@@ -2480 +2629 @@
+-  start : Int,
++  start : Int32,
+@@ -2484,0 +2634 @@
++  let saved_core_name_len = state.core_type_names.length()
+@@ -2547,0 +2698,6 @@
++      core_unique_name(
++        state,
++        state.core_type_names,
++        core_name_opt,
++        saved_core_name_len,
++      )
+@@ -2569,0 +2726,5 @@
++      bind_named_index(
++        state.core_type_names,
++        core_name_opt,
++        local_core_type_count,
++      )
+@@ -2580,2 +2741,2 @@
+-        field, state, local_type_names, local_instance_names, local_type_count, local_core_type_count,
+-        local_instance_count,
++        field, state, ambient_type_names, local_type_names, local_instance_names,
++        local_type_count, local_core_type_count, local_instance_count, saved_core_name_len,
+@@ -2617,0 +2779 @@
++      saved_core_name_len,
+@@ -2637,0 +2800,3 @@
++  while state.core_type_names.length() > saved_core_name_len {
++    state.core_type_names.pop() |> ignore
++  }
+@@ -2647 +2812 @@
+-  start : Int,
++  start : Int32,
+@@ -2659 +2824 @@
+-  start : Int,
++  start : Int32,
+@@ -2663,0 +2829 @@
++  let saved_core_name_len = state.core_type_names.length()
+@@ -2724,0 +2891,6 @@
++      core_unique_name(
++        state,
++        state.core_type_names,
++        core_name_opt,
++        saved_core_name_len,
++      )
+@@ -2746,0 +2919,5 @@
++      bind_named_index(
++        state.core_type_names,
++        core_name_opt,
++        local_core_type_count,
++      )
+@@ -2757,2 +2934,2 @@
+-        field, state, local_type_names, local_instance_names, local_type_count, local_core_type_count,
+-        local_instance_count,
++        field, state, ambient_type_names, local_type_names, local_instance_names,
++        local_type_count, local_core_type_count, local_instance_count, saved_core_name_len,
+@@ -2808,0 +2986 @@
++      saved_core_name_len,
+@@ -2828,0 +3007,3 @@
++  while state.core_type_names.length() > saved_core_name_len {
++    state.core_type_names.pop() |> ignore
++  }
+@@ -2838 +3019 @@
+-  start : Int,
++  start : Int32,
+@@ -2850 +3031 @@
+-  start : Int,
++  start : Int32,
+@@ -2852 +3033 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -2864 +3045 @@
+-  start : Int,
++  start : Int32,
+@@ -2866 +3047 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -2901,0 +3083,24 @@
++  }
++  if desc[0] is Atom("value") {
++    let value_name = parse_optional_identifier(desc, 1)
++    let index = if value_name is Some(_) { 2 } else { 1 }
++    guard desc.length() == index + 1 else {
++      raise Unsupported("value import needs one value type")
++    }
++    let ty = parse_valtype(desc[index], state)
++    let encoded = ByteBuf::ByteBuf()
++    encoded.push_u8(0x02)
++    push_valtype_encoding(encoded, ty)
++    let entry : ImportEntry = { name, attributes, desc: encoded.to_bytes(), }
++    state.imports.push(entry)
++    push_ordered_section(state, 10, encode_import_decl(entry))
++    bind_named_index(
++      state.value_names,
++      match value_name {
++        Some(_) => value_name
++        None => import_id_opt
++      },
++      state.next_value_idx,
++    )
++    state.next_value_idx += 1
++    return
+@@ -3090,2 +3295,2 @@
+-  sort_tag : Int,
+-  core_kind : Int?,
++  sort_tag : Int32,
++  core_kind : Int32?,
+@@ -3147 +3352 @@
+-  section_id : Int,
++  section_id : Int32,
+@@ -3211,2 +3416,2 @@
+-  kind : Int,
+-  instance_idx : Int,
++  kind : Int32,
++  instance_idx : Int32,
+@@ -3226,3 +3431,3 @@
+-  sort_tag : Int,
+-  core_kind : Int?,
+-  instance_idx : Int,
++  sort_tag : Int32,
++  core_kind : Int32?,
++  instance_idx : Int32,
+@@ -3241,4 +3446,4 @@
+-  sort_tag : Int,
+-  core_kind : Int?,
+-  count : Int,
+-  idx : Int,
++  sort_tag : Int32,
++  core_kind : Int32?,
++  count : Int32,
++  idx : Int32,
+@@ -3261,2 +3466,2 @@
+-  count : Int,
+-  idx : Int,
++  count : Int32,
++  idx : Int32,
+@@ -3334 +3539 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -3342 +3547 @@
+-    if parse_decimal_index(text) is Some(idx) {
++    if parse_index_literal(text) is Some(idx) {
+@@ -3423 +3628 @@
+-  opcode : Int,
++  opcode : Int32,
+@@ -3475 +3680 @@
+-  opcode : Int,
++  opcode : Int32,
+@@ -3510 +3715 @@
+-  let mut dtor_idx : Int? = None
++  let mut dtor_idx : Int32? = None
+@@ -3563 +3768,3 @@
+-  let push_type_exports = fn(type_idx : Int) -> Unit raise ComponentTextError {
++  let push_type_exports = fn(
++    type_idx : Int32,
++  ) -> Unit raise ComponentTextError {
+@@ -3626,0 +3834,12 @@
++    if head == "map" {
++      if items.length() != 3 {
++        raise Unsupported("map type must be `(map <valtype> <valtype>)`")
++      }
++      let payload = ByteBuf::ByteBuf()
++      payload.push_u8(0x63)
++      push_valtype_encoding(payload, parse_valtype(items[1], state))
++      push_valtype_encoding(payload, parse_valtype(items[2], state))
++      let type_idx = add_type_entry(state, payload.to_bytes(), None, name_opt)
++      push_type_exports(type_idx)
++      return
++    }
+@@ -3808,2 +4027,2 @@
+-  sort_tag : Int,
+-  core_kind : Int?,
++  sort_tag : Int32,
++  core_kind : Int32?,
+@@ -3811 +4030 @@
+-  idx : Int,
++  idx : Int32,
+@@ -3824 +4043,4 @@
+-      0x05 => bind_named_index(state.core_type_names, name_opt, idx)
++      0x05 => {
++        core_unique_name(state, state.core_type_names, name_opt, 0)
++        bind_named_index(state.core_type_names, name_opt, idx)
++      }
+@@ -3832,0 +4055 @@
++    0x02 => bind_named_index(state.value_names, name_opt, idx)
+@@ -3843,2 +4066,2 @@
+-  sort_tag : Int,
+-  core_kind : Int?,
++  sort_tag : Int32,
++  core_kind : Int32?,
+@@ -3846 +4069 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -3901,0 +4125,5 @@
++      0x02 => {
++        let idx = state.next_value_idx
++        state.next_value_idx += 1
++        idx
++      }
+@@ -3927,2 +4155,2 @@
+-  kind : Int,
+-  instance_idx : Int,
++  kind : Int32,
++  instance_idx : Int32,
+@@ -3931 +4159 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -3953 +4181 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -3991 +4219 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -4006 +4234 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -4018 +4246 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -4143,2 +4371,2 @@
+-  start : Int,
+-  end_exclusive : Int,
++  start : Int32,
++  end_exclusive : Int32,
+@@ -4146 +4374 @@
+-) -> (Int, Bytes) raise ComponentTextError {
++) -> (Int32, Bytes) raise ComponentTextError {
+@@ -4160 +4388 @@
+-  type_idx : Int,
++  type_idx : Int32,
+@@ -4186 +4414 @@
+-  options_end : Int,
++  options_end : Int32,
+@@ -4205 +4433 @@
+-fn canon_prim_sleb(opcode : Int) -> Int raise ComponentTextError {
++fn canon_prim_sleb(opcode : Int32) -> Int32 raise ComponentTextError {
+@@ -4272 +4500 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -4290 +4518 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -4305 +4533 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -4330 +4558 @@
+-) -> (Int, String?) raise ComponentTextError {
++) -> (Int32, String?) raise ComponentTextError {
+@@ -4546 +4774 @@
+-    let mut memory_idx_opt : Int? = None
++    let mut memory_idx_opt : Int32? = None
+@@ -4690,2 +4918,2 @@
+-  sort_tag : Int,
+-  core_kind : Int?,
++  sort_tag : Int32,
++  core_kind : Int32?,
+@@ -4712,0 +4941 @@
++    0x02 => state.next_value_idx += 1
+@@ -4723,3 +4952,3 @@
+-  sort_tag : Int,
+-  core_kind : Int?,
+-) -> Int raise ComponentTextError {
++  sort_tag : Int32,
++  core_kind : Int32?,
++) -> Int32 raise ComponentTextError {
+@@ -4744,0 +4974 @@
++    0x02 => state.next_value_idx
+@@ -4755,2 +4985,2 @@
+-  sort_tag : Int,
+-  core_kind : Int?,
++  sort_tag : Int32,
++  core_kind : Int32?,
+@@ -4778 +5008 @@
+-  let mut type_idx_opt : Int? = None
++  let mut type_idx_opt : Int32? = None
+@@ -4932,2 +5162,2 @@
+-  sort_tag : Int,
+-  core_kind : Int?,
++  sort_tag : Int32,
++  core_kind : Int32?,
+@@ -4947,0 +5178,10 @@
++  if sort_tag == 0x02 {
++    guard ascribed.length() == 2 && ascribed[0] is Atom("value") else {
++      raise Unsupported("value export ascription needs one value type")
++    }
++    let ty = parse_valtype(ascribed[1], state)
++    let encoded = ByteBuf::ByteBuf()
++    encoded.push_u8(0x02)
++    push_valtype_encoding(encoded, ty)
++    return Some(encoded.to_bytes())
++  }
+@@ -4952 +5192 @@
+-    let mut type_idx_opt : Int? = None
++    let mut type_idx_opt : Int32? = None
+@@ -5033,2 +5273,4 @@
+-  if sort_tag == 0x00 {
+-    if core_kind is Some(kind) {
++  if sort_tag == 0x00 && core_kind == Some(0x11) {
++    if ascribed.length() < 2 ||
++      !(ascribed[0] is Atom("core")) ||
++      !(ascribed[1] is Atom("module")) {
+@@ -5036,4 +5278,32 @@
+-        "core export ascription for sort \{kind} is not supported yet",
+-      )
+-    }
+-    raise Unsupported("core export ascription is not supported yet")
++        "core module export ascription must be `(core module ...)`",
++      )
++    }
++    let index = if parse_optional_identifier(ascribed, 2) is Some(_) {
++      3
++    } else {
++      2
++    }
++    let type_idx = if index < ascribed.length() {
++      let first = if ascribed[index] is List(items) {
++        items
++      } else {
++        raise Unsupported("core module ascription entries must be lists")
++      }
++      if first.length() > 0 &&
++        first[0] is Atom("type") &&
++        index + 1 == ascribed.length() {
++        parse_core_type_use(first, state)
++      } else {
++        ensure_core_type_bytes(
++          state,
++          parse_core_module_type_bytes(ascribed, index, state),
++        )
++      }
++    } else {
++      ensure_empty_core_module_type(state)
++    }
++    let payload = ByteBuf::ByteBuf()
++    payload.push_u8(0x00)
++    payload.push_u8(0x11)
++    payload.push_uleb_u32(type_idx)
++    return Some(payload.to_bytes())
+@@ -5157,0 +5428 @@
++    desc[0] is Atom("value") ||
+@@ -5161,0 +5433,2 @@
++    } else if desc[0] is Atom("value") {
++      (0x02, "value")
+@@ -5386 +5659,4 @@
+-  let module_text = sexpr_to_wat(List(module_items))
++  check_flat_core_module(module_items)
++  let module_text = sexpr_to_wat(
++    List(normalize_core_import_signatures(module_items, state)),
++  )
+@@ -5409 +5685 @@
+-fn parse_core_valtype_opcode(expr : SExpr) -> Int raise ComponentTextError {
++fn parse_core_valtype_opcode(expr : SExpr) -> Int32 raise ComponentTextError {
+@@ -5430 +5706 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -5438 +5714 @@
+-    if parse_decimal_index(name) is Some(idx) {
++    if parse_index_literal(name) is Some(idx) {
+@@ -5453,0 +5730,2 @@
++      "cont" => return -24
++      "nocont" => return -11
+@@ -5474,0 +5753,12 @@
++      "anyref" => payload.push_u8(0x6e)
++      "eqref" => payload.push_u8(0x6d)
++      "i31ref" => payload.push_u8(0x6c)
++      "structref" => payload.push_u8(0x6b)
++      "arrayref" => payload.push_u8(0x6a)
++      "exnref" => payload.push_u8(0x69)
++      "contref" => payload.push_u8(0x68)
++      "nullref" => payload.push_u8(0x71)
++      "nullfuncref" => payload.push_u8(0x73)
++      "nullexternref" => payload.push_u8(0x72)
++      "nullexnref" => payload.push_u8(0x74)
++      "nullcontref" => payload.push_u8(0x75)
+@@ -5567 +5857 @@
+-) -> Int raise ComponentTextError {
++) -> Int32 raise ComponentTextError {
+@@ -5569 +5859 @@
+-    if parse_decimal_index(text) is Some(value) {
++    if parse_index_literal(text) is Some(value) {
+@@ -5580 +5870 @@
+-  func_type_count : Int,
++  func_type_count : Int32,
+@@ -5582 +5872 @@
+-) -> (Bytes, Int, Int) raise ComponentTextError {
++) -> (Bytes, Int32, Int32) raise ComponentTextError {
+@@ -5596 +5886 @@
+-    let mut type_use_opt : Int? = None
++    let mut type_use_opt : Int32? = None
+@@ -5651,20 +5941,3 @@
+-  if head == "table" {
+-    let mut start = 1
+-    if parse_optional_identifier(desc, 1) is Some(_) {
+-      start = 2
+-    }
+-    if start + 1 >= desc.length() {
+-      raise Unsupported(
+-        "core table type must be `(table <min> [<max>] <elemtype>)`",
+-      )
+-    }
+-    let elem_ty = parse_core_valtype_opcode(desc[desc.length() - 1])
+-    if elem_ty != 0x70 && elem_ty != 0x6f {
+-      raise Unsupported("core table elemtype must be `funcref` or `externref`")
+-    }
+-    let nlimits = desc.length() - start - 1
+-    let min = parse_u32_literal(desc[start], "table minimum")
+-    let max_opt = if nlimits == 2 {
+-      Some(parse_u32_literal(desc[start + 1], "table maximum"))
+-    } else if nlimits == 1 {
+-      None
++  if head == "table" || head == "memory" {
++    let mut start = if parse_optional_identifier(desc, 1) is Some(_) {
++      2
+@@ -5672,21 +5945,10 @@
+-      raise Unsupported(
+-        "core table type must be `(table <min> [<max>] <elemtype>)`",
+-      )
+-    }
+-    b.push_u8(0x01)
+-    b.push_u8(elem_ty)
+-    b.push_u8(if max_opt is Some(_) { 0x01 } else { 0x00 })
+-    b.push_uleb_u32(min)
+-    if max_opt is Some(max) {
+-      b.push_uleb_u32(max)
+-    }
+-    return (b.to_bytes(), next_func_type_count, decl_count)
+-  }
+-
+-  if head == "memory" {
+-    let mut start = 1
+-    if parse_optional_identifier(desc, 1) is Some(_) {
+-      start = 2
+-    }
+-    if start >= desc.length() {
+-      raise Unsupported("core memory type must be `(memory <min> [<max>])`")
++      1
++    }
++    let wide = if start < desc.length() && desc[start] is Atom("i64") {
++      start += 1
++      true
++    } else {
++      if start < desc.length() && desc[start] is Atom("i32") {
++        start += 1
++      }
++      false
+@@ -5694,0 +5957,27 @@
++    let table = head == "table"
++    b.push_u8(if table { 1 } else { 2 })
++    if table {
++      if end <= start {
++        raise Unsupported("missing table element type")
++      }
++      end -= 1
++      push_core_valtype_encoding(b, desc[end], func_type_names)
++    }
++    let mut page : Int32? = None
++    if !table &&
++      end > start &&
++      desc[end - 1] is List(items) &&
++      items.length() == 2 &&
++      items[0] is Atom("pagesize") {
++      let size = parse_core_unsigned(items[1], false)
++      page = Some(
++        if size == 1UL {
++          0
++        } else if size == 65536UL {
++          16
++        } else {
++          raise Unsupported("unsupported memory page size")
++        },
++      )
++      end -= 1
++    }
+@@ -5701,5 +5990,7 @@
+-    let nlimits = end - start
+-    let min = parse_u32_literal(desc[start], "memory minimum")
+-    let max_opt = if nlimits == 2 {
+-      Some(parse_u32_literal(desc[start + 1], "memory maximum"))
+-    } else if nlimits == 1 {
++    guard end - start == 1 || end - start == 2 else {
++      raise Unsupported("core limits require a minimum and optional maximum")
++    }
++    let min = parse_core_unsigned(desc[start], wide)
++    let max = if end - start == 2 {
++      Some(parse_core_unsigned(desc[start + 1], wide))
++    } else {
+@@ -5707,8 +5998,5 @@
+-    } else {
+-      raise Unsupported("core memory type must be `(memory <min> [<max>])`")
+-    }
+-    b.push_u8(0x02)
+-    let mut flags = if max_opt is Some(_) { 0x01 } else { 0x00 }
+-    if shared {
+-      flags = flags | 0x02
+-    }
++    }
++    let flags = (if max is Some(_) { 1 } else { 0 }) |
++      (if shared { 2 } else { 0 }) |
++      (if wide { 4 } else { 0 }) |
++      (if page is Some(_) { 8 } else { 0 })
+@@ -5716,3 +6004,6 @@
+-    b.push_uleb_u32(min)
+-    if max_opt is Some(max) {
+-      b.push_uleb_u32(max)
++    b.push_core_unsigned(min)
++    if max is Some(value) {
++      b.push_core_unsigned(value)
++    }
++    if page is Some(value) {
++      b.push_uleb_u32(value)
+@@ -5731,10 +6022,18 @@
+-    let (val_opcode, mutability) = if desc[start] is List(items) {
+-      if items.length() == 2 && items[0] is Atom("mut") {
+-        (parse_core_valtype_opcode(items[1]), 0x01)
+-      } else {
+-        raise Unsupported(
+-          "core global mutability must be `(global (mut <valtype>))`",
+-        )
+-      }
+-    } else {
+-      (parse_core_valtype_opcode(desc[start]), 0x00)
++    let mut value = desc[start]
++    let mut flags = 0
++    if value is List(items) &&
++      items.length() > 0 &&
++      (items[0] is Atom("shared") || items[0] is Atom("mut")) {
++      let mut cursor = 0
++      if items[cursor] is Atom("shared") {
++        flags = 2
++        cursor += 1
++      }
++      if cursor < items.length() && items[cursor] is Atom("mut") {
++        flags = flags | 1
++        cursor += 1
++      }
++      if cursor + 1 != items.length() {
++        raise Unsupported("invalid shared or mutable global type")
++      }
++      value = items[cursor]
+@@ -5743 +6042 @@
+-      raise Unsupported("core global type must be `(global <valtype>)`")
++      raise Unsupported("core global requires one value type")
+@@ -5746,2 +6045,2 @@
+-    b.push_u8(val_opcode)
+-    b.push_u8(mutability)
++    push_core_valtype_encoding(b, value, func_type_names)
++    b.push_u8(flags)
+@@ -5763 +6062 @@
+-      parse_u32_literal(items[1], "core tag type index")
++      resolve_reference(items[1], func_type_names, "core tag type")
+@@ -5779,0 +6079 @@
++    b.push_u8(0x00)
+@@ -5790 +6090 @@
+-  start : Int,
++  start : Int32,
+@@ -5822 +6122 @@
+-            let mut found : Int? = None
++            let mut found : Int32? = None
+@@ -5839 +6139 @@
+-          if parse_decimal_index(count_atom) is Some(count) {
++          if parse_index_literal(count_atom) is Some(count) {
+@@ -5880,0 +6181 @@
++        core_unique_name(state, func_type_names, sort_spec.name_opt, 0)
+@@ -5936,0 +6238 @@
++      core_unique_name(state, func_type_names, name_opt, 0)
+@@ -6005 +6307,5 @@
+-  let idx = ensure_core_type_bytes(state, bytes)
++  core_unique_name(state, state.core_type_names, name_opt, 0)
++  let idx = state.next_core_type_idx
++  state.next_core_type_idx += 1
++  state.core_types.push({ idx, bytes, })
++  push_ordered_section(state, 3, bytes)
+@@ -6010 +6316 @@
+-fn parse_component_sort_tag(sort_name : String) -> Int? {
++fn parse_component_sort_tag(sort_name : String) -> Int32? {
+@@ -6163,0 +6470 @@
++      0x02 => resolve_reference(items[1], state.value_names, "value")
+@@ -6173,0 +6481 @@
++      sort_tag == 0x02 ||
+@@ -6457 +6765 @@
+-fn parse_core_sort_kind(sort_name : String) -> Int? {
++fn parse_core_sort_kind(sort_name : String) -> Int32? {
+@@ -6917,3 +7225,3 @@
+-  sort_tag : Int,
+-  core_kind : Int?,
+-) -> Int raise ComponentTextError {
++  sort_tag : Int32,
++  core_kind : Int32?,
++) -> Int32 raise ComponentTextError {
+@@ -6921 +7229 @@
+-    if parse_decimal_index(atom) is Some(idx) {
++    if parse_index_literal(atom) is Some(idx) {
+@@ -6944,0 +7253 @@
++      0x02 => resolve_reference(expr, state.value_names, "value")
+@@ -7017 +7326 @@
+-        let mut found : Int? = None
++        let mut found : Int32? = None
+@@ -7027 +7336 @@
+-        let mut found : Int? = None
++        let mut found : Int32? = None
+@@ -7046 +7355 @@
+-      if parse_decimal_index(count_atom) is Some(count) {
++      if parse_index_literal(count_atom) is Some(count) {
+@@ -7203 +7512,5 @@
+-fn append_section(output : ByteBuf, section_id : Int, payload : Bytes) -> Unit {
++fn append_section(
++  output : ByteBuf,
++  section_id : Int32,
++  payload : Bytes,
++) -> Unit {
+@@ -7210 +7523,12 @@
+-fn compile_component_expr_with_outer(
++priv struct ComponentCompileFrame {
++  advance : (Bytes?) -> ComponentCompileStep raise ComponentTextError
++}
++
++///|
++priv enum ComponentCompileStep {
++  Descend(ComponentCompileFrame)
++  Complete(Bytes)
++}
++
++///|
++fn component_compile_frame(
+@@ -7216 +7540 @@
+-) -> Bytes raise ComponentTextError {
++) -> ComponentCompileFrame raise ComponentTextError {
+@@ -7235,83 +7559,9 @@
+-  for index in field_index..<expr.length() {
+-    let field_expr = expr[index]
+-    let field = if field_expr is List(items) {
+-      items
+-    } else {
+-      raise ParseError("component fields must be lists")
+-    }
+-    if field.length() == 0 {
+-      raise ParseError("empty component field")
+-    }
+-    if field[0] is Atom("import") {
+-      parse_import(field, state)
+-      continue
+-    }
+-    if field[0] is Atom("component") {
+-      let name_opt = parse_optional_identifier(field, 1)
+-      let body_start = if name_opt is Some(_) { 2 } else { 1 }
+-      let export_names : Array[String] = []
+-      let mut nested_start = body_start
+-      while nested_start < field.length() {
+-        let export_item = if field[nested_start] is List(items) {
+-          items
+-        } else {
+-          break
+-        }
+-        if export_item.length() == 2 && export_item[0] is Atom("export") {
+-          export_names.push(
+-            parse_name_text(export_item[1], "component export name"),
+-          )
+-          nested_start += 1
+-          continue
+-        }
+-        break
+-      }
+-      if nested_start < field.length() &&
+-        export_names.length() == 0 &&
+-        nested_start + 1 == field.length() {
+-        if field[nested_start] is List(items) &&
+-          items.length() == 2 &&
+-          items[0] is Atom("import") {
+-          let desc : Array[SExpr] = [Atom("component")]
+-          if name_opt is Some(name) {
+-            desc.push(Atom(name))
+-          }
+-          parse_import([Atom("import"), items[1], List(desc)], state)
+-          continue
+-        }
+-      }
+-      let next_outer_type_scopes : Array[Array[NamedBinding]] = [
+-        state.type_names,
+-      ]
+-      for scope in state.outer_type_scopes {
+-        next_outer_type_scopes.push(scope)
+-      }
+-      let next_outer_core_type_scopes : Array[Array[NamedBinding]] = [
+-        state.core_type_names,
+-      ]
+-      for scope in state.outer_core_type_scopes {
+-        next_outer_core_type_scopes.push(scope)
+-      }
+-      let next_outer_component_scopes : Array[Array[NamedBinding]] = [
+-        state.component_names,
+-      ]
+-      for scope in state.outer_component_scopes {
+-        next_outer_component_scopes.push(scope)
+-      }
+-      let next_outer_core_module_scopes : Array[Array[NamedBinding]] = [
+-        state.core_module_names,
+-      ]
+-      for scope in state.outer_core_module_scopes {
+-        next_outer_core_module_scopes.push(scope)
+-      }
+-      let nested_expr : Array[SExpr] = [Atom("component")]
+-      if name_opt is Some(name) {
+-        nested_expr.push(Atom(name))
+-      }
+-      for i in nested_start..<field.length() {
+-        nested_expr.push(field[i])
+-      }
+-      let nested = compile_component_expr_with_outer(
+-        nested_expr, next_outer_type_scopes, next_outer_core_type_scopes, next_outer_component_scopes,
+-        next_outer_core_module_scopes,
+-      )
++  let mut pending : (String?, Array[String])? = None
++  let advance = fn(
++    completed : Bytes?,
++  ) -> ComponentCompileStep raise ComponentTextError {
++    if completed is Some(nested) {
++      guard pending is Some((name_opt, export_names)) else {
++        raise ParseError("missing component continuation")
++      }
++      pending = None
+@@ -7334,52 +7584,163 @@
+-      continue
+-    }
+-    if field[0] is Atom("type") {
+-      parse_type_field(field, state)
+-      continue
+-    }
+-    if field[0] is Atom("core") {
+-      parse_core_field(field, state)
+-      continue
+-    }
+-    if field[0] is Atom("instance") {
+-      parse_instance_field(field, state)
+-      continue
+-    }
+-    if field[0] is Atom("alias") {
+-      parse_alias_field(field, state)
+-      continue
+-    }
+-    if field[0] is Atom("func") {
+-      parse_func_field(field, state)
+-      continue
+-    }
+-    if field[0] is Atom("canon") {
+-      parse_canon_field(field, state)
+-      continue
+-    }
+-    if field[0] is Atom("export") {
+-      parse_export_field(field, state)
+-      continue
+-    }
+-    let head_name = match expr_head_atom(field_expr) {
+-      Some(name) => name
+-      None => "<unknown>"
+-    }
+-    raise Unsupported("unsupported component field '\{head_name}'")
+-  }
+-
+-  let out = ByteBuf::ByteBuf()
+-  out.push_u8(0x00)
+-  out.push_u8(0x61)
+-  out.push_u8(0x73)
+-  out.push_u8(0x6d)
+-  out.push_u8(0x0d)
+-  out.push_u8(0x00)
+-  out.push_u8(0x01)
+-  out.push_u8(0x00)
+-
+-  for section in state.sections_ordered {
+-    append_section(out, section.section_id, section.payload)
+-  }
+-
+-  out.to_bytes()
++    }
++    while field_index < expr.length() {
++      let index = field_index
++      field_index += 1
++      let field_expr = expr[index]
++      let field = if field_expr is List(items) {
++        items
++      } else {
++        raise ParseError("component fields must be lists")
++      }
++      if field.length() == 0 {
++        raise ParseError("empty component field")
++      }
++      if field[0] is Atom("@custom") {
++        guard field.length() >= 2 && field[1] is Str(name) else {
++          raise ParseError("custom section name must be UTF-8")
++        }
++        let payload = ByteBuf::ByteBuf()
++        payload.push_utf8_name(name)
++        for index in 2..<field.length() {
++          let bytes = match field[index] {
++            Str(text) => @utf8.encode(text)
++            ByteStr(bytes) => bytes
++            _ =>
++              raise ParseError("custom component section expects byte strings")
++          }
++          payload.push_bytes(bytes)
++        }
++        state.sections_ordered.push({
++          section_id: 0,
++          payload: payload.to_bytes(),
++        })
++        continue
++      }
++      if field[0] is Atom("import") {
++        parse_import(field, state)
++        continue
++      }
++      if field[0] is Atom("component") {
++        let name_opt = parse_optional_identifier(field, 1)
++        let body_start = if name_opt is Some(_) { 2 } else { 1 }
++        let export_names : Array[String] = []
++        let mut nested_start = body_start
++        while nested_start < field.length() {
++          let export_item = if field[nested_start] is List(items) {
++            items
++          } else {
++            break
++          }
++          if export_item.length() == 2 && export_item[0] is Atom("export") {
++            export_names.push(
++              parse_name_text(export_item[1], "component export name"),
++            )
++            nested_start += 1
++            continue
++          }
++          break
++        }
++        if nested_start < field.length() &&
++          export_names.length() == 0 &&
++          nested_start + 1 == field.length() {
++          if field[nested_start] is List(items) &&
++            items.length() == 2 &&
++            items[0] is Atom("import") {
++            let desc : Array[SExpr] = [Atom("component")]
++            if name_opt is Some(name) {
++              desc.push(Atom(name))
++            }
++            parse_import([Atom("import"), items[1], List(desc)], state)
++            continue
++          }
++        }
++        let next_outer_type_scopes : Array[Array[NamedBinding]] = [
++          state.type_names,
++        ]
++        for scope in state.outer_type_scopes {
++          next_outer_type_scopes.push(scope)
++        }
++        let next_outer_core_type_scopes : Array[Array[NamedBinding]] = [
++          state.core_type_names,
++        ]
++        for scope in state.outer_core_type_scopes {
++          next_outer_core_type_scopes.push(scope)
++        }
++        let next_outer_component_scopes : Array[Array[NamedBinding]] = [
++          state.component_names,
++        ]
++        for scope in state.outer_component_scopes {
++          next_outer_component_scopes.push(scope)
++        }
++        let next_outer_core_module_scopes : Array[Array[NamedBinding]] = [
++          state.core_module_names,
++        ]
++        for scope in state.outer_core_module_scopes {
++          next_outer_core_module_scopes.push(scope)
++        }
++        let nested_expr : Array[SExpr] = [Atom("component")]
++        if name_opt is Some(name) {
++          nested_expr.push(Atom(name))
++        }
++        for i in nested_start..<field.length() {
++          nested_expr.push(field[i])
++        }
++        pending = Some((name_opt, export_names))
++        return Descend(
++          component_compile_frame(
++            nested_expr, next_outer_type_scopes, next_outer_core_type_scopes, next_outer_component_scopes,
++            next_outer_core_module_scopes,
++          ),
++        )
++      }
++      if field[0] is Atom("type") {
++        parse_type_field(field, state)
++        continue
++      }
++      if field[0] is Atom("core") {
++        parse_core_field(field, state)
++        continue
++      }
++      if field[0] is Atom("instance") {
++        parse_instance_field(field, state)
++        continue
++      }
++      if field[0] is Atom("alias") {
++        parse_alias_field(field, state)
++        continue
++      }
++      if field[0] is Atom("func") {
++        parse_func_field(field, state)
++        continue
++      }
++      if field[0] is Atom("canon") {
++        parse_canon_field(field, state)
++        continue
++      }
++      if field[0] is Atom("export") {
++        parse_export_field(field, state)
++        continue
++      }
++      let head_name = match expr_head_atom(field_expr) {
++        Some(name) => name
++        None => "<unknown>"
++      }
++      raise Unsupported("unsupported component field '\{head_name}'")
++    }
++
++    let out = ByteBuf::ByteBuf()
++    out.push_u8(0x00)
++    out.push_u8(0x61)
++    out.push_u8(0x73)
++    out.push_u8(0x6d)
++    out.push_u8(0x0d)
++    out.push_u8(0x00)
++    out.push_u8(0x01)
++    out.push_u8(0x00)
++
++    for section in state.sections_ordered {
++      append_section(out, section.section_id, section.payload)
++    }
++
++    Complete(out.to_bytes())
++  }
++  { advance, }
+@@ -7392 +7753,22 @@
+-  compile_component_expr_with_outer(expr, [], [], [], [])
++  let work = [component_compile_frame(expr, [], [], [], [])]
++  let mut completed : Bytes? = None
++  let mut remaining = 1000000
++  while work.last() is Some(frame) {
++    remaining -= work.length()
++    if remaining < 0 || work.length() > 257 {
++      raise Unsupported("component text scope work limit exceeded")
++    }
++    let step = (frame.advance)(completed)
++    completed = None
++    match step {
++      Descend(child) => work.push(child)
++      Complete(bytes) => {
++        ignore(work.pop())
++        completed = Some(bytes)
++      }
++    }
++  }
++  match completed {
++    Some(bytes) => bytes
++    None => raise ParseError("missing component result")
++  }
+@@ -7433,3 +7814,0 @@
+-      if index < items.length() && items[index] is Atom("definition") {
+-        index += 1
+-      }
+@@ -7454,5 +7833 @@
+-        let bytes = Bytes::from_array(out)
+-        ignore(@component.parse_component(bytes)) catch {
+-          e => raise ParseError("\{e}")
+-        }
+-        return bytes
++        return Bytes::from_array(out)
+--- a/component_wat_wbtest.mbt
++++ b/component_wat_wbtest.mbt
+@@ -166 +166 @@
+-      #|  (import "wasi:http/types@0.2" (versionsuffix ".6") (instance))
++      #|  (import "wasi:http/types@0.2" (version-suffix ".6") (instance))
+@@ -188 +188 @@
+-        #|  (import "wasi:http/types@0.2.6" (versionsuffix "") (instance)))
++        #|  (import "wasi:http/types@0.2.6" (version-suffix "") (instance)))
+--- a/moon.pkg
++++ b/moon.pkg
+@@ -1,0 +2,2 @@
++  "moonrockz/wit/core_types",
++  "moonbitlang/core/encoding/utf8",

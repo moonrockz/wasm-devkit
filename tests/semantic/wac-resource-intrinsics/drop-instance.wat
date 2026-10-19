@@ -1,0 +1,1 @@
+(component (type $i (instance (export "r" (type (sub resource))))) (import "api" (instance (type $i))) (alias export 0 "r" (type $r)) (core func (canon resource.drop $r)))

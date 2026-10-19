@@ -1,0 +1,254 @@
+[
+  {
+    "name": "empty",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "function",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "value",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "local-resource",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "outer-primitive",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "outer-record",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "outer-resource",
+    "reference": 1,
+    "validator": 1,
+    "error": "cannot alias outer type which transitively refers to resources not defined in the current component (at offset 0x1b)\n",
+    "validation": "error: cannot alias outer type which transitively refers to resources not defined in the current component (at offset 0x1b)\n"
+  },
+  {
+    "name": "outer-component",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "export-component",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "nested-definition",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "export-nested-component",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "module",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "module-export",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "bad-child",
+    "reference": 1,
+    "validator": 1,
+    "error": "unknown function 0: function index out of bounds (at offset 0x15)\n",
+    "validation": "error: unknown function 0: function index out of bounds (at offset 0x15)\n"
+  },
+  {
+    "name": "future-child",
+    "reference": 1,
+    "validator": 1,
+    "error": "unknown component 0: component index out of bounds (at offset 0xb)\n",
+    "validation": "error: unknown component 0: component index out of bounds (at offset 0xb)\n"
+  },
+  {
+    "name": "unused-definition",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "function-wrong",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for import `f`\nexpected 0 parameters, found 1 (at offset 0x62)\n",
+    "validation": "error: type mismatch for import `f`\nexpected 0 parameters, found 1 (at offset 0x62)\n"
+  },
+  {
+    "name": "value-twice",
+    "reference": 1,
+    "validator": 1,
+    "error": "value 0 cannot be used more than once (at offset 0x5a)\n",
+    "validation": "error: value 0 cannot be used more than once (at offset 0x5a)\n"
+  },
+  {
+    "name": "unused-child-value",
+    "reference": 1,
+    "validator": 1,
+    "error": "value index 0 was not used as part of an instantiation, start function, or export (at offset 0x2f)\n",
+    "validation": "error: value index 0 was not used as part of an instantiation, start function, or export (at offset 0x2f)\n"
+  },
+  {
+    "name": "crossed-local-resource",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for import `f`\ntype mismatch in function parameter `x`\nresource types are not the same (at offset 0xff)\n",
+    "validation": "error: type mismatch for import `f`\ntype mismatch in function parameter `x`\nresource types are not the same (at offset 0xff)\n"
+  },
+  {
+    "name": "matched-local-resource",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "nested-local-resource",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "imported-resource",
+    "reference": 101,
+    "validator": 0,
+    "error": "\nthread 'main' (256321828) panicked at /Users/damian/.cargo/git/checkouts/wac-3beaeb5c194f5763/5a7480c/crates/wac-types/src/package.rs:621:9:\nassertion failed: prev.is_none()\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n",
+    "validation": ""
+  },
+  {
+    "name": "outer-module",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "outer-record-function",
+    "reference": 1,
+    "validator": 1,
+    "error": "func not valid to be used as import (at offset 0x38)\n",
+    "validation": "error: func not valid to be used as import (at offset 0x38)\n"
+  },
+  {
+    "name": "value-grandchild",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "outer-record-import-function",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "component-annotation",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "component-annotation-missing",
+    "reference": 1,
+    "validator": 1,
+    "error": "ascribed type of export is not compatible with item's type\nmissing export named `other` (at offset 0x4f)\n",
+    "validation": "error: ascribed type of export is not compatible with item's type\nmissing export named `other` (at offset 0x4f)\n"
+  },
+  {
+    "name": "component-narrowing",
+    "reference": 1,
+    "validator": 1,
+    "error": "instance 0 has no export named `f` (at offset 0x84)\n",
+    "validation": "error: instance 0 has no export named `f` (at offset 0x84)\n"
+  },
+  {
+    "name": "crossed-nested-local-resource",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for import `f`\ntype mismatch in function parameter `x`\nresource types are not the same (at offset 0x11c)\n",
+    "validation": "error: type mismatch for import `f`\ntype mismatch in function parameter `x`\nresource types are not the same (at offset 0x11c)\n"
+  },
+  {
+    "name": "matched-nested-local-resource",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "value-custom",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "hidden-outer-resource",
+    "reference": 1,
+    "validator": 1,
+    "error": "cannot alias outer type which transitively refers to resources not defined in the current component (at offset 0x46)\n",
+    "validation": "error: cannot alias outer type which transitively refers to resources not defined in the current component (at offset 0x46)\n"
+  },
+  {
+    "name": "hidden-outer-record",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "nested-producers",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  }
+]

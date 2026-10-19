@@ -1,0 +1,1 @@
+package example:types; world first {import f:func();} interface api {f:func();} world second {include first;export api;}

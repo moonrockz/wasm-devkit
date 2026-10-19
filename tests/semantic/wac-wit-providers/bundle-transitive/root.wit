@@ -1,0 +1,1 @@
+package example:types; interface api {use example:dep/types@1.2.3.{handle};take: func(h: handle);} world app {import api;export api;}

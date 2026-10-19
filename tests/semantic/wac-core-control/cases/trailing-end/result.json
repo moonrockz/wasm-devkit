@@ -1,0 +1,9 @@
+{
+  "name": "trailing-end",
+  "wasm": 1,
+  "reference": 0,
+  "product": 1,
+  "wasm_error": "error: func 0 failed to validate\n\nCaused by:\n    0: operators remaining after end of function body or expression (at offset 0x22)\n",
+  "reference_error": "",
+  "product_error": ".dev/core-control/cases/trailing-end/dep.wasm:[byte 34]: error WAC-B001: trailing core function bytes\n.dev/core-control/cases/trailing-end/input.wac:[30,39): package `test:dep` requested here\n"
+}

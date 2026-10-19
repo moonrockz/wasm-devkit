@@ -1,0 +1,1 @@
+package example:app;world base{import host:interface{resource r; f:func(x:r)->r;}}world app{include base;}

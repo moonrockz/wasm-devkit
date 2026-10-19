@@ -1,0 +1,1 @@
+package example:app;interface api{resource item;}interface other{type item=u8;}

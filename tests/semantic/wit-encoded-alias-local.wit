@@ -1,0 +1,1 @@
+package example:aliases@1.0.0;interface base { resource r; type id = u32; }interface api { use base.{r,id}; run:func(x:borrow<r>)->id; }world app { import api; }

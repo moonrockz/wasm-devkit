@@ -1,0 +1,1 @@
+(component (core module $m) (core instance $i (instantiate $m)) (alias core export $i "missing" (core func $f)))

@@ -1,0 +1,1 @@
+package example:app@1.0.0-rc.2;interface api{@since(version=1.0.0-rc.10)f:func();}

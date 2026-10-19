@@ -1,0 +1,11 @@
+{
+  "name": "if-missing-else",
+  "wasm": 1,
+  "reference": 0,
+  "product": 1,
+  "wasm_error": "error: func 0 failed to validate\n\nCaused by:\n    0: type mismatch: expected i32 but nothing on stack (at offset 0x2f)\n",
+  "reference_error": "",
+  "product_error": ".dev/core-control/cases/if-missing-else/dep.wasm:[binary]: error WAC-B003: CoreModuleError(\"validate core module: StackHeightMismatch(\\\"if-else exit: expected stack height 1, got 0\\\")\")\n.dev/core-control/cases/if-missing-else/input.wac:[30,39): package `test:dep` requested here\n",
+  "text_product": 1,
+  "text_error": ".dev/core-control/cases/if-missing-else/dep.wat:[binary]: error WAC-B003: CoreModuleError(\"validate core module: StackHeightMismatch(\\\"if-else exit: expected stack height 1, got 0\\\")\")\n.dev/core-control/cases/if-missing-else/input.wac:[30,39): package `test:dep` requested here\n"
+}

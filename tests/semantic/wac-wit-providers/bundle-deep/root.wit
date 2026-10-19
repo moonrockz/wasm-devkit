@@ -1,0 +1,1 @@
+package example:types;interface api {use example:middle/types.{handle};f:func(h:handle);}

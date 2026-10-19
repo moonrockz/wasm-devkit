@@ -1,0 +1,1 @@
+package example:app;interface api{resource r;variant data{empty,value(borrow<r>)}f:func()->data;}

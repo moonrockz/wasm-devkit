@@ -1,0 +1,1 @@
+package example:app;world app{@unstable(feature=foo)import example:dep/missing;@unstable(feature=bar)include example:dep/missing;}package example:dep{interface api{}}

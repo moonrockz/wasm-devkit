@@ -1,0 +1,1 @@
+package example:worlds;world first { resource r; import f:func(x:borrow<r>); } world second { resource r; import f:func(x:borrow<r>); }

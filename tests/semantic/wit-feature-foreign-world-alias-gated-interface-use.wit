@@ -1,0 +1,1 @@
+package example:app;world first{include example:dep/base;}use example:dep/base as other;interface api{@unstable(feature=foo)use other.{t};}package example:dep{world base{}}

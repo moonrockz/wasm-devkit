@@ -289,6 +289,7 @@ fn string_literal(
           i += 2
           let mut scalar = 0
           let mut previous_digit = false
+          let mut any_digit = false
           let mut escape_valid = true
           while i < text.length() {
             let c = unit(text, i)
@@ -297,8 +298,9 @@ fn string_literal(
                 scalar = scalar * 16 + value
               }
               previous_digit = true
+              any_digit = true
             } else if c == 95 {
-              if !previous_digit {
+              if !any_digit {
                 escape_valid = false
               }
               previous_digit = false

@@ -1,0 +1,1 @@
+(component (type $r (resource (rep i32))) (type $i (component (export "r" (type $r (sub resource))) (type $f (func (param "x" (own 0)))) (export "f" (func (type $f))))) (import "allowed" (component (type $i))))

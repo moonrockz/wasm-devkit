@@ -1,0 +1,1 @@
+package example:types; world app {include base;export f:func();} world base {import g:func();}

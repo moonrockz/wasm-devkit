@@ -1,0 +1,2 @@
+package example:app;
+interface api { type item = missing; get: func() -> item; }

@@ -1,0 +1,1 @@
+package test:ids; interface a{resource r;type t=u32;} interface b{@external-id("urn:a") use a.{r,t};}

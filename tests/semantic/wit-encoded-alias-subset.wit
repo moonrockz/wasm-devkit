@@ -1,0 +1,1 @@
+package example:subset; interface base { resource r; type id=u32; unused:func(); } interface api { use base.{r}; run:func(x:borrow<r>); } world app { import api; }

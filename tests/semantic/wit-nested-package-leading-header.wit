@@ -1,0 +1,1 @@
+package example:root;world app{import example:dep/api;}package example:dep{interface api{}}

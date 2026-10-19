@@ -1,0 +1,1 @@
+package example:app; interface api {f:func();} world base {import api;} world app {include base; include base;}

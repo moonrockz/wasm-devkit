@@ -1,0 +1,11 @@
+{
+  "name": "depth-256",
+  "wasm": 0,
+  "reference": 0,
+  "product": 0,
+  "wasm_error": "",
+  "reference_error": "",
+  "product_error": "",
+  "text_product": 1,
+  "text_error": ".dev/core-control/cases/depth-256/dep.wat:[binary]: error WAC-B002: core WAT control/expression nesting exceeds 64\n.dev/core-control/cases/depth-256/input.wac:[30,39): package `test:dep` requested here\n"
+}

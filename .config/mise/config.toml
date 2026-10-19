@@ -39,6 +39,7 @@ macos-arm64 = { url = "https://cli.moonbitlang.com/binaries/0.10.15%2B943464bfa/
 windows-x64 = { url = "https://cli.moonbitlang.com/binaries/0.10.15%2B943464bfa/moonbit-windows-x86_64.zip", format = "zip" }
 
 [env]
+SEMANTIC_REFERENCE_RUST_VERSION = "1.94.1"
 _.path = ["./node_modules/.bin"]
 
 # Every task is a MoonBit script: `moonx scripts/<name>.mbtx`. Pass arguments after `--`.
@@ -177,3 +178,27 @@ run = "moonx scripts/verify-cli.mbtx"
 [tasks."test:docs"]
 description = "Run README recipes with their documented imports (args: targets; default: all four)"
 run = "moonx scripts/test-docs.mbtx"
+
+[tasks."test:semantics"]
+description = "Compare semantic fixtures with pinned reference CLIs (args: wasm-tools-1.262.0 wac-0.12.0 paths)"
+run = "moonx scripts/test-semantics.mbtx"
+
+[tasks."build:semantic-reference"]
+description = "Build the pinned upstream semantic API oracle with Rust 1.94.1"
+run = "moonx scripts/build-semantic-reference.mbtx"
+
+[tasks."build:semantic-tools"]
+description = "Build pinned semantic API and CLI references with local WIT/WAT providers"
+run = "moonx scripts/build-semantic-reference.mbtx --with-cli"
+
+[tasks."build:warg-provider"]
+description = "Build the optional authenticated Warg registry transport"
+run = "moonx scripts/build-registry.mbtx"
+
+[tasks."build:registry-reference"]
+description = "Build the Warg transport and controlled pinned registry reference"
+run = "moonx scripts/build-registry.mbtx --with-reference"
+
+[tasks."test:registry"]
+description = "Compare controlled Warg selection, cache and offline policy (native|wasm)"
+run = "moonx scripts/test-registry.mbtx"

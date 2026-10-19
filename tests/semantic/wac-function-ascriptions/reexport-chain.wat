@@ -1,0 +1,1 @@
+(component (type $a (func (param "x" u32))) (type $b (func (param "x" u32))) (import "f" (func (type $a))) (export "first" (func 0) (func (type $b))) (export "second" (func 1) (func (type $a))))

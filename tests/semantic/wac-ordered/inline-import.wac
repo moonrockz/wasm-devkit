@@ -1,0 +1,1 @@
+package example:app;import x: interface{type t=u8;f: func(x: t);};

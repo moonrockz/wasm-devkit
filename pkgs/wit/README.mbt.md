@@ -38,8 +38,30 @@ import {
   "moonrockz/wit/traversal",
   "moonrockz/wit/printer",
   "moonrockz/wit/formatter",
+  "moonrockz/wit/verifier",
 } for "test"
 ```
+
+### Distinguish syntax, structure and resolved semantics
+
+`Parse::is_valid()` reports syntax diagnostics. AST/CST `validate()` checks tree
+structure and spans. `verifier.verify()` resolves names and checks language
+contracts, returning an immutable model or diagnostics. The pure verifier does
+no I/O; callers supply dependency packages explicitly.
+
+```mbt check
+test "Guide: Syntax validity does not resolve WIT names" {
+  let source = "package example:app; interface api { type broken = missing; }"
+  let parsed = @parser.parse(source)
+  assert_true(parsed.is_valid())
+  assert_true(parsed.ast.validate() && parsed.cst.validate())
+  assert_true(@verifier.verify(parsed, source~) is Err(_))
+}
+```
+
+See the [verifier recipes](src/verifier/README.mbt.md) for resolved models,
+dependencies, nominal resources and the pinned semantic profile. Complete
+[CLI bundles](../../examples/verification/README.md) include their local inputs.
 
 ### Parse a service interface
 
@@ -239,9 +261,10 @@ README recipes with exactly the imports shown, on wasm, wasm-gc, js and native.
 
 Package declarations, interfaces, worlds, types, functions, resources, use/include declarations and explicitly selected proposal-gated constructs.
 
-Syntax parsing is separate from semantic resolution. Cross-file/package loading, name resolution,
-registry access and binding generation belong in later semantic tooling.
-The syntax parser must not perform I/O.
+The [verifier](src/verifier/README.mbt.md) resolves multi-file source and encoded
+package closures, names, type contracts and world includes. Caller-supplied
+providers and the CLI perform filesystem/registry operations outside the pure
+verifier. The syntax parser performs no I/O. Binding generation is outside this module.
 
 ## Packages
 
@@ -256,6 +279,7 @@ The syntax parser must not perform I/O.
 | [traversal](src/traversal/README.mbt.md) | Implemented: AST/CST walks, folds, reductions, events, immutable cursors and rewrites |
 | [printer](src/printer/README.mbt.md) | Implemented: stack-safe canonical AST emission with structural round-trip checks |
 | [formatter](src/formatter/README.mbt.md) | Implemented: CST-aware layout preserving comment text, token order and meaning |
+| [verifier](src/verifier/README.mbt.md) | Pure name/type/dependency resolution and immutable semantic models |
 
 ## Validation
 

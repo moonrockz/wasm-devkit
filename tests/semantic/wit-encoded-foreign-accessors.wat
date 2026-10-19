@@ -1,0 +1,31 @@
+(component
+  (type (;0;)
+    (component
+      (type (;0;)
+        (component
+          (type (;0;)
+            (instance
+              (export (;0;) "r" (type (sub resource)))
+              (type (;1;) (borrow 0))
+              (type (;2;) (func (param "self" 1) (result u8)))
+              (export (;0;) "[method][get]r.value" (func (type 2)))
+              (type (;3;) (func (param "self" 1) (param "x" u8)))
+              (export (;1;) "[method][set]r.value" (func (type 3)))
+              (type (;4;) (func (result u32)))
+              (export (;2;) "[get]p" (func (type 4)))
+              (type (;5;) (func (param "x" u32)))
+              (export (;3;) "[set]p" (func (type 5)))
+            )
+          )
+          (import "dep:base/core" (instance (;0;) (type 0)))
+        )
+      )
+      (export (;0;) "example:accessors/app" (component (type 0)))
+    )
+  )
+  (export (;1;) "app" (type 0))
+  (@custom "package-docs" "\01{}")
+  (@producers
+    (processed-by "wit-component" "0.262.0")
+  )
+)

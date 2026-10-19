@@ -1,0 +1,1 @@
+(component (type (instance (type (func))(export "g" (func (type 0))))) (import "test:api/run@1.2.0" (instance (type 0))) (export "api" (instance 0)))

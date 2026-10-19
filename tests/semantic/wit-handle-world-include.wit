@@ -1,0 +1,1 @@
+package example:app; interface api{resource external;} world base{use api.{external};resource r;import f:func(x:own<r>,y:borrow<external>)->r;}world app{include base;}

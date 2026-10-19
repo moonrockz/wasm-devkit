@@ -1,0 +1,1 @@
+(component (import "r" (type $r (sub resource))) (type $i (instance (alias outer 1 $r (type $r)) (export "r" (type (eq $r))) (type $b (borrow 1)) (export "v" (value (type $b))))) (import "i" (instance (type $i))))

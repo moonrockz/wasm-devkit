@@ -1,0 +1,1 @@
+package test:root;world app{import test:dep/base@1.0.0;}package test:dep@1.0.0{interface base{@since(version=1.0.0) resource r{@since(version=1.0.0) constructor();@since(version=1.0.0) method:func(x:list<u32>);}@since(version=1.0.0) type t=list<u32>;@since(version=1.0.0) f:func(x:option<t>)->tuple<t,r>;}}

@@ -1,0 +1,44 @@
+[
+  {
+    "name": "empty",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "inline-empty",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "function",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "resource-fresh",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "function-wrong",
+    "reference": 1,
+    "compose": 1,
+    "validation": null,
+    "error": "failed to parse package `test:runtime`\n"
+  },
+  {
+    "name": "resource-fresh-wrong-use",
+    "reference": 1,
+    "compose": 1,
+    "validation": null,
+    "error": "failed to parse package `test:runtime`\n"
+  }
+]

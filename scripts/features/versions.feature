@@ -146,3 +146,28 @@ Feature: One version across the workspace
         "0.0.1"
       }
       """
+
+  Scenario: Update only the optional Warg provider package in its Cargo lock
+    Given a file "tools/warg-provider/Cargo.lock" with the text:
+      """
+      [[package]]
+      name = "warg-client"
+      version = "0.9.0"
+
+      [[package]]
+      name = "wasm-devkit-warg"
+      version = "0.1.1"
+      """
+    When I look for versions other than "0.1.1"
+    Then the mismatches are ""
+    When I set the versions of the files to "0.2.0"
+    Then the result is:
+      """
+      [[package]]
+      name = "warg-client"
+      version = "0.9.0"
+
+      [[package]]
+      name = "wasm-devkit-warg"
+      version = "0.2.0"
+      """

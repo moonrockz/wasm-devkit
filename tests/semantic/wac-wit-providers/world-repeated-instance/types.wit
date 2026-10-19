@@ -1,0 +1,1 @@
+package example:types; interface api {resource handle;} world app {import a:api;import b:api;export c:api;export d:api;}

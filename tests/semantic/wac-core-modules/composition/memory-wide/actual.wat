@@ -1,0 +1,1 @@
+(component (type $w (component (type $i (instance (core type $m (module (export "m" (memory 1 4)))) (export "out" (core module (type $m))))) (export "test:actual/api" (instance (type $i))))) (export "api" (type $w)))

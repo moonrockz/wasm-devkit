@@ -1,0 +1,1 @@
+(component (type $api (instance (export "handle" (type (sub resource))) (type $take (func (param "h" (own 0)))) (export "take" (func (type $take))) )) (import "api" (instance (type $api))))

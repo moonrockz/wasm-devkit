@@ -1,0 +1,1 @@
+package example:app;world app{use api.{id};}interface api{type id=u32;}

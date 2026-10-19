@@ -1,0 +1,1 @@
+package example:dep; interface api { use example:base/api.{item}; }

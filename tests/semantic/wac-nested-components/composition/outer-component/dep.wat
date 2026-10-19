@@ -1,0 +1,1 @@
+(component (component $first) (component $second (alias outer 1 $first (component $c)) (instance $i (instantiate $c)) (export "i" (instance $i))) (instance $i (instantiate $second)) (export "i" (instance $i)))

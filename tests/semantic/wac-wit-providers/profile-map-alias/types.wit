@@ -1,0 +1,1 @@
+package example:types@1.2.3;interface api {type key=string;type value=map<key,u32>;f: func(x: value);}

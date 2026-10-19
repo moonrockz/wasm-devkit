@@ -1,0 +1,1 @@
+package test:app targets test:app/w; world w {import f: func(x: u32);} import f: func(x: u16);

@@ -1,0 +1,346 @@
+[
+  {
+    "name": "empty",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "inline-empty",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "function",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "inline-function",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "resource-fresh",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "resource-argument",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "inline-resource",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "inline-component",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "inline-module",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "future-component",
+    "reference": 1,
+    "validator": 1,
+    "error": "unknown component 0: component index out of bounds (at offset 0xb)\n",
+    "validation": "error: unknown component 0: component index out of bounds (at offset 0xb)\n",
+    "product": 1
+  },
+  {
+    "name": "future-instance",
+    "reference": 1,
+    "validator": 1,
+    "error": "unknown instance 0: instance index out of bounds (at offset 0xb)\n",
+    "validation": "error: unknown instance 0: instance index out of bounds (at offset 0xb)\n",
+    "product": 1
+  },
+  {
+    "name": "function-wrong",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for import `f`\ntype mismatch in function parameter `x`\nexpected primitive `u32` found primitive `u64` (at offset 0x45)\n",
+    "validation": "error: type mismatch for import `f`\ntype mismatch in function parameter `x`\nexpected primitive `u32` found primitive `u64` (at offset 0x45)\n",
+    "product": 1
+  },
+  {
+    "name": "function-missing",
+    "reference": 1,
+    "validator": 1,
+    "error": "missing import named `f` (at offset 0x3e)\n",
+    "validation": "error: missing import named `f` (at offset 0x3e)\n",
+    "product": 1
+  },
+  {
+    "name": "function-duplicate",
+    "reference": 1,
+    "validator": 1,
+    "error": "instantiation argument `f` conflicts with previous argument `f` (at offset 0x3e)\n",
+    "validation": "error: instantiation argument `f` conflicts with previous argument `f` (at offset 0x3e)\n",
+    "product": 1
+  },
+  {
+    "name": "extra-argument",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "inline-duplicate",
+    "reference": 1,
+    "validator": 1,
+    "error": "export name `f` conflicts with previous name `f` (at offset 0x1d)\n",
+    "validation": "error: export name `f` conflicts with previous name `f` (at offset 0x1d)\n",
+    "product": 1
+  },
+  {
+    "name": "resource-nested",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "inline-nested",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "module-argument",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "module-wrong",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for import `m`\ntype mismatch in export `f`\nexpected: (func (param i32))\nfound:    (func (param i64)) (at offset 0x4b)\n",
+    "validation": "error: type mismatch for import `m`\ntype mismatch in export `f`\nexpected: (func (param i32))\nfound:    (func (param i64)) (at offset 0x4b)\n",
+    "product": 1
+  },
+  {
+    "name": "resource-function",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "resource-function-wrong",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for import `f`\ntype mismatch in function parameter `x`\nresource types are not the same (at offset 0x61)\n",
+    "validation": "error: type mismatch for import `f`\ntype mismatch in function parameter `x`\nresource types are not the same (at offset 0x61)\n",
+    "product": 1
+  },
+  {
+    "name": "resource-instance-argument",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "resource-instance-function",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "resource-fresh-alias",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "resource-fresh-capture",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "resource-fresh-wrong-use",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for import `f`\ntype mismatch in function parameter `x`\nresource types are not the same (at offset 0x6c)\n",
+    "validation": "error: type mismatch for import `f`\ntype mismatch in function parameter `x`\nresource types are not the same (at offset 0x6c)\n",
+    "product": 1
+  },
+  {
+    "name": "resource-fresh-right-use",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "inline-missing-resource-name",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "inline-resource-name",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "inline-resource-name-after",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "component-argument",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "component-argument-wrong",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for import `p`\nmissing export named `r` (at offset 0x3a)\n",
+    "validation": "error: type mismatch for import `p`\nmissing export named `r` (at offset 0x3a)\n",
+    "product": 1
+  },
+  {
+    "name": "type-argument",
+    "reference": 1,
+    "validator": 1,
+    "error": "instance not valid to be used as export (at offset 0x55)\n",
+    "validation": "error: instance not valid to be used as export (at offset 0x55)\n",
+    "product": 2
+  },
+  {
+    "name": "type-argument-wrong",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for import `t`\ntype mismatch in record field `x`\nexpected primitive `u32` found primitive `u64` (at offset 0x4b)\n",
+    "validation": "error: type mismatch for import `t`\ntype mismatch in record field `x`\nexpected primitive `u32` found primitive `u64` (at offset 0x4b)\n",
+    "product": 2
+  },
+  {
+    "name": "inline-method",
+    "reference": 1,
+    "validator": 1,
+    "error": "export name `[method]r.get` is not valid\nresource used in function does not have a name in this context (at offset 0x36)\n",
+    "validation": "error: export name `[method]r.get` is not valid\nresource used in function does not have a name in this context (at offset 0x36)\n",
+    "product": 1
+  },
+  {
+    "name": "inline-method-wrong-name",
+    "reference": 1,
+    "validator": 1,
+    "error": "export name `[method]s.get` is not valid\nresource used in function does not have a name in this context (at offset 0x36)\n",
+    "validation": "error: export name `[method]s.get` is not valid\nresource used in function does not have a name in this context (at offset 0x36)\n",
+    "product": 1
+  },
+  {
+    "name": "resource-nested-use",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "inline-type-future",
+    "reference": 1,
+    "validator": 1,
+    "error": "unknown type 0: type index out of bounds (at offset 0xb)\n",
+    "validation": "error: unknown type 0: type index out of bounds (at offset 0xb)\n",
+    "product": 1
+  },
+  {
+    "name": "inline-function-future",
+    "reference": 1,
+    "validator": 1,
+    "error": "unknown function 0: function index out of bounds (at offset 0xb)\n",
+    "validation": "error: unknown function 0: function index out of bounds (at offset 0xb)\n",
+    "product": 1
+  },
+  {
+    "name": "module-future",
+    "reference": 1,
+    "validator": 1,
+    "error": "unknown module 0: module index out of bounds (at offset 0xb)\n",
+    "validation": "error: unknown module 0: module index out of bounds (at offset 0xb)\n",
+    "product": 1
+  },
+  {
+    "name": "type-argument-named",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  },
+  {
+    "name": "component-result-implements",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": "",
+    "product": 0
+  }
+]

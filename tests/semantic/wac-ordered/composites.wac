@@ -1,0 +1,1 @@
+package example:app;type a=list<tuple<option<u8>,result<string,u32>>>;type f=future<u8>;type s=stream<string>;

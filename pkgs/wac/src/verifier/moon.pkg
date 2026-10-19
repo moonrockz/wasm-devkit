@@ -1,0 +1,24 @@
+import {
+  "moonrockz/wit/core_types",
+  "moonrockz/wac/ast",
+  "moonrockz/wac/parser",
+  "moonrockz/wac/span",
+  "moonbitlang/core/debug",
+  "moonrockz/wit/binary" @binary_validation,
+  "moonrockz/wit/verifier" @wit_verifier,
+  "moonrockz/wit/component_text",
+  "Milky2018/wasm_component" @component,
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "moonrockz/wac/span",
+  "moonrockz/wac/verifier",
+  "moonrockz/wac/parser",
+  "moonrockz/wac/ast",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/quickcheck",
+  "moonrockz/wit/verifier" @wit_verifier,
+  "moonrockz/wit/parser" @wit_parser,
+  "moonrockz/wac/formatter",
+} for "test"

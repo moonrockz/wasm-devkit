@@ -1,0 +1,1 @@
+package example:app; interface api {} import a: api; import b: a; import c: a;

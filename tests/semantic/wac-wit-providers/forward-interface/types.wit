@@ -1,0 +1,1 @@
+package example:types; interface api {use base.{handle};f: func(h: handle);} interface base {resource handle;}

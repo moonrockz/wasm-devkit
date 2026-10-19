@@ -1,0 +1,60 @@
+[
+  {
+    "name": "test:api",
+    "version": "1.0.0",
+    "source": "api-1.wat",
+    "format": "wat"
+  },
+  {
+    "name": "test:api",
+    "version": "1.1.0",
+    "source": "api-2.wat",
+    "format": "wat"
+  },
+  {
+    "name": "test:build",
+    "version": "1.0.0+one",
+    "source": "api-1.wat",
+    "format": "wat"
+  },
+  {
+    "name": "test:build",
+    "version": "1.0.0+two",
+    "source": "api-2.wat",
+    "format": "wat"
+  },
+  {
+    "name": "test:pre",
+    "version": "1.0.0-alpha",
+    "source": "api-1.wat",
+    "format": "wat"
+  },
+  {
+    "name": "test:yanked",
+    "version": "1.0.0",
+    "source": "api-1.wat",
+    "format": "wat",
+    "yanked": true
+  },
+  {
+    "name": "test:invalid",
+    "version": "1.0.0",
+    "source": "invalid.bin.txt",
+    "format": "raw"
+  },
+  {
+    "name": "test:wit",
+    "version": "1.0.0",
+    "source": "api.wit",
+    "format": "wit"
+  },
+  {
+    "name": "test:needs-wit",
+    "version": "1.0.0",
+    "source": "needs-wit.wat",
+    "format": "wat"
+  },
+  {
+    "name": "test:empty"
+  }
+]

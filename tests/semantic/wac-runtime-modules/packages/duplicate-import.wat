@@ -1,0 +1,1 @@
+(component (core module $m (import "env" "f" (func)) (import "env" "f" (func))) (export "module" (core module $m)))

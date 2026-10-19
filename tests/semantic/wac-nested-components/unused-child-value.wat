@@ -1,0 +1,1 @@
+(component (component $c (import "v" (value u32))))

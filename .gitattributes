@@ -3,3 +3,8 @@
 *.mbt text eol=lf
 *.mbtx text eol=lf
 *.toml text eol=lf
+
+# Preserve exact pinned fixture and license bytes, including whitespace.
+tests/registry/** -text
+tests/semantic/wit-encoded-upstream/maps.wit -whitespace
+tests/semantic/wit-encoded-upstream/LICENSE-Apache-2.0_WITH_LLVM-exception -whitespace

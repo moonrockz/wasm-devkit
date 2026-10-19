@@ -1,0 +1,1 @@
+{"definitions":[],"instance":0,"name":"test:dep","types":{"defined":[],"funcs":[],"interfaces":[{"exports":[["v",{"value":"own<0>"}]],"id":null,"uses":[]}],"modules":[],"resources":[{"name":"r"}],"worlds":[{"exports":[["v",{"value":"own<0>"}]],"id":null,"imports":[["r",{"type":{"resource":0}}],["v",{"value":"own<0>"}]],"uses":[]}]},"version":null,"world":0}

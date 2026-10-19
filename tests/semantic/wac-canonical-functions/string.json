@@ -1,0 +1,1 @@
+{"definitions":[],"instance":0,"name":"test:canonical","types":{"defined":[],"funcs":[{"async":false,"params":[["x","string"]],"result":null}],"interfaces":[{"exports":[["f",{"func":0}]],"id":null,"uses":[]}],"modules":[],"resources":[],"worlds":[{"exports":[["f",{"func":0}]],"id":null,"imports":[],"uses":[]}]},"version":null,"world":0}

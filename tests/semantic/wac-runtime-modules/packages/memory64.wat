@@ -1,0 +1,1 @@
+(component (core module $m (memory (export "m") i64 70000 80000)) (export "module" (core module $m)))

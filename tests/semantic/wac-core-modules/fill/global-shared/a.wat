@@ -1,0 +1,1 @@
+(component (core type $m (module (export "g" (global (shared i64))))) (import "m" (core module $m (type $m))) (export "out" (core module $m)))

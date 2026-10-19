@@ -1,0 +1,1 @@
+package example:app@1.0.0;interface api{use example:dep/api@2.0.0.{t};f:func(x:list<t>);}world app{export api;}package example:dep@2.0.0{interface api{@since(version=2.0.0)type t=u8;}}

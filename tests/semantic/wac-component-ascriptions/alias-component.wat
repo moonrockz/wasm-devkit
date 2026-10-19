@@ -1,0 +1,1 @@
+(component (type (instance (type (component)) (export "c" (component (type 0))))) (import "i" (instance (type 0))) (alias export 0 "c" (component)) (type (component)) (export "c" (component 0) (component (type 1))))

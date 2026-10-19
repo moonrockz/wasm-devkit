@@ -1,0 +1,1 @@
+package test:app; interface api {resource handle;} import a: api; import b: api; let i=new test:first {...}; export a as first; export b as second;

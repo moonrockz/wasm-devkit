@@ -1,0 +1,2 @@
+package test:wit;
+interface api { use test:types/defs.{token}; ping: func(value: token); }

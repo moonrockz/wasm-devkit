@@ -1,0 +1,1 @@
+package example:app;use base as other;world base{import f:func();}world app{include other;}

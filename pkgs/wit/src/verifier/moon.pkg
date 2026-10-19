@@ -1,0 +1,24 @@
+import {
+  "Milky2018/wasm_component" @component,
+  "moonrockz/wit/component_text",
+  "moonbitlang/core/encoding/utf8",
+  "moonrockz/wit/ast",
+  "moonrockz/wit/binary",
+  "moonrockz/wit/parser",
+  "moonrockz/wit/scanner",
+  "moonrockz/wit/span",
+  "moonrockz/wit/diagnostic",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+  "moonbitlang/core/priority_queue",
+}
+
+import {
+  "moonrockz/wit/span",
+  "moonbitlang/core/quickcheck",
+  "moonrockz/wit/verifier",
+  "moonrockz/wit/parser",
+  "moonrockz/wit/ast",
+  "moonbitlang/core/encoding/utf8",
+  "moonrockz/wit/formatter",
+} for "test"

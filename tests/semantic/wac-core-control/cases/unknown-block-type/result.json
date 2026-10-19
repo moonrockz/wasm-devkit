@@ -1,0 +1,9 @@
+{
+  "name": "unknown-block-type",
+  "wasm": 1,
+  "reference": 0,
+  "product": 1,
+  "wasm_error": "error: func 0 failed to validate\n\nCaused by:\n    0: unknown type: type index out of bounds (at offset 0x21)\n",
+  "reference_error": "",
+  "product_error": ".dev/core-control/cases/unknown-block-type/dep.wasm:[binary]: error WAC-B003: CoreModuleError(\"validate core module: InvalidTypeIndex(1)\")\n.dev/core-control/cases/unknown-block-type/input.wac:[30,39): package `test:dep` requested here\n"
+}

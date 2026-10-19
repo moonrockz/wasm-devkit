@@ -1,0 +1,1 @@
+package test:app targets test:app/w; world w {import i: interface {f: func();g: func();}; export out: interface {f: func();};} import i: interface {f: func();g: func();}; export i as out;

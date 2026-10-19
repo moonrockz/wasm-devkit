@@ -1,0 +1,8 @@
+import {
+  "moonrockz/wit/core_types",
+  "moonbitlang/core/encoding/utf8",
+  "Milky2018/wasm_component" @component,
+  "moonrockz/wit/binary/core_parser" @parser,
+  "Milky2018/wasm_core/types",
+  "moonrockz/wit/binary/core_validation" @core_validator,
+}

@@ -1,0 +1,1 @@
+package example:app; world base {type t=u8;} world left {include base;} world right {include base;} world app {include left; include right;}

@@ -1,0 +1,1 @@
+(component (import "r" (type $r (sub resource))) (core func $f (canon resource.rep $r)) (core instance $env (export "f" (func $f))) (core module $m (import "env" "f" (func (param i32) (result i32)))) (core instance (instantiate $m (with "env" (instance $env)))))

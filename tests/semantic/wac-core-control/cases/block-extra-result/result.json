@@ -1,0 +1,11 @@
+{
+  "name": "block-extra-result",
+  "wasm": 1,
+  "reference": 0,
+  "product": 1,
+  "wasm_error": "error: func 0 failed to validate\n\nCaused by:\n    0: type mismatch: values remaining on stack at end of block (at offset 0x2c)\n",
+  "reference_error": "",
+  "product_error": ".dev/core-control/cases/block-extra-result/dep.wasm:[binary]: error WAC-B003: CoreModuleError(\"validate core module: StackHeightMismatch(\\\"block exit: expected stack height 0, got 1\\\")\")\n.dev/core-control/cases/block-extra-result/input.wac:[30,39): package `test:dep` requested here\n",
+  "text_product": 1,
+  "text_error": ".dev/core-control/cases/block-extra-result/dep.wat:[binary]: error WAC-B003: CoreModuleError(\"validate core module: StackHeightMismatch(\\\"block exit: expected stack height 0, got 1\\\")\")\n.dev/core-control/cases/block-extra-result/input.wac:[30,39): package `test:dep` requested here\n"
+}

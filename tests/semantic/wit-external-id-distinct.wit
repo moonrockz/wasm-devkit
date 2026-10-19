@@ -1,0 +1,1 @@
+package test:ids;interface api{@external-id("same") resource first;@external-id("same") resource second;f:func(a:borrow<first>,b:borrow<second>);}

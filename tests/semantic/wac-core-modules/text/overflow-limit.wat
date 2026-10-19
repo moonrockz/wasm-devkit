@@ -1,0 +1,1 @@
+(component (core type (module (export "m" (memory i64 18446744073709551616)))))

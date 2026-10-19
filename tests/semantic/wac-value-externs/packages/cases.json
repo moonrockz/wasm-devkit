@@ -1,0 +1,227 @@
+[
+  {
+    "name": "own-without-resource-export",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "record-unnamed-import",
+    "accepts": false,
+    "validator": false
+  },
+  {
+    "name": "record-named-import",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "instance-record-unnamed",
+    "accepts": false,
+    "validator": false
+  },
+  {
+    "name": "instance-record-unused",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "component-record-unnamed-import",
+    "accepts": false,
+    "validator": false
+  },
+  {
+    "name": "component-record-unnamed-export",
+    "accepts": false,
+    "validator": false
+  },
+  {
+    "name": "component-export-resource-import-value",
+    "accepts": false,
+    "validator": false
+  },
+  {
+    "name": "instance-named-record-value",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "instance-named-record-export-value",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "export-alias",
+    "accepts": false,
+    "validator": false
+  },
+  {
+    "name": "export-alias-twice",
+    "accepts": false,
+    "validator": false
+  },
+  {
+    "name": "instance-unused",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "alias-unused",
+    "accepts": false,
+    "validator": false
+  },
+  {
+    "name": "local-own-import",
+    "accepts": false,
+    "validator": false
+  },
+  {
+    "name": "borrow-unused-instance",
+    "accepts": true,
+    "validator": false
+  },
+  {
+    "name": "import",
+    "accepts": false,
+    "validator": false
+  },
+  {
+    "name": "reexport",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "duplicate-use",
+    "accepts": false,
+    "validator": false
+  },
+  {
+    "name": "future",
+    "accepts": false,
+    "validator": false
+  },
+  {
+    "name": "ascription",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "ascription-mismatch",
+    "accepts": false,
+    "validator": false
+  },
+  {
+    "name": "composite",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "instance",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "instance-duplicate-alias",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "component",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "own",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "borrow",
+    "accepts": true,
+    "validator": false
+  },
+  {
+    "name": "named-value",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "projected-value",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "structural-record-ascription",
+    "accepts": false,
+    "validator": false
+  },
+  {
+    "name": "list-ascription",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "local-resource-instance-value",
+    "accepts": false,
+    "validator": false
+  },
+  {
+    "name": "imported-resource-instance-value",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "nested-unnamed-record-value",
+    "accepts": false,
+    "validator": false
+  },
+  {
+    "name": "nested-named-record-value",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "wide-type-index",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "many-values",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "core-body-and-value",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "outer-named-record-value",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "outer-unnamed-record-value",
+    "accepts": false,
+    "validator": false
+  },
+  {
+    "name": "nested-outer-record-value",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "named-record-ascription",
+    "accepts": true,
+    "validator": true
+  },
+  {
+    "name": "distinct-resource-ascription",
+    "accepts": false,
+    "validator": false
+  },
+  {
+    "name": "component-local-resource-value",
+    "accepts": false,
+    "validator": false
+  }
+]

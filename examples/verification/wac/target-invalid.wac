@@ -1,0 +1,3 @@
+package example:app targets example:types/app;
+
+import api: example:types/api;

@@ -1,0 +1,1 @@
+error: exported value type cannot contain a `borrow` type (at offset 0x26)

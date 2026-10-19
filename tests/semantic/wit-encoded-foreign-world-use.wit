@@ -1,0 +1,1 @@
+package example:worlduses; world app { use dep:base/core.{r as renamed,id}; export f:func(x:borrow<renamed>)->id; } package dep:base { interface core { resource r; type id=u32; } }

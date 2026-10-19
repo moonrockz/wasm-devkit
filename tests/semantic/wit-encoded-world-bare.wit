@@ -1,0 +1,1 @@
+package example:worlds;world app{resource r; export f:func()->own<r>;}

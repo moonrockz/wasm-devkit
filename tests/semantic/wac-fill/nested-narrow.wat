@@ -1,0 +1,1 @@
+(component (type (instance (type (instance (type (func)) (export "f" (func (type 0))))) (export "nested" (instance (type 0))))) (import "api" (instance (type 0))))

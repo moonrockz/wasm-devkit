@@ -1,0 +1,1 @@
+package example:app;world app{@unstable(feature=foo)resource r;}

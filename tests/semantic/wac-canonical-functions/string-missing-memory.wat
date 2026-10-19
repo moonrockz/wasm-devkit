@@ -1,0 +1,1 @@
+(component (core module $m (func (export "f") (param i32 i32))) (core instance $i (instantiate $m)) (alias core export $i "f" (core func $f))  (type $t (func (param "x" string))) (func $f (type $t) (canon lift (core func $f) )) (export "f" (func $f)))

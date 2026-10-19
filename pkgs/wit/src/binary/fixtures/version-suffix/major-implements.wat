@@ -1,0 +1,1 @@
+(component (type (instance)) (import "local" (implements "test:dep/base@1") (version-suffix ".2.3") (instance (type 0))))

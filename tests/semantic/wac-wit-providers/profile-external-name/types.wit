@@ -1,0 +1,1 @@
+package example:types; interface api {@external-id("custom:api/run") f: func();}

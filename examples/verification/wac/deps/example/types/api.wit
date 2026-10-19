@@ -1,0 +1,7 @@
+package example:types;
+
+interface api { run: func(value: u32) -> u32; }
+world app {
+  import api;
+  export run: func(value: u32) -> u32;
+}

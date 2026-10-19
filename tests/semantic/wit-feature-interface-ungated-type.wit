@@ -1,0 +1,1 @@
+package example:app;@unstable(feature=foo)interface api{type t=u8;}

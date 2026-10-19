@@ -1,0 +1,1 @@
+package test:ids; @external-id("urn:a") @external-id("urn:b") world app{}

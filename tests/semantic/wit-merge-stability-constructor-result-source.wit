@@ -1,0 +1,1 @@
+package test:dep;interface base{resource r{constructor()->t;}resource s;type t=result<r>;}

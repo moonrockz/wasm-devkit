@@ -1,0 +1,1 @@
+(component (component (@producers (processed-by "nested-test" "1.0"))))

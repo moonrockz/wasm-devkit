@@ -1,0 +1,1 @@
+package example:app; interface api {} world app {import interface-0:api;import api;export interface-0:api;}

@@ -1,0 +1,1 @@
+package example:app;world base{resource r{constructor();read:func(x:u8)->r;create:static async func();}}world app{include base with{r as s}}

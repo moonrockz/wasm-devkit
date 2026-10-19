@@ -1,0 +1,2 @@
+// 😀
+package example:app;interface api{use example:dep/api@1.0.0.{id};type ids=list<id>;f:func(x:ids);}world app{include example:dep/app@1.0.0;}

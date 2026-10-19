@@ -1,0 +1,1 @@
+(component (type $r (resource (rep i32))) (type $i (component (alias outer 1 $r (type $r)) (import "r" (type (eq $r))))) (import "captured" (component (type $i))))

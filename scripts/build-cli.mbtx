@@ -90,6 +90,43 @@ async fn main {
   if smoke != 0 {
     fail("packaged CLI smoke checks failed")
   }
+  let registry_build = @process.run(
+    "moonx",
+    ["scripts/build-registry.mbtx", "--with-reference"],
+    stdout=@stdio.stdout,
+    stderr=@stdio.stderr,
+  )
+  if registry_build != 0 {
+    fail("registry companion build failed")
+  }
+  let suffix = if host == "windows-x64" { ".exe" } else { "" }
+  let provider = stage + "/bin/wasm-devkit-warg" + suffix
+  @fs.write_file(
+    provider,
+    @fs.read_file(".dev/warg-target/release/wasm-devkit-warg" + suffix),
+  )
+  if host != "windows-x64" {
+    @fs.chmod(provider, 0o755)
+  }
+  assert_eq(
+    captured(provider, ["--version"]),
+    "wasm-devkit-warg " + version + " protocol=1 warg-client=0.9.0",
+  )
+  let registry_smoke = @process.run(
+    "moonx",
+    [
+      "scripts/test-registry.mbtx",
+      "--binary",
+      binary,
+      provider,
+      ".dev/warg-target/release/wasm-devkit-registry-reference" + suffix,
+    ],
+    stdout=@stdio.stdout,
+    stderr=@stdio.stderr,
+  )
+  if registry_smoke != 0 {
+    fail("packaged registry smoke checks failed")
+  }
   @fs.write_file(stage + "/LICENSE", @fs.read_file("LICENSE"))
   @fs.write_file(
     stage + "/README.md",

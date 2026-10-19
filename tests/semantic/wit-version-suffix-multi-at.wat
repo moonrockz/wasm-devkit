@@ -1,0 +1,1 @@
+(component (type (component (type (component (type (instance)) (import "test:dep/api@1@2.3.4" (instance (type 0))))) (export "test:root/app" (component (type 0))))) (export "app" (type 0)))

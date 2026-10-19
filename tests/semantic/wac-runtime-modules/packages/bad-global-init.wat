@@ -1,0 +1,1 @@
+(component (core module $m (global (export "g") i32 (i64.const 0))) (export "module" (core module $m)))

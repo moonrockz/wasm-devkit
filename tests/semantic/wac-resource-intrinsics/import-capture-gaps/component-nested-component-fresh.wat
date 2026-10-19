@@ -1,0 +1,1 @@
+(component (type $r (resource (rep i32))) (type $i (component (type $inner (component (export "r" (type (sub resource))))) (export "child" (component (type $inner))))) (import "i" (component (type $i))))

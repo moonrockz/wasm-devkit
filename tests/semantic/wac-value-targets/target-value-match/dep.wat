@@ -1,0 +1,1 @@
+(component (type $w (component (import "v" (value u32)) (export "v" (value u32)))) (type $wrapper (component (alias outer 1 $w (type $inner)) (export "test:dep/w" (component (type $inner))))) (export "w" (type $wrapper)) (import "v" (value u32)) (export "v" (value 0)))

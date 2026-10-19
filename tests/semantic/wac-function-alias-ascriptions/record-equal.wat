@@ -1,0 +1,1 @@
+(component (type $i (instance (type $ad (record (field "x" u32))) (export "a" (type $a (eq $ad))) (type $fa (func (param "x" $a))) (export "f" (func (type $fa))))) (import "i" (instance $i (type $i))) (alias export $i "f" (func $f)) (type $bd (record (field "x" u32))) (import "b" (type $b (eq $bd))) (type $fb (func (param "x" $b))) (export "out" (func $f) (func (type $fb))))

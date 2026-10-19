@@ -1,0 +1,1 @@
+(component (core instance (export "f" (func 0))) (type $t (func)) (import "f" (func $f (type $t))) (core func (canon lower (func $f))))
