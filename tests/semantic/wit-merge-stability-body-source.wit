@@ -1,0 +1,1 @@
+package test:dep;interface base{type t=string;h:func(x:t);}

@@ -59,11 +59,19 @@ not merge resource identities. Binary and WAT `external-id` name attributes foll
 the same rules; package wrapper exports have no corresponding declaration.
 
 When inferred and supplied interfaces overlap, external IDs come from the first
-selected caller input, including an absent ID. Supplied source definitions and
-original locations remain intact. Full merge-model equivalence is still open:
-stability on an overlapping member currently follows the supplied source definition,
-while pinned `Resolve::merge` retains first-input stability. Independent feature
-selection occurs before this merge.
+selected caller input, including an absent ID. Named type bodies, function signatures and function stability also come from
+that input. Named type and interface stability upgrades from unknown to known;
+conflicting known annotations are errors. Anonymous type graphs retain the selected
+input's metadata and nominal references, including distinct source and binary
+allocations with equal shapes. Selection precedes this merge, so retained binary
+types are not selected again using supplied source metadata. Named declarations
+and functions keep supplied source locations; copied anonymous
+types retain their originating input's location. Public graph node IDs remain
+source-oriented and do not reproduce the reference arena's unused allocations.
+The merged graph is checked again for borrowed results, resource targets and value positions,
+constructor success types, method receivers and setter result shapes. Invalid
+resource/constructor/setter remapping is rejected even where the pinned merge
+currently accepts such named-type conflicts. Full model conformance remains tracked separately.
 
 `SemanticFeatures::default()` enables no unstable features. Pass
 `semantic_features={ enabled: ["preview"], all_enabled: false, }` to `verify`,

@@ -221,7 +221,7 @@ IDs projected from pinned Resolve models for types, functions, resource methods,
 renamed uses and world interface items. They check ignored container annotations,
 empty strings, Unicode escapes, duplicate rejection, wrapper attributes, caller-order
 merging and independently disabled members. These projections do not establish
-complete model parity; overlapping inferred/supplied stability remains tracked on
+complete model parity; full inferred/supplied model conformance remains tracked on
 `wasm-devkit-p5m.8.1.5` and `.8.1.7`.
 
 WAC instantiation probes in `pkgs/wac/src/verifier/instantiation_test.mbt` retain
@@ -254,3 +254,36 @@ prereleases, build metadata, zero-major versions, no-effect errors and type
 compatibility. Its crossed-resource case is the same nominal exception as the
 explicit-argument cases: resolution accepts it but validating composition rejects
 it. The product rejects it with `WAC-C005`.
+
+The original Apache-2.0 `wit-merge-stability-*` fixtures pin independently selected
+source/binary merge behavior through the oracle's `--merge PATH` mode. Library tests
+compare both input orders, function and reachable anonymous-type stability, named
+body precedence, nominal resources, copied origins, feature-disabled members and a
+50-level anonymous chain. Unknown named type/interface stability upgrades to known;
+functions retain first-input stability. Unused reference arena allocations and raw
+anonymous node IDs are outside this projection.
+
+One mixed-input combination is an explicit reference exclusion, tracked on
+`wasm-devkit-p5m.8.1.5` and `.8.1.7`. Merging
+`wit-merge-stability-resource-body.wasm` first, then
+`wit-merge-stability-resource-source.wit`, succeeds in wit-parser 0.262.0 at pinned
+wasm-tools revision `e22db44da4eaf17a0e46ec55b911c7539589a3cc`, but produces a borrow
+handle targeting scalar `u32`. `Resolve::merge` leaves named type compatibility
+unchecked in `MergeMap::build_type_id`. The product rejects the combined model with
+`WIT-B004`; the reverse order remains valid. Each input independently is a valid
+manifest case. This exclusion does not establish full mixed-model conformance.
+
+The related `constructor-result` and `setter-result` mixed pairs are also excluded:
+first-input named body replacement can make a later constructor return another
+resource, or replace a setter's result-without-success by `u32`. The pinned merge
+accepts both; the product rechecks these semantic laws and rejects them. The
+`resource-static-source` variant checks resource ownership without a handle in the
+signature. The `borrow-result` pair differs: both implementations reject the
+binary-first merge because the remapped result contains a borrowed handle through
+an aggregate. All reverse orders and standalone files remain valid.
+
+The `bare-resource` mixed pair is another accepted-reference exclusion: replacing
+a supplied scalar alias by the earlier inferred resource leaves a bare resource
+in function/aggregate value positions. The product rejects these values unless
+an own/borrow handle wraps the resource. Standalone inputs and source-first merge
+remain valid.

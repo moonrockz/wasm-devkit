@@ -216,6 +216,7 @@ fn encoded_select_closure(
   references : Map[String, Map[Int32, EncodedReference]],
   input_ranks : Map[String, Int32],
   external_id_overrides : Map[(String, String, String), String?],
+  selected_models : Array[Resolution],
 ) -> Result[Prepared, ReadOnlyArray[Diagnostic]] {
   let selected : Map[(String, Int32), Bool] = Map([])
   let budget : EncodedMergeBudget = { remaining: 1000000, }
@@ -236,7 +237,7 @@ fn encoded_select_closure(
           binary_references=encoded_reference_nodes(own, references),
           selection_output=selected,
         ) {
-        Ok(_) => ()
+        Ok(model) => selected_models.push(model)
         Err(errors) => return Err(errors)
       }
     }
@@ -262,7 +263,7 @@ fn encoded_select_closure(
           binary_references=encoded_reference_nodes(view, references),
           selection_output=source_selected,
         ) {
-        Ok(_) => ()
+        Ok(model) => selected_models.push(model)
         Err(errors) => return Err(errors)
       }
       for key, value in source_selected {

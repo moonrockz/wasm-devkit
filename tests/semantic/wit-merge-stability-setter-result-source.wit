@@ -1,0 +1,1 @@
+package test:dep;interface base{type t=result;v:get()->u32;v:set(value:u32)->t;}

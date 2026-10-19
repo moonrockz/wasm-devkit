@@ -59,6 +59,8 @@ fn verify_prepared(
   binary_references~ : Map[Int32, EncodedReference] = Map([]),
   selection_output~ : Map[(String, Int32), Bool] = Map([]),
   external_id_overrides~ : Map[(String, String, String), String?] = Map([]),
+  selected_models~ : Array[Resolution] = [],
+  input_ranks~ : Map[String, Int32] = Map([]),
 ) -> Result[Resolution, ReadOnlyArray[Diagnostic]] {
   let tree = prepared.tree
   let errors : Array[Diagnostic] = []
@@ -969,6 +971,24 @@ fn verify_prepared(
   filter_world_items(prepared, arena, tables, selection, errors)
   if !errors.is_empty() {
     return Err(dependency_chains(prepared, package_edges, errors))
+  }
+  encoded_merge_models(arena, selected_models, input_ranks) catch {
+    Unsupported(message) =>
+      return Err([
+        error_at(
+          prepared.origins[prepared.roots[0]].location,
+          "WIT-B002",
+          message,
+        ),
+      ])
+    Invalid(message) =>
+      return Err([
+        error_at(
+          prepared.origins[prepared.roots[0]].location,
+          "WIT-B004",
+          message,
+        ),
+      ])
   }
   expand_worlds(prepared, tables, includes, arena, interface_edges, errors)
   verify_accessor_pairs(arena, tables, errors)

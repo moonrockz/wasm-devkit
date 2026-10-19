@@ -207,6 +207,7 @@ pub fn resolve_packages(
   let encoded_inputs = []
   let input_ranks : Map[String, Int32] = Map([])
   let external_id_overrides : Map[(String, String, String), String?] = Map([])
+  let selected_models : Array[Resolution] = []
   let mut input_rank = 0
   let input_metadata : Map[String, Map[Int32, Stability]] = Map([])
   let input_references : Map[String, Map[Int32, EncodedReference]] = Map([])
@@ -238,7 +239,7 @@ pub fn resolve_packages(
       if encoded_overlapping_packages(prepared, binaries) {
         encoded_select_closure(
           prepared, encoded_inputs, binaries, semantic_features, input_metadata,
-          input_references, input_ranks, external_id_overrides,
+          input_references, input_ranks, external_id_overrides, selected_models,
         )
       } else {
         encoded_selected_prepared(prepared, Map([]), binaries)
@@ -267,6 +268,8 @@ pub fn resolve_packages(
         binary_metadata=metadata,
         binary_references=encoded_reference_nodes(prepared, input_references),
         external_id_overrides~,
+        selected_models~,
+        input_ranks~,
       )
     }
   }

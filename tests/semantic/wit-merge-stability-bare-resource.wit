@@ -1,0 +1,1 @@
+package test:root;world app{import test:dep/base;}package test:dep{interface base{resource t;}}

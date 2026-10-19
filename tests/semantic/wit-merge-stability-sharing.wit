@@ -1,0 +1,1 @@
+package test:root;world app{import test:dep/base@1.0.0;}package test:dep@1.0.0{interface base{@since(version=1.0.0) type t=u32;@since(version=1.0.0) record box{v:option<t>}resource r;resource s;f:func(x:option<t>,r:borrow<r>);g:func(x:option<t>,s:borrow<s>);}}

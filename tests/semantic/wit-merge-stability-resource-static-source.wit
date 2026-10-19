@@ -1,0 +1,1 @@
+package test:dep;interface base{resource r{make:static func();}}
