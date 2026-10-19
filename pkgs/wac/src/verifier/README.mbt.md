@@ -206,9 +206,9 @@ imports and re-exports. It follows WAC 0.12.0's wasmparser 0.258.0 map-key rules
 All diagnostic positions count bytes. Unknown offsets remain absent.
 
 Imported-component instantiation and inline instances validate full argument
-contracts. Concrete nested components, non-resource runtime type arguments,
-runtime-produced values, async canonical functions, other intrinsics and component
-start sections remain unsupported. Function export ascriptions validate parameter
+contracts, including named type arguments and runtime values. Concrete nested
+components, async canonical functions, other intrinsics and component start
+sections remain unsupported. Function export ascriptions validate parameter
 names, async mode, structural value types and nominal resource identities, and
 retain the ascribed function type. Type-equality export annotations compare
 complete value shapes and nominal resource identity, including imported aliases
@@ -536,8 +536,8 @@ wasm-tools subtype witnesses in `tests/semantic/wac-core-modules/fill`.
 Both binary and WAT inputs support these contracts and concrete core module
 bodies. Core instantiation and synchronous canonical lift/lower are supported.
 Imported component instantiation and inline instances are supported. Concrete
-component definitions, non-resource type arguments, async canonical functions
-and other intrinsics, component starts and runtime-produced values remain outside this profile.
+component definitions, async canonical functions and other intrinsics, and
+component starts remain outside this profile.
 Concrete GC/reference types, supertypes and shared heap types remain
 unsupported. Nested component/instance core declarations with limits above u32
 or custom memory pages return `WAC-B002` before the pinned parser runs; root
@@ -566,6 +566,11 @@ Five pinned WAC package-loader successes contain invalid instructions; product
 verification rejects them, as wasm-tools does. Original witnesses, full ordered
 models and five validating compositions are retained in
 `tests/semantic/wac-runtime-modules`.
+
+Both unchanged compiled hello/greeter components from the pinned WAC repository
+verify as binary and printed WAT. Their complete ordered package/composition
+models and invalid-body reference exclusions are retained in
+[`wac-core-control`](../../../../tests/semantic/wac-core-control/README.md).
 
 Core module export annotations use the ordered lexical module/type bindings and
 check complete module contracts. Imports are contravariant, exports covariant;
@@ -623,9 +628,12 @@ Runtime component instances preserve supplied resource identities and freshen
 exported resources independently for each instantiation. Complete argument
 contracts include functions, nested instances/components and core modules.
 Binary and WAT models retain named uses and abstract component templates.
-Non-resource type arguments return `WAC-B002` until named-type origins survive
-signature normalization. The accepted named-record and rejected anonymous-record
-reference cases are retained in `tests/semantic/wac-runtime-instances`, alongside
+Named type arguments preserve declaration origins through substitution. Private
+anonymous arguments are valid; escaping functions and instances require visible
+names. Export ascriptions preserve the presented contract. The runtime-origin
+fixtures compare complete ordered binary/WAT models and record pinned loader
+projection and encoder failures. Earlier reference cases remain in
+`tests/semantic/wac-runtime-instances`, alongside
 43 package probes and six source compositions. Four emitted compositions pass
 independent binary validation; two additional pinned encoder panics are recorded
 separately. Public APIs perform validation without executing components.
@@ -645,15 +653,9 @@ introduction and first/second uses. This catches pinned resolver false positives
 whose encoded compositions fail validation. The 45 package and 17 composition
 cases in `tests/semantic/wac-value-externs` retain reference evidence. WAC 0.12.0's
 borrowed-value export rules are used, including its difference from wasm-tools
-1.262.0. Runtime-produced values remain outside the binary profile.
-
-Concrete core modules support block, loop and if instructions through bounded,
-explicit-stack parsing and validation. Both unchanged compiled hello/greeter
-components from the pinned WAC repository verify as binary and printed WAT.
-Binary control depth is limited to 256 and WAT control/expression nesting to 64;
-the enclosing component shares a
-1,000,000 work allowance for instruction effects, type comparisons and local
-state snapshots. Invalid instruction bodies reject even though the pinned WAC
-package loader skips their validation. See
-[`wac-core-control`](../../../../tests/semantic/wac-core-control/README.md)
-for the exact reference inputs and exclusions.
+1.262.0. Runtime instances also support value arguments and outputs with complete
+substituted type/resource contracts. Each introduced value index must be consumed
+once; separate aliases of an instance value have separate consumption state.
+The 28 package and 11 composition probes in `tests/semantic/wac-runtime-values`
+compare full ordered models and composition resource contexts, with pinned
+encoder failures recorded separately.

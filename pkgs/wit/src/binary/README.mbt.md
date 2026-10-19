@@ -63,9 +63,10 @@ bytes. It supports imported functions, instances and components, type aliases,
 and re-exports, plus declarative core module/function types and module externs.
 Core instances and synchronous canonical lift/lower validate full core contracts
 and canonical signatures. Imported-component instantiation and inline instances
-validate complete argument contracts. Concrete nested component definitions,
-non-resource runtime type arguments, runtime-produced values, async canonical
-functions, other intrinsics and component start sections return `WIT-B002`. Physical type-scope nesting has the same 256 limit.
+validate complete argument contracts, including named type arguments and runtime
+values. Concrete nested component definitions, async canonical functions, other
+intrinsics and component start sections return `WIT-B002`. Physical type-scope
+nesting has the same 256 limit.
 Component-value externs use a framing-guided adapter for the retained parser's
 legacy descriptor tags while preserving the original bytes. Supported export annotations are described below; missing
 complete contracts produce explicit unsupported diagnostics.
@@ -109,10 +110,11 @@ including aliases and re-exports. Instance annotations check functions, values,
 nominal resources, nested instances/components and core modules against the complete
 expected contract. Annotated aliases and re-exports
 retain the narrowed contract. The type-only WIT entry point continues to reject all
-root export ascriptions. Runtime-produced component values and concrete runtime component definitions remain unsupported.
+root export ascriptions. Concrete nested component definitions remain unsupported.
 Section 5 supports imported-component instantiation and inline instances, with
-complete argument contracts and nominal resource substitution. Non-resource type
-arguments remain unsupported until named-type origins are retained.
+complete argument contracts and nominal resource substitution. Named type
+arguments retain declaration origins; private anonymous arguments remain valid,
+while escaping signatures require visible names.
 
 Core declarations have separate lexical index validation and retain complete
 unsigned signatures through `moonrockz/wit/core_types`. Concrete GC/shared heap
@@ -158,6 +160,9 @@ pinned validators and full binary/WAT models; four emitted compositions validate
 
 The WAC profile validates value imports, exports, imported-instance aliases and
 annotations, including exact one-use rules and complete named/nominal types.
+Runtime value arguments and instance outputs retain substituted resource/type
+identities. Separate instance-export aliases introduce separate value indices;
+each introduced index must be consumed once.
 Its wasmparser 0.258 rules permit borrowed value exports. Type-only WIT inputs
 continue to reject value externs. `ValidatedDeclarativeComponent.bytes()` retains
 the original input; `parser_bytes()` provides the immutable compatibility encoding
