@@ -1,5 +1,5 @@
 // Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
-// Modified by wasm-devkit: permit root component and imported function exports.
+// Modified by wasm-devkit: permit re-exports and validate function ascriptions.
 
 ///|
 /// Handle component export section (id 11).
@@ -439,8 +439,23 @@ fn validate_component_section_export(
       validate_externdesc(d, type_table, counts.core_type)
     }
     // Export ascription: if a type is provided, it must be compatible with
-    // the actual export (we currently model instance-type compatibility).
+    // the actual export. Functions require complete invariant signatures.
     match (e.sortidx.sort, e.desc) {
+      (Func, Some(FuncType(index))) => {
+        guard type_table.get(index) is Some(Some(FuncType(expected))) else {
+          raise AscribedExportTypeIncompatible
+        }
+        guard func_types.get(e.sortidx.idx) is Some(Some(actual)) else {
+          raise UnsupportedFunctionAscription
+        }
+        counts.ascription_remaining = check_function_ascription(
+          actual,
+          expected,
+          type_table,
+          resource_ids,
+          budget=counts.ascription_remaining,
+        )
+      }
       (Instance, Some(InstanceType(tyidx))) =>
         if tyidx >= 0 && tyidx < type_table.length() {
           let expected = instancetype_sig_of_global_idx(
@@ -520,7 +535,15 @@ fn validate_component_section_export(
       match e.sortidx.sort {
         Func =>
           if e.sortidx.idx >= 0 && e.sortidx.idx < func_types.length() {
-            func_types.push(func_types[e.sortidx.idx])
+            let exported = match e.desc {
+              Some(FuncType(index)) =>
+                match type_table.get(index) {
+                  Some(Some(FuncType(ft))) => Some(ft)
+                  _ => None
+                }
+              _ => func_types[e.sortidx.idx]
+            }
+            func_types.push(exported)
             if e.sortidx.idx >= 0 && e.sortidx.idx < func_sig_shapes.length() {
               func_sig_shapes.push(func_sig_shapes[e.sortidx.idx])
             } else {

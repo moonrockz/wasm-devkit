@@ -131,6 +131,8 @@ fn BinaryGraph::export_entry(
   let kind = match (original, export_entry.desc) {
     (Type(id), None) => Type(self.type_alias(id, name))
     (_, None) => original
+    (Function(_), Some(FuncType(index))) =>
+      Function(self.follow(binary_index(scope.types, index)))
     _ =>
       raise Unsupported(
         "root export ascriptions are outside the binary package profile",

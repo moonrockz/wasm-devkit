@@ -449,6 +449,10 @@ fn preflight(
           ignore(payload.unsigned())
           match payload.byte() {
             0 => ()
+            1 if declarations &&
+              payload.position < payload.end &&
+              payload.bytes[payload.position] == b'\x01' =>
+              payload.description()
             1 =>
               raise Failure(
                 Some(payload.position - 1),

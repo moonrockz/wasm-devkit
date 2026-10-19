@@ -206,8 +206,12 @@ imports and re-exports. It follows WAC 0.12.0's wasmparser 0.258.0 map-key rules
 All diagnostic positions count bytes. Unknown offsets remain absent.
 
 Core modules/types, concrete nested components, instantiation, canonical
-functions, start sections, component-value externs and root export ascriptions
-remain unsupported. The pinned external parser uses obsolete value-bound
+functions, start sections, component-value externs and non-function root export
+ascriptions remain unsupported. Function export ascriptions validate parameter
+names, async mode, structural value types and nominal resource identities, and
+retain the ascribed function type. Ascriptions of instance-exported function
+aliases remain `WAC-B002` because retained alias metadata lacks a complete
+function signature. The pinned external parser uses obsolete value-bound
 encoding, and the retained validator does not yet check all export ascriptions.
 Both valid and invalid examples of those forms fail explicitly rather than
 producing a package model. Source `verify` and CLI lookup use this same declarative boundary.

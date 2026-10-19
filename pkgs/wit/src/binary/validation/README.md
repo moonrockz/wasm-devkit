@@ -51,7 +51,7 @@ visibility. An alias of an imported resource can appear in a later function
 import; exporting a local resource does not make it importable. Current-scope
 outer aliases and instance re-exports retain that visibility. These changes are
 in `section_alias.mbt`, `section_import.mbt`, `section_export.mbt` and
-`validate.mbt`. The enclosing framing boundary rejects component values and root
+`validate.mbt`. The enclosing framing boundary rejects component values and non-function root
 export ascriptions while their legacy parsing/compatibility rules remain
 incomplete, including a reference-rejected resource ascription this validator
 previously accepted.
@@ -68,3 +68,13 @@ concatenation yielding a valid version, ignores suffixes on unversioned names,
 and leaves `implements` versions unchecked. Both profiles reject malformed UTF-8
 attributes, duplicates and suffixes on other sorts. The exact differing cases are
 recorded in `../fixtures/version-suffix/`; this is intentional pinned behavior.
+
+Root function export ascriptions now compare complete signatures using the original
+`ascription.mbt` helper, which is additional wasm-devkit code rather than a retained
+upstream file. `ascription_wbtest.mbt` exercises 6,000-level value graphs with an
+explicit stack. Changes in `prelude.mbt` and `section_export.mbt` preserve typed
+unsupported errors and the ascribed function signature for later re-exports.
+Instance-exported aliases lack complete function metadata and remain unsupported
+for ascription; their reduced signature shapes are not treated as proof of equality.
+The enclosing declarative framing profile admits only function ascriptions. The
+WIT type-only profile still rejects them all.

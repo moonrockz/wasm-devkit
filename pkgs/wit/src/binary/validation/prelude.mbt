@@ -1,5 +1,5 @@
 // Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
-// Modified by wasm-devkit: accept pinned component accessor name grammar.
+// Modified by wasm-devkit: accessor names and bounded ascription validation.
 
 ///|
 /// WebAssembly Component Model validator (partial).
@@ -54,6 +54,7 @@ pub(all) suberror ComponentValidationError {
   ComponentImportTypeMismatch(String)
   MissingExpectedExport(String)
   AscribedExportTypeIncompatible
+  UnsupportedFunctionAscription
   AliasTargetMismatch(String)
   SectionParseError(Int32, String)
   CoreModuleError(String)
@@ -123,6 +124,7 @@ pub fn ValidatedComponent::component_bytes(self : ValidatedComponent) -> Bytes {
 
 ///|
 priv struct Counts {
+  mut ascription_remaining : Int32
   mut func : Int32
   mut value : Int32
   mut component : Int32
@@ -736,6 +738,7 @@ fn check_core_module_import_subtype(
 ///|
 fn Counts::Counts() -> Counts {
   {
+    ascription_remaining: 1000000,
     func: 0,
     value: 0,
     component: 0,

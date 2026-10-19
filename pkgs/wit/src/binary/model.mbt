@@ -89,6 +89,12 @@ pub fn validate_declarative_component(
         canonical_version_suffix=false,
       ),
     ) catch {
+      @validation.UnsupportedFunctionAscription =>
+        raise Failure(
+          None,
+          "WIT-B002",
+          "function ascription requires a fully described function signature",
+        )
       error => raise Failure(None, "WIT-B003", error.to_string())
     }
     Ok({ bytes, })

@@ -1247,7 +1247,7 @@
 +++ b/prelude.mbt
 @@ -0,0 +1,3 @@
 +// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
-+// Modified by wasm-devkit: accept pinned component accessor name grammar.
++// Modified by wasm-devkit: accessor names and bounded ascription validation.
 +
 @@ -13,19 +16,19 @@
 -  InvalidTypeIndex(Int)
@@ -1306,18 +1306,20 @@
 -  MissingCoreInstanceExport(Int, String)
 +  MissingInstanceExport(Int32, String)
 +  MissingCoreInstanceExport(Int32, String)
-@@ -55 +58 @@
+@@ -53,0 +57 @@
++  UnsupportedFunctionAscription
+@@ -55 +59 @@
 -  SectionParseError(Int, String)
 +  SectionParseError(Int32, String)
-@@ -77,0 +81,2 @@
+@@ -77,0 +82,2 @@
 +  canonical_version_suffix : Bool
 +  restricted_map_keys : Bool
-@@ -83 +88,3 @@
+@@ -83 +89,3 @@
 -  component_implements? : Bool = true,
 +  component_implements~ : Bool = true,
 +  canonical_version_suffix~ : Bool = true,
 +  restricted_map_keys~ : Bool = true,
-@@ -85 +92,6 @@
+@@ -85 +93,6 @@
 -  { wit_names, component_implements, }
 +  {
 +    wit_names,
@@ -1325,7 +1327,7 @@
 +    canonical_version_suffix,
 +    restricted_map_keys,
 +  }
-@@ -114,12 +126,12 @@
+@@ -114,12 +127,13 @@
 -  mut func : Int
 -  mut value : Int
 -  mut component : Int
@@ -1338,6 +1340,7 @@
 -  mut core_memory : Int
 -  mut core_global : Int
 -  mut core_tag : Int
++  mut ascription_remaining : Int32
 +  mut func : Int32
 +  mut value : Int32
 +  mut component : Int32
@@ -1350,81 +1353,83 @@
 +  mut core_memory : Int32
 +  mut core_global : Int32
 +  mut core_tag : Int32
-@@ -165,2 +177,2 @@
+@@ -165,2 +179,2 @@
 -  Existing(Int)
 -  Resource(Int)
 +  Existing(Int32)
 +  Resource(Int32)
-@@ -182,3 +194,3 @@
+@@ -182,3 +196,3 @@
 -  Resource(Int)
 -  Own(Int)
 -  Borrow(Int)
 +  Resource(Int32)
 +  Own(Int32)
 +  Borrow(Int32)
-@@ -204,2 +216,2 @@
+@@ -204,2 +218,2 @@
 -  resource_ids : Array[Int?],
 -) -> Int? {
 +  resource_ids : Array[Int32?],
 +) -> Int32? {
-@@ -218,3 +230,3 @@
+@@ -218,3 +232,3 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 -) -> Int? {
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
 +) -> Int32? {
-@@ -238,2 +250,2 @@
+@@ -238,2 +252,2 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
-@@ -258,2 +270,2 @@
+@@ -258,2 +272,2 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
-@@ -460 +472,4 @@
+@@ -460 +474,4 @@
 -fn core_func_type_of_idx(m : @types.Module, func_idx : Int) -> @types.FuncType? {
 +fn core_func_type_of_idx(
 +  m : @types.Module,
 +  func_idx : Int32,
 +) -> @types.FuncType? {
-@@ -485 +500 @@
+@@ -485 +502 @@
 -  table_idx : Int,
 +  table_idx : Int32,
-@@ -506 +521 @@
+@@ -506 +523 @@
 -  mem_idx : Int,
 +  mem_idx : Int32,
-@@ -527 +542 @@
+@@ -527 +544 @@
 -  global_idx : Int,
 +  global_idx : Int32,
-@@ -546 +561 @@
+@@ -546 +563 @@
 -fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int) -> @types.FuncType? {
 +fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int32) -> @types.FuncType? {
-@@ -642 +657 @@
+@@ -642 +659 @@
 -fn core_kind_of_extern_type(ty : CoreExternType) -> Int {
 +fn core_kind_of_extern_type(ty : CoreExternType) -> Int32 {
-@@ -679 +694 @@
+@@ -679 +696 @@
 -  idx : Int,
 +  idx : Int32,
-@@ -763 +778 @@
+@@ -723,0 +741 @@
++    ascription_remaining: 1000000,
+@@ -763 +781 @@
 -fn is_lower_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_lower_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -793 +808 @@
+@@ -793 +811 @@
 -fn is_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -843,2 +858,2 @@
+@@ -843,2 +861,2 @@
 -fn is_canonversion_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 -  if start < 0 || end_ <= start || end_ > name.length() {
 +fn is_semver_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
 +  if start < 0 || start >= end_ || end_ > name.length() {
-@@ -848,2 +863,2 @@
+@@ -848,2 +866,2 @@
 -  if name[i].to_int() >= 0x31 && name[i].to_int() <= 0x39 {
 -    i += 1
 +  for component in 0..<3 {
 +    let begin = i
-@@ -853,11 +868,27 @@
+@@ -853,11 +871,27 @@
 -    return i == end_
 -  }
 -  if name[i].to_int() != 0x30 || i + 1 >= end_ {
@@ -1463,7 +1468,7 @@
 +
 +  // Numeric prerelease identifiers cannot contain leading zeroes.
 +  if i < end_ && name[i] == 0x2d {
-@@ -865 +896,15 @@
+@@ -865 +899,15 @@
 -    while i < end_ && is_ascii_digit(name[i]) {
 +    while true {
 +      let begin = i
@@ -1480,7 +1485,7 @@
 +      if i >= end_ || name[i] != 0x2e {
 +        break
 +      }
-@@ -867,95 +911,0 @@
+@@ -867,95 +914,0 @@
 -    }
 -    return i == end_
 -  }
@@ -1576,13 +1581,13 @@
 -    }
 -    if need_id {
 -      return false
-@@ -1016,3 +965,0 @@
+@@ -1016,3 +968,0 @@
 -      if at != -1 {
 -        return false
 -      }
-@@ -1019,0 +967 @@
+@@ -1019,0 +970 @@
 +      break
-@@ -1028,9 +976 @@
+@@ -1028,9 +979 @@
 -  if at != -1 {
 -    if at >= name.length() - 1 {
 -      return false
@@ -1593,14 +1598,14 @@
 -    }
 -  }
 +  // Version syntax is checked with the separately encoded suffix.
-@@ -1185 +1125 @@
+@@ -1185 +1128 @@
 -fn is_integrity_value(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_integrity_value(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -1453,0 +1394,3 @@
+@@ -1453,0 +1397,3 @@
 +  if prefix_eq("get") || prefix_eq("set") {
 +    return is_kebab_case_range(name, close + 1, name.length())
 +  }
-@@ -1460 +1403,9 @@
+@@ -1460 +1406,9 @@
 -  // method/static: require exactly one '.' and kebab-case around it.
 +  // Method/static names can have one accessor annotation before the resource.
 +  let mut start = close + 1
@@ -1611,10 +1616,10 @@
 +    ) {
 +    start += 5
 +  }
-@@ -1462 +1413 @@
+@@ -1462 +1416 @@
 -  for k in (close + 1)..<name.length() {
 +  for k in start..<name.length() {
-@@ -1470,4 +1421,4 @@
+@@ -1470,4 +1424,4 @@
 -  if dot < 0 || dot == close + 1 || dot == name.length() - 1 {
 -    return false
 -  }
@@ -1623,40 +1628,40 @@
 +    return false
 +  }
 +  is_kebab_case_range(name, start, dot) &&
-@@ -1506 +1457 @@
+@@ -1506 +1460 @@
 -  mut pos : Int
 +  mut pos : Int32
-@@ -1522 +1473 @@
+@@ -1522 +1476 @@
 -) -> Int raise ComponentValidationError {
 +) -> Int32 raise ComponentValidationError {
-@@ -1534 +1485 @@
+@@ -1534 +1488 @@
 -) -> Int raise ComponentValidationError {
 +) -> Int32 raise ComponentValidationError {
-@@ -1554 +1505 @@
+@@ -1554 +1508 @@
 -  n : Int,
 +  n : Int32,
-@@ -1627,2 +1578,2 @@
+@@ -1627,2 +1581,2 @@
 -  kind : Int,
 -  func_type_bound : Int,
 +  kind : Int32,
 +  func_type_bound : Int32,
-@@ -1679 +1630 @@
+@@ -1679 +1633 @@
 -    heap : Int,
 +    heap : Int32,
-@@ -1748 +1699 @@
+@@ -1748 +1702 @@
 -  kind : Int,
 +  kind : Int32,
-@@ -1750 +1701 @@
+@@ -1750 +1704 @@
 -  func_type_bound : Int,
 +  func_type_bound : Int32,
-@@ -1859,3 +1810,3 @@
+@@ -1859,3 +1813,3 @@
 -  max_outer_depth : Int,
 -  current_core_type_bound : Int,
 -  outer_core_type_bounds : Array[Int],
 +  max_outer_depth : Int32,
 +  current_core_type_bound : Int32,
 +  outer_core_type_bounds : Array[Int32],
-@@ -1864 +1815 @@
+@@ -1864 +1818 @@
 -  let seen_imports : Map[String, Int] = Map([])
 +  let seen_imports : Map[String, Int32] = Map([])
 --- a/prelude_wbtest.mbt
@@ -1733,7 +1738,7 @@
 +++ b/section_export.mbt
 @@ -0,0 +1,3 @@
 +// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
-+// Modified by wasm-devkit: permit root component and imported function exports.
++// Modified by wasm-devkit: permit re-exports and validate function ascriptions.
 +
 @@ -6 +9 @@
 -  is_root : Bool,
@@ -1803,7 +1808,37 @@
 @@ -295 +290 @@
 -          let inst_named : Map[Int, Int] = Map([])
 +          let inst_named : Map[Int32, Int32] = Map([])
-@@ -602 +597,4 @@
+@@ -447 +442 @@
+-    // the actual export (we currently model instance-type compatibility).
++    // the actual export. Functions require complete invariant signatures.
+@@ -448,0 +444,15 @@
++      (Func, Some(FuncType(index))) => {
++        guard type_table.get(index) is Some(Some(FuncType(expected))) else {
++          raise AscribedExportTypeIncompatible
++        }
++        guard func_types.get(e.sortidx.idx) is Some(Some(actual)) else {
++          raise UnsupportedFunctionAscription
++        }
++        counts.ascription_remaining = check_function_ascription(
++          actual,
++          expected,
++          type_table,
++          resource_ids,
++          budget=counts.ascription_remaining,
++        )
++      }
+@@ -528 +538,9 @@
+-            func_types.push(func_types[e.sortidx.idx])
++            let exported = match e.desc {
++              Some(FuncType(index)) =>
++                match type_table.get(index) {
++                  Some(Some(FuncType(ft))) => Some(ft)
++                  _ => None
++                }
++              _ => func_types[e.sortidx.idx]
++            }
++            func_types.push(exported)
+@@ -602 +620,4 @@
 -            interface_instance_idxs.set(instance_sigs.length() - 1, 1)
 +            interface_instance_idxs.set(
 +              instance_sigs.length() - 1,

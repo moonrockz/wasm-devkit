@@ -357,3 +357,9 @@ function captures and source-world implicit resource owners. Source resolution
 and independent binary subtype validation are recorded separately; the product
 follows the latter where nominal checks differ. See the
 [witness notes](wac-target-witnesses/README.md) for exact pins and exclusions.
+
+The [function-ascription fixtures](wac-function-ascriptions/README.md) retain 41
+original binary/WAT inputs compared with pinned WAC package loading and
+wasm-tools with all features. Accepted package projections preserve the ascribed
+signature and nominal resource graph. The one supported-by-reference but
+unsupported instance-function alias case is recorded separately.

@@ -63,7 +63,7 @@ bytes. It supports imported functions, instances and components, type aliases,
 and re-exports. Core modules/types, nested concrete component definitions,
 instantiation, canonical functions and start sections remain unsupported and
 return `WIT-B002`. Physical type-scope nesting has the same 256 limit.
-Component-value externs and root export ascriptions also return `WIT-B002`:
+Component-value externs and non-function root export ascriptions also return `WIT-B002`:
 the pinned parser's value-bound encoding is obsolete, and the retained validator
 does not yet implement complete ascription compatibility checks.
 
@@ -94,3 +94,11 @@ The [pinned WAC dependency fixtures](fixtures/wac/README.md) cover all 49 parsea
 dependency binaries from its resolution corpus. One invalid WAT fixture is
 retained with an explicit exclusion. Original probes check re-export behavior,
 nested aliases, malformed metadata, truncation, random sections and deep scopes.
+
+The declarative profile accepts root function-export ascriptions when the function
+has a complete retained signature. An explicit work stack compares parameter
+names, async mode, structural values and nominal resources. Instance-exported
+function aliases remain unsupported for ascription because their legacy metadata
+omits signature details. The type-only WIT entry point continues to reject all
+root export ascriptions. This slice does not enable component values or runtime
+sections.
