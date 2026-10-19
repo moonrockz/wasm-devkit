@@ -195,8 +195,14 @@ require a diagnostic, and this case stays outside the normal manifest under
 The original `wit-encoded-handle-*` cases compare imported resource aliases with
 exported aliases through type equality, current-scope outer aliases, instance
 aliases, maps and fixed-length lists. The included-world case also compares the
-source, binary and WAT resource/type graphs. A direct imported-instance resource
-handle without a named world type import is accepted by the pinned validator and
-resolver, but remains unsupported by WIT lowering. It is tested at the binary
-validation boundary and tracked on `wasm-devkit-p5m.8.1.5`, not counted as a passing
-end-to-end conformance case.
+source, binary and WAT resource/type graphs.
+
+The original Apache-2.0 `wit-encoded-direct-*` fixtures cover direct imported
+instance type references without named use aliases, including own/borrow handles,
+named values, distinct resources, generated-name collisions and interface
+functions. Each WAT fixture was compiled with the pinned wasm-tools and accepted
+by pinned Resolve. Product tests compare canonical function types against source
+WIT, check that no extra aliases or world type imports appear, and exercise
+supplied dependency provenance, caller order, metadata and feature selection.
+The source equivalents require explicit use aliases; their extra declarations
+are not claimed to be identical to the encoded model.

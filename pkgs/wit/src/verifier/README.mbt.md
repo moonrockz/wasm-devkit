@@ -82,7 +82,11 @@ V1 uses its outer package identity, including empty packages and multiple member
 V2 derives member names from qualified inner exports. Wrapper instance imports,
 instance-export type aliases and lexical outer aliases preserve named alias edges
 and nominal resource identities. World aliases to interface types lower to WIT use
-declarations, including implicit interface dependencies. A local projection may contain a subset
+declarations, including implicit interface dependencies. Direct imported type
+references in function signatures bind to the original interface declarations
+without adding use aliases or world type imports. Their implicit interface
+imports and resource identities survive supplied dependency merging and feature
+selection. A local projection may contain a subset
 of its interface. The authoritative local member determines its identity and type;
 the pinned loader checks aggregate structure but ignores primitive, flag, enum,
 handle and resource leaf differences and existing function signatures. Missing projected members are errors.

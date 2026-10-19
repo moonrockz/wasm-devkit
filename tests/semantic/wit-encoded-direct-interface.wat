@@ -1,0 +1,1 @@
+(component(type(component(type(instance(export "r"(type(sub resource)))))(import "example:dep/api"(instance(type 0)))(alias export 0 "r"(type))(type(instance(alias outer 1 1(type))(type(borrow 0))(type(func(param "x" 1)))(export "f"(func(type 2)))))(export "example:test/api"(instance(type 2)))))(export "api"(type 0)))

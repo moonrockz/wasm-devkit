@@ -35,6 +35,9 @@ priv struct EncodedGraph {
   nodes : Array[EncodedNode]
   scopes : Array[EncodedScope]
   bindings : Map[Int32, Int32]
+  reference_names : Map[(String, String), String]
+  references : Map[String, (String, String)]
+  reserved_names : Map[String, Bool]
 }
 
 ///|
@@ -154,6 +157,9 @@ fn encoded_graph(
     nodes: [],
     scopes: [],
     bindings: Map([]),
+    reference_names: Map([]),
+    references: Map([]),
+    reserved_names: Map([]),
   }
   ignore(encoded_graph_scope(graph, None, definition))
   let work : Array[(Int32, Int32)] = [(0, 0)]
@@ -578,7 +584,23 @@ fn encoded_graph_slots(
         break
       }
       if owners.get(id) is Some((owner, name)) {
-        slot = Some(Imported(owner, name))
+        let marker = match graph.reference_names.get((owner, name)) {
+          Some(marker) => marker
+          None => {
+            let mut suffix = graph.references.length()
+            let mut marker = "wit-implicit-\{suffix}"
+            while graph.reserved_names.contains(marker) {
+              encoded_graph_step(graph)
+              suffix += 1
+              marker = "wit-implicit-\{suffix}"
+            }
+            graph.reserved_names[marker] = true
+            graph.references[marker] = (owner, name)
+            graph.reference_names[(owner, name)] = marker
+            marker
+          }
+        }
+        slot = Some(Imported(owner, name, marker))
         break
       }
       match graph.nodes[id] {

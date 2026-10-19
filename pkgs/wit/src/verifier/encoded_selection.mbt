@@ -103,6 +103,7 @@ fn encoded_selected_prepared(
 fn encoded_source_view(
   prepared : Prepared,
   binaries : Map[String, Bool],
+  references : Map[Int32, EncodedReference],
   budget : EncodedMergeBudget,
 ) -> Prepared raise EncodedFailure {
   let authoritative : Map[Int32, Bool] = Map([])
@@ -147,9 +148,15 @@ fn encoded_source_view(
       while pending.pop() is Some(id) {
         encoded_merge_charge(budget, 1)
         let data = prepared.tree.nodes[id].data
-        if data is Path(..) &&
-          prepared.foreign_package(id) is Some(dependency) &&
-          !needed.contains(dependency) {
+        let dependency = if references.get(id) is Some(reference) &&
+          reference.package_identity is Some(identity) {
+          prepared.by_identity.get(identity_key(identity))
+        } else if data is Path(..) {
+          prepared.foreign_package(id)
+        } else {
+          None
+        }
+        if dependency is Some(dependency) && !needed.contains(dependency) {
           needed[dependency] = true
           work.push(dependency)
         }
@@ -206,6 +213,7 @@ fn encoded_select_closure(
   binaries : Map[String, Bool],
   features : SemanticFeatures,
   metadata : Map[String, Map[Int32, Stability]],
+  references : Map[String, Map[Int32, EncodedReference]],
 ) -> Result[Prepared, ReadOnlyArray[Diagnostic]] {
   let selected : Map[(String, Int32), Bool] = Map([])
   let budget : EncodedMergeBudget = { remaining: 1000000, }
@@ -223,13 +231,19 @@ fn encoded_select_closure(
           features,
           binary_sources=binaries,
           binary_metadata=encoded_selection_metadata(own, metadata),
+          binary_references=encoded_reference_nodes(own, references),
           selection_output=selected,
         ) {
         Ok(_) => ()
         Err(errors) => return Err(errors)
       }
     }
-    let view = encoded_source_view(prepared, binaries, budget)
+    let view = encoded_source_view(
+      prepared,
+      binaries,
+      encoded_reference_nodes(prepared, references),
+      budget,
+    )
     if !view.roots.is_empty() {
       let view = match encoded_selected_prepared(view, selected, binaries) {
         Ok(view) => view
@@ -243,6 +257,7 @@ fn encoded_select_closure(
           features,
           binary_sources=binaries,
           binary_metadata=encoded_selection_metadata(view, metadata),
+          binary_references=encoded_reference_nodes(view, references),
           selection_output=source_selected,
         ) {
         Ok(_) => ()

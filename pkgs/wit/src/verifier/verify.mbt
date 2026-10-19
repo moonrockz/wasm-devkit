@@ -56,6 +56,7 @@ fn verify_prepared(
   semantic_features : SemanticFeatures,
   binary_sources~ : Map[String, Bool] = Map([]),
   binary_metadata~ : Map[Int32, Stability] = Map([]),
+  binary_references~ : Map[Int32, EncodedReference] = Map([]),
   selection_output~ : Map[(String, Int32), Bool] = Map([]),
 ) -> Result[Resolution, ReadOnlyArray[Diagnostic]] {
   let tree = prepared.tree
@@ -736,7 +737,36 @@ fn verify_prepared(
           ].contains(name) {
           bad(id, "WIT-S001", "unknown primitive type `" + name + "`")
         }
-      (Type, NamedType(name~)) =>
+      (Type, NamedType(name~)) => {
+        if binary_references.get(id) is Some(reference) {
+          match
+            encoded_reference_target(
+              prepared, scopes, owner_scopes, id, reference,
+            ) {
+            Err(error) => errors.push(error)
+            Ok((interface_id, target)) => {
+              references.push((id, target))
+              bindings.push({
+                name: reference.type_name,
+                scope,
+                node: id,
+                target,
+              })
+              let owner = scope_owners[scope]
+              record_path(
+                owner,
+                id,
+                interface_id,
+                prepared.node_packages[id] !=
+                prepared.node_packages[interface_id],
+              )
+              if tree.nodes[owner].data is World(..) {
+                tables.uses[owner].push((interface_id, id))
+              }
+            }
+          }
+          continue
+        }
         match scopes[scope].get(name) {
           Some(target) =>
             if type_declaration(tree.nodes[target].data) ||
@@ -762,6 +792,7 @@ fn verify_prepared(
             }
           None => bad(id, "WIT-S005", "unresolved type `" + name + "`")
         }
+      }
       (Type, ListType(element~, length~)) => {
         if length is Some(size) && fixed_size(size) is None {
           bad(id, "WIT-S007", "fixed list size must be a decimal u32")

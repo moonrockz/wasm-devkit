@@ -8,7 +8,7 @@ priv suberror EncodedFailure {
 priv enum EncodedSlot {
   Definition(@component.TypeDef)
   Named(String)
-  Imported(String, String)
+  Imported(String, String, String)
   Unavailable
 }
 
@@ -82,7 +82,8 @@ fn encoded_expression(
       Value(TypeIdx(index)) =>
         match encoded_slot(slots, index) {
           Named(name) => out.write_string(encoded_name(name))
-          Imported(_, _) | Unavailable =>
+          Imported(_, _, marker) => out.write_string(encoded_name(marker))
+          Unavailable =>
             raise Unsupported("type requires a named local use declaration")
           Definition(definition) => {
             guard !active.contains(index) else {
@@ -130,10 +131,11 @@ fn encoded_expression(
           }
           Own(index) | Borrow(index) => {
             let name = if definition is Own(_) { "own" } else { "borrow" }
-            guard encoded_slot(slots, index) is Named(resource) else {
-              raise Unsupported("unnamed resource handle")
+            match encoded_slot(slots, index) {
+              Named(_) | Imported(_, _, _) => ()
+              _ => raise Unsupported("unnamed resource handle")
             }
-            (name + "<" + encoded_name(resource) + ">", [], "")
+            (name + "<", [Value(TypeIdx(index))], ">")
           }
           _ => raise Unsupported("anonymous structural or non-value WIT type")
         }
@@ -157,7 +159,7 @@ fn encoded_type(
   let label = encoded_name(name)
   match encoded_slot(slots, index) {
     Named(previous) => "type " + label + "=" + encoded_name(previous) + ";"
-    Imported(owner, original) =>
+    Imported(owner, original, _) =>
       "use " +
       encoded_interface_path(owner) +
       ".{" +
@@ -358,7 +360,7 @@ fn encoded_qualified(
 // the encoding; v2 member names come from each wrapper's qualified inner export.
 fn lower_encoded(
   component : @component.Component,
-) -> (String, Bytes?) raise EncodedFailure {
+) -> (String, Bytes?, Map[String, (String, String)]) raise EncodedFailure {
   let declarations : Array[@component.ComponentDecl] = []
   let mut metadata : Bytes? = None
   for section in component.binary.sections {
@@ -532,6 +534,14 @@ fn lower_encoded(
       }
     }
   }
+  for scope in graph.scopes {
+    for item in scope.items {
+      encoded_graph_step(graph)
+      if item is TypeItem(name, _, _) {
+        graph.reserved_names[name] = true
+      }
+    }
+  }
   let out = StringBuilder()
   out.write_string(
     "package " +
@@ -619,7 +629,7 @@ fn lower_encoded(
     }
     out.write_string("}")
   }
-  (out.to_string(), metadata)
+  (out.to_string(), metadata, graph.references)
 }
 
 ///|

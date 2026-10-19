@@ -7,6 +7,7 @@ pub struct EncodedPackage {
   priv bytes : Bytes
   priv lowered : SourcePackage
   priv metadata : Map[Int32, Stability]
+  priv references : Map[Int32, EncodedReference]
 }
 
 ///|
@@ -44,7 +45,7 @@ pub fn decode_package(
     let component = @component.parse_component(bytes) catch {
       _ => raise Invalid("validated component could not be read")
     }
-    let (text, metadata_bytes) = lower_encoded(component)
+    let (text, metadata_bytes, markers) = lower_encoded(component)
     let parsed = @parser.parse(text, features=@parser.Features::reference())
     guard parsed.is_valid() else {
       raise Invalid("decoded package cannot be represented by the WIT grammar")
@@ -59,7 +60,20 @@ pub fn decode_package(
       None => Map([])
       Some(bytes) => metadata_read(bytes, lowered)
     }
-    Ok({ source_id, bytes, lowered, metadata, })
+    let references : Map[Int32, EncodedReference] = Map([])
+    for id, node in lowered.documents[0].ast.nodes {
+      if node.data is NamedType(name~) &&
+        markers.get(name) is Some((path, type_name)) {
+        let (package_identity, interface_name) = if path.contains("/") {
+          let (identity, interface_name) = encoded_qualified(path)
+          (Some(identity), interface_name)
+        } else {
+          (None, path)
+        }
+        references[id] = { package_identity, interface_name, type_name, }
+      }
+    }
+    Ok({ source_id, bytes, lowered, metadata, references, })
   } catch {
     Unsupported(message) =>
       Err([error_at(Location::binary(source_id), "WIT-B002", message)])
@@ -192,11 +206,13 @@ pub fn resolve_packages(
   let binaries : Map[String, Bool] = Map([])
   let encoded_inputs = []
   let input_metadata : Map[String, Map[Int32, Stability]] = Map([])
+  let input_references : Map[String, Map[Int32, EncodedReference]] = Map([])
   for input in [root].iter().concat(dependencies.iter()) {
     if input is Encoded(encoded) {
       binaries[encoded.source_id] = true
       encoded_inputs.push(encoded)
       input_metadata[encoded.source_id] = encoded.metadata
+      input_references[encoded.source_id] = encoded.references
     }
   }
   let inferred_closure = encoded_inputs.any(input => {
@@ -215,6 +231,7 @@ pub fn resolve_packages(
       if encoded_overlapping_packages(prepared, binaries) {
         encoded_select_closure(
           prepared, encoded_inputs, binaries, semantic_features, input_metadata,
+          input_references,
         )
       } else {
         encoded_selected_prepared(prepared, Map([]), binaries)
@@ -241,6 +258,7 @@ pub fn resolve_packages(
         semantic_features,
         binary_sources=binaries,
         binary_metadata=metadata,
+        binary_references=encoded_reference_nodes(prepared, input_references),
       )
     }
   }
