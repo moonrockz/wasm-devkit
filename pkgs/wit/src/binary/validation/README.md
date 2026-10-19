@@ -55,3 +55,8 @@ in `section_alias.mbt`, `section_import.mbt`, `section_export.mbt` and
 export ascriptions while their legacy parsing/compatibility rules remain
 incomplete, including a reference-rejected resource ascription this validator
 previously accepted.
+
+Component-type function imports retain resource visibility through imported type
+equality aliases, current-scope outer aliases and aliases from imported instances.
+Aliases created by exports remain unavailable to imports. Resource visibility
+checks use an explicit work stack, including map and fixed-length-list children.

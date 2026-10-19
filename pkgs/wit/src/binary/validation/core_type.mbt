@@ -715,101 +715,51 @@ fn valtype_uses_disallowed_resources(
   allowed_resource_type_idxs : Map[Int32, Int32],
   visiting : Map[Int32, Int32],
 ) -> Bool {
-  match ty {
-    Prim(_) => false
-    TypeIdx(idx) =>
-      if idx < 0 || idx >= type_table.length() {
-        false
-      } else if visiting.get(idx) is Some(_) {
-        false
-      } else {
-        visiting.set(idx, 1)
-        let bad = match type_table[idx] {
-          Some(Own(t)) | Some(Borrow(t)) =>
-            allowed_resource_type_idxs.get(t) is None
-          Some(Tuple(tys)) => {
-            let mut bad = false
-            for t in tys {
-              if valtype_uses_disallowed_resources(
-                  t, type_table, allowed_resource_type_idxs, visiting,
-                ) {
-                bad = true
-                break
-              }
-            }
-            bad
-          }
-          Some(Record(fields)) => {
-            let mut bad = false
-            for f in fields {
-              if valtype_uses_disallowed_resources(
-                  f.ty,
-                  type_table,
-                  allowed_resource_type_idxs,
-                  visiting,
-                ) {
-                bad = true
-                break
-              }
-            }
-            bad
-          }
-          Some(Variant(cases)) => {
-            let mut bad = false
-            for c in cases {
-              match c.ty {
-                None => ()
-                Some(t) =>
-                  if valtype_uses_disallowed_resources(
-                      t, type_table, allowed_resource_type_idxs, visiting,
-                    ) {
-                    bad = true
-                    break
-                  }
-              }
-            }
-            bad
-          }
-          Some(Option(v)) =>
-            valtype_uses_disallowed_resources(
-              v, type_table, allowed_resource_type_idxs, visiting,
-            )
-          Some(Result(ok, err)) => {
-            let ok_bad = match ok {
-              None => false
-              Some(v) =>
-                valtype_uses_disallowed_resources(
-                  v, type_table, allowed_resource_type_idxs, visiting,
-                )
-            }
-            let err_bad = match err {
-              None => false
-              Some(v) =>
-                valtype_uses_disallowed_resources(
-                  v, type_table, allowed_resource_type_idxs, visiting,
-                )
-            }
-            ok_bad || err_bad
-          }
-          Some(List(v)) =>
-            valtype_uses_disallowed_resources(
-              v, type_table, allowed_resource_type_idxs, visiting,
-            )
-          Some(Stream(v)) | Some(Future(v)) =>
-            match v {
-              None => false
-              Some(inner) =>
-                valtype_uses_disallowed_resources(
-                  inner, type_table, allowed_resource_type_idxs, visiting,
-                )
-            }
-          // Other type defs either don't contain resources or are validated elsewhere.
-          _ => false
+  let work : Array[@component.ValType] = [ty]
+  while work.pop() is Some(value) {
+    guard value is TypeIdx(idx) else { continue }
+    if idx < 0 || idx >= type_table.length() || visiting.contains(idx) {
+      continue
+    }
+    visiting[idx] = 1
+    match type_table[idx] {
+      Some(Own(target)) | Some(Borrow(target)) =>
+        if !allowed_resource_type_idxs.contains(target) {
+          return true
         }
-        visiting.remove(idx) |> ignore
-        bad
+      Some(Tuple(values)) => work.append(values)
+      Some(Record(fields)) =>
+        for field in fields {
+          work.push(field.ty)
+        }
+      Some(Variant(cases)) =>
+        for item in cases {
+          if item.ty is Some(value) {
+            work.push(value)
+          }
+        }
+      Some(Option(value)) | Some(List(value)) | Some(FixedList(value, _)) =>
+        work.push(value)
+      Some(MapType(key, value)) => {
+        work.push(key)
+        work.push(value)
       }
+      Some(Result(ok, error)) => {
+        if ok is Some(value) {
+          work.push(value)
+        }
+        if error is Some(value) {
+          work.push(value)
+        }
+      }
+      Some(Stream(value)) | Some(Future(value)) =>
+        if value is Some(value) {
+          work.push(value)
+        }
+      _ => ()
+    }
   }
+  false
 }
 
 ///|

@@ -1036,6 +1036,7 @@ fn validate_typedef(
       let local_import_resource_names : Map[String, Int32] = Map([])
       let local_export_resource_names : Map[String, Int32] = Map([])
       let local_import_resource_type_idxs : Map[Int32, Int32] = Map([])
+      let local_instance_imports : Array[Bool] = []
       let local_export_resource_type_idxs : Map[Int32, Int32] = Map([])
       let local_core_type_exports : Array[Map[String, Int32]?] = []
       for d in decls {
@@ -1073,6 +1074,12 @@ fn validate_typedef(
                 }
               }
               let rid = if count == 0 { local_resource_ids[idx] } else { None }
+              if count == 0 && local_named_types.contains(idx) {
+                local_named_types[local_type_table.length()] = 1
+              }
+              if count == 0 && local_import_resource_type_idxs.contains(idx) {
+                local_import_resource_type_idxs[local_type_table.length()] = 1
+              }
               local_type_table.push(outer)
               local_resource_ids.push(rid)
             } else if kind == 0x110 {
@@ -1083,15 +1090,27 @@ fn validate_typedef(
             } else {
               raise SectionParseError(7, "outer alias may only refer to types")
             }
-          AliasInstanceExport(kind, _instance_idx, _name) =>
+          AliasInstanceExport(kind, instance_idx, _name) => {
+            guard instance_idx >= 0 &&
+              instance_idx < local_instance_imports.length() else {
+              raise SectionParseError(7, "instance index out of bounds")
+            }
+            let imported = local_instance_imports[instance_idx]
             if kind == 0x03 {
+              local_named_types[local_type_table.length()] = 1
+              if imported {
+                local_import_resource_type_idxs[local_type_table.length()] = 1
+              }
               local_type_table.push(None)
               local_resource_ids.push(None)
-            } else if kind != 0x05 {
+            } else if kind == 0x05 {
+              local_instance_imports.push(imported)
+            } else {
               raise SectionParseError(
                 7, "alias export may only refer to types or instances",
               )
             }
+          }
           Type(t) => {
             validate_typedef(
               t,
@@ -1137,12 +1156,18 @@ fn validate_typedef(
                 }
               _ => ()
             }
+            if desc is InstanceType(_) {
+              local_instance_imports.push(true)
+            }
             match desc {
               Type(bound) => {
                 let new_idx = local_type_table.length()
                 match bound {
                   Eq(tyidx) =>
                     if tyidx >= 0 && tyidx < local_type_table.length() {
+                      if local_import_resource_type_idxs.contains(tyidx) {
+                        local_import_resource_type_idxs[new_idx] = 1
+                      }
                       local_type_table.push(local_type_table[tyidx])
                       local_resource_ids.push(local_resource_ids[tyidx])
                     } else {
@@ -1239,6 +1264,9 @@ fn validate_typedef(
                   raise CoreTypeIndexNotModuleType(tyidx)
                 }
               _ => ()
+            }
+            if desc is InstanceType(_) {
+              local_instance_imports.push(false)
             }
             match desc {
               Type(bound) => {

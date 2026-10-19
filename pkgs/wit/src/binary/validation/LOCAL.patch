@@ -169,7 +169,7 @@
 @@ -1021 +1029 @@
 -      let local_resource_ids : Array[Int?] = []
 +      let local_resource_ids : Array[Int32?] = []
-@@ -1025,6 +1033,8 @@
+@@ -1025,6 +1033,9 @@
 -      let local_named_types : Map[Int, Int] = Map([])
 -      let local_import_resource_names : Map[String, Int] = Map([])
 -      let local_export_resource_names : Map[String, Int] = Map([])
@@ -182,9 +182,10 @@
 +      let local_import_resource_names : Map[String, Int32] = Map([])
 +      let local_export_resource_names : Map[String, Int32] = Map([])
 +      let local_import_resource_type_idxs : Map[Int32, Int32] = Map([])
++      let local_instance_imports : Array[Bool] = []
 +      let local_export_resource_type_idxs : Map[Int32, Int32] = Map([])
 +      let local_core_type_exports : Array[Map[String, Int32]?] = []
-@@ -1043,2 +1053,8 @@
+@@ -1043,2 +1054,8 @@
 -              let outer = outer_type_of_alias(type_outers, count, idx)
 -              if type_outer_depths[count - 1] < component_depth {
 +              // Count zero aliases an earlier type in the current lexical scope.
@@ -195,35 +196,73 @@
 +                outer_type_of_alias(type_outers, count, idx)
 +              }
 +              if count > 0 && type_outer_depths[count - 1] < component_depth {
-@@ -1058,0 +1075 @@
+@@ -1058,0 +1076,7 @@
 +              let rid = if count == 0 { local_resource_ids[idx] } else { None }
-@@ -1060 +1077 @@
++              if count == 0 && local_named_types.contains(idx) {
++                local_named_types[local_type_table.length()] = 1
++              }
++              if count == 0 && local_import_resource_type_idxs.contains(idx) {
++                local_import_resource_type_idxs[local_type_table.length()] = 1
++              }
+@@ -1060 +1084 @@
 -              local_resource_ids.push(None)
 +              local_resource_ids.push(rid)
-@@ -1139 +1156 @@
+@@ -1069 +1093,6 @@
+-          AliasInstanceExport(kind, _instance_idx, _name) =>
++          AliasInstanceExport(kind, instance_idx, _name) => {
++            guard instance_idx >= 0 &&
++              instance_idx < local_instance_imports.length() else {
++              raise SectionParseError(7, "instance index out of bounds")
++            }
++            let imported = local_instance_imports[instance_idx]
+@@ -1070,0 +1100,4 @@
++              local_named_types[local_type_table.length()] = 1
++              if imported {
++                local_import_resource_type_idxs[local_type_table.length()] = 1
++              }
+@@ -1073 +1106,3 @@
+-            } else if kind != 0x05 {
++            } else if kind == 0x05 {
++              local_instance_imports.push(imported)
++            } else {
+@@ -1077,0 +1113 @@
++          }
+@@ -1122,0 +1159,3 @@
++            if desc is InstanceType(_) {
++              local_instance_imports.push(true)
++            }
+@@ -1128,0 +1168,3 @@
++                      if local_import_resource_type_idxs.contains(tyidx) {
++                        local_import_resource_type_idxs[new_idx] = 1
++                      }
+@@ -1139 +1181 @@
 -                    local_resource_ids.push(None)
 +                    local_resource_ids.push(Some(new_idx))
-@@ -1168,0 +1186,4 @@
+@@ -1168,0 +1211,4 @@
 +                      validate_accessor_pair(
 +                        7, name, ft, local_type_table, local_resource_ids, import_functions,
 +                      )
 +                      import_functions[name] = ft
-@@ -1238 +1259 @@
+@@ -1221,0 +1268,3 @@
++            if desc is InstanceType(_) {
++              local_instance_imports.push(false)
++            }
+@@ -1238 +1287 @@
 -                    local_resource_ids.push(None)
 +                    local_resource_ids.push(Some(new_idx))
-@@ -1267,0 +1289,4 @@
+@@ -1267,0 +1317,4 @@
 +                      validate_accessor_pair(
 +                        7, name, ft, local_type_table, local_resource_ids, export_functions,
 +                      )
 +                      export_functions[name] = ft
-@@ -1289,0 +1315,3 @@
+@@ -1289,0 +1343,3 @@
 +      let local_resource_ids : Array[Int32?] = []
 +      let resource_names : Map[String, Int32] = Map([])
 +      let export_functions : Map[String, @component.FuncType] = Map([])
-@@ -1292 +1320 @@
+@@ -1292 +1348 @@
 -      let local_core_type_exports : Array[Map[String, Int]?] = []
 +      let local_core_type_exports : Array[Map[String, Int32]?] = []
-@@ -1317,2 +1345,8 @@
+@@ -1317,2 +1373,8 @@
 -              let outer = outer_type_of_alias(type_outers, count, idx)
 -              if type_outer_depths[count - 1] < component_depth {
 +              // Count zero aliases an earlier type in the current lexical scope.
@@ -234,15 +273,15 @@
 +                outer_type_of_alias(type_outers, count, idx)
 +              }
 +              if count > 0 && type_outer_depths[count - 1] < component_depth {
-@@ -1332,0 +1367 @@
+@@ -1332,0 +1395 @@
 +              let rid = if count == 0 { local_resource_ids[idx] } else { None }
-@@ -1333,0 +1369 @@
+@@ -1333,0 +1397 @@
 +              local_resource_ids.push(rid)
-@@ -1344,0 +1381 @@
+@@ -1344,0 +1409 @@
 +              local_resource_ids.push(None)
-@@ -1360,0 +1398 @@
+@@ -1360,0 +1426 @@
 +            local_resource_ids.push(None)
-@@ -1394,4 +1432,31 @@
+@@ -1394,4 +1460,31 @@
 -            // Like the component export section, exporting a type introduces
 -            // a fresh type index in this instance type's local type space.
 -            if desc is Type(_) {
@@ -278,19 +317,19 @@
 +                  _ => ()
 +                }
 +              _ => ()
-@@ -1433 +1498 @@
+@@ -1433 +1526 @@
 -  core_type_bound : Int,
 +  core_type_bound : Int32,
-@@ -1578 +1643 @@
+@@ -1578 +1671 @@
 -fn canon_memory_idx(opts : Array[@component.CanonOpt]) -> Int? {
 +fn canon_memory_idx(opts : Array[@component.CanonOpt]) -> Int32? {
-@@ -1588 +1653 @@
+@@ -1588 +1681 @@
 -fn canon_realloc_idx(opts : Array[@component.CanonOpt]) -> Int? {
 +fn canon_realloc_idx(opts : Array[@component.CanonOpt]) -> Int32? {
-@@ -1598 +1663 @@
+@@ -1598 +1691 @@
 -fn canon_post_return_idx(opts : Array[@component.CanonOpt]) -> Int? {
 +fn canon_post_return_idx(opts : Array[@component.CanonOpt]) -> Int32? {
-@@ -1680 +1745 @@
+@@ -1680 +1773 @@
 -  visiting : Map[Int, Unit],
 +  visiting : Map[Int32, Unit],
 --- a/core_type.mbt
@@ -382,77 +421,217 @@
 -  visiting : Map[Int, Int],
 +  allowed_resource_type_idxs : Map[Int32, Int32],
 +  visiting : Map[Int32, Int32],
-@@ -806 +819 @@
+@@ -705,23 +718,21 @@
+-  match ty {
+-    Prim(_) => false
+-    TypeIdx(idx) =>
+-      if idx < 0 || idx >= type_table.length() {
+-        false
+-      } else if visiting.get(idx) is Some(_) {
+-        false
+-      } else {
+-        visiting.set(idx, 1)
+-        let bad = match type_table[idx] {
+-          Some(Own(t)) | Some(Borrow(t)) =>
+-            allowed_resource_type_idxs.get(t) is None
+-          Some(Tuple(tys)) => {
+-            let mut bad = false
+-            for t in tys {
+-              if valtype_uses_disallowed_resources(
+-                  t, type_table, allowed_resource_type_idxs, visiting,
+-                ) {
+-                bad = true
+-                break
+-              }
+-            }
+-            bad
++  let work : Array[@component.ValType] = [ty]
++  while work.pop() is Some(value) {
++    guard value is TypeIdx(idx) else { continue }
++    if idx < 0 || idx >= type_table.length() || visiting.contains(idx) {
++      continue
++    }
++    visiting[idx] = 1
++    match type_table[idx] {
++      Some(Own(target)) | Some(Borrow(target)) =>
++        if !allowed_resource_type_idxs.contains(target) {
++          return true
++        }
++      Some(Tuple(values)) => work.append(values)
++      Some(Record(fields)) =>
++        for field in fields {
++          work.push(field.ty)
++        }
++      Some(Variant(cases)) =>
++        for item in cases {
++          if item.ty is Some(value) {
++            work.push(value)
+@@ -729,71 +740,23 @@
+-          Some(Record(fields)) => {
+-            let mut bad = false
+-            for f in fields {
+-              if valtype_uses_disallowed_resources(
+-                  f.ty,
+-                  type_table,
+-                  allowed_resource_type_idxs,
+-                  visiting,
+-                ) {
+-                bad = true
+-                break
+-              }
+-            }
+-            bad
+-          }
+-          Some(Variant(cases)) => {
+-            let mut bad = false
+-            for c in cases {
+-              match c.ty {
+-                None => ()
+-                Some(t) =>
+-                  if valtype_uses_disallowed_resources(
+-                      t, type_table, allowed_resource_type_idxs, visiting,
+-                    ) {
+-                    bad = true
+-                    break
+-                  }
+-              }
+-            }
+-            bad
+-          }
+-          Some(Option(v)) =>
+-            valtype_uses_disallowed_resources(
+-              v, type_table, allowed_resource_type_idxs, visiting,
+-            )
+-          Some(Result(ok, err)) => {
+-            let ok_bad = match ok {
+-              None => false
+-              Some(v) =>
+-                valtype_uses_disallowed_resources(
+-                  v, type_table, allowed_resource_type_idxs, visiting,
+-                )
+-            }
+-            let err_bad = match err {
+-              None => false
+-              Some(v) =>
+-                valtype_uses_disallowed_resources(
+-                  v, type_table, allowed_resource_type_idxs, visiting,
+-                )
+-            }
+-            ok_bad || err_bad
+-          }
+-          Some(List(v)) =>
+-            valtype_uses_disallowed_resources(
+-              v, type_table, allowed_resource_type_idxs, visiting,
+-            )
+-          Some(Stream(v)) | Some(Future(v)) =>
+-            match v {
+-              None => false
+-              Some(inner) =>
+-                valtype_uses_disallowed_resources(
+-                  inner, type_table, allowed_resource_type_idxs, visiting,
+-                )
+-            }
+-          // Other type defs either don't contain resources or are validated elsewhere.
+-          _ => false
+-        }
+-        visiting.remove(idx) |> ignore
+-        bad
+-      }
+-  }
++        }
++      Some(Option(value)) | Some(List(value)) | Some(FixedList(value, _)) =>
++        work.push(value)
++      Some(MapType(key, value)) => {
++        work.push(key)
++        work.push(value)
++      }
++      Some(Result(ok, error)) => {
++        if ok is Some(value) {
++          work.push(value)
++        }
++        if error is Some(value) {
++          work.push(value)
++        }
++      }
++      Some(Stream(value)) | Some(Future(value)) =>
++        if value is Some(value) {
++          work.push(value)
++        }
++      _ => ()
++    }
++  }
++  false
+@@ -806 +769 @@
 -  allowed_resource_type_idxs : Map[Int, Int],
 +  allowed_resource_type_idxs : Map[Int32, Int32],
-@@ -808 +821 @@
+@@ -808 +771 @@
 -  let visiting : Map[Int, Int] = Map([])
 +  let visiting : Map[Int32, Int32] = Map([])
-@@ -832 +845 @@
+@@ -832 +795 @@
 -  resource_ids : Array[Int?],
 +  resource_ids : Array[Int32?],
-@@ -834 +847 @@
+@@ -834 +797 @@
 -  let visiting : Map[Int, Int] = Map([])
 +  let visiting : Map[Int32, Int32] = Map([])
-@@ -853 +866 @@
+@@ -853 +816 @@
 -  local_resource_ids : Array[Int?],
 +  local_resource_ids : Array[Int32?],
-@@ -855,2 +868,2 @@
+@@ -855,2 +818,2 @@
 -  global_resource_ids : Array[Int?],
 -  visiting : Map[Int, Int],
 +  global_resource_ids : Array[Int32?],
 +  visiting : Map[Int32, Int32],
-@@ -973 +986 @@
+@@ -973 +936 @@
 -  local_resource_ids : Array[Int?],
 +  local_resource_ids : Array[Int32?],
-@@ -975,2 +988,2 @@
+@@ -975,2 +938,2 @@
 -  global_resource_ids : Array[Int?],
 -  visiting : Map[Int, Int],
 +  global_resource_ids : Array[Int32?],
 +  visiting : Map[Int32, Int32],
-@@ -1024 +1037 @@
+@@ -1024 +987 @@
 -  local_resource_ids : Array[Int?],
 +  local_resource_ids : Array[Int32?],
-@@ -1026 +1039 @@
+@@ -1026 +989 @@
 -  global_resource_ids : Array[Int?],
 +  global_resource_ids : Array[Int32?],
-@@ -1028 +1041 @@
+@@ -1028 +991 @@
 -  let visiting : Map[Int, Int] = Map([])
 +  let visiting : Map[Int32, Int32] = Map([])
-@@ -1060,2 +1073,2 @@
+@@ -1060,2 +1023,2 @@
 -  resource_ids : Array[Int?],
 -  visiting : Map[Int, Int],
 +  resource_ids : Array[Int32?],
 +  visiting : Map[Int32, Int32],
-@@ -1140,2 +1153,2 @@
+@@ -1140,2 +1103,2 @@
 -  resource_ids : Array[Int?],
 -  visiting : Map[Int, Int],
 +  resource_ids : Array[Int32?],
 +  visiting : Map[Int32, Int32],
-@@ -1170,3 +1183,3 @@
+@@ -1170,3 +1133,3 @@
 -  idx : Int,
 -  type_table : Array[@component.TypeDef?],
 -  resource_ids : Array[Int?],
 +  idx : Int32,
 +  type_table : Array[@component.TypeDef?],
 +  resource_ids : Array[Int32?],
-@@ -1178 +1191,4 @@
+@@ -1178 +1141,4 @@
 -fn type_sig_subst_resources(sig : TypeSig, subst : Map[Int, Int]) -> TypeSig {
 +fn type_sig_subst_resources(
 +  sig : TypeSig,
 +  subst : Map[Int32, Int32],
 +) -> TypeSig {
-@@ -1307 +1323 @@
+@@ -1307 +1273 @@
 -  subst : Map[Int, Int],
 +  subst : Map[Int32, Int32],
-@@ -1355,3 +1371,3 @@
+@@ -1355,3 +1321,3 @@
 -  resource_ids : Array[Int?],
 -  named_types : Map[Int, Int],
 -  visiting : Map[Int, Int],
 +  _resource_ids : Array[Int32?],
 +  named_types : Map[Int32, Int32],
 +  _visiting : Map[Int32, Int32],
-@@ -1359,112 +1375 @@
+@@ -1359,112 +1325 @@
 -  match ty {
 -    Prim(_) => true
 -    TypeIdx(idx) =>
@@ -566,14 +745,14 @@
 -      }
 -  }
 +  interface_value_work(ty, type_table, named_types, false)
-@@ -1477,3 +1382,3 @@
+@@ -1477,3 +1332,3 @@
 -  resource_ids : Array[Int?],
 -  named_types : Map[Int, Int],
 -  visiting : Map[Int, Int],
 +  _resource_ids : Array[Int32?],
 +  named_types : Map[Int32, Int32],
 +  _visiting : Map[Int32, Int32],
-@@ -1481,7 +1386,7 @@
+@@ -1481,7 +1336,7 @@
 -  valtype_valid_for_type_import_export_inner(
 -    ty, type_table, resource_ids, named_types, visiting, false,
 -  )
@@ -588,14 +767,14 @@
 +// Type index chains are input-controlled even when physical scopes are shallow.
 +// Keep this check iterative, including fixed lists and maps from WAC packages.
 +fn interface_value_work(
-@@ -1490,4 +1395,2 @@
+@@ -1490,4 +1345,2 @@
 -  resource_ids : Array[Int?],
 -  named_types : Map[Int, Int],
 -  visiting : Map[Int, Int],
 -  nested : Bool,
 +  named_types : Map[Int32, Int32],
 +  type_external : Bool,
-@@ -1495,125 +1398,63 @@
+@@ -1495,121 +1348,29 @@
 -  match ty {
 -    Prim(_) => true
 -    TypeIdx(idx) =>
@@ -717,10 +896,6 @@
 -            }
 -            visiting.remove(idx) |> ignore
 -            ok
--          }
--        }
--      }
--  }
 +  let work : Array[(@component.ValType, Bool)] = [(ty, type_external)]
 +  let seen : Map[(Int32, Bool), Bool] = Map([])
 +  while work.pop() is Some((value, top_external)) {
@@ -750,8 +925,9 @@
 +        for case in cases {
 +          if case.ty is Some(value) {
 +            work.push((value, false))
-+          }
-+        }
+@@ -1618,2 +1379,32 @@
+-      }
+-  }
 +      Option(value) | List(value) | FixedList(value, _) =>
 +        work.push((value, false))
 +      MapType(key, value) => {
@@ -784,47 +960,47 @@
 +    }
 +  }
 +  true
-@@ -1626,2 +1467,2 @@
+@@ -1626,2 +1417,2 @@
 -  resource_ids : Array[Int?],
 -  named_types : Map[Int, Int],
 +  resource_ids : Array[Int32?],
 +  named_types : Map[Int32, Int32],
-@@ -1629 +1470 @@
+@@ -1629 +1420 @@
 -  let visiting : Map[Int, Int] = Map([])
 +  let visiting : Map[Int32, Int32] = Map([])
-@@ -1654 +1495 @@
+@@ -1654 +1445 @@
 -  visiting_global : Map[Int, Int],
 +  visiting_global : Map[Int32, Int32],
-@@ -1666,3 +1507,3 @@
+@@ -1666,3 +1457,3 @@
 -  tyidx : Int,
 -  type_table : Array[@component.TypeDef?],
 -  visiting_global : Map[Int, Int],
 +  tyidx : Int32,
 +  type_table : Array[@component.TypeDef?],
 +  visiting_global : Map[Int32, Int32],
-@@ -1687 +1528 @@
+@@ -1687 +1478 @@
 -  tyidx : Int,
 +  tyidx : Int32,
-@@ -1690,2 +1531,2 @@
+@@ -1690,2 +1481,2 @@
 -  visiting_local : Map[Int, Int],
 -  visiting_global : Map[Int, Int],
 +  visiting_local : Map[Int32, Int32],
 +  visiting_global : Map[Int32, Int32],
-@@ -1717 +1558 @@
+@@ -1717 +1508 @@
 -  visiting_global : Map[Int, Int],
 +  visiting_global : Map[Int32, Int32],
-@@ -1724 +1565 @@
+@@ -1724 +1515 @@
 -  let visiting_local : Map[Int, Int] = Map([])
 +  let visiting_local : Map[Int32, Int32] = Map([])
-@@ -1749 +1590 @@
+@@ -1749 +1540 @@
 -  tyidx : Int,
 +  tyidx : Int32,
-@@ -1760,2 +1601,2 @@
+@@ -1760,2 +1551,2 @@
 -      let local_resource_ids : Array[Int?] = []
 -      let local_named_types : Map[Int, Int] = Map([])
 +      let local_resource_ids : Array[Int32?] = []
 +      let local_named_types : Map[Int32, Int32] = Map([])
-@@ -1779,2 +1620,11 @@
+@@ -1779,2 +1570,11 @@
 -              let td = outer_type_of_alias(type_outers, count, idx) catch {
 -                _ => None
 +              let td = if count == 0 {
@@ -838,21 +1014,21 @@
 +                local_resource_ids.get(idx).unwrap_or(None)
 +              } else {
 +                None
-@@ -1782,0 +1633,3 @@
+@@ -1782,0 +1583,3 @@
 +              if count == 0 {
 +                local_resource_ids[local_resource_ids.length() - 1] = rid
 +              }
-@@ -1853,2 +1706,2 @@
+@@ -1853,2 +1656,2 @@
 -  let visiting_local : Map[Int, Int] = Map([])
 -  let visiting_global : Map[Int, Int] = Map([])
 +  let visiting_local : Map[Int32, Int32] = Map([])
 +  let visiting_global : Map[Int32, Int32] = Map([])
-@@ -1935,2 +1788,2 @@
+@@ -1935,2 +1738,2 @@
 -  actual : Map[String, Int]?,
 -  expected : Map[String, Int],
 +  actual : Map[String, Int32]?,
 +  expected : Map[String, Int32],
-@@ -1950,0 +1804,85 @@
+@@ -1950,0 +1754,85 @@
 +
 +///|
 +fn validate_accessor_function(

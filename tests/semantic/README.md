@@ -191,3 +191,12 @@ methods/constructors of imported resources. The pinned decoder panics at
 `decoding.rs:1209` for a world method attached to a resource alias; product tests
 require a diagnostic, and this case stays outside the normal manifest under
 `wasm-devkit-p5m.8.1.5` and `.8.1.7`. These original fixtures use Apache-2.0.
+
+The original `wit-encoded-handle-*` cases compare imported resource aliases with
+exported aliases through type equality, current-scope outer aliases, instance
+aliases, maps and fixed-length lists. The included-world case also compares the
+source, binary and WAT resource/type graphs. A direct imported-instance resource
+handle without a named world type import is accepted by the pinned validator and
+resolver, but remains unsupported by WIT lowering. It is tested at the binary
+validation boundary and tracked on `wasm-devkit-p5m.8.1.5`, not counted as a passing
+end-to-end conformance case.

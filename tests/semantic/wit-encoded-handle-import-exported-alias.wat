@@ -1,0 +1,1 @@
+(component(type(component(type(component (import "r" (type (sub resource))) (export "s" (type (eq 0))) (import "t" (type(eq 1))) (type(own 2)) (type(func(param "x" 3))) (import "f" (func(type 4)))))(export "example:test/app" (component(type 0)))))(export "app"(type 0)))
