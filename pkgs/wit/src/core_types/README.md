@@ -31,3 +31,16 @@ this codec returns a diagnostic. Abstract references, including non-null forms,
 are retained. Tables with shared limits and unshared element references reject.
 Counts are bounded by remaining input bytes; lexical traversal and graph copying
 have a shared work budget in the enclosing binary and WAC decoders.
+
+
+`inspect_module` reads concrete module metadata and returns immutable
+`ModuleMetadata` containing the contract and a validation-work estimate.
+`decode_module` returns only the contract. Neither operation certifies instruction
+semantics. The enclosing binary boundary must validate the original bytes.
+The estimate is `bytes * max(function-type-count, body-count, 1) + expanded-locals`,
+limited to 1,000,000 per module and summed across the enclosing component.
+Flat function/initializer framing uses loops. Structured instructions, concrete
+references, GC types, supertypes and unimplemented proposals reject before the
+retained recursive parser runs. Function-only groups are supported when no
+concrete references occur. Shared globals and limits above signed Int64 remain
+outside the concrete-module profile because of the retained parser/validator.

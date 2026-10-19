@@ -1,0 +1,1 @@
+(component (core module $m (memory 1) (data $d "hello") (func (export "f") i32.const 0 i32.const 0 i32.const 5 memory.init $d data.drop $d)) (export "module" (core module $m)))

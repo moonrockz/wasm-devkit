@@ -1,0 +1,1 @@
+(component (core module $m (func (export "f") (param i32 i32) (result i32) (local i32) local.get 0 local.get 1 i32.add local.tee 2)) (export "module" (core module $m)))

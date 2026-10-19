@@ -2419,20 +2419,28 @@
 +  let my_import_instance_resource_exports : Map[String, Map[String, Int32]] = Map([],
 @@ -229 +232 @@
 -        let seen_imports : Map[String, Int] = Map([])
-+        let seen_imports : Map[String, Int32] = Map([])
-@@ -240 +243 @@
++        let seen_imports : Map[(String, String), Int32] = Map([])
+@@ -231 +234 @@
+-          let key = "\{imp.mod_name}:\{imp.name}"
++          let key = (imp.mod_name, imp.name)
+@@ -233 +236,3 @@
+-            raise CoreModuleError("duplicate import name `\{key}`")
++            raise CoreModuleError(
++              "duplicate import name `\{imp.mod_name}:\{imp.name}`",
++            )
+@@ -240 +245 @@
 -        let exports : Map[String, Int] = Map([])
 +        let exports : Map[String, Int32] = Map([])
-@@ -266 +269 @@
+@@ -266 +271 @@
 -          let mut export_map : Map[String, Int]? = None
 +          let mut export_map : Map[String, Int32]? = None
-@@ -283,2 +286,2 @@
+@@ -283,2 +288,2 @@
 -              let providers : Map[String, Int] = Map([])
 -              let seen_arg_names : Map[String, Int] = Map([])
 +              let providers : Map[String, Int32] = Map([])
 +              let seen_arg_names : Map[String, Int32] = Map([])
-@@ -428 +431 @@
+@@ -428 +433 @@
 -              let map : Map[String, Int] = Map([])
 +              let map : Map[String, Int32] = Map([])
-@@ -787,0 +791 @@
+@@ -787,0 +793 @@
 +          import_named_types,

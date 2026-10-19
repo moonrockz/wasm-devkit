@@ -2,6 +2,7 @@
 priv enum BinaryDeclaration {
   Define(@component.TypeDef)
   CoreDefine(Bytes, Bool)
+  CoreModule(Bytes)
   Alias(@component.Alias)
   Describe(Bool, String, Array[@component.NameAttribute], @component.ExternDesc)
   Export(@component.Export)

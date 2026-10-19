@@ -163,6 +163,7 @@ fn binary_root_declarations(
     for section in component.binary.sections {
       match section.id {
         0 => ()
+        1 => declarations.push(CoreModule(section.payload))
         3 => declarations.push(CoreDefine(section.payload, true))
         7 =>
           for definition in @component.parse_type_section(section.payload) {
@@ -251,6 +252,13 @@ fn binary_decode(
           }
           _ => scope.types.push(graph.definition(scope, definition))
         }
+      CoreModule(bytes) => {
+        graph.step()
+        match @core_types.decode_module(bytes) {
+          Ok(contract) => scope.modules.push(graph.add(Module(contract)))
+          Err(error) => raise Invalid(error.message)
+        }
+      }
       CoreDefine(bytes, section) =>
         graph.core_definition(scope_id, bytes, section)
       Alias(alias_entry) => graph.alias_entry(scope_id, alias_entry)

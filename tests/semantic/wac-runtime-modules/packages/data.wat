@@ -1,0 +1,1 @@
+(component (core module $m (memory (export "m") 1) (data (i32.const 0) "hello")) (export "module" (core module $m)))

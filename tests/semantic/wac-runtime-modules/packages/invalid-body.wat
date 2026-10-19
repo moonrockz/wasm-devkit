@@ -1,0 +1,1 @@
+(component (core module $m (func (export "f") (result i32))) (export "module" (core module $m)))

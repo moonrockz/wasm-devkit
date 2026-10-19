@@ -1,0 +1,1 @@
+(component (core module $m (table (export "t") i64 1 3 funcref)) (export "module" (core module $m)))

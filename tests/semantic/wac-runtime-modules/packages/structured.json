@@ -1,0 +1,1 @@
+{"definitions":[],"instance":0,"name":"test:runtime","types":{"defined":[],"funcs":[],"interfaces":[{"exports":[["module",{"module":0}]],"id":null,"uses":[]}],"modules":[{"exports":[["f",{"func":{"params":[],"results":["i32"]}}]],"imports":[]}],"resources":[],"worlds":[{"exports":[["module",{"module":0}]],"id":null,"imports":[],"uses":[]}]},"version":null,"world":0}

@@ -1,0 +1,1 @@
+(component (core module $m (import "env" "f" (func $f (param i32))) (export "f" (func $f))) (export "module" (core module $m)))

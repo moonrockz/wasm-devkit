@@ -1,0 +1,1 @@
+(component (core module $m (tag (export "t") (param i32))) (export "module" (core module $m)))

@@ -205,8 +205,8 @@ imports and re-exports. It follows WAC 0.12.0's wasmparser 0.258.0 map-key rules
 `WAC-B003` invalid component metadata, and `WAC-B004` reconstruction failures.
 All diagnostic positions count bytes. Unknown offsets remain absent.
 
-Core modules/types, concrete nested components, instantiation, canonical
-functions, start sections, component-value externs and non-function root export
+Concrete nested components, instantiation, canonical
+functions, component start sections, component-value externs and non-function root export
 ascriptions remain unsupported. Function export ascriptions validate parameter
 names, async mode, structural value types and nominal resource identities, and
 retain the ascribed function type. Instance-exported function aliases preserve
@@ -531,10 +531,10 @@ rechecks every original consumer. Eight pinned TypeAggregator successes produce
 incompatible module contracts; the product rejects them, backed by independent
 wasm-tools subtype witnesses in `tests/semantic/wac-core-modules/fill`.
 
-Both binary and WAT inputs support these declarative contracts. Concrete module
-bodies, core/component instantiation, canonical functions, starts, component
+Both binary and WAT inputs support these contracts and flat concrete core module
+bodies. Core/component instantiation, canonical functions, component starts, component
 values and non-function root export ascriptions remain outside this profile.
-Concrete GC/reference types, recursive groups and shared heap types remain
+Concrete GC/reference types, supertypes and shared heap types remain
 unsupported. Nested component/instance core declarations with limits above u32
 or custom memory pages return `WAC-B002` before the pinned parser runs; root
 core-type sections support full UInt64 limits. The pinned WAC encoder panics
@@ -542,3 +542,21 @@ when composing the accepted core-module instance-export cases, so independent
 validator witnesses establish their subtype behavior. No public API executes a
 module or component. Remaining binary/runtime scope stays tracked on
 `wasm-devkit-p5m.8.2.2`.
+
+
+Concrete core modules retain ordered contracts and original bytes. Function
+bodies, initializers, start signatures, exports and segment metadata validate
+without execution. Flat instruction preflight protects the retained parser;
+structured control and unimplemented proposals return `WAC-B002`. Function-only
+recursive groups without concrete references are supported. Shared concrete
+globals and limits above signed Int64 remain unsupported by the retained core
+parser; declarative module types still retain their complete signatures.
+
+The validation-work estimate for each module is its byte size multiplied by the
+maximum of its function-type count, body count and one, plus expanded locals.
+The sum across the component must not exceed 1,000,000. This bounds the retained
+validator's type comparisons and per-function contexts before validation begins.
+Five pinned WAC package-loader successes contain invalid instructions; product
+verification rejects them, as wasm-tools does. Original witnesses, full ordered
+models and five validating compositions are retained in
+`tests/semantic/wac-runtime-modules`.

@@ -1,0 +1,1 @@
+(component (core module $m (memory 1) (data (i64.const 0) "x")) (export "module" (core module $m)))

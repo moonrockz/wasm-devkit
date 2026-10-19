@@ -37,8 +37,15 @@ fn Reader::limits(
 }
 
 ///|
-fn Reader::external(self : Reader) -> RawExternal raise Failure {
-  match self.byte() {
+fn Reader::external(
+  self : Reader,
+  kind~ : Int32? = None,
+) -> RawExternal raise Failure {
+  let kind = match kind {
+    Some(kind) => kind
+    None => self.byte()
+  }
+  match kind {
     0 => Func(self.index())
     1 => {
       let element = self.value()

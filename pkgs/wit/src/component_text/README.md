@@ -48,3 +48,8 @@ cases are retained in `tests/semantic/wac-core-modules` under `.8.2.2`.
 Explicit core declarations preserve distinct numeric slots even when signatures
 are equal. Duplicate core type identifiers reject within their lexical scope;
 shadowing outer names remains valid. Name scans have a shared compilation budget.
+
+`core_module.mbt` is an original iterative preflight for concrete core module
+fields. It rejects structured instruction keywords before the pinned core WAT
+parser, whose keyword-based block nesting can exceed parenthesis nesting. Flat
+module bodies compile normally and then validate as their original bytes.

@@ -1,0 +1,1 @@
+(component (core module $m (func (export "f") (param i32) (result i32) local.get 0)) (export "module" (core module $m)))

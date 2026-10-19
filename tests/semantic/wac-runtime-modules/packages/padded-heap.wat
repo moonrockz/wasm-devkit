@@ -1,0 +1,1 @@
+(component (core module $m (global (export "g") externref (ref.null extern))) (export "module" (core module $m)))

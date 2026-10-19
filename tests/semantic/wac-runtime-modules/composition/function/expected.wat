@@ -1,0 +1,1 @@
+(component (core type $m (module (export "f" (func (param i32) (result i32))))) (import "m" (core module (type $m))))

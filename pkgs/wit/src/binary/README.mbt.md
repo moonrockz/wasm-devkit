@@ -102,11 +102,19 @@ names, async mode, structural values and nominal resources. Instance-exported
 function aliases retain complete reachable type graphs and defining scopes.
 Nested imported instances retain complete signatures, nominal resource binders
 and exported value-type aliases in private indexed graphs. The type-only WIT entry point continues to reject all
-root export ascriptions. This slice does not enable component values or runtime
-sections.
+root export ascriptions. Component values and runtime component sections remain unsupported.
 
 Core declarations have separate lexical index validation and retain complete
 unsigned signatures through `moonrockz/wit/core_types`. Concrete GC/shared heap
 references and recursive groups remain unsupported. Nested core declarations
 with limits above u32 or custom memory pages return `WIT-B002` before the pinned
 parser runs; root core-type sections support those encodings.
+
+
+The declarative entry point also validates flat concrete core modules. The
+`core_types.inspect_module` preflight retains full contracts and charges a
+conservative work estimate before the original bytes reach the core validator.
+The sum across modules is limited to 1,000,000. Structured instructions,
+concrete/shared heap references, supertypes and shared globals reject before
+recursive parsing. Function-only groups without recursive references are valid.
+The type-only WIT entry point continues to reject concrete core modules.

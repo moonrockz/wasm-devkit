@@ -229,11 +229,13 @@ fn validate_component_inner(
           e => raise CoreModuleError("parse core module: \{e}")
         }
         // wasm-tools expects duplicate import names in core modules to be invalid.
-        let seen_imports : Map[String, Int32] = Map([])
+        let seen_imports : Map[(String, String), Int32] = Map([])
         for imp in core_mod.imports {
-          let key = "\{imp.mod_name}:\{imp.name}"
+          let key = (imp.mod_name, imp.name)
           if seen_imports.get(key) is Some(_) {
-            raise CoreModuleError("duplicate import name `\{key}`")
+            raise CoreModuleError(
+              "duplicate import name `\{imp.mod_name}:\{imp.name}`",
+            )
           }
           seen_imports.set(key, 1)
         }

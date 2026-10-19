@@ -1,0 +1,1 @@
+(component (core module $m (memory (export "m") 2 3)) (export "module" (core module $m)))

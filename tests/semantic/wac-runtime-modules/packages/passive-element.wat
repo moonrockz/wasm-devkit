@@ -1,0 +1,1 @@
+(component (core module $m (func $f) (elem func $f)) (export "module" (core module $m)))

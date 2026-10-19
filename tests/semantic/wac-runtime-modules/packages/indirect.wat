@@ -1,0 +1,1 @@
+(component (core module $m (type $f (func (result i32))) (table 1 funcref) (func (export "f") (result i32) i32.const 0 call_indirect (type $f))) (export "module" (core module $m)))

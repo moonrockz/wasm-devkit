@@ -1,0 +1,1 @@
+(component (component $c (type $t (func)) (import "f" (func $f (type $t))) (export "f" (func $f))) (export "child" (component $c)))

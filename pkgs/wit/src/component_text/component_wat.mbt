@@ -5559,6 +5559,7 @@ fn parse_core_module_field(
   for item in module_body {
     module_items.push(item)
   }
+  check_flat_core_module(module_items)
   let module_text = sexpr_to_wat(List(module_items))
   let mod = @wat.parse(module_text) catch {
     e => raise ParseError("failed to parse core module: \{e}")

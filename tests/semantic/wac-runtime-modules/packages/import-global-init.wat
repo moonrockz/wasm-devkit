@@ -1,0 +1,1 @@
+(component (core module $m (import "env" "g" (global $g i32)) (global (export "g") i32 (global.get $g))) (export "module" (core module $m)))

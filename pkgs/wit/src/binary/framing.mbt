@@ -407,6 +407,7 @@ fn preflight(
     raise Failure(Some(4), "WIT-B002", "expected a component-model binary")
   }
   let reader : Reader = { bytes, position: 8, end: bytes.length(), }
+  let mut core_work = 0
   while reader.position < reader.end {
     let section = reader.byte()
     let length = reader.count()
@@ -417,6 +418,31 @@ fn preflight(
         payload.string()
         payload.position = end
       }
+      1 if declarations =>
+        match
+          @core_types.inspect_module(bytes[payload.position:end].to_owned()) {
+          Ok(metadata) => {
+            core_work += metadata.validation_work
+            if core_work > 1000000 {
+              raise Failure(
+                Some(payload.position),
+                "WIT-B002",
+                "component core validation work estimate exceeds 1000000",
+              )
+            }
+            payload.position = end
+          }
+          Err(error) =>
+            raise Failure(
+              Some(payload.position + error.offset),
+              match error.kind {
+                Malformed => "WIT-B001"
+                Invalid => "WIT-B003"
+                Unsupported => "WIT-B002"
+              },
+              error.message,
+            )
+        }
       3 if declarations => {
         let count = payload.count()
         for _ in 0..<count {

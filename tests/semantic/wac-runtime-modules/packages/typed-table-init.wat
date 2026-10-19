@@ -1,0 +1,1 @@
+(component (core module $m (table (export "t") 1 funcref (ref.null func))) (export "module" (core module $m)))
