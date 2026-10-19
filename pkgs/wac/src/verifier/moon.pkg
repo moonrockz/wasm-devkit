@@ -4,6 +4,7 @@ import {
   "moonrockz/wac/span",
   "moonbitlang/core/debug",
   "moonrockz/wit/binary" @binary_validation,
+  "moonrockz/wit/verifier" @wit_verifier,
   "moonrockz/wit/component_text",
   "Milky2018/wasm_component" @component,
   "moonbitlang/core/encoding/utf8",
@@ -16,4 +17,6 @@ import {
   "moonrockz/wac/ast",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/quickcheck",
+  "moonrockz/wit/verifier" @wit_verifier,
+  "moonrockz/wit/parser" @wit_parser,
 } for "test"

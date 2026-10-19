@@ -81,6 +81,7 @@ priv struct SemanticModel {
   resolved_types : ReadOnlyArray[ResolvedType]
   package_identity : PackageIdentity
   resolved_worlds : ReadOnlyArray[ResolvedWorld]
+  world_dependency_order : ReadOnlyArray[Int32]
   resolved_interfaces : ReadOnlyArray[ResolvedInterface]
   resolved_functions : ReadOnlyArray[ResolvedFunction]
 }
@@ -96,6 +97,7 @@ pub struct Verified {
   resolved_types : ReadOnlyArray[ResolvedType]
   package_identity : PackageIdentity
   resolved_worlds : ReadOnlyArray[ResolvedWorld]
+  world_dependency_order : ReadOnlyArray[Int32]
   resolved_interfaces : ReadOnlyArray[ResolvedInterface]
   resolved_functions : ReadOnlyArray[ResolvedFunction]
 }
@@ -266,6 +268,7 @@ fn Verified::semantic_model(self : Verified) -> SemanticModel {
     resolved_types: self.resolved_types,
     package_identity: self.package_identity,
     resolved_worlds: self.resolved_worlds,
+    world_dependency_order: self.world_dependency_order,
     resolved_interfaces: self.resolved_interfaces,
     resolved_functions: self.resolved_functions,
   }
@@ -286,6 +289,7 @@ fn SemanticModel::with_source(
     resolved_types: self.resolved_types,
     package_identity: self.package_identity,
     resolved_worlds: self.resolved_worlds,
+    world_dependency_order: self.world_dependency_order,
     resolved_interfaces: self.resolved_interfaces,
     resolved_functions: self.resolved_functions,
   }

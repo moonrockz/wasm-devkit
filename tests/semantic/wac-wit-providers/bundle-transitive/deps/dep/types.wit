@@ -1,0 +1,1 @@
+package example:dep@1.2.3; interface types {resource handle;}

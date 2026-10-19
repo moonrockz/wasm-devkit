@@ -1,0 +1,1 @@
+package example:types; interface base {record value {x:u32}} interface api {use base.{value as renamed};f: func(v: renamed);}

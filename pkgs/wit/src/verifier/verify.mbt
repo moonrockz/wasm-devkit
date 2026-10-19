@@ -1021,6 +1021,38 @@ fn verify_prepared(
     let interfaces = ReadOnlyArray::from_array(
       arena.interface_order.map(id => arena.interfaces[id]),
     )
+    let world_dependencies : Map[Int32, Array[Int32]] = Map([])
+    for (owner, target, _, _) in includes {
+      let edges = world_dependencies
+        .get(owner)
+        .unwrap_or_else(() => {
+          let edges = []
+          world_dependencies[owner] = edges
+          edges
+        })
+      edges.push(target)
+    }
+    let world_dependency_order = []
+    let ordered_worlds : Map[Int32, Bool] = Map([])
+    for world in worlds {
+      let pending = [(world.id, false)]
+      while pending.pop() is Some((id, finish)) {
+        if ordered_worlds.contains(id) {
+          continue
+        }
+        if finish {
+          ordered_worlds[id] = true
+          world_dependency_order.push(id)
+          continue
+        }
+        pending.push((id, true))
+        if world_dependencies.get(id) is Some(edges) {
+          for dependency in edges.rev() {
+            pending.push((dependency, false))
+          }
+        }
+      }
+    }
     let model : SemanticModel = {
       bindings: ReadOnlyArray::from_array(
         bindings.filter(b => {
@@ -1032,6 +1064,7 @@ fn verify_prepared(
       ),
       package_identity: prepared.identities[0],
       resolved_worlds: ReadOnlyArray::from_array(worlds),
+      world_dependency_order: ReadOnlyArray::from_array(world_dependency_order),
       resolved_interfaces: interfaces,
       resolved_functions: functions,
     }

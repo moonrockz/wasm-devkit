@@ -1,0 +1,1 @@
+package example:types@1.2.3;interface api {@since(version=1.0.0) f: func();}

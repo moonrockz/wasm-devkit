@@ -930,3 +930,28 @@ fn ordered_diagnostics(errors : Array[Diagnostic]) -> ReadOnlyArray[Diagnostic] 
   })
   ReadOnlyArray::from_array(errors)
 }
+
+///|
+/// Worlds in stable dependency order, with included worlds before their users.
+/// Source declaration order breaks ties; encoded worlds retain their input order.
+pub fn Resolution::worlds_in_dependency_order(
+  self : Resolution,
+) -> ReadOnlyArray[ResolvedWorld] {
+  let worlds : Map[Int32, ResolvedWorld] = Map([])
+  for world in self.model.resolved_worlds {
+    worlds[world.id] = world
+  }
+  let result = []
+  for id in self.model.world_dependency_order {
+    if worlds.get(id) is Some(world) {
+      result.push(world)
+    }
+  }
+  ReadOnlyArray::from_array(result)
+}
+
+///|
+/// Location of the root package declaration in its original source or binary.
+pub fn Resolution::root_location(self : Resolution) -> Location {
+  self.root_location
+}

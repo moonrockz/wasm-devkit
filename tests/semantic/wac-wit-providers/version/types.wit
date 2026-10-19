@@ -1,0 +1,1 @@
+package embedded:types@1.2.3+build; interface api {f: func();}

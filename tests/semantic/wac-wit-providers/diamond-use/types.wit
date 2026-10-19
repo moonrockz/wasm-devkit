@@ -1,0 +1,1 @@
+package example:types; interface base {resource handle;} interface left {use base.{handle};} interface right {use base.{handle};} interface api {use left.{handle as first};use right.{handle as second};f:func(a:first,b:second);}

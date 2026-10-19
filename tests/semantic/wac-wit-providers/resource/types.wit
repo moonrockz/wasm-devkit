@@ -1,0 +1,1 @@
+package example:types; interface api {resource handle {constructor(); take: func(); create: static func() -> handle;}}

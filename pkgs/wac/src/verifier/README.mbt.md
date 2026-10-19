@@ -40,6 +40,8 @@ Put these imports in `moon.pkg` and the test below in `example_test.mbt`.
 import {
   "moonrockz/wac/parser",
   "moonrockz/wac/verifier",
+  "moonrockz/wit/parser" @wit_parser,
+  "moonrockz/wit/verifier" @wit_verifier,
 } for "test"
 ```
 
@@ -243,7 +245,7 @@ missing packages, `WAC-P004` missing definitions or nested exports, and `WAC-P00
 self instantiation. Binary decode failures retain their `WAC-B` code and byte
 location, with a related label on the requesting WAC path. This API does no file,
 registry or network lookup. The CLI loads the supported binary profile from local
-paths; WIT dependency adapters remain unfinished.
+paths and WIT source closures.
 
 Twenty-two original dependency probes compare acceptance and ordered source models
 with pinned `Document::resolve`, covering version matching, lookup/embedded identity
@@ -425,7 +427,7 @@ resource export is rejected despite pinned source resolution accepting it. A
 component-model subtype witness independently rejects the same resource mismatch;
 the exact witness and control are recorded in the semantic fixture guide. Deep
 value types, 5,000 aliases, immutable results and deterministic provenance run on
-all four targets. WIT dependency adapters remain unfinished.
+all four targets. WIT dependencies use the adapter described below.
 
 Nested target component types bind resources per declaration scope. Comparison
 tracks variance through component imports and preserves captures in function
@@ -435,3 +437,66 @@ identity. Nested source `use` declarations add their named owner imports before
 comparison. Temporary scoped type copies are removed before returning the model.
 The retained 49-case subtype-witness matrix distinguishes these checks from the
 pinned source resolver's weaker nominal comparisons.
+
+## WIT dependency packages
+
+`WitPackageSource` supplies a lookup name/version, a root `PackageInput`, and a
+complete WIT dependency closure. `verify(..., wit_dependencies=...)` resolves
+referenced inputs lazily. Binary and WIT inputs share the exact lookup key space;
+duplicate keys fail before checking the source. Embedded WIT identities remain
+independent of those lookup keys. WIT diagnostics retain their original source
+or byte location and add the requesting WAC location.
+
+`resolve_wit_package` resolves a supplied closure and returns immutable WAC package
+types. `adapt_wit_package` accepts an existing immutable WIT `Resolution`.
+Neither function reads files or runs an encoder. `WitPackage` exposes its types,
+world, instance, definitions and resource identities. It contains no fabricated
+component bytes. Generic interface/world occurrences receive fresh resource
+binders while foreign uses retain their captured owners. Included worlds and
+interface dependencies precede their users in the package wrapper order.
+
+```mbt check
+///|
+test "use a WIT source dependency from WAC" {
+  let text = "package embedded:types; interface api {resource handle;take:func(h:handle);}"
+  let root = @wit_verifier.PackageInput::Source({
+    documents: [
+      @wit_verifier.Document::from_parse(
+        "types.wit",
+        text,
+        @wit_parser.parse(text),
+      ),
+    ],
+  })
+  let source = "package test:app; import i: lookup:types/api; export i;"
+  let model = @verifier.verify(@parser.parse(source), source~, wit_dependencies=[
+    {
+      name: "lookup:types",
+      version: None,
+      source: "types.wit",
+      root,
+      dependencies: [],
+    },
+  ]).unwrap()
+  assert_eq(model.imports()[0].name, "lookup:types/api")
+  assert_eq(model.composition_exports()[0].name, "embedded:types/api")
+}
+```
+
+The adapter follows WAC 0.12.0's WIT 0.258.0 profile. For source parsing, enable
+fixed lists and external IDs/named interface imports; leave nested namespace
+syntax and accessors disabled. Source accessors supplied through a broader parsed
+resolution fail with `WAC-W001`. The same code reports adapter graph/work-limit
+failures. Default WIT semantic features filter unstable declarations. The separate
+WIT verifier follows its documented 0.262.0 profile.
+
+The CLI accepts `--dep lookup:types=types.wit` and discovers directory packages
+under `deps/lookup/types`. A discovered directory loads its direct `deps` entries
+as source or supported encoded WIT dependencies. A single file does not discover
+sibling dependencies. Explicit mappings require files, matching pinned WAC.
+Both source and encoded inputs remain available to pure API callers.
+
+Original inputs and pinned acceptance tables are in
+[`tests/semantic/wac-wit-providers`](../../../../tests/semantic/wac-wit-providers/README.md).
+Focused tests compare package and composition structure, check independent resource
+binders, preserve provenance, and exercise 3,000 nested type levels.

@@ -1,0 +1,1 @@
+package test:app;world composed {include lookup:types/app;}

@@ -144,11 +144,13 @@ pub fn Resolution::identities(Self) -> ReadOnlyArray[PackageIdentity]
 pub fn Resolution::interfaces(Self) -> ReadOnlyArray[ResolvedInterface]
 pub fn Resolution::origin(Self, Int) -> Origin?
 pub fn Resolution::root(Self) -> PackageIdentity
+pub fn Resolution::root_location(Self) -> Location
 pub fn Resolution::select_world(Self, name? : String?) -> Result[ResolvedWorld, ReadOnlyArray[Diagnostic]]
 pub fn Resolution::sources(Self) -> ReadOnlyArray[Document]
 pub fn Resolution::types(Self) -> ReadOnlyArray[ResolvedType]
 pub fn Resolution::world_summary(Self) -> Json
 pub fn Resolution::worlds(Self) -> ReadOnlyArray[ResolvedWorld]
+pub fn Resolution::worlds_in_dependency_order(Self) -> ReadOnlyArray[ResolvedWorld]
 
 pub(all) struct ResolvedFunction {
   id : Int
@@ -277,6 +279,7 @@ pub struct Verified {
   resolved_types : ReadOnlyArray[ResolvedType]
   package_identity : PackageIdentity
   resolved_worlds : ReadOnlyArray[ResolvedWorld]
+  world_dependency_order : ReadOnlyArray[Int]
   resolved_interfaces : ReadOnlyArray[ResolvedInterface]
   resolved_functions : ReadOnlyArray[ResolvedFunction]
 }

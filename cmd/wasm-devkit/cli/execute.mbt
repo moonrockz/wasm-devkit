@@ -213,6 +213,7 @@ fn wac_execute(
   source : String,
   label : String,
   dependencies~ : ReadOnlyArray[@wac_verifier.PackageSource] = [],
+  wit_dependencies~ : ReadOnlyArray[@wac_verifier.WitPackageSource] = [],
 ) -> Output {
   if options.command == Tokens {
     let scanned = @wac_scanner.scan(source)
@@ -242,7 +243,13 @@ fn wac_execute(
   match options.command {
     Verify =>
       match
-        @wac_verifier.verify(parsed, source_id=label, source~, dependencies~) {
+        @wac_verifier.verify(
+          parsed,
+          source_id=label,
+          source~,
+          dependencies~,
+          wit_dependencies~,
+        ) {
         Ok(_) => output(label + ": verified wac\n", "", 0)
         Err(diagnostics) =>
           output("", render_wac_diagnostics(diagnostics, source, label), 1)
@@ -405,11 +412,12 @@ pub fn render_wac_diagnostics(
 }
 
 ///|
-/// Verify WAC with caller-supplied binary dependencies and CLI formatting.
+/// Verify WAC with caller-supplied binary and WIT dependencies and CLI formatting.
 pub fn verify_wac(
   options : Options,
   source : String,
   dependencies~ : ReadOnlyArray[@wac_verifier.PackageSource] = [],
+  wit_dependencies~ : ReadOnlyArray[@wac_verifier.WitPackageSource] = [],
 ) -> Output {
   if options.command != Verify || options.language != Wac {
     return output("", "WAC verification requires verify and language wac\n", 2)
@@ -423,5 +431,6 @@ pub fn verify_wac(
       options.path
     },
     dependencies~,
+    wit_dependencies~,
   )
 }

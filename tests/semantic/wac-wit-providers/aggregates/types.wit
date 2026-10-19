@@ -1,0 +1,1 @@
+package example:types; interface api {record rec {a: u32,b: string} variant v {a(rec),b} flags mask {a,b} enum e {a,b} type many=tuple<list<option<result<rec,v>>>,mask,e>; f: func(x: many) -> result<list<u8>,string>;}

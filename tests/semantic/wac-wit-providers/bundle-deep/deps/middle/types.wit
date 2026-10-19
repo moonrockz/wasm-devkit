@@ -1,0 +1,1 @@
+package example:middle;interface types {use example:base/types@1.0.0.{handle};}

@@ -69,14 +69,30 @@ fn Check::register_packages(
 // Binary type arenas can contain forward references. Populate all slots, then
 // propagate borrow containment through value edges with an explicit work queue.
 fn Check::append_package(self : Check, model : BinaryPackage) -> LoadedPackage {
+  self.append_type_graph(
+    model.arena,
+    model.world_type,
+    model.instance_type,
+    model.defined_items,
+  )
+}
+
+///|
+fn Check::append_type_graph(
+  self : Check,
+  arena : ReadOnlyArray[ResolvedType],
+  world_type : Int32,
+  instance_type : Int32,
+  defined_items : ReadOnlyArray[Extern],
+) -> LoadedPackage {
   let base = self.types.length()
   let ids : Map[Int32, Int32] = Map([])
-  for ty in model.arena {
+  for ty in arena {
     ids[ty.id] = base + ty.id
   }
-  let parents : Array[Array[Int32]] = Array::makei(model.arena.length(), _ => [])
+  let parents : Array[Array[Int32]] = Array::makei(arena.length(), _ => [])
   let pending : Array[Int32] = []
-  for ty in model.arena {
+  for ty in arena {
     self.types.push({
       ..ty,
       id: base + ty.id,
@@ -113,9 +129,9 @@ fn Check::append_package(self : Check, model : BinaryPackage) -> LoadedPackage {
     }
   }
   {
-    world: base + model.world_type,
-    instance: base + model.instance_type,
-    definitions: model.defined_items.map(item => {
+    world: base + world_type,
+    instance: base + instance_type,
+    definitions: defined_items.map(item => {
       ..item,
       kind: binary_kind_with_id(item.kind, base + binary_kind_id(item.kind)),
     }),
@@ -133,13 +149,25 @@ fn Check::load_package(
   if self.loaded_packages.get(key) is Some(model) {
     return model
   }
-  guard self.dependencies.get(key) is Some(input) else {
+  let result = if self.dependencies.get(key) is Some(input) {
+    decode_component_package(input.bytes, source_id=input.source).map(model => {
+      self.append_package(model)
+    })
+  } else if self.wit_dependencies.get(key) is Some(input) {
+    resolve_wit_package(input.root, dependencies=input.dependencies).map(model => {
+      self.append_type_graph(
+        model.arena,
+        model.world_type,
+        model.instance_type,
+        model.defined_items,
+      )
+    })
+  } else {
     raise Problem(
       self.problem(node, "WAC-P003", "unknown package `" + key + "`"),
     )
   }
-  let model = match
-    decode_component_package(input.bytes, source_id=input.source) {
+  let loaded = match result {
     Ok(model) => model
     Err(errors) => {
       let problem = errors[0]
@@ -154,7 +182,6 @@ fn Check::load_package(
       raise Problem({ ..problem, related: ReadOnlyArray::from_array(related), })
     }
   }
-  let loaded = self.append_package(model)
   self.loaded_packages[key] = loaded
   loaded
 }

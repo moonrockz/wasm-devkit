@@ -265,7 +265,7 @@ async fn main {
   assert_true(missing_package.contains("root.wac:1:"))
   assert_true(missing_package.contains("WAC-P003"))
   let (_, directory_package) = run(["verify", package_source], 1, wit)
-  assert_true(directory_package.contains("WAC-S003"))
+  assert_true(directory_package.contains("WIT-S"))
   @fs.write_file(package_dir + "/bad.bin", b"bad")
   let (_, bad_package) = run(
     ["verify", package_source, "--dep", "lookup:dep=bad.bin"],
@@ -807,5 +807,103 @@ async fn main {
   )
   let (_, sequence_error) = run(["verify", metadata_sequence], 1, wit)
   assert_true(sequence_error.contains("WIT-B004"))
+  let wit_provider_dir = dir + "/wac-wit-provider"
+  let wit_provider = wit_provider_dir + "/deps/lookup/types"
+  @fs.mkdir(wit_provider + "/deps/base", recursive=true, allow_exist=true)
+  let wit_composition = wit_provider_dir + "/root.wac"
+  let wit_source = "package embedded:types; interface api {use embedded:base/types.{handle};take:func(h:handle);} world app {import api;}"
+  @fs.write_file(wit_provider + "/root.wit", wit_source)
+  @fs.write_file(
+    wit_provider + "/deps/base/types.wit",
+    "package embedded:base; interface types {resource handle;}",
+  )
+  @fs.write_file(
+    wit_composition, "package test:app; import i: lookup:types/api; export i;",
+  )
+  let _ = run(["verify", wit_composition], 0, wit)
+  let _ = run(
+    ["verify", "-", "--language", "wac", "--base", wit_provider_dir],
+    0,
+    wit_composition,
+  )
+  let (_, explicit_directory) = run(
+    ["verify", wit_composition, "--dep", "lookup:types=deps/lookup/types"],
+    2,
+    wit,
+  )
+  assert_true(explicit_directory.contains("must be a file"))
+  // A single-file override does not discover a sibling deps directory.
+  let (_, single_missing) = run(
+    [
+      "verify", wit_composition, "--dep", "lookup:types=deps/lookup/types/root.wit",
+    ],
+    1,
+    wit,
+  )
+  assert_true(single_missing.contains("root.wit:["))
+  assert_true(single_missing.contains("requested here"))
+  @fs.write_file(
+    wit_provider_dir + "/single.wit",
+    "package embedded:single; interface api {f:func();} world app {import f: func();export out:func();}",
+  )
+  let _ = run(
+    ["verify", wit_composition, "--dep", "lookup:types=single.wit"],
+    0,
+    wit,
+  )
+  @fs.write_file(
+    wit_composition, "package test:app;let i=new lookup:types {};export i.api;",
+  )
+  let _ = run(
+    ["verify", wit_composition, "--dep", "lookup:types=single.wit"],
+    0,
+    wit,
+  )
+  @fs.write_file(
+    wit_composition, "package test:app targets lookup:types/app;import f: func();export f as out;",
+  )
+  let _ = run(
+    ["verify", wit_composition, "--dep", "lookup:types=single.wit"],
+    0,
+    wit,
+  )
+  @fs.write_file(
+    wit_composition, "package test:app targets lookup:types/app;import f: func(x: u32);export f as out;",
+  )
+  let (_, wit_target) = run(
+    ["verify", wit_composition, "--dep", "lookup:types=single.wit"],
+    1,
+    wit,
+  )
+  assert_true(wit_target.contains("WAC-T003"))
+  assert_true(wit_target.contains("single.wit:["))
+  assert_eq(@fs.read_file(wit_provider + "/root.wit").text(), wit_source)
+  let mixed_provider = wit_provider_dir + "/mixed/lookup/types"
+  @fs.mkdir(mixed_provider + "/deps", recursive=true, allow_exist=true)
+  @fs.write_file(
+    mixed_provider + "/root.wit",
+    "package example:types; interface api {use example:dep/types@1.2.3.{handle};take: func(h: handle);} world app {import api;export api;}",
+  )
+  @fs.write_file(
+    mixed_provider + "/deps/dep.wasm",
+    b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x07\x2d\x01\x41\x02\x01\x42\x01\x04\x00\x06\x68\x61\x6e\x64\x6c\x65\x03\x01\x04\x00\x17\x65\x78\x61\x6d\x70\x6c\x65\x3a\x64\x65\x70\x2f\x74\x79\x70\x65\x73\x40\x31\x2e\x32\x2e\x33\x05\x00\x0b\x0b\x01\x00\x05\x74\x79\x70\x65\x73\x03\x00\x00\x00\x10\x0c\x70\x61\x63\x6b\x61\x67\x65\x2d\x64\x6f\x63\x73\x01\x7b\x7d\x00\x2f\x09\x70\x72\x6f\x64\x75\x63\x65\x72\x73\x01\x0c\x70\x72\x6f\x63\x65\x73\x73\x65\x64\x2d\x62\x79\x01\x0d\x77\x69\x74\x2d\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x07\x30\x2e\x32\x35\x38\x2e\x30",
+  )
+  @fs.write_file(
+    wit_composition, "package test:app; import i: lookup:types/api; export i;",
+  )
+  let _ = run(["verify", wit_composition, "--deps-dir", "mixed"], 0, wit)
+  let invalid_deps = wit_provider_dir + "/invalid-deps/lookup/types"
+  @fs.mkdir(invalid_deps, recursive=true, allow_exist=true)
+  @fs.write_file(
+    invalid_deps + "/root.wit",
+    "package example:types;interface api {f:func();}",
+  )
+  @fs.write_file(invalid_deps + "/deps", "not a directory")
+  let (_, invalid_deps_error) = run(
+    ["verify", wit_composition, "--deps-dir", "invalid-deps"],
+    2,
+    wit,
+  )
+  assert_true(invalid_deps_error.contains("WAC-P006"))
   println("CLI smoke checks passed")
 }

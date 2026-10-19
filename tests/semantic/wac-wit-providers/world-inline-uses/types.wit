@@ -1,0 +1,1 @@
+package example:types; interface base {resource handle;} world app {import x:interface {use base.{handle};f:func(h:handle);} export y:interface {use base.{handle};g:func(h:handle);}}

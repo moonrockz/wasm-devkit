@@ -1,0 +1,1 @@
+package example:types; interface base {type value=u32;} interface api {use base.{value};f: func(v: value);}

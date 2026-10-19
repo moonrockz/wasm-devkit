@@ -1,0 +1,1 @@
+package example:types; interface base {resource handle;} interface api {use base.{handle};f:func(h:handle);} world app {import base;export api;}

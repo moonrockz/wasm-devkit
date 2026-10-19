@@ -40,6 +40,7 @@ async fn wac(options : @cli.Options) -> @cli.Output {
     overrides[mapping.name] = relative(base, mapping.path)
   }
   let dependencies : Array[@wac_verifier.PackageSource] = []
+  let wit_dependencies : Array[@wac_verifier.WitPackageSource] = []
   for request in requests {
     let explicit = request.version is None && overrides.contains(request.name)
     let path = if request.version is None &&
@@ -78,15 +79,89 @@ async fn wac(options : @cli.Options) -> @cli.Output {
         },
       )
     }
-    if @fs.kind(path) is Directory {
-      let error = wac_problem(
-        request,
-        "WAC-S003",
-        "WIT directory dependencies are not yet supported for WAC: `" +
-        path +
-        "`",
+    let directory = @fs.kind(path) is Directory
+    if explicit && directory {
+      return output(
+        "",
+        @cli.render_wac_diagnostics(
+          [
+            wac_problem(
+              request,
+              "WAC-P006",
+              "explicit dependency path must be a file: `" + path + "`",
+            ),
+          ],
+          source,
+          label,
+        ),
+        2,
       )
-      return output("", @cli.render_wac_diagnostics([error], source, label), 1)
+    }
+    if directory || path.has_suffix(".wit") {
+      let features : @parser.Features = {
+        ..@parser.Features::default(),
+        fixed_lists: true,
+        external_ids: true,
+      }
+      let inputs : Array[@verifier.PackageInput] = []
+      let loaded = try {
+        let root = @verifier.PackageInput::Source(
+          load_source_package(path, features),
+        )
+        if directory {
+          let deps_dir = path + "/deps"
+          if @fs.exists(deps_dir) {
+            for entry in @fs.readdir(deps_dir, sort=true) {
+              let child = relative(deps_dir, entry)
+              if @fs.kind(child) is Directory ||
+                entry.has_suffix(".wit") ||
+                entry.has_suffix(".wasm") ||
+                entry.has_suffix(".wat") {
+                match load_package(child, features) {
+                  Ok(input) => inputs.push(input)
+                  Err(errors) =>
+                    return output(
+                      "",
+                      errors.map(error => error.render()).iter().join("") +
+                      request.location.render() +
+                      ": package requested here\n",
+                      1,
+                    )
+                }
+              }
+            }
+          }
+        }
+        root
+      } catch {
+        error =>
+          return output(
+            "",
+            @cli.render_wac_diagnostics(
+              [
+                wac_problem(
+                  request,
+                  "WAC-P006",
+                  "failed to read WIT package `" +
+                  path +
+                  "`: " +
+                  error.to_string(),
+                ),
+              ],
+              source,
+              label,
+            ),
+            2,
+          )
+      }
+      wit_dependencies.push({
+        name: request.name,
+        version: request.version,
+        source: path,
+        root: loaded,
+        dependencies: ReadOnlyArray::from_array(inputs),
+      })
+      continue
     }
     let bytes = @fs.read_file(path).binary() catch {
       error => {
@@ -128,18 +203,6 @@ async fn wac(options : @cli.Options) -> @cli.Output {
         }
       }
     } else {
-      if path.has_suffix(".wit") && !binary {
-        let error = wac_problem(
-          request,
-          "WAC-B002",
-          "WIT text dependencies are not yet supported for WAC: `" + path + "`",
-        )
-        return output(
-          "",
-          @cli.render_wac_diagnostics([error], source, label),
-          1,
-        )
-      }
       bytes
     }
     dependencies.push({
@@ -153,5 +216,6 @@ async fn wac(options : @cli.Options) -> @cli.Output {
     options,
     source,
     dependencies=ReadOnlyArray::from_array(dependencies),
+    wit_dependencies=ReadOnlyArray::from_array(wit_dependencies),
   )
 }
