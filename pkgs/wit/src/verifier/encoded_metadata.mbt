@@ -485,6 +485,14 @@ fn metadata_world_entries(
 ) -> Map[String, Int32] {
   let result : Map[String, Int32] = Map([])
   for id in items {
+    if imported && functions && tree.nodes[id].data is Resource(methods~, ..) {
+      for method_id in methods {
+        if resource_function_name(tree, id, method_id) is Some(name) {
+          result[name] = method_id
+        }
+      }
+      continue
+    }
     let (name, target) = match tree.nodes[id].data {
       Import(name~, target~, ..) if imported => (name, target)
       Export(name~, target~, ..) if !imported => (name, target)

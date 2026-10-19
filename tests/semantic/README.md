@@ -179,3 +179,13 @@ for default, explicit and all-feature profiles. Their binary inputs were encoded
 with all features enabled so selection occurs during loading. Library tests also
 cover mixed source/binary/WAT inputs, original provenance, disabled source
 reference errors and deep source types before selection and compaction.
+
+World-resource triples cover owned and aliased resources, distinct resources in
+one or several worlds, constructors/methods, async/static functions, accessors
+and metadata. The source metadata case requires all features, while its encoded
+world functions and resource remain present with default features. Their graph comparison qualifies package/interface/world ownership
+and checks function kind, flavor and async flags. Negative binaries export
+methods/constructors of imported resources. The pinned decoder panics at
+`decoding.rs:1209` for a world method attached to a resource alias; product tests
+require a diagnostic, and this case stays outside the normal manifest under
+`wasm-devkit-p5m.8.1.5` and `.8.1.7`. These original fixtures use Apache-2.0.

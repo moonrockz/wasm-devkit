@@ -1,0 +1,1 @@
+package example:worlds;world app { resource r { constructor(x:u32); f:async func(x:string)->u32; make:static func()->r; p:get()->u32; p:set(x:u32); } }

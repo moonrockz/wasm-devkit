@@ -51,6 +51,14 @@ test "scoped encoded aliases preserve local interface and world identities" {
 }
 
 ///|
+fn encoded_alias_package(identity : @verifier.PackageIdentity) -> String {
+  identity.namespace_name +
+  ":" +
+  identity.name +
+  identity.version.map(v => "@" + v).unwrap_or("")
+}
+
+///|
 // Compare named and anonymous type edges by their owning declaration and shape,
 // never by source/decoder allocation indices.
 fn encoded_alias_model(
@@ -58,18 +66,38 @@ fn encoded_alias_model(
   reachable_only~ : Bool = false,
 ) -> Map[String, String] {
   let labels : Map[Int32, String] = Map([])
+  let functions : Map[Int32, String] = Map([])
   for interface_info in model.interfaces() {
+    let owner = "interface/" +
+      encoded_alias_package(interface_info.package_identity) +
+      "/" +
+      interface_info.name.unwrap()
+    for function in interface_info.functions {
+      functions[function.id] = owner + "/" + function.name
+    }
     for ty in interface_info.types {
-      labels[ty.ty] = "interface/" +
-        interface_info.name.unwrap() +
-        "/" +
-        ty.name
+      labels[ty.ty] = owner + "/" + ty.name
     }
   }
   for world in model.worlds() {
+    let owner = "world/" +
+      encoded_alias_package(world.package_identity) +
+      "/" +
+      world.name
+    for
+      (direction, items) in [
+        ("import", world.imports),
+        ("export", world.exports),
+      ] {
+      for item in items {
+        if item.kind is Function(id) {
+          functions[id] = owner + "/" + direction + "/" + item.name
+        }
+      }
+    }
     for item in world.imports {
       if item.kind is Type(id) {
-        labels[id] = "world/" + world.name + "/" + item.name
+        labels[id] = owner + "/" + item.name
       }
     }
   }
@@ -128,7 +156,19 @@ fn encoded_alias_model(
   }
 
   for function in model.functions() {
-    result["function/" + function.name] = function.params
+    let kind = match function.kind {
+      Freestanding => "free"
+      Constructor(id) => "constructor/" + labels[id]
+      Method(id) => "method/" + labels[id]
+      Static(id) => "static/" + labels[id]
+    }
+    result["function/" + functions[function.id]] = kind +
+      "/" +
+      @debug.Repr(function.flavor).to_string() +
+      "/" +
+      function.asynchronous.to_string() +
+      ":" +
+      function.params
       .map(parameter => parameter.name + ":" + labels[parameter.ty])
       .join(",") +
       "->" +
@@ -180,14 +220,20 @@ test "encoded aliases enforce scope bounds and pinned local projection rules" {
       if name == "primitive-projection" {
         assert_eq(model.interfaces()[0].types.length(), 2)
         assert_eq(
-          encoded_alias_model(model)["interface/base/id"],
+          encoded_alias_model(model)["interface/example:aliases@1.0.0/base/id"],
           "alias anonymous/u32",
         )
       }
       if name == "resource-projection" {
         let graph = encoded_alias_model(model)
-        assert_eq(graph["interface/api/r"], "alias interface/base/r")
-        assert_eq(graph["interface/api/s"], "alias interface/base/s")
+        assert_eq(
+          graph["interface/example:project/api/r"],
+          "alias interface/example:project/base/r",
+        )
+        assert_eq(
+          graph["interface/example:project/api/s"],
+          "alias interface/example:project/base/s",
+        )
       }
     }
   }
@@ -309,8 +355,8 @@ test "encoded current-scope outer aliases and long named chains use bounded work
   assert_eq(model.interfaces()[0].types.length(), 1501)
   assert_eq(model.types().length(), 3002)
   assert_eq(
-    encoded_alias_model(model)["interface/api/t1499"],
-    "alias anonymous/alias interface/api/t1498",
+    encoded_alias_model(model)["interface/example:deep/api/t1499"],
+    "alias anonymous/alias interface/example:deep/api/t1498",
   )
   assert_eq(model.sources().length(), 0)
   assert_true(

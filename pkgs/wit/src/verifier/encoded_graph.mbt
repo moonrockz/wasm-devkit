@@ -633,6 +633,14 @@ fn encoded_graph_interface(
       _ => raise Unsupported("non-WIT interface item")
     }
   }
+  encoded_render_items(items, resources)
+}
+
+///|
+fn encoded_render_items(
+  items : Array[EncodedInterfaceItem],
+  resources : Map[String, Array[String]],
+) -> String raise EncodedFailure {
   let out = StringBuilder()
   for item in items {
     match item {
@@ -657,41 +665,64 @@ fn encoded_graph_world(
   interface_names : Map[String, String],
 ) -> String raise EncodedFailure {
   let slots = encoded_graph_slots(graph, scope, owners)
-  let out = StringBuilder()
+  let items : Array[EncodedInterfaceItem] = []
+  let resources : Map[String, Array[String]] = Map([])
   for item in graph.scopes[scope].items {
+    encoded_graph_step(graph)
     match item {
       TypeItem(name, id, true) =>
         match graph.nodes[id] {
-          Link(target) => out.write_string(encoded_type(slots, name, target))
-          _ => raise Unsupported("world-owned encoded resource")
+          Resource => {
+            resources[name] = []
+            items.push(Resource(name))
+          }
+          Link(target) =>
+            items.push(ItemText(encoded_type(slots, name, target)))
+          _ => raise Invalid("invalid named world type")
         }
       FunctionItem(name, id, imported) => {
         let (resource, text) = encoded_function(slots, name, id)
-        guard resource is None else {
-          raise Unsupported("world-owned resource function")
+        match resource {
+          Some(resource) => {
+            guard imported else {
+              raise Unsupported("exported world resource function")
+            }
+            guard resources.get(resource) is Some(methods) else {
+              raise Unsupported("world function attached to a resource alias")
+            }
+            methods.push(text)
+          }
+          None =>
+            items.push(
+              ItemText((if imported { "import " } else { "export " }) + text),
+            )
         }
-        out.write_string((if imported { "import " } else { "export " }) + text)
       }
       InstanceItem(name, child, imported) => {
-        out.write_string(if imported { "import " } else { "export " })
+        let prefix = if imported { "import " } else { "export " }
         if name.contains("/") {
           guard interface_names.get(name) is Some(local_name) else {
             raise Unsupported("foreign encoded world interface")
           }
-          out.write_string(encoded_interface_path(local_name) + ";")
+          items.push(
+            ItemText(prefix + encoded_interface_path(local_name) + ";"),
+          )
         } else {
-          out.write_string(
-            encoded_name(name) +
-            ":interface{" +
-            encoded_graph_interface(graph, child, owners) +
-            "}",
+          items.push(
+            ItemText(
+              prefix +
+              encoded_name(name) +
+              ":interface{" +
+              encoded_graph_interface(graph, child, owners) +
+              "}",
+            ),
           )
         }
       }
       _ => raise Unsupported("unsupported encoded world item")
     }
   }
-  out.to_string()
+  encoded_render_items(items, resources)
 }
 
 ///|

@@ -1,0 +1,1 @@
+package example:worlds;world app { @unstable(feature=hidden) resource r { @unstable(feature=ctor) constructor(); @unstable(feature=method) f:func(); } }

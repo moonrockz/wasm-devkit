@@ -1,0 +1,1 @@
+package example:worlds;world app{resource left; resource right; import f:func(x:borrow<left>,y:borrow<right>);}
