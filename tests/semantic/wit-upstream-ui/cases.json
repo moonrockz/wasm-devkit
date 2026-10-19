@@ -1,0 +1,2090 @@
+[
+  {
+    "path": "accessors.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "c431176862c3f7899e13f1322b96cb7cd4050f208c2f994b879eac9211cd12da",
+    "exception": null
+  },
+  {
+    "path": "async.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "e02dcde5e58db33f6a4cba9ef56d2e23f25ff66becd438bea4a3e44a3b708982",
+    "exception": null
+  },
+  {
+    "path": "comments.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "475f3c841e96ff3d5b845c889382eb65501ed5937e1cafde2fb1cca22eb6af76",
+    "exception": null
+  },
+  {
+    "path": "complex-include",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "0a76e4850ccbed1bb89bfc2280eb3371f7cda9991d4eacb5600f98696987f33a",
+    "exception": null
+  },
+  {
+    "path": "cross-package-resource",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "8fd56d4b9490584bdd131197d3a02852333e44f91dceb0e3a08b157ab7da947f",
+    "exception": null
+  },
+  {
+    "path": "diamond1",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "e74375aa8983168d7f84e856ea04d18b6acf8b5a7ecef7cede936ee552cf104a",
+    "exception": null
+  },
+  {
+    "path": "disambiguate-diamond",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "dcbfca21ab6fa9dad258512f377a7e4453bb6d4be7284fd909e42c7173710164",
+    "exception": null
+  },
+  {
+    "path": "distinct-names.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "0cf850dc6c41e02ed0c412aead8e7e17e6589b5e9c3bb081900dd336484c6536",
+    "exception": null
+  },
+  {
+    "path": "empty.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "180aebeccf365462475063f210fc0e2fffd16d415b40c710112daa478fc05d2c",
+    "exception": null
+  },
+  {
+    "path": "error-context.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "bc6f8bf716ccd78f58d35ce867b3c516b7b9a00129a8e42a3b4284070081ec12",
+    "exception": null
+  },
+  {
+    "path": "feature-gates.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "6421b98446ab4de927677a37455163faafb8ccbe039c9dec9ea3edf601f62c3e",
+    "exception": null
+  },
+  {
+    "path": "feature-types.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "42907c1e0228a5f5046cc977c0cf9fed6bdd2c7aa3df78ff8ed77fb4db9e96e1",
+    "exception": null
+  },
+  {
+    "path": "foreign-deps",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "4b250c407b59befc85c262cbadedb63054e871b92ce84e2323b55a802bf415aa",
+    "exception": null
+  },
+  {
+    "path": "foreign-deps-union",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "d43363efcf28c9853a7e562ea7bd01f6f3a954307971c5435dcbacd325416394",
+    "exception": null
+  },
+  {
+    "path": "foreign-interface-dep-gated.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "a4e2e64a17b2d145897ddf3280a47df60c80101124c13323bc25485a9cd9057b",
+    "exception": null
+  },
+  {
+    "path": "foreign-world-dep-gated.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "b1f4c36d604270c079a645242690e60083bc39ad9d9a507cef89243fd848f579",
+    "exception": null
+  },
+  {
+    "path": "functions.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "909502792a27bcd571e1e4344fb6f0d03412d44a4afa1468f67896cc9ff479a6",
+    "exception": null
+  },
+  {
+    "path": "gated-include.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "292d684e8413242ab91efded4e21ad779f3d11c4c48cf42ec2f37a17ce881f2d",
+    "exception": null
+  },
+  {
+    "path": "gated-use.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "792fbc77feeed4544311df936c0068335658d3b28b62880ee0f2c4b9027123bc",
+    "exception": null
+  },
+  {
+    "path": "ignore-files-deps",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "39318b08b782734be24b8cfd6ae80cd211f0dffef1bf807fc4a1d366ca26a36c",
+    "exception": null
+  },
+  {
+    "path": "import-export-overlap1.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "1228074dc8caf72beecb3c6281e183769b8367d7162832cb9d0647d314a9b2ac",
+    "exception": null
+  },
+  {
+    "path": "import-export-overlap2.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "23f35f40aaf4b13e2745d201394add251746d523eb553b246f801715d9d79705",
+    "exception": null
+  },
+  {
+    "path": "include-accessor-pair.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "a8a62b2e168023029fd9873e8f18ec5efe87808c9337e6feac42e05028e1dd7e",
+    "exception": null
+  },
+  {
+    "path": "include-reps.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "18b45384f26dd1660e721f00fa25bb45fcae247f91925b37b68b96c95d5a1983",
+    "exception": null
+  },
+  {
+    "path": "kebab-name-include-with.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "e3018a921e3767a5f546713d8dd56801667d69b18353eff2f057b2e10c820273",
+    "exception": null
+  },
+  {
+    "path": "kinds-of-deps",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "2284bb12c0ee0c6446c032f57307d07579e2957ed9fc04e01dc77b8c00efbb15",
+    "exception": null
+  },
+  {
+    "path": "many-names",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "d5c44e43296f0c50fb843324bbe4abd31b4186d44e346e59c89e4c9121068825",
+    "exception": null
+  },
+  {
+    "path": "maps.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "245328c5953648a8068d0cd1b84cdd342590fd7ea066d650f40dfd7e5fd381a7",
+    "exception": null
+  },
+  {
+    "path": "max-flags.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "de6889f899ca2b8f7b3552c68fb4e555cecb6fa4c74dd36df79c098db9a58ea9",
+    "exception": null
+  },
+  {
+    "path": "multi-file",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "ef6d762bd33e783910ab3b2b18f36e472c164970524ecb689486dd2f39fbeba7",
+    "exception": null
+  },
+  {
+    "path": "multi-file-multi-package",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "30a6f376b0b6ae440c76bbb8da6dbc2ac6b7ab12741971f38e0504a631f35c71",
+    "exception": null
+  },
+  {
+    "path": "multi-package-deps",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "8b3570bdce53d0656c1e6dd1b124e4a131229cb77f44abdf3593245050689f2e",
+    "exception": null
+  },
+  {
+    "path": "multi-package-gated-include.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "109631bf21f46c17c146927e70579661934c28b0e42484378ccb07f65ffc084a",
+    "exception": null
+  },
+  {
+    "path": "multi-package-shared-deps",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "b1746b4a3921e7e46409623565adfce82b83dedd099ad4f4dad52843a0076ee5",
+    "exception": null
+  },
+  {
+    "path": "multi-package-transitive-deps",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "0941bb0fc0b5bc722659cff409701a34588b9741def829610542311f2a556f5b",
+    "exception": null
+  },
+  {
+    "path": "name-both-resource-and-type",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "b7cd0cce1ba6d4c8c1f6ea2c84c38dbd794fb48cecb6a38f75e2ed00e6597a83",
+    "exception": null
+  },
+  {
+    "path": "package-syntax1.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "090709e7f0f85fb60f6a104c7b0ec325d11fc58fcc69a6c20b02f454a0636eee",
+    "exception": null
+  },
+  {
+    "path": "package-syntax3.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "ccadb54a828f5e200f6f2ca40d3e5bfca9431ab59b375e7dfde91a149b34fa7b",
+    "exception": null
+  },
+  {
+    "path": "package-syntax4.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "516e3e21f7768a4ee479c0b52b68d3947b6983d0a0c04bba6044c05d784a2f41",
+    "exception": null
+  },
+  {
+    "path": "packages-multiple-nested.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "feedd1dc072442d0183ff04562e5107c3081612e60939c1475a25dcb09c0d448",
+    "exception": null
+  },
+  {
+    "path": "packages-nested-colliding-decl-names.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "0875563840447d685523542c20262fb6b181bd0c77f56d4460a56211ce79fcac",
+    "exception": null
+  },
+  {
+    "path": "packages-nested-internal-references.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "8d60a92f19097442d2c17de549d41ca48b1d58025714ec9886153d636747ec30",
+    "exception": null
+  },
+  {
+    "path": "packages-nested-with-semver.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "bded1bf70c7d27493eb53571cecace850bf7e05b559f72b010d431c4a812900e",
+    "exception": null
+  },
+  {
+    "path": "packages-single-nested.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "b3c438ef0c0f467ec0dd15202d8b48636860921ce1c313968bbd0fdf4451c746",
+    "exception": null
+  },
+  {
+    "path": "random.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "a308df65c57e4848930795bc110f1b2dde102c6e9963570a404c648b2b0be33a",
+    "exception": null
+  },
+  {
+    "path": "resources-empty.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "a7ad4630c28f52b6ed054520613feb8b11d632fcaa80c21ef5b84343cf649659",
+    "exception": null
+  },
+  {
+    "path": "resources-multiple-returns-own.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "7c665e511dbd2992fb6efcb6412241d1bda0074da78d394ead1070cf6be7f187",
+    "exception": null
+  },
+  {
+    "path": "resources-multiple.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "98724d3b6a1d0d192970d9ae149e31694bd9c3f86bfe2e89c520e1a063724921",
+    "exception": null
+  },
+  {
+    "path": "resources-return-own.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "29d9f53bd39d0c2263c7260508a1f954e59b28923994f94bda0184cf037c4210",
+    "exception": null
+  },
+  {
+    "path": "resources.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "3535fc8c8381779d33082f54384362c0e3ab23cfe675562333e6840682d71ebe",
+    "exception": null
+  },
+  {
+    "path": "resources1.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "9eb5d63717f20c6801c6c71f6306ae3e2c37790bfe8a89659c11cce85797d128",
+    "exception": null
+  },
+  {
+    "path": "same-name-import-export.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "95ba4578908c29d2af14fcdd8970362c8bafb2174916c0f0772b09437e8d57a4",
+    "exception": null
+  },
+  {
+    "path": "shared-types.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "d145c035d916f453a7eeb034bf2a59c2e24f14061d8385ab39cc1f076c9265ae",
+    "exception": null
+  },
+  {
+    "path": "simple-wasm-text.wat",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "10e7380158502c5ca3a1ac9d4195b0455cc02438fed0fb3f7188674354c25c2c",
+    "exception": null
+  },
+  {
+    "path": "since-and-unstable.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "312fe8ecc9f22c083f3e59ea306731c198b4d1dd8e2bc1b3d868e90b184163a6",
+    "exception": null
+  },
+  {
+    "path": "streams-and-futures.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "2d4d378de4dab66aebc90d4dcfec58b3afccc646f83491801d51999fb612cbe4",
+    "exception": null
+  },
+  {
+    "path": "stress-export-elaborate.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "7d62775daf1c0e35c7576abd726077e45cde2f693cc21d8cadd542e88271590c",
+    "exception": null
+  },
+  {
+    "path": "type-then-eof.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "79610cbf6fe3e2d13ce1fd8c06e53fee6c81d42469ef56e1dd61c46bf5f57ca3",
+    "exception": null
+  },
+  {
+    "path": "types.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "274af02b82f17d79b34ce206aff9cd0e47bba385216a9da68300042959cb039e",
+    "exception": null
+  },
+  {
+    "path": "union-fuzz-1.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "c4f60248204707f8dfe134bf4d6ec3385ae343abc4dfa39239798dc9f3991753",
+    "exception": null
+  },
+  {
+    "path": "union-fuzz-2.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "9aca6186d1c8776b970a91a5f22fc98771b6ff519f32ca909a4712a274d2d24b",
+    "exception": null
+  },
+  {
+    "path": "unstable-resource.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "304a4e8cf205f6f7afdc9af0f2756931c1e2875ab7bb70323cd6f1414fb462e8",
+    "exception": null
+  },
+  {
+    "path": "use-chain.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "9229c3c4efbcf99e647152e927e5d2d50babbcaa040a343f552418511262f27a",
+    "exception": null
+  },
+  {
+    "path": "use.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "4c920ba13211fdeeabdb53341c983f002263c464f4bae2829b0dadae3308cbe8",
+    "exception": null
+  },
+  {
+    "path": "version-syntax.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "18e83b2246c0271bc3da0bfe004e69ee7699fcfcb6a986ec970dfaab7ec315bb",
+    "exception": null
+  },
+  {
+    "path": "versions",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "0bda82b6f3cc614c14adcc25b74b5db79d9c81346c2e585dd185f96c3fc357b0",
+    "exception": null
+  },
+  {
+    "path": "wasi.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "7227877525a5b0e2fc9ebd6e312d29d110e398126e4706a7fdb07e2d3fa05ff6",
+    "exception": null
+  },
+  {
+    "path": "with-resource-as.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "bfc965bbeee53ff610639bef7f6e70057771812395f4328b7025dc6005a5d334",
+    "exception": null
+  },
+  {
+    "path": "world-diamond.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "82ca9865f586a5839adee9d8d90a519aead5ead715c2607125e878286f0ce847",
+    "exception": null
+  },
+  {
+    "path": "world-iface-no-collide.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "f1bb804dc568a94c6aa467c8d720a26c4a47a00f3374f4fe045502686eea3d7b",
+    "exception": null
+  },
+  {
+    "path": "world-implicit-import1.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "59515a6a268a6329bcf4e0a6e74b8ed1f77a61638ba8fad5fae935eb0ab59a50",
+    "exception": null
+  },
+  {
+    "path": "world-implicit-import2.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "14bb046b3bf18a2b02ab47ed8be2947f3f911ded88dd2410225ac08e02df8ede",
+    "exception": null
+  },
+  {
+    "path": "world-implicit-import3.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "0faf9a3afa61ffab3d3d5e2f869d35d92a39406d65b228865f4871035b93f2d7",
+    "exception": null
+  },
+  {
+    "path": "world-same-fields4.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "8686e463450b6880f1572b0fcb9ac78dfa78c1bf7c1124e255aa79959a49ef7e",
+    "exception": null
+  },
+  {
+    "path": "world-top-level-funcs.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "1ef7498d5c9cae3e8da77bf4af98b2fec439f56387d130b54109b0f16d156d0d",
+    "exception": null
+  },
+  {
+    "path": "world-top-level-resources.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "61267d096998b68bfd72845854f6a2d5391d68f6a0094887fc05cf97cb54410e",
+    "exception": null
+  },
+  {
+    "path": "worlds-union-dedup.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "1f9ac2813774c0fe1676734bd6e1779f4870091d0d6a8aa061643e865528be10",
+    "exception": null
+  },
+  {
+    "path": "worlds-with-types.wit",
+    "reference_accepts": true,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "a2e6d00eafed8d6c6278dc9cddbc2ab2542f836869f564cf449625fddc9476e8",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-async.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "4f0d7007d5cfbe438cf5b651426358be0471da138581466ef5ff4f2f8b23a916",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-canonical-case.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "6902732a24620a4d1575b76cc37f3dac2ccbaa451b375096e3b6d3809f421b86",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-canonical-hyphens.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "d86565fcb2563bd8dc784e9125fdc355d599a716413a484148b0938d6a783fee",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-canonical-pair.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "0270012fc81628aec91cba6407113ad835a1fadc3b43d6bb1fe358da96ac3d7f",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-canonical-resource.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "a9fd7d2c31bf4fbe4adf1821a49146e3d5d4477be7a1f84bee41c1a8b3aa2b88",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-canonical-world.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "a91646ceea837431cb92df683f37527f6b22a8f3ebde45cf0c3a025b73021cf1",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-duplicate-getter.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "af632309926ab413050672ccb0b23f5d9893e46d396f9b57e2d9963334768bec",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-getter-conflicts-func.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "e2c7ea010ed1ca67efee0ee5d2ac2a842193c26357eb4fa01395f100cd9d1d8a",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-getter-no-result.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "aad3f367b6c5c8e31be79ecd2b7c6ad7796e42a28f585f3a71911ec8e34da012",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-getter-params.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "bf569bc153e180fffe27e1193fa1aacedadb7775bb4d7e4d22d32680292f0154",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-resource-canonical-static.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "839bfacc5a3a8314235c52c6f95cdb16aa6036aa3db259cd519f5095ba80489d",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-resource-conflicts-method.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "39bfebdbe6dcd04808541e76bd4430244659d9a28fa9b25557a60c220fbacf0b",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-resource-duplicate-setter.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "58763b18286737d357aae5182d1656f9da60654d66cbebfd6f29b7bc3b7822bf",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-resource-static-mismatch.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "690e2c99e99029af9caa95b2c2a838e681afc0a28f693820218f6ca862b4e1cd",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-setter-bad-result.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "87959f160109cf2f9a82511e2bbf4d40ec208103fb891f36974edbe693528f9d",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-setter-bad-result2.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "72223f9fc3cd59bd0960317d29f1922bc1774b00db18a3a5756a30cbbed384fb",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-setter-no-getter.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "0c21a158d10c0a7e7e886812a6f23f8fb88022099d99e5e83d05f7a1bf1568ad",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-setter-no-params.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "9eec82602e3ff5b713de3c41e06406ca2bd84e00a9ce44c75470b3dcd1228473",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-setter-two-params.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "4db0539dea32a89afb7a48e0d1d2402f8c892b35b8980d2ff996a95d8cee537c",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-type-conflicts-getter.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "f7fd1efdc701c18de3bf7fd2e9532ea9fb930dd1dbc6915dcc19f21ad28af223",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-world-getter-conflicts.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "463bdb9d9dcf0335ff67d53ddc9e3e11fd545139a8955a8b9bd1a8fd45e54daa",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-world-setter-no-getter.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "43889b8922268e71b2a86310ee9ed3f8334e180d860c465d8beda091d20ecdf1",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/accessor-world-setter-static-mismatch.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "a6ef9d473ffcf7530307c29ae082e787d7166624dc70a6335816184ce29f2cfe",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/alias-no-type.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "6d717f638138d6536c634773058484f26bf1696630ccee86cbd98f20ef000185",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/async-bad-world.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "a5f91bfd0e6eb3d67392ba0be97fa037d73b6193f8014df64313d08e8d8dd233",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/async-bad-world2.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "110a4409ee12bbf9f1ba2e8264a694220ddc52cf6d236940cd6989d8a907b925",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/async-bad-world3.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "ad96dd779c7c19c48084f98203c9025ee8b958649788c33b0092d63fcb3ac6bf",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/async-bad-world4.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "d607651508ad944f22338e86b9226dfa58b83e7796e4c6af1c5fb65683640997",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/async-bad1.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "8c11bac371904041a93d4f04489e1f0fc2e731a1950a1f4a69d1d6a56fadcdea",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/async-bad2.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "b779614996ac1c6ce2d5d3867e4c8772c66b093e5274807a83d0bb385b09a0d5",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-deprecated1.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "d792904a2c146aa5f247c23fd420e85565431b6f7975616de32bf78cabb78582",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-deprecated2.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "d333c32a598d23e0decad6f1f5d9278296bfca1320aca4e12291bc113d6e567c",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-deprecated3.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "f72813a037e8718a7315fee317a080dbe73f3e44df0bc42408c0b9ccab1041f1",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-deprecated4.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "96ad0d172b69432598acd101e2de83a6b36ef6c6980075d994d3961becc7ffe8",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-function.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "ebdaa7b0c3fb7713bd869b510c222e10e0fbe6b5e3c93b3ba8f077b59a9cdee2",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-function2.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "e501d5d676b0647999c3e508c4a494ba652cbd16c275be17583ae5fa02bf5e7f",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-gate-record-field.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "2df82622615bf402d357d44420005038b74da2c1a2195e94a8b97bad3d123624",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-gate1.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "d427d68abe2e93f488569af3fecd08d5c6bb984ec461fac4f184a2b977d903a5",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-gate2.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "dd536d413c6b7a0a59a15d39fdd1a52d7a4810d3900c59f8132fbf14d32da3e4",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-gate3.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "5e0d76a3029a0520b121f2ec6823ca39c3d3adfc57556c849898f69240f83a44",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-gate4.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "f5fbb50ad5087d0bb5401d290f05e733ee425bbffc514db3a2ed4d0a0dd366db",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-gate5.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "52b068c1f00f38174f53927cd7729b78648be636e2a7e2544397a8ea9ea8569e",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-include1.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "24119086c006d3f09741c39ec6d4fd6c5b76ea241ec732b82c6106cab3bcbaa1",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-include2.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "32d2bfa14dd78c78aecd93b31b28ba7013701411abd8d67e8c5277f1b8efd1a9",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-include3.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "44995ec365758dc52f7dc6824587df97777dd874f5d010c62222881a5b3ed929",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-list.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "20255af34f429589b311fd29367e4f7679eb8f1667538522b048ec5d9e5886e0",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-list2.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "8325a40a06f2c29c0f106e39652b2519ff40a11f0829da3d32e2c91fd05dee81",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-list3.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "070c1d4580008679e693d5748069c67738620f36958bd71533aaa0813516edd1",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-list4.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "474d295829f1303800b0e52ad5e9ff1f997c8f6db5a33028cc0a8502310e310d",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-pkg1",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "afa411d8186fa5c700331f4c98defe39d1db51fc7a6da8b58519c5001356f09a",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-pkg2",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "85e9e4e20c0360b3f918001b0d518f73eda551455ad33887b5e694164b642cb1",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-pkg3",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "7a66b289c525bc770b80dc601c61ba4f5945154bb53c7e1e7064c4a06f67adba",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-pkg4",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "4a2004a33ec42cd8711c6d65f56fc246af5a02a96cc418020ec8bc9b50832451",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-pkg5",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "4671cd99e5679e89466541b36d79354ca20472f3f6ff28d3ee7af4599b78e420",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-pkg6",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "1f561d14b4bee4609c6b11c1cb6b7f7f004153e11adea0723e5212167402557e",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-resource1.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "d3783f455c501334f2ae8d132490afffee5142ad1e94ceb3fb0e576299419147",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-resource10.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "4158f1b360360ea4e4429720b34e91b9d259eada8e574733af3c83393552fd38",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-resource11.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "24459fbe029d94febe36a6823d5992a59732bc8b5436c4bedf2c5192e2c20be2",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-resource12.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "da12b00ae70ece5df5faf295a75b484e89ef3bd5edb07bd7b76bf7dadb04dc45",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-resource13.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "e01ae82c5dc83a1f201fb9942b01f469eddd63741a12e14c4b97510cd0b74daa",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-resource14.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "ed4450c13763dbe83921828ae23f8900ed88de70ca0bf989874c31e88e929cba",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-resource15",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "76b4ab129917b676b0333c64f909edebadd37fb54dc6b07702612a47fcf1bdd5",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-resource16.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "c1b3724b5a2d0689db57521fb35f0e8f47302fff277e5fac4e077712b8d06ed5",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-resource17.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "e3da1cf497d48033f3a91d25ae2f7129de54c004c9b448e5e810ceb2304364c9",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-resource2.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "78f8e65877b7254aaf8f448f7f5f4e50774d797fc3eb64ca2793532ff16a62ff",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-resource3.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "e8620477d3cc02bc3b130d2fc14f2431fffac0cf516cbc05aff2dda37740f2fb",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-resource4.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "31537bd0d09e58dee09ea9b93054c8cbb3cfd39bc4a1fa9330bd7b945bd81681",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-resource5.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "854fac37c2b7c8edae5276aa1c7c6cc726a348ae757c0f9cc5cd4103d75dc640",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-resource6.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "a5f798328cbf777cce00069a637f1dc7d79423c685ebe11a21f7f8ead1bccef4",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-resource7.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "7d09275525b419858d26533211b6a9d3a7b67639e8aa1fc28eabd713dfff4eb1",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-resource8.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "da8489525fe75a197731293d384c151da204fbb2a278b9ab7a6c30fee45efcdb",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-resource9.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "5bdde3d51bf8f3e86752a21a31d93776a6b390e41ae9aeedaf7b829e7afd8f19",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-since-on-include.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "d2ec76fa1c8f40d96d92fbe72d3e583c1032a24b4d72fd08b0699b1a3d46b739",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-since-on-interface.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "462b39c7e7ba3f695c019ea181e2ba3b076a23ddda4341b62376655581ca547c",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-since-on-type.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "be4730f7805c3a79319d5a450148d0b1918e2fdb15777472cc5faafacc05925c",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-since-on-world-import.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "54dd63dc781cba74bfcf8b0b75f8d74b1cad691a1879d182a4faeecda3155f74",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-since-on-world.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "d2d186ee2ce0381e9ed11855de4584e50ae33e1074d2e2c355934464ec71e2ad",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-since1.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "8180c2632f6d75ee675528f4e9fad184ea5c9675ba09f34f61d7bca5ced38344",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-since3.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "477408c0e355c1383103aecbd4bd4769df5ce251bae1ae5405183dac9a920c6d",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/bad-world-type1.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "c04002fdb48270e72f804642932b84f8a0a6acdf03d335e7b809c61b9e5efe64",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/case-insensitive-duplicates.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "0517099b9586ef9a1a22e4a340e00b3f9088891e5203906ee2303e5e47cf9a49",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/case-insensitive-function-params.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "abcf4462958adef4f13da30b1e0c7bb3c0edabc5cf5019826306a21e66923ea6",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/conflicting-package",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "c446a1479805012a024055626d2b03e36e374c2daa922968097abf113d8da496",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/cycle.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "6940cebea92951af95a7a352f76ec8c79326005a0698e977ec362923ddbddb8e",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/cycle2.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "5c7d28994b1fd872236a03238d9d1b757eefed741a1e540a4bc55e0c2ad0fde2",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/cycle3.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "0f4c613e93478afad6065642b60b5979a8df4ec1e13359f0c9824a218c966de6",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/cycle4.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "74fab6b8fff3e176bc1499f3e0acc46f1746e8664a7b0307389645e7ef03b696",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/cycle5.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "c21c064e42ec81544a0ae5cfa0081313b8023fc4cc6725b27a8307ea0acc43cb",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/dangling-type.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "61ab6f89a622be1f4003dd4c6841d780646b78f314c0759b77dcf6b2bb91e355",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/duplicate-enum-cases.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "aff22ffb41690bf73d6abb732cdecf670927223beed74990e0af54795b871a05",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/duplicate-flags.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "52e600045a628e6d2150762b12d609fe6e2fd2d34cd75116776dc813b2d70a2b",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/duplicate-function-params.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "7c86f5515793538b821a4797f4a8456930329a0fcd054d29e1b7b1117a29d295",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/duplicate-functions.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "9ff1bc0093dbe55b961e8a5f4b528c145c1d975bea619b2936cd6cf839edf0e6",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/duplicate-interface.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "3acb5212bebafe8eb10e0176f74ffe999b20d9cdb7ce82f09672584a043f90eb",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/duplicate-interface2",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "4e8493c7b6651d22b1f79d0b9cec1aad21b4d3fdf37efbee6a55612ac24b799d",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/duplicate-record-fields.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "9fa4f56484f11d2e7ee38fb757d1828a24d3f83cfc515eee7e6a468f717dd67d",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/duplicate-type.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "0d1623865f9cb358f8344fa954becf249e948ee37bb22004c1405602c2f083b4",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/duplicate-variant-cases.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "b7ce7c5a83b14ddd7baabc8bd88866e44bbc5d539e4b05f5b97533a7dae6ac68",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/empty-enum.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "4d345214cf0ee46c4b4108fc0e9f7b8aaeb7eff82171400aaf45c1fb283e558b",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/empty-tuple.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "3356c116d9a15fe922701d35e6e2feb1cefd5083cafec5eebd1c4c5ae84ac739",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/empty-variant1.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "1f56da64ab09a7f282b1785241dae5bfd8ecb4bbd055a22dcdebed33971f1522",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/export-twice.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "a3a7cf6e7cbbe513c5561a93e32f030364c622b5123118392e9e2aa6ae44dfef",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/implements-conflicts-func.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "b4107ff8cd06a7872b32570c1433538eacb9fbf0cbd7c226ae7cf71b8b7cb872",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/implements-duplicate-label.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "525718fc26008ed5cf62e4b721414bf99c6045886d36dfb2df55b4f3bf940bb7",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/implements-nonexistent.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "71a3d680824c25f0d3a3d2a96965f7d03f364dbf68d8b5ad5ea93bdc41b96cec",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/implements-not-interface.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "ea4ed8d03a3a5cfe9d9470f90d324bccecda38899ab33bc84becc3f5f791596d",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/import-and-export1.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "626f705beb7506cd30d2adea9b339199f9e6d8ac6f62f5f7778e2e2d683b0230",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/import-and-export2.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "617a1b3d8e0b227eb4fbf74101133deb537ab5723811e9cc658d8bcb942425a1",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/import-and-export3.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "adc857f5752dbf55460be01bbdd19fb54dffedeb1781ea8f842a05041ae6bab5",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/import-and-export4.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "9fd002997b30219720270a8c5399bfe45d55737d9052306c992f6eec30c4aad1",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/import-and-export5.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "6e1460b43a0350d345f7effeb92c8696e7867ca7bc8a42cab510a16091f5194c",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/import-twice.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "ba1975d057920962bf325b034b4ca2cfa7587e2fa79ff0b2bca4a0f950e0806e",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/include-cycle.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "0c51410fa39f6afa1465696c4ff97b1496c6870dc8fc5a2a2f3c2a4826c24685",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/include-foreign",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "6b2a18fb5f29df0fe6f9c113218572622c1d49cdc9bc718e707cb26332373d3f",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/include-setter-no-getter.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "cc547ed214ef38531af52732b66aeaa9ae2d54c0f49e65d4a657408fab42fd0f",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/include-strongly-unique.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "7120548255eec9116efaee581a6f2a99f4ae1665efd2b73259d6fb2b2909667f",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/include-with-id.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "3f50cfcbeb23cf182941e6b273136d83b57531224230f47edf4ba6dc16ce40ce",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/include-with-on-id.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "64dcce8aef4c9fcc30376218696070d8f6a3d0d767fd00abb8c2f6672a99cc60",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/invalid-toplevel.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "c292a6cf02880d580b76ebcb0aafbab2bf6c6f8545299016f9a0bc55dab16624",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/invalid-type-reference.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "61f8a73ee71a39489ff37a41967cdfe011889c25c1623af939cce809562b1915",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/invalid-type-reference2.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "9e1b00da3e1d7d39720c41cda330c3ffa338eeb6ab2faa25ab64332108a0e06f",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/kebab-name-include-not-found.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "ac48583cf9bf4716cbbf22d6356dd897bbdc657530b9e02168b920da2928bd72",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/kebab-name-include.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "f81884221b5f20a69015ba9f94915785f9a7fbb5eaf8a02883ddabca510b7961",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/keyword.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "cd46fd9b045e79e0f5f8ace13a6327ae83e26951f699b25d6e0a872fcac71010",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/map-invalid-key.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "612eba223b7882277f74826312dd61958dea73443dc95ef1f6ddd8b5f4680c91",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/missing-main-declaration-initial-main.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "208a8e0aea83d0aaf50edb322181a1b35728ee972bc7929b63f881ab3a923cfa",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/missing-main-declaration-initial-nested.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "eafc130098a084cebb71ed07c84432bbe8269d92e5c999728136cd90b99e3bb1",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/missing-package.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/multi-file-missing-delimiter",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "b66e0c638b4f36562143b22fb0c9f8abc05417b379b7729044f769625e1505d6",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/multi-package-deps-share-nest",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "3a9b95e42c443739701db63bf6add7371a8bd913d5d86a13cb71797b19d6fa1d",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/multiple-package-docs",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "8f6228b1ef350f4ec864cf4db297f938dbe1e0b61b5f8c0fde6a3c06713705f9",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/multiple-package-inline-cycle.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "4c993b0b8a83f68090b85db4d95872145069d5bcd946dcab8a878770726e0b24",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/multiple-packages-no-scope-blocks.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "a45426e4136e28663f40278e268a390a7562027d6cb6f27168576e3853d66b25",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/nested-packages-colliding-names.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "a528b3e1dacab79c7aa2c7ad6ed42da2f0061c242f178d42152c25f45ead1baa",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/nested-packages-with-error.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "f8d310644b61d2b0eb4641a003d8c1dbbbf8ec3f98752b3b5ec791d2a0fa7f58",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/no-access-to-sibling-use",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "6db98395a057e0d1dc7d76681abafd1238a205a74a1d126fc1b3386a2ea2689a",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/non-existence-world-include",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "2c9f093ea7403b57f3d217a10a75355cc29812b8d87f0e809255707bee55e7f6",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/old-float-types.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "a331d50c87423e3ff6683e2a43b514d404e7c7920a4951e99bf7dd60b9a8e53a",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/package-nesting-too-deep.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "c31b40d2fa31ba7a09ee00c8bd8e5df4f9b8826713268db78a0021857184ef3c",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/pkg-cycle",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "f7334ffa213940bfef55cde5e1255d2c9420e27d1f386549a078ded6751fcea7",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/pkg-cycle2",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "7b4fcdc7c2a4f72788c08fd9fa29cbc27977978999e7db9df413318d8ef75f7b",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/resource-method-named-after-resource.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "3244c6f5e00263a035e09d5ef230a1f144e1be6aa0e5ee50777afc45e6531613",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/resources-multiple-returns-borrow.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "79b3bcb55c4df39cd2037e547aaa2200f920591722517db34652e7ad4e766b50",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/resources-return-borrow.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "7be90d00f626f87b85990a97d26862f5a00352d67acf4a89045c197cb555e6b8",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/return-borrow1.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "1e76d092f4919748bac9db9907a638c26a6ca92ab599f026261511f8c2a662cf",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/return-borrow2.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "f707a3ae6de39ed0db7746410506040dcaa2621324b996708d54aba02c9c49bf",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/return-borrow3.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "5a5760e399143ba937e5d3d773fbf8920ef826397d63175c794488960c602256",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/return-borrow4.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "3e26cf4beedfb48ef6cb449cfefb4977a9ce0e56afbbef96b01c9279eed9c7ba",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/return-borrow5.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "fc0883c45f58f9febce715c622cdacc4c7a30d8e7acf16e7862969910a621cd3",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/return-borrow6.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "f7b0b935f130bf810cb4fd21b96ecdf95993d20da8b8d82522d18e5051633726",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/return-borrow7.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "63626a382d1213cae263363950c9a64d6d54099b9ac535c594ab6926cb1233bf",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/return-borrow8",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "a96de7282c059dfc9a6ff7488379ff1e8cad7ad1719c3f3957ce13ec10f77f80",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/too-many-flags.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "0f14d7fdf57d9265d777d15a638f995ade76a98e440081622fc0e974e5c49d47",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/type-and-resource-same-name",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "0f510cee22e5f1d3b85506b9b06263f32e4f04d95c09726f7cfe56f76c489a53",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/type-nesting-too-deep.wit",
+    "reference_accepts": false,
+    "product_accepts": true,
+    "feature": "active",
+    "sha256": "0bb51b09f68bb8ee5db9f85f2138becd8cd3ab970bcc05a552b5c191b0476740",
+    "exception": "Documented stack-safe nesting extension; wasm-devkit-p5m.8.1.7"
+  },
+  {
+    "path": "parse-fail/undefined-typed.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "a5c783ac0da51d15526b0104a0d468bd72e6726706ecef1fbbd5cf6aa413e53d",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/unknown-interface.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "4813d741cead7412e6f453e728627407069ab17922445dd67acfb80cdf463deb",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/unresolved-interface1.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "aa48ae74e1dc3165f05a0d216fcc02b5a22e2cd8cab1c1d3fd9b4ec09da5a47f",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/unresolved-interface2.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "0fea9d7ff4592d723e4a9c3dbf341357a4902509996d8eb30a6f520735d0a41e",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/unresolved-interface3.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "ca7dbd14ec8ee5d01ab2bb7c28b7a3713f31db8c092511b3233b46bc5c353c10",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/unresolved-interface4.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "cbb042a9274076b17b7e0c42fc971da6fecfe2e6707a1d7026dd4f647ce5426f",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/unresolved-use1.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "f6b32002e7060026cd91e879d11d5f55d1fd0abcd8cb89a37325f8816bde9a9a",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/unresolved-use10",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "824a1f862d3f82268eae85883c9e94b2395e4afa084c7d5dfb9627bb75250a04",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/unresolved-use2.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "b57684da212586ce720cf3161f9a659d3abaec989a4081172a5cd05425777a9a",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/unresolved-use3.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "47fd4331dd9f76416230f2b4236a1837d1fba2e17603b25376306d2afb72bf24",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/unresolved-use7.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "b57684da212586ce720cf3161f9a659d3abaec989a4081172a5cd05425777a9a",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/unresolved-use8.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "9208e402aa194d8d0fd3c04f5c3a63e070a6fba35aeb3ee6deb620bdbe825be6",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/unresolved-use9.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "a55be65d32510b790f687a8cd1a17cc78d66fc348a73c202786ccfc73ef80cda",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/use-and-include-world",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "7301a284c31f7aa78b3f779bc560a727d339223e5450b2f70e42c019257f7635",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/use-conflict.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "034cccb48e6d9a80967c432bb1590c753c12d483aec6fa6d0da96eb6dd95636d",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/use-conflict2.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "fae3ffc85bea2e71f6427442516a93346a1c078db321ff1d9c79f3aa803a8a80",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/use-conflict3.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "c7d3fec48232c0fac946535509b6da609454b8d167040c2545ac3a21f88d9daa",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/use-cycle1.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "221c299f701cb74b83aca20e869d2c0aefb813fe24cabdc2e911a2c957eb7852",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/use-cycle4.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "e2be0e1404e32463030ca188fbc73e33b0742890b15dcfb49d958aefebd2c3f4",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/use-shadow1.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "0aaecccbbb79cf9472ba313e2d46c05bf3880c45f653fae7b0c78f4b22a295df",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/use-world",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "89453bb5533e1d925808448c896c3458e23c81c5d4670935ef248b9984dbba1e",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/very-large-column.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "d6934362f8591ec011e733e4891b6ce7feebc2ad6643d720ef22a6a3b0dad458",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/very-nested-packages.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "634d9ea887eb80da7207f942d5ddc53fe6d2b06e7098e6766e4430dc8ead7742",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/world-interface-clash.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "6584c79206067af3dc3647f38deb9e5bbd7ea030b7a26f267e10db0b3243bb5b",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/world-same-fields2.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "99e6297c3566e8d0df7d4a953b2d816303999fe040776956a8215de6f86a4c0a",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/world-same-fields3.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "179e96948f1bd9b85b3fd53ccd932e1a5828c2ff6ce20f3f69a40295c9d3142c",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/world-top-level-func.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "25198b3e596b399f6724288ec81e7cb5a2b138db575ff2854e3263e4c1d345ea",
+    "exception": null
+  },
+  {
+    "path": "parse-fail/world-top-level-func2.wit",
+    "reference_accepts": false,
+    "product_accepts": false,
+    "feature": "active",
+    "sha256": "05ac462fe2731f3b4b3e0b16cfee74457302d376d14df35f22337016ba49df43",
+    "exception": null
+  }
+]

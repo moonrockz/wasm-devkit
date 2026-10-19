@@ -577,3 +577,23 @@ the suffix before binding package/interface identities, including `implements`
 names and supplied source dependencies. Resource identities, metadata and caller
 provenance survive this expansion. The shared WAC binary loader retains raw IDs
 to match its older pinned Package API.
+
+## Upstream semantic corpus
+
+The verifier tests retain all 261 test groups from wit-parser at wasm-tools
+1.262.0, commit `e22db44da4eaf17a0e46ec55b911c7539589a3cc`, with semantic feature
+`active` enabled. All 78 accepted groups compare resolved package, interface,
+world, function and type contracts, including stability metadata and nominal
+resource identity, on all four targets. The original directory layouts and
+encoded dependencies are retained. The CLI gate checks 260 matching groups.
+The remaining group exceeds upstream's source parser depth limit and is accepted
+under this library's documented stack-safe nesting extension. See the
+[corpus manifest and normalization contract](../../../../tests/semantic/wit-upstream-ui/README.md).
+
+Empty `use interface.{}` declarations resolve their target and participate in
+cycle checks without importing its types or adding a runtime world import.
+Package headers in multiple files may agree, but only one may carry documentation.
+Implicit imports inherit the requesting item's stability. Including a world
+merges named interface stability; stable version annotations are cleared when
+the included world comes from another package. Conflicting known annotations
+within a package produce `WIT-S013`.

@@ -1,0 +1,1 @@
+package example:test@2.0.0;interface i{}world a{@since(version=1.0.0) import i;}world b{@since(version=2.0.0) import i;}world c{include a;include b;}

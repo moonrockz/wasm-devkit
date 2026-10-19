@@ -1,7 +1,13 @@
 # Semantic reference fixtures
 
 Most fixtures are original Apache-2.0 examples for the verifier API.
-They are a seed suite, not the complete upstream conformance gate required by issue #5.
+The WIT suite also retains all 261 upstream UI test groups in
+[`wit-upstream-ui/`](wit-upstream-ui/README.md), including original dependency
+layouts. All 78 accepted groups compare full public models in four-target library
+tests. One documented parser-depth extension is explicit in that corpus manifest.
+`wit-world-stability/` adds ten original reference cases for include metadata
+merging and implicit import/export stability. WAC full-corpus conformance and
+additional encoded/mixed-provider laws remain tracked under issue #5.
 `wit-encoded-upstream/` retains four encoded WIT regression fixtures and two
 source inputs from the pinned wasm-tools revision, with upstream licenses and
 exact hashes. Their README records provenance.
@@ -56,8 +62,8 @@ mise run test:semantics -- /path/to/wasm-tools /path/to/wac
 
 The WIT grammar fixture pin predates this semantic reference; these seed cases use
 syntax shared by both revisions. The WAC grammar and semantic revisions are identical.
-The complete source/dependency corpus, full normalized model comparison, complete binary coverage,
-feature profiles and justified exclusions remain tracked in Beads
+Further encoded/mixed-provider model coverage, semantic laws and WAC corpus
+coverage remain tracked in Beads
 `wasm-devkit-p5m.8.1.7` and `wasm-devkit-p5m.8.2.7`.
 
 WIT type cases establish the pinned resolver's aggregate constraints, map-key categories,
@@ -75,7 +81,8 @@ interfaces, implicit dependencies, mixed import/export paths and resource freshe
 Accepted WIT fixtures also compare normalized world summaries using the test-only
 [pinned Resolve API oracle](../../tools/semantic-reference/README.md). The projection
 compares keys, item kinds, named interface IDs and resource identities. Full
-function/type-model corpus conformance remains in the original semantic gate tasks.
+function/type models for all accepted upstream UI groups are compared separately
+by the embedded corpus tests described above.
 The helper preserves `WorldKey` discriminants because raw upstream JSON map names
 can collide with user names such as `interface-0`.
 

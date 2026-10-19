@@ -1,0 +1,1 @@
+package example:test@2.0.0;interface base{resource r;}world a{@unstable(feature=active) use base.{r};}

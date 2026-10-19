@@ -100,6 +100,7 @@ fn verify_prepared(
   let owner_scopes : Map[Int32, Int32] = Map([])
   let scope_owners : Map[Int32, Int32] = Map([])
   let interface_edges : Array[(Int32, Int32, Int32)] = []
+  let empty_uses : Map[Int32, Bool] = Map([])
   let package_edges : Array[(Int32, Int32, Int32)] = []
   let tables = WorldTables::new()
   let includes : Array[(Int32, Int32, Int32, ReadOnlyArray[Int32])] = []
@@ -358,7 +359,7 @@ fn verify_prepared(
           )
         }
         if names.is_empty() {
-          bad(id, "WIT-S001", "use requires selected type names")
+          empty_uses[path] = true
         }
         if foreign.paths.contains(id) &&
           (
@@ -412,8 +413,8 @@ fn verify_prepared(
           Ok((target, external)) => {
             let owner = scope_owners[scope]
             record_path(owner, path, target, external)
-            if tree.nodes[owner].data is World(..) {
-              tables.uses[owner].push((target, path))
+            if !names.is_empty() && tree.nodes[owner].data is World(..) {
+              tables.uses[owner].push((target, id))
             }
             let target_scope = owner_scopes[target]
             for selector in names {
@@ -966,7 +967,9 @@ fn verify_prepared(
     selection.nodes[entry.0] && selection.nodes[entry.2]
   })
   let interface_edges = interface_edges.filter(entry => {
-    selection.nodes[entry.0] && selection.nodes[entry.2]
+    selection.nodes[entry.0] &&
+    selection.nodes[entry.2] &&
+    !empty_uses.contains(entry.2)
   })
   filter_world_items(prepared, arena, tables, selection, errors)
   if !errors.is_empty() {
@@ -990,7 +993,9 @@ fn verify_prepared(
         ),
       ])
   }
-  expand_worlds(prepared, tables, includes, arena, interface_edges, errors)
+  expand_worlds(
+    prepared, tables, includes, arena, interface_edges, stabilities, errors,
+  )
   verify_accessor_pairs(arena, tables, errors)
   let worlds : Array[ResolvedWorld] = []
   for id, node in tree.nodes {

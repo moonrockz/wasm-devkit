@@ -72,7 +72,8 @@ async fn main {
       "false" => 1
       _ => fail("acceptance must be true or false")
     }
-    let is_wit = path.has_suffix(".wit") ||
+    let is_wit = @fs.kind(path) is Directory ||
+      path.has_suffix(".wit") ||
       path.has_suffix(".wasm") ||
       path.has_suffix(".wat")
     if !is_wit && !path.has_suffix(".wac") {
@@ -109,6 +110,11 @@ async fn main {
         "verify",
         path,
         "--all-features",
+        ..if is_wit {
+          ["--language", "wit"]
+        } else {
+          []
+        },
         ..verifier_features,
         ..if expected == 0 && is_wit {
           ["--json"]

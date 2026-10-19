@@ -189,6 +189,7 @@ fn prepare(
     let documents = input.documents.iter().to_array()
     documents.sort_by((a, b) => a.id.compare(b.id))
     let mut identity : PackageIdentity? = None
+    let mut package_docs : Location? = None
     if documents.is_empty() {
       errors.push(
         error(
@@ -277,6 +278,32 @@ fn prepare(
               sections: [item],
             })
             continue
+          }
+          if !binary_sources.contains(document.id) &&
+            document.ast.nodes[item].span.start <= document.text.length() {
+            let prefix = document.text[:document.ast.nodes[item].span.start].to_owned()
+            for token in @scanner.scan(prefix).tokens {
+              if token.kind is (LineComment | BlockComment) {
+                let location = Location::text(document.id, token.span)
+                if package_docs is Some(first) {
+                  let message = "doc comments occur on multiple package headers"
+                  errors.push({
+                    code: "WIT-S011",
+                    message,
+                    primary: { location, message, },
+                    related: [
+                      {
+                        location: first,
+                        message: "first package documentation",
+                      },
+                    ],
+                  })
+                } else {
+                  package_docs = Some(location)
+                }
+                break
+              }
+            }
           }
           header_count += 1
           if index != 0 || header_count > 1 || !package_items.is_empty() {

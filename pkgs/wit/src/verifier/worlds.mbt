@@ -49,6 +49,7 @@ fn WorldTables::add(
   at : Int32,
   merge : Bool,
   errors : Array[Diagnostic],
+  include_external~ : Bool? = None,
 ) -> Unit {
   let items = if imported { self.imports[owner] } else { self.exports[owner] }
   let names = if imported {
@@ -57,6 +58,38 @@ fn WorldTables::add(
     self.export_names[owner]
   }
   let key = world_key(item)
+  let item = if include_external is Some(external) && item.by_id {
+    let previous = names.get(key)
+    let into = previous.map(entry => entry.stability).unwrap_or(item.stability)
+    let stability = if external && item.stability is Stable(_, _) {
+      Unknown
+    } else if item.stability == Unknown || item.stability == into {
+      into
+    } else if into == Unknown {
+      item.stability
+    } else {
+      errors.push(
+        prepared_error(
+          prepared, at, "WIT-S013", "included interface stability annotations disagree",
+        ),
+      )
+      into
+    }
+    if previous is Some(entry) {
+      let updated = { ..entry, stability, }
+      names[key] = updated
+      for index, candidate in items {
+        if world_key(candidate) == key {
+          items[index] = updated
+          break
+        }
+      }
+      return
+    }
+    { ..item, stability, }
+  } else {
+    item
+  }
   if names.get(key) is Some(previous) {
     if merge && item.by_id && previous.by_id && item.kind == previous.kind {
       return
@@ -218,6 +251,7 @@ fn expand_worlds(
   includes : Array[(Int32, Int32, Int32, ReadOnlyArray[Int32])],
   arena : SemanticArena,
   edges : Array[(Int32, Int32, Int32)],
+  stabilities : ReadOnlyArray[StabilityInfo],
   errors : Array[Diagnostic],
 ) -> Unit {
   let adjacency : Map[Int32, Array[(Int32, Int32, ReadOnlyArray[Int32])]] = Map([],
@@ -310,7 +344,18 @@ fn expand_worlds(
             if !original.by_id && replacements.contains(subject) {
               used[subject] = true
             }
-            tables.add(prepared, owner, imported, copied, at, true, errors)
+            tables.add(
+              prepared,
+              owner,
+              imported,
+              copied,
+              at,
+              true,
+              errors,
+              include_external=Some(
+                prepared.node_packages[target] != prepared.node_packages[owner],
+              ),
+            )
           }
         }
         for selector in selectors {
@@ -329,17 +374,25 @@ fn expand_worlds(
           }
         }
       }
-      elaborate_world(prepared, tables, owner, dependencies, errors)
+      elaborate_world(
+        prepared, tables, owner, dependencies, stabilities, errors,
+      )
       done[owner] = true
     }
   }
 }
 
 ///|
-fn implicit_interface(prepared : Prepared, id : Int32, at : Int32) -> WorldItem {
+fn implicit_interface(
+  prepared : Prepared,
+  id : Int32,
+  at : Int32,
+  stability : Stability,
+  external_id~ : String? = None,
+) -> WorldItem {
   {
-    stability: Unknown,
-    external_id: None,
+    stability,
+    external_id,
     name: prepared.interface_name(id),
     kind: Interface(id),
     by_id: true,
@@ -353,6 +406,7 @@ fn elaborate_world(
   tables : WorldTables,
   owner : Int32,
   dependencies : Map[Int32, Array[(Int32, Int32)]],
+  stabilities : ReadOnlyArray[StabilityInfo],
   errors : Array[Diagnostic],
 ) -> Unit {
   let imports = tables.imports[owner].copy()
@@ -375,7 +429,9 @@ fn elaborate_world(
       if item.kind is Interface(id) {
         for i = dependencies[id].length() - 1; i >= 0; i = i - 1 {
           let (dep, at) = dependencies[id][i]
-          work.push((implicit_interface(prepared, dep, at), false))
+          work.push(
+            (implicit_interface(prepared, dep, at, item.stability), false),
+          )
         }
       }
     }
@@ -386,7 +442,7 @@ fn elaborate_world(
     }
   }
   for (target, at) in tables.uses[owner] {
-    add_import(implicit_interface(prepared, target, at))
+    add_import(implicit_interface(prepared, target, at, stabilities[at].value))
   }
   for item in imports {
     if !(item.kind is Interface(_)) {
@@ -436,7 +492,13 @@ fn elaborate_world(
         work.push((item, exporting, true))
         for i = dependencies[id].length() - 1; i >= 0; i = i - 1 {
           let (dep, at) = dependencies[id][i]
-          let dependency = implicit_interface(prepared, dep, at)
+          let dependency = implicit_interface(
+            prepared,
+            dep,
+            at,
+            item.stability,
+            external_id=item.external_id,
+          )
           let exporting = exporting &&
             export_interfaces.contains(world_key(dependency))
           work.push((dependency, exporting, false))
