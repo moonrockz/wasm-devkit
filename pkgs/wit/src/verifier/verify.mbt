@@ -55,6 +55,9 @@ fn verify_prepared(
 ) -> Result[Resolution, ReadOnlyArray[Diagnostic]] {
   let tree = prepared.tree
   let errors : Array[Diagnostic] = []
+  let stabilities = ReadOnlyArray::from_array(
+    parse_stabilities(prepared, errors),
+  )
   let bad = fn(id : Int32, code : String, message : String) {
     errors.push(prepared_error(prepared, id, code, message))
   }
@@ -192,7 +195,13 @@ fn verify_prepared(
       prepared,
       owner,
       imported,
-      { name, kind, by_id, location: prepared.origins[node].location, },
+      {
+        name,
+        kind,
+        by_id,
+        location: prepared.origins[node].location,
+        stability: stabilities[node].value,
+      },
       node,
       false,
       errors,
@@ -278,7 +287,7 @@ fn verify_prepared(
       (Inline, Interface(items~, attributes~, ..))
       | (Top, Interface(items~, attributes~, ..))
       | (Top, World(items~, attributes~, ..)) => {
-        if !attributes.is_empty() {
+        if !stable_attributes(tree, attributes) {
           bad(id, "WIT-S003", "attributes are not yet supported")
         }
         guard owner_scopes.get(id) is Some(scope_id) else {
@@ -295,7 +304,7 @@ fn verify_prepared(
         }
       }
       (Member, Use(path~, names~, renamed~, attributes~)) => {
-        if renamed is Some(_) || !attributes.is_empty() {
+        if renamed is Some(_) || !stable_attributes(tree, attributes) {
           bad(
             id, "WIT-S003", "interface alias and use attributes are not yet supported",
           )
@@ -374,7 +383,7 @@ fn verify_prepared(
           bad(id, "WIT-S001", "imports and exports require a world")
           continue
         }
-        if !attributes.is_empty() {
+        if !stable_attributes(tree, attributes) {
           bad(id, "WIT-S003", "world item attributes are not yet supported")
         }
         let imported = data is Import(..)
@@ -434,7 +443,7 @@ fn verify_prepared(
           bad(id, "WIT-S001", "include requires a world")
           continue
         }
-        if !attributes.is_empty() {
+        if !stable_attributes(tree, attributes) {
           bad(id, "WIT-S003", "include attributes are not yet supported")
         }
         match prepared.find_item(scopes, path, "world", file_aliases~) {
@@ -446,7 +455,7 @@ fn verify_prepared(
         }
       }
       (Member, Resource(methods~, attributes~, ..)) => {
-        if !attributes.is_empty() {
+        if !stable_attributes(tree, attributes) {
           bad(id, "WIT-S003", "resource attributes are not yet supported")
         }
         aliases.push(id)
@@ -473,14 +482,14 @@ fn verify_prepared(
         }
       }
       (Member, Alias(ty~, attributes~, ..)) => {
-        if !attributes.is_empty() {
+        if !stable_attributes(tree, attributes) {
           bad(id, "WIT-S003", "attributes are not yet supported")
         }
         aliases.push(id)
         pending.push((ty, Type, scope))
       }
       (Member, Record(fields~, attributes~, ..)) => {
-        if !attributes.is_empty() {
+        if !stable_attributes(tree, attributes) {
           bad(id, "WIT-S003", "attributes are not yet supported")
         }
         if fields.is_empty() {
@@ -495,7 +504,7 @@ fn verify_prepared(
       (Member, Flags(cases~, attributes~, ..))
       | (Member, Enum(cases~, attributes~, ..))
       | (Member, Variant(cases~, attributes~, ..)) => {
-        if !attributes.is_empty() {
+        if !stable_attributes(tree, attributes) {
           bad(id, "WIT-S003", "attributes are not yet supported")
         }
         if cases.is_empty() {
@@ -543,7 +552,7 @@ fn verify_prepared(
         if is_static && role is Member {
           bad(id, "WIT-S001", "static functions require a resource")
         }
-        if !attributes.is_empty() {
+        if !stable_attributes(tree, attributes) {
           bad(id, "WIT-S003", "function attributes are not yet supported")
         }
         if role is ResourceMember &&
@@ -570,7 +579,7 @@ fn verify_prepared(
         pending.push((signature, Signature, scope))
       }
       (ResourceMember, Constructor(params~, result~, attributes~)) => {
-        if !attributes.is_empty() {
+        if !stable_attributes(tree, attributes) {
           bad(id, "WIT-S003", "constructor attributes are not yet supported")
         }
         duplicates(params, "parameter")
@@ -760,7 +769,11 @@ fn verify_prepared(
   if !errors.is_empty() {
     return Err(dependency_chains(prepared, package_edges, errors))
   }
-  let arena = SemanticArena::new(prepared, edges, resources)
+  verify_stable_versions(prepared, stabilities, errors)
+  if !errors.is_empty() {
+    return Err(dependency_chains(prepared, package_edges, errors))
+  }
+  let arena = SemanticArena::new(prepared, edges, resources, stabilities)
   verify_interface_accessors(arena, errors)
   if !errors.is_empty() {
     return Err(dependency_chains(prepared, package_edges, errors))
@@ -774,6 +787,7 @@ fn verify_prepared(
         id,
         name,
         package_identity: prepared.identities[prepared.node_packages[id]],
+        stability: stabilities[id].value,
         imports: ordered_world_items(imports, arena),
         exports: ordered_world_items(tables.exports[id], arena),
         location: prepared.origins[id].location,

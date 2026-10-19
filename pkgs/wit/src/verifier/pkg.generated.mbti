@@ -48,6 +48,25 @@ pub(all) struct Document {
 }
 pub fn Document::from_parse(String, String, @parser.Parse) -> Self
 
+pub(all) enum FunctionFlavor {
+  Plain
+  Getter
+  Setter
+} derive(Eq, @debug.Debug)
+pub fn FunctionFlavor::equal(Self, Self) -> Bool
+pub fn FunctionFlavor::not_equal(Self, Self) -> Bool
+pub fn FunctionFlavor::to_repr(Self) -> @debug.Repr
+
+pub(all) enum FunctionKind {
+  Freestanding
+  Method(Int)
+  Static(Int)
+  Constructor(Int)
+} derive(Eq, @debug.Debug)
+pub fn FunctionKind::equal(Self, Self) -> Bool
+pub fn FunctionKind::not_equal(Self, Self) -> Bool
+pub fn FunctionKind::to_repr(Self) -> @debug.Repr
+
 pub(all) struct Label {
   location : Location
   message : String
@@ -100,10 +119,13 @@ pub fn Resolution::worlds(Self) -> ReadOnlyArray[ResolvedWorld]
 pub(all) struct ResolvedFunction {
   id : Int
   name : String
+  kind : FunctionKind
+  flavor : FunctionFlavor
   params : ReadOnlyArray[TypeMember]
   result : Int?
   asynchronous : Bool
   location : Location
+  stability : Stability
 } derive(Eq, @debug.Debug)
 pub fn ResolvedFunction::equal(Self, Self) -> Bool
 pub fn ResolvedFunction::not_equal(Self, Self) -> Bool
@@ -116,6 +138,7 @@ pub(all) struct ResolvedInterface {
   types : ReadOnlyArray[TypeMember]
   functions : ReadOnlyArray[ResolvedFunction]
   location : Location
+  stability : Stability
 } derive(Eq, @debug.Debug)
 pub fn ResolvedInterface::equal(Self, Self) -> Bool
 pub fn ResolvedInterface::not_equal(Self, Self) -> Bool
@@ -127,6 +150,7 @@ pub(all) struct ResolvedType {
   name : String?
   kind : TypeKind
   location : Location
+  stability : Stability
 } derive(Eq, @debug.Debug)
 pub fn ResolvedType::equal(Self, Self) -> Bool
 pub fn ResolvedType::not_equal(Self, Self) -> Bool
@@ -139,6 +163,7 @@ pub(all) struct ResolvedWorld {
   imports : ReadOnlyArray[WorldItem]
   exports : ReadOnlyArray[WorldItem]
   location : Location
+  stability : Stability
 } derive(Eq, @debug.Debug)
 pub fn ResolvedWorld::equal(Self, Self) -> Bool
 pub fn ResolvedWorld::not_equal(Self, Self) -> Bool
@@ -148,6 +173,15 @@ pub(all) struct SourcePackage {
   documents : ReadOnlyArray[Document]
 }
 pub fn SourcePackage::identity(Self) -> Result[PackageIdentity, ReadOnlyArray[Diagnostic]]
+
+pub(all) enum Stability {
+  Unknown
+  Stable(String, String?)
+  Unstable(String, String?)
+} derive(Eq, @debug.Debug)
+pub fn Stability::equal(Self, Self) -> Bool
+pub fn Stability::not_equal(Self, Self) -> Bool
+pub fn Stability::to_repr(Self) -> @debug.Repr
 
 pub(all) struct TypeCase {
   name : String
@@ -161,6 +195,8 @@ pub fn TypeCase::to_repr(Self) -> @debug.Repr
 pub(all) enum TypeKind {
   Scalar(String)
   Resource
+  Own(Int)
+  Borrow(Int)
   Alias(Int)
   List(Int, UInt?)
   Tuple(ReadOnlyArray[Int])
@@ -215,6 +251,7 @@ pub(all) struct WorldItem {
   by_id : Bool
   kind : WorldItemKind
   location : Location
+  stability : Stability
 } derive(Eq, @debug.Debug)
 pub fn WorldItem::equal(Self, Self) -> Bool
 pub fn WorldItem::not_equal(Self, Self) -> Bool

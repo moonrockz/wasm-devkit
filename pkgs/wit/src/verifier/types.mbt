@@ -41,6 +41,7 @@ pub(all) struct ResolvedType {
   name : String?
   kind : TypeKind
   location : Location
+  stability : Stability
 } derive(Eq, Debug)
 
 ///|
@@ -123,6 +124,7 @@ fn resolved_types(
   references : Map[Int32, Int32],
   scopes : ReadOnlyArray[Int32],
   resources : ReadOnlyArray[Int32],
+  stabilities : ReadOnlyArray[Stability],
 ) -> ReadOnlyArray[ResolvedType] {
   let result : Array[ResolvedType] = []
   let raw_resources = Array::make(tree.nodes.length(), false)
@@ -199,6 +201,7 @@ fn resolved_types(
     if kind is Some(kind) {
       result.push({
         id,
+        stability: stabilities[id],
         scope: scopes[id],
         name: declaration(node.data),
         kind,

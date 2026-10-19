@@ -23,6 +23,7 @@ pub(all) struct ResolvedFunction {
   result : Int32?
   asynchronous : Bool
   location : Location
+  stability : Stability
 } derive(Eq, Debug)
 
 ///|
@@ -33,6 +34,7 @@ pub(all) struct ResolvedInterface {
   types : ReadOnlyArray[TypeMember]
   functions : ReadOnlyArray[ResolvedFunction]
   location : Location
+  stability : Stability
 } derive(Eq, Debug)
 
 ///|
@@ -72,16 +74,18 @@ fn model_functions(
   scopes : ReadOnlyArray[Int32],
   types : Array[ResolvedType],
   origins : Array[Origin],
+  stabilities : ReadOnlyArray[StabilityInfo],
 ) -> ReadOnlyArray[ResolvedFunction] {
   let result : Array[ResolvedFunction] = []
   let resource_members = resource_members(prepared.tree)
-  let handle = fn(kind : TypeKind, at : Int32) {
+  let handle = fn(kind : TypeKind, at : Int32, stability : Stability) {
     let id = origins.length()
     origins.push(prepared.origins[at])
     types.push({
       id,
       scope: scopes[at],
       name: None,
+      stability,
       kind,
       location: prepared.origins[at].location,
     })
@@ -103,7 +107,11 @@ fn model_functions(
           if node.data is Function(is_static=true, ..) {
             Static(resource)
           } else {
-            let ty = handle(Borrow(resource), signature)
+            let ty = handle(
+              Borrow(resource),
+              signature,
+              stabilities[resource].value,
+            )
             members.push({
               name: "self",
               ty,
@@ -130,6 +138,7 @@ fn model_functions(
         }
       }
       result.push({
+        stability: stabilities[signature].value,
         id: signature,
         name,
         kind,
@@ -159,12 +168,13 @@ fn model_functions(
       result.push({
         id,
         name: resource_function_name(prepared.tree, resource, id).unwrap(),
+        stability: stabilities[id].value,
         kind: Constructor(resource),
         flavor: Plain,
         params: ReadOnlyArray::from_array(parameters),
         result: match output {
           Some(id) => Some(id)
-          None => Some(handle(Own(resource), id))
+          None => Some(handle(Own(resource), id, Unknown))
         },
         asynchronous: false,
         location: prepared.origins[id].location,
@@ -178,6 +188,7 @@ fn model_functions(
 fn model_interfaces(
   prepared : Prepared,
   functions : ReadOnlyArray[ResolvedFunction],
+  stabilities : ReadOnlyArray[StabilityInfo],
 ) -> ReadOnlyArray[ResolvedInterface] {
   let by_id : Map[Int32, ResolvedFunction] = Map([])
   for function in functions {
@@ -231,6 +242,7 @@ fn model_interfaces(
         } else {
           Some(name)
         },
+        stability: stabilities[id].value,
         package_identity: prepared.identities[prepared.node_packages[id]],
         types: ReadOnlyArray::from_array(types),
         functions: ordered_functions(ReadOnlyArray::from_array(signatures)),

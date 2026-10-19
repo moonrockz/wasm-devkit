@@ -67,5 +67,9 @@ the reference, includes supplying getters and annotation-preserving renames.
 Nested-package cases cover a main header plus top-level package blocks, independent
 alias scopes within one source, transitive dependencies, world/resource includes,
 multi-file discovery, missing main headers, duplicate identities, cycles and
-forbidden blocks inside blocks. Attribute and semantic feature/stability cases
-remain outside the implemented profile.
+forbidden blocks inside blocks.
+
+Stability cases compare `since` and `deprecated` annotation combinations, owning
+package versions, prerelease and build ordering, source dependency annotations,
+and annotated resource functions, world items, use selectors and includes.
+Semantic feature selection remains outside the implemented profile.

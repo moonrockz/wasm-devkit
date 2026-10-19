@@ -572,6 +572,7 @@ pub(all) struct WorldItem {
   by_id : Bool
   kind : WorldItemKind
   location : Location
+  stability : Stability
 } derive(Eq, Debug)
 
 ///|
@@ -582,6 +583,7 @@ pub(all) struct ResolvedWorld {
   imports : ReadOnlyArray[WorldItem]
   exports : ReadOnlyArray[WorldItem]
   location : Location
+  stability : Stability
 } derive(Eq, Debug)
 
 ///|

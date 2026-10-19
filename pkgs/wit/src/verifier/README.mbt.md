@@ -36,7 +36,17 @@ leading `package name;` header in at least one file. Nested identities must be
 unique across blocks and supplied dependencies. Package blocks cannot contain
 further package blocks, matching the pinned resolver.
 
-Encoded packages and attributes still fail explicitly
+`@since(version=...)` and `@deprecated(version=...)` attach immutable `Stability`
+metadata to resolved declarations, functions and world items. A `since` annotation
+requires a versioned package and cannot name a version newer than that package.
+Comparison follows the pinned resolver's complete version ordering, including build
+metadata. Deprecation requires `since` or `unstable`; its version does not remove an
+item or impose a package-version bound. Duplicate annotations and conflicting
+`since`/`unstable` annotations are errors. Anonymous composites inherit their
+declaration's stability, or the first directly referenced type with known stability.
+Named aliases retain their own annotations and can stop that inheritance.
+
+Encoded packages, semantic feature selection and other attributes still fail explicitly
 under `WIT-S003`. Their implementation
 continues under [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
 A successful result covers the entire supported input. An unsupported or unresolved
@@ -92,6 +102,21 @@ locations with the root source. The CLI adds 1-based UTF-16 line/column coordina
 Stable code families are `WIT-S001` for invalid ASTs, `WIT-S002` for missing package identity, `WIT-S003` for unsupported
 semantics, `WIT-S004` for duplicate names and `WIT-S005` for unresolved or
 incorrectly typed references. `WIT-S006` reports type cycles, `WIT-S007` reports invalid aggregate/composite, handle and function contracts, and `WIT-S008` distinguishes a non-type declaration used as a type.
+`WIT-S013` reports invalid stability annotations and unreleased or unversioned
+`since` gates, with the original annotation and package locations.
+
+```mbt check
+///|
+test "inspect semantic release annotations" {
+  let source = "package example:app@2.0.0;interface api{@since(version=1.0.0)@deprecated(version=2.0.0)run:func();}"
+  let model = @verifier.verify(@parser.parse(source), source~).unwrap()
+  assert_eq(model.functions()[0].stability, Stable("1.0.0", Some("2.0.0")))
+  let unversioned = source.replace(old="@2.0.0;", new=";")
+  assert_true(
+    @verifier.verify(@parser.parse(unversioned), source=unversioned) is Err(_),
+  )
+}
+```
 
 ## Inspect resolved types
 

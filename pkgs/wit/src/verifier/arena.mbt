@@ -33,6 +33,7 @@ fn SemanticArena::new(
   prepared : Prepared,
   references : Map[Int32, Int32],
   resources : ReadOnlyArray[Int32],
+  stabilities : ReadOnlyArray[StabilityInfo],
 ) -> SemanticArena {
   let scopes = lexical_owners(prepared.tree)
   let origins = prepared.origins.iter().to_array()
@@ -42,11 +43,12 @@ fn SemanticArena::new(
       references,
       scopes,
       resources,
+      type_stabilities(prepared.tree, references, resources, stabilities),
     )
     .iter()
     .to_array()
-  let functions = model_functions(prepared, scopes, types, origins)
-  let interfaces = model_interfaces(prepared, functions)
+  let functions = model_functions(prepared, scopes, types, origins, stabilities)
+  let interfaces = model_interfaces(prepared, functions, stabilities)
   let arena : SemanticArena = {
     types: Map([]),
     functions: Map([]),
