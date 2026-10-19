@@ -245,6 +245,11 @@ fn validate_component_section_export(
       }
       Func =>
         if e.sortidx.idx >= 0 && e.sortidx.idx < func_types.length() {
+          if e.desc is None &&
+            func_sig_shapes.get(e.sortidx.idx) is Some(Some(shape)) &&
+            shape.complete is Some(signature) {
+            counts.check_function_origins(signature, named_types, resource_ids)
+          }
           let mut ft : @component.FuncType? = None
           match e.desc {
             Some(FuncType(tyidx)) =>
@@ -273,6 +278,10 @@ fn validate_component_section_export(
         }
       Instance => {
         let inst_idx = e.sortidx.idx
+        if e.desc is None &&
+          counts.instance_contracts.get(inst_idx) is Some((graph, root)) {
+          counts.check_instance_origins(graph, root, named_types, resource_ids)
+        }
         if inst_idx >= 0 && inst_idx < counts.instance {
           let exported_type_idxs : Array[Int32] = []
           let seen : Map[Int32, Int32] = Map([])
@@ -480,23 +489,13 @@ fn validate_component_section_export(
         guard type_table.get(index) is Some(Some(FuncType(expected))) else {
           raise AscribedExportTypeIncompatible
         }
-        let expected = metadata_global_function(
-          expected,
-          type_table,
-          resource_ids,
-          counts.type_metadata,
-          counts.metadata_remaining,
+        let expected = counts.function_signature(
+          expected, type_table, resource_ids,
         )
-        counts.metadata_remaining -= expected.work
         let actual = if func_types.get(e.sortidx.idx) is Some(Some(actual)) {
-          let signature = metadata_global_function(
-            actual,
-            type_table,
-            resource_ids,
-            counts.type_metadata,
-            counts.metadata_remaining,
+          let signature = counts.function_signature(
+            actual, type_table, resource_ids,
           )
-          counts.metadata_remaining -= signature.work
           signature
         } else if func_sig_shapes.get(e.sortidx.idx) is Some(Some(shape)) &&
           shape.complete is Some(actual) {
@@ -542,6 +541,8 @@ fn validate_component_section_export(
           is Some((actual, actual_node)) else {
           raise UnsupportedInstanceAscription
         }
+        let type_origins = counts.origin_table(type_table.length())
+        let origin_scope = Some(counts.contract_origin_scope(tyidx, false))
         let (expected, next, remaining) = imported_instance_metadata(
           td,
           type_table,
@@ -550,6 +551,8 @@ fn validate_component_section_export(
           counts.type_metadata,
           next_resource_id,
           counts.metadata_remaining,
+          global_origins=type_origins,
+          origin_scope~,
         )
         counts.metadata_remaining = remaining
         next_resource_id = next
@@ -573,6 +576,8 @@ fn validate_component_section_export(
             }
           None => None
         }
+        let type_origins = counts.origin_table(type_table.length())
+        let origin_scope = Some(counts.contract_origin_scope(tyidx, true))
         let (contract, next, remaining) = scoped_contract_metadata(
           td,
           type_table,
@@ -583,6 +588,8 @@ fn validate_component_section_export(
           core_contracts=counts.core_contracts,
           core_scope=core_scopes.map(pair => pair.1),
           seed=Some((expected, 0)),
+          global_origins=type_origins,
+          origin_scope~,
         )
         next_resource_id = next
         counts.metadata_remaining = remaining
@@ -601,6 +608,7 @@ fn validate_component_section_export(
           core_contracts=counts.core_contracts,
           actual_node~,
         )
+        counts.check_instance_origins(contract, 0, named_types, resource_ids)
         ascribed_instance_contract = Some(contract)
         ascribed_instance = Some(expected)
         if exportname_to_string(e.name) is Some(name) {
@@ -626,6 +634,8 @@ fn validate_component_section_export(
             }
           None => None
         }
+        let type_origins = counts.origin_table(type_table.length())
+        let origin_scope = Some(counts.contract_origin_scope(tyidx, true))
         let (expected, next, remaining) = scoped_contract_metadata(
           td,
           type_table,
@@ -635,6 +645,8 @@ fn validate_component_section_export(
           counts.metadata_remaining,
           core_contracts=counts.core_contracts,
           core_scope~,
+          global_origins=type_origins,
+          origin_scope~,
         )
         counts.metadata_remaining = remaining
         next_resource_id = next
@@ -666,6 +678,8 @@ fn validate_component_section_export(
     // space, which later sections can reference by index.
     if e.sortidx.sort is Type {
       let idx = e.sortidx.idx
+      let created = type_table.length()
+      counts.type_origins[created] = { scope: 0, index: created, }
       if ascribed_resource_id is Some(rid) {
         type_table.push(Some(ResourceType(-1, 0x7f, None, HostDefined)))
         local_resource_types.push(false)
@@ -722,6 +736,7 @@ fn validate_component_section_export(
           None => counts.instance_contracts.get(e.sortidx.idx)
         }
         if contract is Some(contract) {
+          counts.name_instance_origins(contract.0, contract.1)
           counts.instance_contracts[counts.instance - 1] = contract
         }
       }
@@ -737,7 +752,19 @@ fn validate_component_section_export(
               _ => func_types[e.sortidx.idx]
             }
             func_types.push(exported)
-            if e.sortidx.idx >= 0 && e.sortidx.idx < func_sig_shapes.length() {
+            if e.desc is Some(FuncType(_)) && exported is Some(function) {
+              func_sig_shapes.push(
+                Some({
+                  ..funcsig_of_functype(function, type_table, resource_ids),
+                  complete: Some(
+                    counts.function_signature(
+                      function, type_table, resource_ids,
+                    ),
+                  ),
+                }),
+              )
+            } else if e.sortidx.idx >= 0 &&
+              e.sortidx.idx < func_sig_shapes.length() {
               func_sig_shapes.push(func_sig_shapes[e.sortidx.idx])
             } else {
               func_sig_shapes.push(None)

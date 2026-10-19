@@ -13,12 +13,10 @@ resources to supplied identities. Exported resources are fresh per instance;
 component type references preserve their abstract template identities. Ordered
 indices reject forward module, instance, component, type and function references.
 
-Non-resource type arguments return B002 until named-type origins survive complete
-signature normalization. `type-argument-named` is accepted by both references;
-`type-argument` supplies the original anonymous record and fails their final
-instance export check. Neither input is accepted by the product. The mismatched
-record control also rejects. This boundary remains tracked on
-`wasm-devkit-p5m.8.2.2`; it is not claimed as acceptance equivalence.
+The subsequent named-origin checkpoint admits `type-argument-named`, matching both
+references. `type-argument` supplies the original anonymous record and fails the
+final instance export check. The mismatched record control also rejects. Further
+visibility and template-sharing cases are retained in `../wac-runtime-origins`.
 
 Six source compositions compare the Document API and CLI. Four accepted outputs
 pass independent wasm-tools validation and full public composition projections.

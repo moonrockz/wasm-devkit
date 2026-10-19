@@ -1,11 +1,21 @@
 // Original wasm-devkit metadata for lossless function-alias ascriptions.
 
 ///|
+// Origins identify declarations, including distinct named aliases with equal
+// bodies. Scope zero is the concrete component's type index space; private
+// metadata scopes receive separate identities from the validation operation.
+priv struct TypeOrigin {
+  scope : Int32
+  index : Int32
+} derive(Eq, Hash)
+
+///|
 priv struct CompleteFunctionSignature {
   work : Int32
   function : @component.FuncType
   types : Array[@component.TypeDef?]
   resources : Array[Int32?]
+  origins : Array[TypeOrigin?]
 }
 
 ///|
@@ -57,11 +67,14 @@ fn complete_function_signature(
   global_resources : Array[Int32?],
   local_origins~ : Map[Int32, Int32] = Map([]),
   global_function~ : Bool = false,
+  global_type_origins~ : Array[TypeOrigin?] = [],
+  local_type_origins~ : Array[TypeOrigin?] = [],
   budget~ : Int32 = 1000000,
 ) -> CompleteFunctionSignature? {
   try {
     let types : Array[@component.TypeDef?] = []
     let resources : Array[Int32?] = []
+    let origins : Array[TypeOrigin?] = []
     let mapping : Map[(Bool, Int32), Int32] = Map([])
     let pending : Array[(Bool, Int32)] = []
     let mut remaining = budget
@@ -91,6 +104,7 @@ fn complete_function_signature(
               let next = types.length()
               types.push(None)
               resources.push(None)
+              origins.push(None)
               mapping[key] = next
               pending.push(key)
               next
@@ -120,6 +134,11 @@ fn complete_function_signature(
         local_resources.get(id).bind(x => x)
       }
       let slot = mapping[(global, id)]
+      origins[slot] = if global {
+        global_type_origins.get(id).bind(x => x)
+      } else {
+        local_type_origins.get(id).bind(x => x)
+      }
       if td is ResourceType(_, _, _, _) {
         guard resource is Some(_) else { raise IncompleteFunctionSignature }
         resources[slot] = resource
@@ -138,6 +157,7 @@ fn complete_function_signature(
       function: { ..ft, params, result, },
       types,
       resources,
+      origins,
     })
   } catch {
     IncompleteFunctionSignature | SignatureBudgetExceeded => None
@@ -148,9 +168,13 @@ fn complete_function_signature(
 fn complete_signature_substitute(
   signature : CompleteFunctionSignature?,
   substitutions : Map[Int32, Int32],
+  type_substitutions~ : Map[TypeOrigin, TypeOrigin] = Map([]),
 ) -> CompleteFunctionSignature? {
   signature.map(signature => {
     ..signature,
+    origins: signature.origins.map(origin => {
+      origin.map(origin => type_substitutions.get(origin).unwrap_or(origin))
+    }),
     resources: signature.resources.map(resource => {
       resource.map(id => substitutions.get(id).unwrap_or(id))
     }),

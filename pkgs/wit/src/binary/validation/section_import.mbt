@@ -158,7 +158,12 @@ fn validate_component_section_import(
     if i.desc is FuncType(tyidx) {
       match type_table[tyidx] {
         Some(FuncType(ft)) => {
-          let sig = funcsig_of_functype(ft, type_table, resource_ids)
+          let sig = {
+            ..funcsig_of_functype(ft, type_table, resource_ids),
+            complete: Some(
+              counts.function_signature(ft, type_table, resource_ids),
+            ),
+          }
           if importname_to_string(i.name) is Some(name) {
             validate_bracketed_func_name(
               10, name, ft, type_table, resource_ids, import_resource_names,
@@ -382,6 +387,8 @@ fn validate_component_section_import(
           None => instance_sigs.push(None)
         }
         if type_table[tyidx] is Some(td) {
+          let type_origins = counts.origin_table(type_table.length())
+          let origin_scope = Some(counts.contract_origin_scope(tyidx, false))
           let (metadata, next, remaining) = imported_instance_metadata(
             td,
             type_table,
@@ -390,6 +397,8 @@ fn validate_component_section_import(
             counts.type_metadata,
             next_resource_id,
             counts.metadata_remaining,
+            global_origins=type_origins,
+            origin_scope~,
           )
           counts.metadata_remaining = remaining
           next_resource_id = next
@@ -408,6 +417,8 @@ fn validate_component_section_import(
                 }
               None => None
             }
+            let type_origins = counts.origin_table(type_table.length())
+            let origin_scope = Some(counts.contract_origin_scope(tyidx, true))
             let (contract, next, remaining) = scoped_contract_metadata(
               td,
               type_table,
@@ -418,10 +429,13 @@ fn validate_component_section_import(
               core_contracts=counts.core_contracts,
               core_scope~,
               seed=Some((metadata, 0)),
+              global_origins=type_origins,
+              origin_scope~,
             )
             next_resource_id = next
             counts.metadata_remaining = remaining
             if contract is Some(contract) {
+              counts.name_instance_origins(contract, 0)
               counts.instance_contracts[instance_sigs.length() - 1] = (
                 contract, 0,
               )
@@ -470,6 +484,8 @@ fn validate_component_section_import(
             }
           None => None
         }
+        let type_origins = counts.origin_table(type_table.length())
+        let origin_scope = Some(counts.contract_origin_scope(tyidx, true))
         let (metadata, next, remaining) = scoped_contract_metadata(
           td,
           type_table,
@@ -479,6 +495,8 @@ fn validate_component_section_import(
           counts.metadata_remaining,
           core_contracts=counts.core_contracts,
           core_scope~,
+          global_origins=type_origins,
+          origin_scope~,
         )
         next_resource_id = next
         counts.metadata_remaining = remaining
@@ -572,6 +590,11 @@ fn validate_component_section_import(
       match b {
         Eq(tyidx) =>
           if tyidx >= 0 && tyidx < type_table.length() {
+            let created = type_table.length()
+            counts.type_origins[created] = { scope: 0, index: created, }
+            if counts.type_metadata.get(tyidx) is Some(metadata) {
+              counts.type_metadata[created] = metadata
+            }
             type_table.push(type_table[tyidx])
             if tyidx >= 0 && tyidx < local_resource_types.length() {
               local_resource_types.push(local_resource_types[tyidx])

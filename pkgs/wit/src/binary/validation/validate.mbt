@@ -912,7 +912,12 @@ fn validate_component_inner(
                 Some(FuncType(ft)) => {
                   func_types.push(Some(ft))
                   func_sig_shapes.push(
-                    Some(funcsig_of_functype(ft, type_table, resource_ids)),
+                    Some({
+                      ..funcsig_of_functype(ft, type_table, resource_ids),
+                      complete: Some(
+                        counts.function_signature(ft, type_table, resource_ids),
+                      ),
+                    }),
                   )
                 }
                 _ => {

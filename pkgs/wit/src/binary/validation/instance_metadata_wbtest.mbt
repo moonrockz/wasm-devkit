@@ -56,3 +56,60 @@ test "hierarchical legacy and complete function metadata avoid value recursion" 
   assert_eq(signature.complete.unwrap().types.length(), 6000)
   assert_true(remaining < 1000000)
 }
+
+///|
+test "instance metadata distinguishes declared aliases with identical bodies" {
+  let instance : @component.TypeDef = InstanceType([
+    Type(Record([{ label: "x", ty: Prim(U32), }])),
+    Export("named", [], Type(Eq(0))),
+    Type(
+      FuncType({
+        is_async: false,
+        params: [{ label: "value", ty: TypeIdx(1), }],
+        result: None,
+      }),
+    ),
+    Export("f", [], FuncType(2)),
+    Export("second", [], Type(Eq(0))),
+  ])
+  let (metadata, _, _) = imported_instance_metadata(
+    instance,
+    [],
+    [],
+    Map([]),
+    Map([]),
+    0,
+    1000000,
+    origin_scope=Some(7),
+  )
+  let metadata = metadata.unwrap()
+  let first = metadata.nodes[0].types["named"]
+  let second = metadata.nodes[0].types["second"]
+  assert_true(first != second)
+  assert_eq(metadata.origins[first].unwrap().scope, 7)
+  assert_true(
+    metadata.origins[first].unwrap().index !=
+    metadata.origins[second].unwrap().index,
+  )
+  let signature = metadata.nodes[0].functions["f"].complete.unwrap()
+  assert_eq(
+    signature.origins[0].unwrap().index,
+    metadata.origins[first].unwrap().index,
+  )
+  let aliased = metadata_global_function(
+    {
+      is_async: false,
+      params: [{ label: "value", ty: TypeIdx(0), }],
+      result: None,
+    },
+    [None],
+    [],
+    Map([(0, (metadata, first))]),
+    1000000,
+  )
+  assert_eq(aliased.origins[0].unwrap().scope, 7)
+  assert_eq(
+    aliased.origins[0].unwrap().index,
+    metadata.origins[first].unwrap().index,
+  )
+}

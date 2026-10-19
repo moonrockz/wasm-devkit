@@ -333,7 +333,7 @@
     "validator": 0,
     "error": "",
     "validation": "",
-    "product": 2
+    "product": 0
   },
   {
     "name": "component-result-implements",

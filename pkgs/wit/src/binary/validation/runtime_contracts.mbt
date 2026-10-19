@@ -8,6 +8,7 @@ priv struct RuntimeContractBuilder {
   resources : Array[Int32?]
   nodes : Array[ScopedContractNode]
   locals : Map[Int32, Bool]
+  origins : Array[TypeOrigin?]
 }
 
 ///|
@@ -30,6 +31,7 @@ fn RuntimeContractBuilder::graph(
     resources: self.resources,
     nodes: self.nodes,
     locals: self.locals,
+    origins: self.origins,
   }
 }
 
@@ -38,6 +40,7 @@ fn RuntimeContractBuilder::append_types(
   self : RuntimeContractBuilder,
   types : Array[@component.TypeDef?],
   resources : Array[Int32?],
+  origins : Array[TypeOrigin?],
 ) -> Int32 raise ComponentValidationError {
   self.charge(types.length() + resources.length())
   let base = self.types.length()
@@ -82,6 +85,7 @@ fn RuntimeContractBuilder::append_types(
     }
     self.types.push(td)
     self.resources.push(resources.get(i).bind(r => r))
+    self.origins.push(origins.get(i).bind(x => x))
   }
   base
 }
@@ -96,7 +100,7 @@ fn RuntimeContractBuilder::append(
   guard root >= 0 && root < graph.nodes.length() else {
     raise UnsupportedComponentAscription
   }
-  let type_base = self.append_types(graph.types, graph.resources)
+  let type_base = self.append_types(graph.types, graph.resources, graph.origins)
   let node_base = self.nodes.length()
   fn members(
     source : ContractMembers,
@@ -159,11 +163,15 @@ fn runtime_contract_builder(
   resources : Array[Int32?],
 ) -> RuntimeContractBuilder raise ComponentValidationError {
   let type_bound = types.length()
+  let global_origins = counts.origin_table(type_bound)
+  let origins : Array[TypeOrigin?] = []
   let (types, resources, remaining) = metadata_global_types(
     types,
     resources,
     counts.type_metadata,
     counts.metadata_remaining,
+    origins=Some(origins),
+    global_origins~,
   ) catch {
     _ => raise UnsupportedComponentAscription
   }
@@ -182,6 +190,7 @@ fn runtime_contract_builder(
       },
     ],
     locals: Map([]),
+    origins,
   }
 }
 
@@ -281,6 +290,7 @@ fn runtime_substitute(
   graph : ScopedContractMetadata,
   substitutions : Map[Int32, Int32],
   counts : Counts,
+  type_substitutions~ : Map[TypeOrigin, TypeOrigin] = Map([]),
 ) -> ScopedContractMetadata raise ComponentValidationError {
   let builder : RuntimeContractBuilder = {
     counts,
@@ -289,12 +299,19 @@ fn runtime_substitute(
     resources: [],
     nodes: [],
     locals: Map([]),
+    origins: [],
   }
   ignore(builder.append(graph, 0))
   for i in 0..<builder.resources.length() {
     builder.charge(1)
     builder.resources[i] = builder.resources[i].map(r => {
       substitutions.get(r).unwrap_or(r)
+    })
+  }
+  for i in 0..<builder.origins.length() {
+    builder.charge(1)
+    builder.origins[i] = builder.origins[i].map(origin => {
+      type_substitutions.get(origin).unwrap_or(origin)
     })
   }
   for node in builder.nodes {
@@ -315,6 +332,11 @@ fn runtime_substitute(
           signature.types,
           resources,
           counts.metadata_remaining,
+          origins=signature.origins.map(origin => {
+            origin.map(origin => {
+              type_substitutions.get(origin).unwrap_or(origin)
+            })
+          }),
         ) catch {
           _ => raise UnsupportedComponentAscription
         }
@@ -374,7 +396,13 @@ fn runtime_instance_metadata(
       work.push(child)
     }
   }
-  { nodes, signatures, types: graph.types, resources: graph.resources, }
+  {
+    nodes,
+    signatures,
+    types: graph.types,
+    resources: graph.resources,
+    origins: graph.origins,
+  }
 }
 
 ///|
@@ -419,10 +447,6 @@ fn runtime_component_instance(
         raise UnsupportedComponentAscription
       }
       for argument in arguments {
-        if argument.sortidx.sort is Type &&
-          !(resources.get(argument.sortidx.idx) is Some(Some(_))) {
-          raise UnsupportedComponentAscription
-        }
         runtime_argument(
           builder,
           members,
@@ -441,6 +465,7 @@ fn runtime_component_instance(
       }
       let required = { ..template, nodes, }
       let substitutions : Map[Int32, Int32] = Map([])
+      let type_substitutions : Map[TypeOrigin, TypeOrigin] = Map([])
       counts.ascription_remaining = check_scoped_contract(
         builder.graph(),
         required,
@@ -449,11 +474,19 @@ fn runtime_component_instance(
         expected_node=root,
         binders=true,
         bindings=Some(substitutions),
+        type_bindings=Some(type_substitutions),
       )
       let next = runtime_fresh_exports(
         template, root, substitutions, next_resource, counts,
       )
-      let result = runtime_substitute(template, substitutions, counts)
+      // Ordinary defined types retain their template identity across instances.
+      // Only resource binders are generative; input aliases follow substitutions.
+      let result = runtime_substitute(
+        template,
+        substitutions,
+        counts,
+        type_substitutions~,
+      )
       result.nodes[root] = {
         ..result.nodes[root],
         component: false,

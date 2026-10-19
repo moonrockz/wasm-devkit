@@ -12,6 +12,7 @@ fn complete_value_signature(
   types : Array[@component.TypeDef?],
   resources : Array[Int32?],
   budget : Int32,
+  origins~ : Array[TypeOrigin?] = [],
 ) -> (CompleteFunctionSignature, Int32) raise IncompleteFunctionSignature {
   guard complete_function_signature(
       { is_async: false, params: [], result: Some(value), },
@@ -20,6 +21,7 @@ fn complete_value_signature(
       types,
       resources,
       budget~,
+      global_type_origins=origins,
     )
     is Some(signature) else {
     raise IncompleteFunctionSignature
@@ -35,14 +37,22 @@ fn Counts::value_signature(
   resources : Array[Int32?],
 ) -> CompleteFunctionSignature raise ComponentValidationError {
   try {
+    let global_origins = self.origin_table(types.length())
+    let origins : Array[TypeOrigin?] = []
     let (types, resources, rest) = metadata_global_types(
       types,
       resources,
       self.type_metadata,
       self.metadata_remaining,
+      origins=Some(origins),
+      global_origins~,
     )
     let (signature, remaining) = complete_value_signature(
-      value, types, resources, rest,
+      value,
+      types,
+      resources,
+      rest,
+      origins~,
     )
     self.metadata_remaining = remaining
     signature

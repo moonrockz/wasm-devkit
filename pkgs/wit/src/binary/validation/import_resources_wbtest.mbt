@@ -30,6 +30,7 @@ test "import resource audit follows deep reachable contracts with cumulative wor
     ],
     resources: [Some(7), Some(8), None],
     locals: Map([]),
+    origins: [],
   }
   let locals = Map([(7, true)])
   let remaining = check_import_resources(Some(metadata), locals, 20000)
@@ -89,6 +90,7 @@ test "import resource audit checks complete function graphs and shared value DAG
     types,
     resources,
     locals: Map([]),
+    origins: [],
   }
   let caught = try {
     check_import_resources(Some(metadata), Map([(7, true)]), 1000) |> ignore

@@ -352,6 +352,10 @@ fn validate_component_section_alias(
         counts.type_metadata.get(original) is Some(metadata) {
         counts.type_metadata[type_table.length()] = metadata
       }
+      if a.target is Outer(0, original) &&
+        counts.type_origin(original) is Some(origin) {
+        counts.type_origins[type_table.length()] = origin
+      }
       type_table.push(new_td)
       local_resource_types.push(new_local_resource)
       resource_ids.push(new_rid)

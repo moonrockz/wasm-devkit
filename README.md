@@ -227,3 +227,12 @@ See [AGENTS.md](AGENTS.md) and the release-manager skill for the exact sequence.
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
+
+Runtime component type arguments preserve named declaration origins through
+substitution. Private anonymous arguments remain valid, while escaping functions
+and instances require visible names. Imported instance names, explicit export
+ascriptions and repeated component templates retain their reference identities.
+The runtime-origin fixtures compare binary and WAT acceptance and complete
+ordered models with the pinned loader; one loader projection panic is recorded
+separately. Runtime value arguments and concrete nested component definitions
+remain tracked binary-profile gaps.

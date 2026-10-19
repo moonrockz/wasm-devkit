@@ -27,6 +27,7 @@ test "runtime contracts freshen deep instance exports without changing templates
     types: [Some(ResourceType(-1, 0x7f, None, HostDefined))],
     resources: [Some(7)],
     locals: Map([(7, true)]),
+    origins: [],
   }
   let counts = Counts::Counts()
   let substitutions : Map[Int32, Int32] = Map([])
@@ -83,6 +84,7 @@ test "runtime freshening preserves captured resources and component binders" {
     ],
     resources: [Some(7), Some(8)],
     locals: Map([(8, true)]),
+    origins: [],
   }
   let counts = Counts::Counts()
   let substitutions : Map[Int32, Int32] = Map([])

@@ -1503,7 +1503,7 @@ test "runtime component instance type-argument-named" {
   )
   assert_eq(
     binary is Ok(_),
-    false,
+    true,
     msg=match binary {
       Ok(_) => "accepted"
       Err(e) => e[0].render()
@@ -1515,12 +1515,26 @@ test "runtime component instance type-argument-named" {
   )
   assert_eq(
     text is Ok(_),
-    false,
+    true,
     msg=match text {
       Ok(_) => "accepted"
       Err(e) => e[0].render()
     },
   )
+  let expected = [
+    "world", "", "0", "1", "c", "component", "world", "", "0", "1", "t", "type",
+    "record", "1", "x", "scalar", "u32", "2", "t", "type", "record", "1", "x", "scalar",
+    "u32", "f", "func", "function", "false", "1", "x", "record", "1", "x", "scalar",
+    "u32", "none", "2", "t", "type", "record", "1", "x", "scalar", "u32", "i", "instance",
+    "interface", "", "0", "2", "t", "type", "record", "1", "x", "scalar", "u32",
+    "f", "func", "function", "false", "1", "x", "record", "1", "x", "scalar", "u32",
+    "none", "instance", "interface", "", "0", "2", "t", "type", "record", "1", "x",
+    "scalar", "u32", "i", "instance", "interface", "", "0", "2", "t", "type", "record",
+    "1", "x", "scalar", "u32", "f", "func", "function", "false", "1", "x", "record",
+    "1", "x", "scalar", "u32", "none", "definitions", "0",
+  ]
+  assert_eq(binary_projection(binary.unwrap()), expected)
+  assert_eq(binary_projection(text.unwrap()), expected)
 }
 
 ///|

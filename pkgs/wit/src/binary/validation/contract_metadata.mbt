@@ -40,6 +40,7 @@ priv struct ScopedContractMetadata {
   types : Array[@component.TypeDef?]
   resources : Array[Int32?]
   locals : Map[Int32, Bool]
+  origins : Array[TypeOrigin?]
 }
 
 ///|
@@ -65,14 +66,23 @@ fn scoped_contract_metadata(
   core_contracts~ : @core_types.ContractGraph? = None,
   core_scope~ : Int32? = None,
   seed~ : (InstanceMetadata, Int32)? = None,
+  origin_scope~ : Int32? = None,
+  global_origins~ : Array[TypeOrigin?] = [],
 ) -> (ScopedContractMetadata?, Int32, Int32) {
   let mut next_resource = next_resource
   let mut remaining = budget
   try {
+    let type_origins : Array[TypeOrigin?] = []
     let (types, resources, rest) = metadata_global_types(
-      global_types, global_resources, bindings, remaining,
+      global_types,
+      global_resources,
+      bindings,
+      remaining,
+      origins=Some(type_origins),
+      global_origins~,
     )
     remaining = rest
+    let origin_base = types.length()
     let nodes : Array[ScopedContractNode] = []
     let scopes : Array[ScopedContractScope] = [
       {
@@ -93,6 +103,22 @@ fn scoped_contract_metadata(
       if remaining < 0 {
         raise SignatureBudgetExceeded
       }
+    }
+    fn declaration_origin(
+      slot : Int32,
+      seed_node : Int32?,
+      name : String?,
+    ) -> TypeOrigin? {
+      if seed is Some((metadata, _)) &&
+        seed_node is Some(node) &&
+        name is Some(name) &&
+        metadata.nodes[node].types.get(name) is Some(index) {
+        return metadata.origins.get(index).bind(x => x)
+      }
+      origin_scope.map(scope => {
+        let origin = { scope, index: slot - origin_base, }
+        origin
+      })
     }
     fn declarations(
       td : @component.TypeDef,
@@ -187,6 +213,7 @@ fn scoped_contract_metadata(
           }
           types.push(Some(mapped))
           resources.push(None)
+          type_origins.push(declaration_origin(slot, None, None))
           origins[slot] = index
           scope.types.push(slot)
         }
@@ -251,13 +278,25 @@ fn scoped_contract_metadata(
               let slot = types.length()
               types.push(Some(ResourceType(-1, 0x7f, None, HostDefined)))
               resources.push(Some(resource))
+              type_origins.push(
+                declaration_origin(slot, scope.seed_node, Some(name)),
+              )
               scope.types.push(slot)
               items.types[name] = slot
             }
             Type(Eq(original)) => {
               let ty = type_index(index, original)
-              scope.types.push(ty)
-              items.types[name] = ty
+              let slot = types.length()
+              types.push(types[ty])
+              resources.push(resources[ty])
+              type_origins.push(
+                declaration_origin(slot, scope.seed_node, Some(name)),
+              )
+              if origins.get(ty) is Some(owner) {
+                origins[slot] = owner
+              }
+              scope.types.push(slot)
+              items.types[name] = slot
             }
             FuncType(original) => {
               let ty = type_index(index, original)
@@ -265,7 +304,11 @@ fn scoped_contract_metadata(
                 raise IncompleteFunctionSignature
               }
               let (signature, rest) = metadata_function(
-                ft, types, resources, remaining,
+                ft,
+                types,
+                resources,
+                remaining,
+                origins=type_origins,
               )
               remaining = rest
               items.functions[name] = signature
@@ -311,6 +354,7 @@ fn scoped_contract_metadata(
                 types,
                 resources,
                 remaining,
+                origins=type_origins,
               )
               remaining = rest
               items.values[name] = signature
@@ -322,7 +366,11 @@ fn scoped_contract_metadata(
         CoreType(_) => ()
       }
     }
-    (Some({ nodes, types, resources, locals, }), next_resource, remaining)
+    (
+      Some({ nodes, types, resources, locals, origins: type_origins, }),
+      next_resource,
+      remaining,
+    )
   } catch {
     SignatureBudgetExceeded => (None, next_resource, 0)
     IncompleteFunctionSignature => (None, next_resource, remaining.max(0))

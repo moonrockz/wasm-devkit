@@ -14,6 +14,7 @@ priv struct InstanceMetadata {
   signatures : Array[InstanceSig]
   types : Array[@component.TypeDef?]
   resources : Array[Int32?]
+  origins : Array[TypeOrigin?]
 }
 
 ///|
@@ -35,14 +36,23 @@ fn imported_instance_metadata(
   bindings : Map[Int32, (InstanceMetadata, Int32)],
   next_resource : Int32,
   budget : Int32,
+  origin_scope~ : Int32? = None,
+  global_origins~ : Array[TypeOrigin?] = [],
 ) -> (InstanceMetadata?, Int32, Int32) {
   let mut next_resource = next_resource
   let mut remaining = budget
   try {
+    let type_origins : Array[TypeOrigin?] = []
     let (types, resources, rest) = metadata_global_types(
-      global_types, global_resources, bindings, remaining,
+      global_types,
+      global_resources,
+      bindings,
+      remaining,
+      origins=Some(type_origins),
+      global_origins~,
     )
     remaining = rest
+    let origin_base = types.length()
     let nodes : Array[InstanceMetadataNode] = []
     let scopes : Array[InstanceMetadataScope] = [
       {
@@ -140,6 +150,9 @@ fn imported_instance_metadata(
           }
           types.push(Some(mapped))
           resources.push(None)
+          type_origins.push(
+            origin_scope.map(scope => { scope, index: slot - origin_base, }),
+          )
           origins[slot] = index
           scope.types.push(slot)
         }
@@ -185,13 +198,25 @@ fn imported_instance_metadata(
               let slot = types.length()
               types.push(Some(ResourceType(-1, 0x7f, None, HostDefined)))
               resources.push(Some(resource))
+              type_origins.push(
+                origin_scope.map(scope => { scope, index: slot - origin_base, }),
+              )
               scope.types.push(slot)
               node.types[name] = slot
             }
             Type(Eq(original)) => {
               let ty = type_index(index, original)
-              scope.types.push(ty)
-              node.types[name] = ty
+              let slot = types.length()
+              types.push(types[ty])
+              resources.push(resources[ty])
+              type_origins.push(
+                origin_scope.map(scope => { scope, index: slot - origin_base, }),
+              )
+              if origins.get(ty) is Some(owner) {
+                origins[slot] = owner
+              }
+              scope.types.push(slot)
+              node.types[name] = slot
             }
             FuncType(original) => {
               let ty = type_index(index, original)
@@ -199,7 +224,11 @@ fn imported_instance_metadata(
                 raise IncompleteFunctionSignature
               }
               let (signature, rest) = metadata_function(
-                ft, types, resources, remaining,
+                ft,
+                types,
+                resources,
+                remaining,
+                origins=type_origins,
               )
               remaining = rest
               node.functions[name] = signature
@@ -233,7 +262,11 @@ fn imported_instance_metadata(
       }
       signatures[index] = { exports: nodes[index].exports, nested, }
     }
-    (Some({ nodes, signatures, types, resources, }), next_resource, remaining)
+    (
+      Some({ nodes, signatures, types, resources, origins: type_origins, }),
+      next_resource,
+      remaining,
+    )
   } catch {
     SignatureBudgetExceeded => (None, next_resource, 0)
     IncompleteFunctionSignature => (None, next_resource, remaining.max(0))
@@ -256,6 +289,7 @@ fn metadata_function(
   types : Array[@component.TypeDef?],
   resources : Array[Int32?],
   budget : Int32,
+  origins~ : Array[TypeOrigin?] = [],
 ) -> (FuncSigShape, Int32) raise IncompleteFunctionSignature {
   let complete = complete_function_signature(
     ft,
@@ -264,6 +298,7 @@ fn metadata_function(
     types,
     resources,
     budget~,
+    global_type_origins=origins,
   )
   guard complete is Some(complete) else { raise IncompleteFunctionSignature }
   let values : Map[Int32, TypeSig] = Map([])
@@ -387,13 +422,16 @@ fn metadata_global_function(
   global_resources : Array[Int32?],
   bindings : Map[Int32, (InstanceMetadata, Int32)],
   budget : Int32,
+  global_origins~ : Array[TypeOrigin?] = [],
 ) -> CompleteFunctionSignature raise ComponentValidationError {
   try {
     let types : Array[@component.TypeDef?] = []
     let resources : Array[Int32?] = []
+    let origins : Array[TypeOrigin?] = []
     let spaces : Array[InstanceMetadata] = []
     let external : Map[Int32, (Int32, Int32)] = Map([])
     let mapped : Map[(Int32, Int32), Int32] = Map([])
+    let explicit_origins : Map[(Int32, Int32), TypeOrigin] = Map([])
     let pending : Array[(Int32, Int32)] = []
     let mut remaining = budget
     fn step() -> Unit raise IncompleteFunctionSignature {
@@ -417,6 +455,9 @@ fn metadata_global_function(
               None => {
                 let key = (spaces.length(), root)
                 spaces.push(metadata)
+                if global_origins.get(original) is Some(Some(origin)) {
+                  explicit_origins[key] = origin
+                }
                 external[original] = key
                 key
               }
@@ -432,6 +473,7 @@ fn metadata_global_function(
               pending.push(key)
               types.push(None)
               resources.push(None)
+              origins.push(None)
               slot
             }
           }
@@ -457,6 +499,13 @@ fn metadata_global_function(
       }
       let slot = mapped[(space, id)]
       resources[slot] = resource_table.get(id).bind(x => x)
+      origins[slot] = if explicit_origins.get((space, id)) is Some(origin) {
+        Some(origin)
+      } else if space == -1 {
+        global_origins.get(id).unwrap_or(Some({ scope: 0, index: id, }))
+      } else {
+        spaces[space].origins.get(id).bind(x => x)
+      }
       match td {
         Flags(labels) | Enum(labels) => remaining -= labels.length()
         _ => ()
@@ -466,7 +515,7 @@ fn metadata_global_function(
       }
       types[slot] = Some(signature_definition(td, t => value(t, space)))
     }
-    { function, types, resources, work: budget - remaining, }
+    { function, types, resources, origins, work: budget - remaining, }
   } catch {
     IncompleteFunctionSignature | SignatureBudgetExceeded =>
       raise UnsupportedFunctionAscription
@@ -479,12 +528,25 @@ fn metadata_global_types(
   global_resources : Array[Int32?],
   bindings : Map[Int32, (InstanceMetadata, Int32)],
   budget : Int32,
+  origins~ : Array[TypeOrigin?]? = None,
+  global_origins~ : Array[TypeOrigin?] = [],
 ) -> (Array[@component.TypeDef?], Array[Int32?], Int32) raise IncompleteFunctionSignature {
   let mut remaining = budget - global_types.length() - global_resources.length()
   if remaining < 0 {
     raise SignatureBudgetExceeded
   }
   let types = global_types.copy()
+  if origins is Some(origins) {
+    remaining -= types.length()
+    if remaining < 0 {
+      raise SignatureBudgetExceeded
+    }
+    for index in 0..<types.length() {
+      origins.push(
+        global_origins.get(index).unwrap_or(Some({ scope: 0, index, })),
+      )
+    }
+  }
   let resources = Array::makei(types.length(), i => {
     global_resources.get(i).bind(x => x)
   })
@@ -521,6 +583,9 @@ fn metadata_global_types(
             pending.push(key)
             types.push(None)
             resources.push(None)
+            if origins is Some(origins) {
+              origins.push(None)
+            }
             result
           }
         }
@@ -539,6 +604,14 @@ fn metadata_global_types(
     }
     let result = mapped[(owner, id)]
     resources[result] = metadata.resources.get(id).bind(x => x)
+    if origins is Some(origins) {
+      origins[result] = if result == owner &&
+        global_origins.get(owner) is Some(Some(origin)) {
+        Some(origin)
+      } else {
+        metadata.origins.get(id).bind(x => x)
+      }
+    }
     types[result] = Some(signature_definition(td, ty => value(ty, owner)))
   }
   (types, resources, remaining)

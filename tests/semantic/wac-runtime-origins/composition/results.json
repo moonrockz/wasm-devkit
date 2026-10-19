@@ -1,0 +1,51 @@
+[
+  {
+    "name": "named-export",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "named-import",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "instance-alias",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "anonymous-private",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "anonymous-export",
+    "reference": 1,
+    "compose": 1,
+    "validation": null,
+    "error": "failed to parse package `test:runtime`\n"
+  },
+  {
+    "name": "anonymous-function-ascribed",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "named-export-nested",
+    "reference": 0,
+    "compose": 1,
+    "validation": null,
+    "error": ""
+  }
+]

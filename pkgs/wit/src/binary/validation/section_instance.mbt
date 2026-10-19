@@ -74,6 +74,7 @@ fn validate_component_section_instance(
           metadata.types,
           metadata.resources,
           counts.metadata_remaining,
+          origins=metadata.origins,
         ) catch {
           _ => raise UnsupportedComponentAscription
         }

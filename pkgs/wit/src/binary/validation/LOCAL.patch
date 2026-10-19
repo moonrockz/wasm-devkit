@@ -1940,7 +1940,7 @@
 +    restricted_map_keys,
 +    borrowed_value_exports,
 +  }
-@@ -114,12 +135,20 @@
+@@ -114,12 +135,25 @@
 -  mut func : Int
 -  mut value : Int
 -  mut component : Int
@@ -1955,6 +1955,11 @@
 -  mut core_tag : Int
 +  mut core_contracts : @core_types.ContractGraph?
 +  type_metadata : Map[Int32, (InstanceMetadata, Int32)]
++  type_origins : Map[Int32, TypeOrigin]
++  visible_origins : Map[TypeOrigin, Bool]
++  visible_resources : Map[Int32, Bool]
++  origin_scopes : Map[(TypeOrigin, Bool), Int32]
++  mut next_origin_scope : Int32
 +  instance_metadata : Map[Int32, (InstanceMetadata, Int32)]
 +  component_contracts : Map[Int32, (ScopedContractMetadata, Int32)]
 +  instance_contracts : Map[Int32, (ScopedContractMetadata, Int32)]
@@ -1973,7 +1978,7 @@
 +  mut core_memory : Int32
 +  mut core_global : Int32
 +  mut core_tag : Int32
-@@ -161 +190,9 @@
+@@ -161 +195,9 @@
 -} derive(Eq)
 +  complete : CompleteFunctionSignature?
 +}
@@ -1984,91 +1989,96 @@
 +impl Eq for FuncSigShape with fn equal(a, b) {
 +  a.params == b.params && a.result == b.result
 +}
-@@ -165,2 +202,2 @@
+@@ -165,2 +207,2 @@
 -  Existing(Int)
 -  Resource(Int)
 +  Existing(Int32)
 +  Resource(Int32)
-@@ -182,3 +219,3 @@
+@@ -182,3 +224,3 @@
 -  Resource(Int)
 -  Own(Int)
 -  Borrow(Int)
 +  Resource(Int32)
 +  Own(Int32)
 +  Borrow(Int32)
-@@ -204,2 +241,2 @@
+@@ -204,2 +246,2 @@
 -  resource_ids : Array[Int?],
 -) -> Int? {
 +  resource_ids : Array[Int32?],
 +) -> Int32? {
-@@ -218,3 +255,3 @@
+@@ -218,3 +260,3 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 -) -> Int? {
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
 +) -> Int32? {
-@@ -238,2 +275,2 @@
+@@ -238,2 +280,2 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
-@@ -258,2 +295,2 @@
+@@ -258,2 +300,2 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
-@@ -460 +497,4 @@
+@@ -460 +502,4 @@
 -fn core_func_type_of_idx(m : @types.Module, func_idx : Int) -> @types.FuncType? {
 +fn core_func_type_of_idx(
 +  m : @types.Module,
 +  func_idx : Int32,
 +) -> @types.FuncType? {
-@@ -485 +525 @@
+@@ -485 +530 @@
 -  table_idx : Int,
 +  table_idx : Int32,
-@@ -506 +546 @@
+@@ -506 +551 @@
 -  mem_idx : Int,
 +  mem_idx : Int32,
-@@ -527 +567 @@
+@@ -527 +572 @@
 -  global_idx : Int,
 +  global_idx : Int32,
-@@ -546 +586 @@
+@@ -546 +591 @@
 -fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int) -> @types.FuncType? {
 +fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int32) -> @types.FuncType? {
-@@ -642 +682 @@
+@@ -642 +687 @@
 -fn core_kind_of_extern_type(ty : CoreExternType) -> Int {
 +fn core_kind_of_extern_type(ty : CoreExternType) -> Int32 {
-@@ -679 +719 @@
+@@ -679 +724 @@
 -  idx : Int,
 +  idx : Int32,
-@@ -723,0 +764,7 @@
+@@ -723,0 +769,12 @@
 +    type_metadata: Map([]),
++    type_origins: Map([]),
++    visible_origins: Map([]),
++    visible_resources: Map([]),
++    origin_scopes: Map([]),
++    next_origin_scope: 1,
 +    instance_metadata: Map([]),
 +    component_contracts: Map([]),
 +    instance_contracts: Map([]),
 +    core_contracts: None,
 +    metadata_remaining: 1000000,
 +    ascription_remaining: 1000000,
-@@ -725,0 +773 @@
+@@ -725,0 +783 @@
 +    values: [],
-@@ -763 +811 @@
+@@ -763 +821 @@
 -fn is_lower_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_lower_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -793 +841 @@
+@@ -793 +851 @@
 -fn is_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -843,2 +891,2 @@
+@@ -843,2 +901,2 @@
 -fn is_canonversion_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 -  if start < 0 || end_ <= start || end_ > name.length() {
 +fn is_semver_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
 +  if start < 0 || start >= end_ || end_ > name.length() {
-@@ -848,2 +896,2 @@
+@@ -848,2 +906,2 @@
 -  if name[i].to_int() >= 0x31 && name[i].to_int() <= 0x39 {
 -    i += 1
 +  for component in 0..<3 {
 +    let begin = i
-@@ -853,11 +901,27 @@
+@@ -853,11 +911,27 @@
 -    return i == end_
 -  }
 -  if name[i].to_int() != 0x30 || i + 1 >= end_ {
@@ -2107,7 +2117,7 @@
 +
 +  // Numeric prerelease identifiers cannot contain leading zeroes.
 +  if i < end_ && name[i] == 0x2d {
-@@ -865 +929,15 @@
+@@ -865 +939,15 @@
 -    while i < end_ && is_ascii_digit(name[i]) {
 +    while true {
 +      let begin = i
@@ -2124,7 +2134,7 @@
 +      if i >= end_ || name[i] != 0x2e {
 +        break
 +      }
-@@ -867,95 +944,0 @@
+@@ -867,95 +954,0 @@
 -    }
 -    return i == end_
 -  }
@@ -2220,13 +2230,13 @@
 -    }
 -    if need_id {
 -      return false
-@@ -1016,3 +998,0 @@
+@@ -1016,3 +1008,0 @@
 -      if at != -1 {
 -        return false
 -      }
-@@ -1019,0 +1000 @@
+@@ -1019,0 +1010 @@
 +      break
-@@ -1028,9 +1009 @@
+@@ -1028,9 +1019 @@
 -  if at != -1 {
 -    if at >= name.length() - 1 {
 -      return false
@@ -2237,14 +2247,14 @@
 -    }
 -  }
 +  // Version syntax is checked with the separately encoded suffix.
-@@ -1185 +1158 @@
+@@ -1185 +1168 @@
 -fn is_integrity_value(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_integrity_value(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -1453,0 +1427,3 @@
+@@ -1453,0 +1437,3 @@
 +  if prefix_eq("get") || prefix_eq("set") {
 +    return is_kebab_case_range(name, close + 1, name.length())
 +  }
-@@ -1460 +1436,9 @@
+@@ -1460 +1446,9 @@
 -  // method/static: require exactly one '.' and kebab-case around it.
 +  // Method/static names can have one accessor annotation before the resource.
 +  let mut start = close + 1
@@ -2255,10 +2265,10 @@
 +    ) {
 +    start += 5
 +  }
-@@ -1462 +1446 @@
+@@ -1462 +1456 @@
 -  for k in (close + 1)..<name.length() {
 +  for k in start..<name.length() {
-@@ -1470,4 +1454,4 @@
+@@ -1470,4 +1464,4 @@
 -  if dot < 0 || dot == close + 1 || dot == name.length() - 1 {
 -    return false
 -  }
@@ -2267,19 +2277,19 @@
 +    return false
 +  }
 +  is_kebab_case_range(name, start, dot) &&
-@@ -1506 +1490 @@
+@@ -1506 +1500 @@
 -  mut pos : Int
 +  mut pos : Int32
-@@ -1522 +1506 @@
+@@ -1522 +1516 @@
 -) -> Int raise ComponentValidationError {
 +) -> Int32 raise ComponentValidationError {
-@@ -1534 +1518 @@
+@@ -1534 +1528 @@
 -) -> Int raise ComponentValidationError {
 +) -> Int32 raise ComponentValidationError {
-@@ -1554 +1538 @@
+@@ -1554 +1548 @@
 -  n : Int,
 +  n : Int32,
-@@ -1585,5 +1569,9 @@
+@@ -1585,5 +1579,9 @@
 -  ascii_bytes_to_string(self.read_bytes(len))
 -}
 -
@@ -2294,7 +2304,7 @@
 +
 +///|
 +fn CoreTypeReader::read_limit(
-@@ -1591 +1579,23 @@
+@@ -1591 +1589,23 @@
 -) -> Unit raise ComponentValidationError {
 +  wide : Bool,
 +) -> UInt64 raise ComponentValidationError {
@@ -2319,7 +2329,7 @@
 +  self : CoreTypeReader,
 +  memory : Bool,
 +) -> (Int32, UInt64, UInt64?, Int32) raise ComponentValidationError {
-@@ -1593,4 +1603,24 @@
+@@ -1593,4 +1613,24 @@
 -  self.read_leb_u32() |> ignore
 -  if (flags & 0x01) != 0 {
 -    self.read_leb_u32() |> ignore
@@ -2348,12 +2358,12 @@
 +    }
 +  }
 +  (flags, min, max, page)
-@@ -1627,2 +1657,2 @@
+@@ -1627,2 +1667,2 @@
 -  kind : Int,
 -  func_type_bound : Int,
 +  kind : Int32,
 +  func_type_bound : Int32,
-@@ -1639,17 +1669,3 @@
+@@ -1639,17 +1679,3 @@
 -      self.skip_limits()
 -    }
 -    0x02 => {
@@ -2374,16 +2384,16 @@
 +      self.read_limits(false) |> ignore
 +    }
 +    0x02 => self.read_limits(true) |> ignore
-@@ -1679 +1695 @@
+@@ -1679 +1705 @@
 -    heap : Int,
 +    heap : Int32,
-@@ -1748 +1764 @@
+@@ -1748 +1774 @@
 -  kind : Int,
 +  kind : Int32,
-@@ -1750 +1766 @@
+@@ -1750 +1776 @@
 -  func_type_bound : Int,
 +  func_type_bound : Int32,
-@@ -1775,6 +1791,5 @@
+@@ -1775,6 +1801,5 @@
 -      let flags = self.read_u8()
 -      let min = self.read_leb_u32()
 -      let max = if (flags & 0x01) != 0 {
@@ -2395,7 +2405,7 @@
 +        (max is Some(n) && n > 9223372036854775807UL) ||
 +        (flags & 2) != 0 {
 +        return None
-@@ -1783,7 +1798,4 @@
+@@ -1783,7 +1808,4 @@
 -        min: min.to_int64(),
 -        max: match max {
 -          Some(v) => Some(v.to_int64())
@@ -2407,7 +2417,7 @@
 +        max: max.map(n => n.reinterpret_as_int64()),
 +      }
 +      Some(Table({ elem_type: elem_ty, limits, is_table64: (flags & 4) != 0, }))
-@@ -1792,14 +1804,6 @@
+@@ -1792,14 +1814,6 @@
 -      // memtype: flags + limits (track memory64 when present)
 -      let flags = self.read_u8()
 -      let min = self.read_leb_u32()
@@ -2428,7 +2438,7 @@
 +      if min > 9223372036854775807UL ||
 +        (max is Some(n) && n > 9223372036854775807UL) {
 +        return None
-@@ -1808,7 +1812,3 @@
+@@ -1808,7 +1822,3 @@
 -        min: min.to_int64(),
 -        max: match max {
 -          Some(v) => Some(v.to_int64())
@@ -2439,33 +2449,33 @@
 +        min: min.reinterpret_as_int64(),
 +        max: max.map(n => n.reinterpret_as_int64()),
 +      }
-@@ -1818,3 +1818,3 @@
+@@ -1818,3 +1828,3 @@
 -          is_memory64,
 -          is_shared: (flags & 0x02) != 0,
 -          page_size_log2: 16,
 +          is_memory64: (flags & 4) != 0,
 +          is_shared: (flags & 2) != 0,
 +          page_size_log2: page,
-@@ -1828 +1828,4 @@
+@@ -1828 +1838,4 @@
 -      let mutable = mut_ != 0
 +      if (mut_ & 2) != 0 {
 +        return None
 +      }
 +      let mutable = (mut_ & 1) != 0
-@@ -1859,3 +1862,3 @@
+@@ -1859,3 +1872,3 @@
 -  max_outer_depth : Int,
 -  current_core_type_bound : Int,
 -  outer_core_type_bounds : Array[Int],
 +  max_outer_depth : Int32,
 +  current_core_type_bound : Int32,
 +  outer_core_type_bounds : Array[Int32],
-@@ -1864 +1867 @@
+@@ -1864 +1877 @@
 -  let seen_imports : Map[String, Int] = Map([])
 +  let seen_imports : Map[(String, String), Int32] = Map([])
-@@ -1883 +1886 @@
+@@ -1883 +1896 @@
 -        let key = "\{mod_s}:\{name_s}"
 +        let key = (mod_s, name_s)
-@@ -1919 +1922,3 @@
+@@ -1919 +1932,3 @@
 -                let bound = if depth <= 1 {
 +                let bound = if depth == 0 {
 +                  func_type_bound - 1
@@ -2539,7 +2549,7 @@
 @@ -218 +240 @@
 -      let mut new_rid : Int? = None
 +      let mut new_rid : Int32? = None
-@@ -317,0 +340,15 @@
+@@ -317,0 +340,19 @@
 +      if a.target is Export(instance, name) &&
 +        counts.instance_metadata.get(instance) is Some((metadata, node)) &&
 +        metadata.nodes[node].types.get(name) is Some(ty) {
@@ -2555,7 +2565,11 @@
 +        counts.type_metadata.get(original) is Some(metadata) {
 +        counts.type_metadata[type_table.length()] = metadata
 +      }
-@@ -322,0 +360,8 @@
++      if a.target is Outer(0, original) &&
++        counts.type_origin(original) is Some(origin) {
++        counts.type_origins[type_table.length()] = origin
++      }
+@@ -322,0 +364,8 @@
 +      if a.target is Outer(0, original) {
 +        if named_types.contains(original) {
 +          named_types.set(type_table.length() - 1, 1)
@@ -2564,20 +2578,20 @@
 +          import_named_types.set(type_table.length() - 1, 1)
 +        }
 +      }
-@@ -324 +369 @@
+@@ -324 +373 @@
 -        interface_instance_idxs.get(instance_idx) is Some(_) {
 +        interface_instance_idxs.get(instance_idx) is Some(visibility) {
-@@ -325,0 +371,3 @@
+@@ -325,0 +375,3 @@
 +        if (visibility & 2) != 0 {
 +          import_named_types.set(type_table.length() - 1, 1)
 +        }
-@@ -364,0 +413,5 @@
+@@ -364,0 +417,5 @@
 +          if a.target is Export(parent, name) &&
 +            counts.instance_contracts.get(parent) is Some((contract, node)) &&
 +            contract.nodes[node].exports.children.get(name) is Some(child) {
 +            counts.instance_contracts[counts.instance - 1] = (contract, child)
 +          }
-@@ -365,0 +419,7 @@
+@@ -365,0 +423,7 @@
 +          if new_metadata is Some(metadata) {
 +            counts.instance_metadata[instance_sigs.length() - 1] = metadata
 +          }
@@ -2585,7 +2599,7 @@
 +            interface_instance_idxs.get(parent) is Some(visibility) {
 +            interface_instance_idxs.set(instance_sigs.length() - 1, visibility)
 +          }
-@@ -375,0 +436,5 @@
+@@ -375,0 +440,5 @@
 +          if a.target is Export(parent, name) &&
 +            counts.instance_contracts.get(parent) is Some((contract, node)) &&
 +            contract.nodes[node].exports.children.get(name) is Some(child) {
@@ -2696,43 +2710,46 @@
 @@ -206 +236 @@
 -                  idx, type_table, type_outers,
 +                  idx, type_table, type_outers, named_types,
-@@ -247,2 +277,2 @@
+@@ -217,0 +248,5 @@
++          if e.desc is None &&
++            func_sig_shapes.get(e.sortidx.idx) is Some(Some(shape)) &&
++            shape.complete is Some(signature) {
++            counts.check_function_origins(signature, named_types, resource_ids)
++          }
+@@ -245,0 +281,4 @@
++        if e.desc is None &&
++          counts.instance_contracts.get(inst_idx) is Some((graph, root)) {
++          counts.check_instance_origins(graph, root, named_types, resource_ids)
++        }
+@@ -247,2 +286,2 @@
 -          let exported_type_idxs : Array[Int] = []
 -          let seen : Map[Int, Int] = Map([])
 +          let exported_type_idxs : Array[Int32] = []
 +          let seen : Map[Int32, Int32] = Map([])
-@@ -295 +325 @@
+@@ -295 +334 @@
 -          let inst_named : Map[Int, Int] = Map([])
 +          let inst_named : Map[Int32, Int32] = Map([])
-@@ -447 +477 @@
+@@ -447 +486 @@
 -    // the actual export (we currently model instance-type compatibility).
 +    // the actual export. Functions require complete invariant signatures.
-@@ -449,4 +479,15 @@
+@@ -449,6 +488,10 @@
 -      (Instance, Some(InstanceType(tyidx))) =>
 -        if tyidx >= 0 && tyidx < type_table.length() {
 -          let expected = instancetype_sig_of_global_idx(
 -            tyidx,
+-            type_table,
+-            Map([]),
 +      (Func, Some(FuncType(index))) => {
 +        guard type_table.get(index) is Some(Some(FuncType(expected))) else {
 +          raise AscribedExportTypeIncompatible
 +        }
-+        let expected = metadata_global_function(
-+          expected,
-+          type_table,
-+          resource_ids,
-+          counts.type_metadata,
-+          counts.metadata_remaining,
++        let expected = counts.function_signature(
++          expected, type_table, resource_ids,
 +        )
-+        counts.metadata_remaining -= expected.work
 +        let actual = if func_types.get(e.sortidx.idx) is Some(Some(actual)) {
-+          let signature = metadata_global_function(
-+            actual,
-@@ -454 +495,3 @@
--            Map([]),
-+            resource_ids,
-+            counts.type_metadata,
-+            counts.metadata_remaining,
-@@ -456,14 +499,159 @@
++          let signature = counts.function_signature(
++            actual, type_table, resource_ids,
+@@ -456,11 +499,4 @@
 -          let actual = if e.sortidx.idx >= 0 &&
 -            e.sortidx.idx < instance_sigs.length() {
 -            instance_sigs[e.sortidx.idx]
@@ -2744,15 +2761,13 @@
 -            Some(name) => my_export_instance_sigs.set(name, expected)
 -            None => ()
 -          }
--        } else {
--          raise AscribedExportTypeIncompatible
--        }
-+          counts.metadata_remaining -= signature.work
 +          signature
 +        } else if func_sig_shapes.get(e.sortidx.idx) is Some(Some(shape)) &&
 +          shape.complete is Some(actual) {
 +          actual
-+        } else {
+@@ -468,2 +504,166 @@
+-          raise AscribedExportTypeIncompatible
+-        }
 +          raise UnsupportedFunctionAscription
 +        }
 +        counts.ascription_remaining = check_function_ascription(
@@ -2793,6 +2808,8 @@
 +          is Some((actual, actual_node)) else {
 +          raise UnsupportedInstanceAscription
 +        }
++        let type_origins = counts.origin_table(type_table.length())
++        let origin_scope = Some(counts.contract_origin_scope(tyidx, false))
 +        let (expected, next, remaining) = imported_instance_metadata(
 +          td,
 +          type_table,
@@ -2801,6 +2818,8 @@
 +          counts.type_metadata,
 +          next_resource_id,
 +          counts.metadata_remaining,
++          global_origins=type_origins,
++          origin_scope~,
 +        )
 +        counts.metadata_remaining = remaining
 +        next_resource_id = next
@@ -2824,6 +2843,8 @@
 +            }
 +          None => None
 +        }
++        let type_origins = counts.origin_table(type_table.length())
++        let origin_scope = Some(counts.contract_origin_scope(tyidx, true))
 +        let (contract, next, remaining) = scoped_contract_metadata(
 +          td,
 +          type_table,
@@ -2834,6 +2855,8 @@
 +          core_contracts=counts.core_contracts,
 +          core_scope=core_scopes.map(pair => pair.1),
 +          seed=Some((expected, 0)),
++          global_origins=type_origins,
++          origin_scope~,
 +        )
 +        next_resource_id = next
 +        counts.metadata_remaining = remaining
@@ -2852,6 +2875,7 @@
 +          core_contracts=counts.core_contracts,
 +          actual_node~,
 +        )
++        counts.check_instance_origins(contract, 0, named_types, resource_ids)
 +        ascribed_instance_contract = Some(contract)
 +        ascribed_instance = Some(expected)
 +        if exportname_to_string(e.name) is Some(name) {
@@ -2877,6 +2901,8 @@
 +            }
 +          None => None
 +        }
++        let type_origins = counts.origin_table(type_table.length())
++        let origin_scope = Some(counts.contract_origin_scope(tyidx, true))
 +        let (expected, next, remaining) = scoped_contract_metadata(
 +          td,
 +          type_table,
@@ -2886,6 +2912,8 @@
 +          counts.metadata_remaining,
 +          core_contracts=counts.core_contracts,
 +          core_scope~,
++          global_origins=type_origins,
++          origin_scope~,
 +        )
 +        counts.metadata_remaining = remaining
 +        next_resource_id = next
@@ -2906,11 +2934,14 @@
 +        )
 +        ascribed_component = Some(expected)
 +      }
-@@ -487,0 +676,3 @@
+@@ -480,0 +681,2 @@
++      let created = type_table.length()
++      counts.type_origins[created] = { scope: 0, index: created, }
+@@ -487,0 +690,3 @@
 +        if counts.type_metadata.get(idx) is Some(metadata) {
 +          counts.type_metadata[type_table.length()] = metadata
 +        }
-@@ -524,0 +716,12 @@
+@@ -524,0 +730,13 @@
 +      if exported_value is Some(signature) {
 +        counts.values.push({ signature, used: true, })
 +      }
@@ -2920,11 +2951,13 @@
 +          None => counts.instance_contracts.get(e.sortidx.idx)
 +        }
 +        if contract is Some(contract) {
++          counts.name_instance_origins(contract.0, contract.1)
 +          counts.instance_contracts[counts.instance - 1] = contract
 +        }
 +      }
-@@ -528 +731,9 @@
+@@ -528,2 +746,22 @@
 -            func_types.push(func_types[e.sortidx.idx])
+-            if e.sortidx.idx >= 0 && e.sortidx.idx < func_sig_shapes.length() {
 +            let exported = match e.desc {
 +              Some(FuncType(index)) =>
 +                match type_table.get(index) {
@@ -2934,7 +2967,20 @@
 +              _ => func_types[e.sortidx.idx]
 +            }
 +            func_types.push(exported)
-@@ -540,0 +752,11 @@
++            if e.desc is Some(FuncType(_)) && exported is Some(function) {
++              func_sig_shapes.push(
++                Some({
++                  ..funcsig_of_functype(function, type_table, resource_ids),
++                  complete: Some(
++                    counts.function_signature(
++                      function, type_table, resource_ids,
++                    ),
++                  ),
++                }),
++              )
++            } else if e.sortidx.idx >= 0 &&
++              e.sortidx.idx < func_sig_shapes.length() {
+@@ -540,0 +779,11 @@
 +            if ascribed_instance is Some(metadata) {
 +              instance_sigs[instance_sigs.length() - 1] = Some(
 +                metadata_instance_sig(metadata, 0),
@@ -2946,19 +2992,19 @@
 +              is Some(metadata) {
 +              counts.instance_metadata[instance_sigs.length() - 1] = metadata
 +            }
-@@ -580,0 +803,5 @@
+@@ -580,0 +830,5 @@
 +            if ascribed_instance is Some(metadata) {
 +              instance_export_func_sigs[instance_export_func_sigs.length() - 1] = Some(
 +                metadata.nodes[0].functions,
 +              )
 +            }
-@@ -602 +829,4 @@
+@@ -602 +856,4 @@
 -            interface_instance_idxs.set(instance_sigs.length() - 1, 1)
 +            interface_instance_idxs.set(
 +              instance_sigs.length() - 1,
 +              interface_instance_idxs.get(e.sortidx.idx).unwrap_or(1),
 +            )
-@@ -616,0 +847,7 @@
+@@ -616,0 +874,7 @@
 +          let metadata = match ascribed_component {
 +            Some(metadata) => Some((metadata, 0))
 +            None => counts.component_contracts.get(src)
@@ -3039,8 +3085,7 @@
 +        if local_resource_types.get(tyidx) is Some(true) {
 +          raise SectionParseError(10, "local resource type found in imports")
 +        }
-@@ -135,0 +144,13 @@
-+    }
+@@ -136,0 +145,13 @@
 +    if i.desc is Value(Type(value)) {
 +      if !valtype_valid_in_interface(
 +          value,
@@ -3053,23 +3098,32 @@
 +      }
 +      let signature = counts.value_signature(value, type_table, resource_ids)
 +      counts.values.push({ signature, used: false, })
-@@ -190 +211 @@
++    }
+@@ -140 +161,6 @@
+-          let sig = funcsig_of_functype(ft, type_table, resource_ids)
++          let sig = {
++            ..funcsig_of_functype(ft, type_table, resource_ids),
++            complete: Some(
++              counts.function_signature(ft, type_table, resource_ids),
++            ),
++          }
+@@ -190 +216 @@
 -        let mut resource_exports : Map[String, Int]? = None
 +        let mut resource_exports : Map[String, Int32]? = None
-@@ -202 +223,2 @@
+@@ -202 +228,2 @@
 -                let local_resource_ids : Array[Int?] = []
 +                let local_resource_ids : Array[Int32?] = []
 +                let local_origins : Map[Int32, Int32] = Map([])
-@@ -205 +227 @@
+@@ -205 +232 @@
 -                let res : Map[String, Int] = Map([])
 +                let res : Map[String, Int32] = Map([])
-@@ -209 +231 @@
+@@ -209 +236 @@
 -                let visiting : Map[Int, Int] = Map([])
 +                let visiting : Map[Int32, Int32] = Map([])
-@@ -221 +243 @@
+@@ -221 +248 @@
 -                    AliasOuter(kind, _count, _idx) =>
 +                    AliasOuter(kind, count, index) =>
-@@ -223 +245,14 @@
+@@ -223 +250,14 @@
 -                        record_type_slot()
 +                        let slot = local_types.length()
 +                        if count == 1 && type_table.get(index) is Some(Some(_)) {
@@ -3085,11 +3139,11 @@
 +                        } else {
 +                          record_type_slot()
 +                        }
-@@ -249,0 +285,3 @@
+@@ -249,0 +290,3 @@
 +                                if local_origins.get(idx) is Some(origin) {
 +                                  local_origins[new_idx] = origin
 +                                }
-@@ -267,2 +305,6 @@
+@@ -267,2 +310,6 @@
 -                          let sig = if ft_idx >= 0 &&
 -                            ft_idx < local_types.length() {
 +                          let sig = if local_origins.get(ft_idx) is Some(origin) &&
@@ -3098,22 +3152,24 @@
 +                              funcsig_of_functype(ft, type_table, resource_ids),
 +                            )
 +                          } else if ft_idx >= 0 && ft_idx < local_types.length() {
-@@ -273 +315,4 @@
+@@ -273 +320,4 @@
 -                                    ft, local_types, local_resource_ids, type_table,
 +                                    ft,
 +                                    local_types,
 +                                    local_resource_ids,
 +                                    type_table,
-@@ -274,0 +320,4 @@
+@@ -274,0 +325,4 @@
 +                                    local_origins~,
 +                                    global_function=local_origins.contains(
 +                                      ft_idx,
 +                                    ),
-@@ -326 +375 @@
+@@ -326 +380 @@
 -                tyidx, type_table, type_outers,
 +                tyidx, type_table, type_outers, import_named_types,
-@@ -334,0 +384,57 @@
+@@ -334,0 +389,66 @@
 +        if type_table[tyidx] is Some(td) {
++          let type_origins = counts.origin_table(type_table.length())
++          let origin_scope = Some(counts.contract_origin_scope(tyidx, false))
 +          let (metadata, next, remaining) = imported_instance_metadata(
 +            td,
 +            type_table,
@@ -3122,6 +3178,8 @@
 +            counts.type_metadata,
 +            next_resource_id,
 +            counts.metadata_remaining,
++            global_origins=type_origins,
++            origin_scope~,
 +          )
 +          counts.metadata_remaining = remaining
 +          next_resource_id = next
@@ -3140,6 +3198,8 @@
 +                }
 +              None => None
 +            }
++            let type_origins = counts.origin_table(type_table.length())
++            let origin_scope = Some(counts.contract_origin_scope(tyidx, true))
 +            let (contract, next, remaining) = scoped_contract_metadata(
 +              td,
 +              type_table,
@@ -3150,10 +3210,13 @@
 +              core_contracts=counts.core_contracts,
 +              core_scope~,
 +              seed=Some((metadata, 0)),
++              global_origins=type_origins,
++              origin_scope~,
 +            )
 +            next_resource_id = next
 +            counts.metadata_remaining = remaining
 +            if contract is Some(contract) {
++              counts.name_instance_origins(contract, 0)
 +              counts.instance_contracts[instance_sigs.length() - 1] = (
 +                contract, 0,
 +              )
@@ -3170,11 +3233,11 @@
 +          import_locals,
 +          counts.metadata_remaining,
 +        )
-@@ -345 +451,2 @@
+@@ -345 +465,2 @@
 -        interface_instance_idxs.set(instance_sigs.length() - 1, 1)
 +        // Bit 1 names exported types; bit 2 also permits using them in imports.
 +        interface_instance_idxs.set(instance_sigs.length() - 1, 3)
-@@ -352,0 +460,34 @@
+@@ -352,0 +474,38 @@
 +      if type_table.get(tyidx) is Some(Some(td)) {
 +        let core_scope = match counts.core_contracts {
 +          Some(graph) =>
@@ -3188,6 +3251,8 @@
 +            }
 +          None => None
 +        }
++        let type_origins = counts.origin_table(type_table.length())
++        let origin_scope = Some(counts.contract_origin_scope(tyidx, true))
 +        let (metadata, next, remaining) = scoped_contract_metadata(
 +          td,
 +          type_table,
@@ -3197,6 +3262,8 @@
 +          counts.metadata_remaining,
 +          core_contracts=counts.core_contracts,
 +          core_scope~,
++          global_origins=type_origins,
++          origin_scope~,
 +        )
 +        next_resource_id = next
 +        counts.metadata_remaining = remaining
@@ -3209,10 +3276,16 @@
 +        import_locals,
 +        counts.metadata_remaining,
 +      )
-@@ -360 +501 @@
+@@ -360 +519 @@
 -      let mut import_core_module_exports : Map[String, Map[String, Int]]? = None
 +      let mut import_core_module_exports : Map[String, Map[String, Int32]]? = None
-@@ -507 +648 @@
+@@ -433,0 +593,5 @@
++            let created = type_table.length()
++            counts.type_origins[created] = { scope: 0, index: created, }
++            if counts.type_metadata.get(tyidx) is Some(metadata) {
++              counts.type_metadata[created] = metadata
++            }
+@@ -507 +671 @@
 -            new_idx, type_table, type_outers,
 +            new_idx, type_table, type_outers, import_named_types,
 --- a/section_instance.mbt
@@ -3245,7 +3318,7 @@
 -) -> Int raise ComponentValidationError {
 +  next_resource_id : Int32,
 +) -> Int32 raise ComponentValidationError {
-@@ -54,0 +57,33 @@
+@@ -54,0 +57,34 @@
 +    if counts.core_contracts is Some(_) {
 +      let (graph, root, next) = runtime_component_instance(
 +        inst, cfg, counts, type_table, resource_ids, func_sig_shapes, next_resource_id,
@@ -3266,6 +3339,7 @@
 +          metadata.types,
 +          metadata.resources,
 +          counts.metadata_remaining,
++          origins=metadata.origins,
 +        ) catch {
 +          _ => raise UnsupportedComponentAscription
 +        }
@@ -3279,12 +3353,12 @@
 +      counts.instance += 1
 +      continue
 +    }
-@@ -57,2 +92,2 @@
+@@ -57,2 +93,2 @@
 -    let mut inst_type_idxs : Array[Int]? = None
 -    let mut inst_func_idxs : Array[Int]? = None
 +    let mut inst_type_idxs : Array[Int32]? = None
 +    let mut inst_func_idxs : Array[Int32]? = None
-@@ -124,4 +159,4 @@
+@@ -124,4 +160,4 @@
 -        let pending_type_args : Array[(String, Int)] = []
 -        let pending_func_args : Array[(String, Int)] = []
 -        let pending_instance_args : Array[(String, Int)] = []
@@ -3293,16 +3367,16 @@
 +        let pending_func_args : Array[(String, Int32)] = []
 +        let pending_instance_args : Array[(String, Int32)] = []
 +        let seen_args : Map[String, Int32] = Map([])
-@@ -217 +252 @@
+@@ -217 +253 @@
 -        let rid_subst : Map[Int, Int] = Map([])
 +        let rid_subst : Map[Int32, Int32] = Map([])
-@@ -421 +456 @@
+@@ -421 +457 @@
 -                        let mut found : Int? = None
 +                        let mut found : Int32? = None
-@@ -443 +478 @@
+@@ -443 +479 @@
 -                    let mut found : Int? = None
 +                    let mut found : Int32? = None
-@@ -519,2 +554,2 @@
+@@ -519,2 +555,2 @@
 -        let t_idxs : Array[Int] = []
 -        let f_idxs : Array[Int] = []
 +        let t_idxs : Array[Int32] = []
@@ -3764,7 +3838,15 @@
 +            )
 +            None
 +          }
-@@ -856,4 +926,15 @@
+@@ -845 +915,6 @@
+-                    Some(funcsig_of_functype(ft, type_table, resource_ids)),
++                    Some({
++                      ..funcsig_of_functype(ft, type_table, resource_ids),
++                      complete: Some(
++                        counts.function_signature(ft, type_table, resource_ids),
++                      ),
++                    }),
+@@ -856,4 +931,15 @@
 -            _ =>
 -              core_func_types.push(
 -                core_functype_for_canon(c, type_table, core_memory_types),
@@ -3784,7 +3866,7 @@
 +              }
 +              core_func_types.push(signature)
 +            }
-@@ -871,0 +953,7 @@
+@@ -871,0 +958,7 @@
 +    }
 +  }
 +  for value in counts.values {
@@ -3792,9 +3874,9 @@
 +      raise SectionParseError(
 +        10, "value was not used as part of an instantiation, start function, or export",
 +      )
-@@ -913,0 +1002 @@
+@@ -913,0 +1007 @@
 +  core_contracts~ : @core_types.ContractGraph? = None,
-@@ -915 +1004,12 @@
+@@ -915 +1009,12 @@
 -  validate_component_inner(component, true, cfg, 0, [], [], [], []) |> ignore
 +  validate_component_inner(
 +    component,

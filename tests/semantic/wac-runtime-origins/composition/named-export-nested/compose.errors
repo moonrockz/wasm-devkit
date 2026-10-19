@@ -1,0 +1,4 @@
+error: the encoding of the graph failed validation
+
+Caused by:
+    instance not valid to be used as export (at offset 0xb)

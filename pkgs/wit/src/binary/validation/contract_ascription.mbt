@@ -16,9 +16,10 @@ fn check_scoped_contract(
   expected_node~ : Int32 = 0,
   binders~ : Bool = false,
   bindings~ : Map[Int32, Int32]? = None,
+  type_bindings~ : Map[TypeOrigin, TypeOrigin]? = None,
 ) -> Int32 raise ComponentValidationError {
   let graphs = [actual, expected]
-  let work = [(0, actual_node, 1, expected_node, binders)]
+  let work = [(0, actual_node, 1, expected_node, binders, true)]
   let leaves : Array[ContractLeaf] = []
   let substitutions : Map[(Int32, Int32), (Int32, Int32)] = Map([])
   let mut remaining = budget
@@ -54,7 +55,7 @@ fn check_scoped_contract(
     }
     id
   }
-  while work.pop() is Some((a_side, a, b_side, b, binders)) {
+  while work.pop() is Some((a_side, a, b_side, b, binders, runtime_types)) {
     charge(1)
     guard graphs[a_side].nodes.get(a) is Some(an) &&
       graphs[b_side].nodes.get(b) is Some(bn) else {
@@ -63,6 +64,7 @@ fn check_scoped_contract(
     if an.component != bn.component {
       raise AscribedExportTypeIncompatible
     }
+    let runtime_types = runtime_types && !an.component
     let binders = binders || an.component
     let pairs = if an.component {
       [
@@ -98,6 +100,20 @@ fn check_scoped_contract(
                 substitutions[rhs] = lhs
               }
             }
+            if runtime_types &&
+              left == 0 &&
+              right == 1 &&
+              type_bindings is Some(mapping) {
+              guard graphs[left].origins.get(at) is Some(Some(actual_origin)) &&
+                graphs[right].origins.get(bt) is Some(Some(expected_origin)) else {
+                raise UnsupportedComponentAscription
+              }
+              if mapping.get(expected_origin) is Some(previous) &&
+                previous != actual_origin {
+                raise AscribedExportTypeIncompatible
+              }
+              mapping[expected_origin] = actual_origin
+            }
             leaves.push(Value(left, at, right, bt))
           }
           Func => {
@@ -121,7 +137,7 @@ fn check_scoped_contract(
               rm.children.get(name) is Some(bc) else {
               raise UnsupportedComponentAscription
             }
-            work.push((left, ac, right, bc, binders))
+            work.push((left, ac, right, bc, binders, runtime_types))
           }
           Core(0x11) => {
             fn module_contract(

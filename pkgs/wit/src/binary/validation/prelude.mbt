@@ -134,6 +134,11 @@ pub fn ValidatedComponent::component_bytes(self : ValidatedComponent) -> Bytes {
 priv struct Counts {
   mut core_contracts : @core_types.ContractGraph?
   type_metadata : Map[Int32, (InstanceMetadata, Int32)]
+  type_origins : Map[Int32, TypeOrigin]
+  visible_origins : Map[TypeOrigin, Bool]
+  visible_resources : Map[Int32, Bool]
+  origin_scopes : Map[(TypeOrigin, Bool), Int32]
+  mut next_origin_scope : Int32
   instance_metadata : Map[Int32, (InstanceMetadata, Int32)]
   component_contracts : Map[Int32, (ScopedContractMetadata, Int32)]
   instance_contracts : Map[Int32, (ScopedContractMetadata, Int32)]
@@ -762,6 +767,11 @@ fn check_core_module_import_subtype(
 fn Counts::Counts() -> Counts {
   {
     type_metadata: Map([]),
+    type_origins: Map([]),
+    visible_origins: Map([]),
+    visible_resources: Map([]),
+    origin_scopes: Map([]),
+    next_origin_scope: 1,
     instance_metadata: Map([]),
     component_contracts: Map([]),
     instance_contracts: Map([]),

@@ -165,7 +165,11 @@ Runtime section-5 instances use complete scoped contracts under the shared
 metadata and comparison budgets. Imported resource binders substitute supplied
 identities; exported instance resources freshen independently. Inline instances
 retain complete functions, types, nested contracts and direct core module
-contracts. Non-resource type arguments fail closed pending nominal type origins.
+contracts. Ordinary type arguments retain declaration origins through complete
+signature normalization and substitution. Escaping functions and instances check
+named-type visibility, including imported instance names and explicit ascriptions.
+Ordinary types retain template identity across instantiations; resource binders
+remain generative. Private anonymous arguments may remain unused or unexported.
 
 Component value externs retain complete synthetic result-only signature graphs,
 with separate value use tracking and the WAC borrowed-export profile flag. Import

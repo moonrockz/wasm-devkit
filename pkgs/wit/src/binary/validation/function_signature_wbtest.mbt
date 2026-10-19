@@ -83,3 +83,121 @@ test "complete signatures distinguish separate index namespaces and resource con
   }
   assert_true(crossed)
 }
+
+///|
+test "complete signatures retain distinct named origins through normalization" {
+  let types : Array[@component.TypeDef?] = [
+    Some(Record([{ label: "x", ty: Prim(U32), }])),
+    Some(Record([{ label: "x", ty: Prim(U32), }])),
+  ]
+  let origins : Array[TypeOrigin?] = [
+    Some({ scope: 0, index: 3, }),
+    Some({ scope: 0, index: 4, }),
+  ]
+  let function : @component.FuncType = {
+    is_async: false,
+    params: [{ label: "a", ty: TypeIdx(1), }, { label: "b", ty: TypeIdx(0), }],
+    result: None,
+  }
+  let signature = complete_function_signature(
+    function,
+    [],
+    [],
+    types,
+    [],
+    global_type_origins=origins,
+  ).unwrap()
+  assert_eq(signature.origins[0].unwrap().index, 4)
+  assert_eq(signature.origins[1].unwrap().index, 3)
+  let substitutions = Map([({ scope: 0, index: 4, }, { scope: 9, index: 8, })])
+  let remapped = complete_signature_substitute(
+    Some(signature),
+    Map([]),
+    type_substitutions=substitutions,
+  ).unwrap()
+  assert_eq(remapped.origins[0].unwrap().scope, 9)
+  assert_eq(remapped.origins[0].unwrap().index, 8)
+  assert_eq(signature.origins[0].unwrap().scope, 0)
+}
+
+///|
+test "origin visibility rejects equal anonymous records and bounds DAG work" {
+  let types : Array[@component.TypeDef?] = [
+    Some(Record([{ label: "x", ty: Prim(U32), }])),
+    Some(Record([{ label: "x", ty: Prim(U32), }])),
+  ]
+  let first : TypeOrigin = { scope: 0, index: 1, }
+  let second : TypeOrigin = { scope: 0, index: 2, }
+  let origins = [Some(first), Some(second)]
+  let named = Map([(first, true)])
+  check_origin_values(
+    [TypeIdx(0)],
+    types,
+    origins,
+    [],
+    named,
+    Map([]),
+    Counts::Counts(),
+  )
+  let rejected = try {
+    check_origin_values(
+      [TypeIdx(1)],
+      types,
+      origins,
+      [],
+      named,
+      Map([]),
+      Counts::Counts(),
+    )
+    false
+  } catch {
+    SectionParseError(11, _) => true
+    _ => false
+  }
+  assert_true(rejected)
+  let counts = Counts::Counts()
+  counts.metadata_remaining = 1
+  let limited = try {
+    check_origin_values(
+      [TypeIdx(0)],
+      types,
+      origins,
+      [],
+      named,
+      Map([]),
+      counts,
+    )
+    false
+  } catch {
+    UnsupportedComponentAscription => true
+    _ => false
+  }
+  assert_true(limited)
+}
+
+///|
+test "origin visibility walks deep shared graphs with one cumulative budget" {
+  let types : Array[@component.TypeDef?] = []
+  let origins : Array[TypeOrigin?] = []
+  for index in 0..<6000 {
+    types.push(Some(Option(TypeIdx(index + 1))))
+    origins.push(None)
+  }
+  let origin : TypeOrigin = { scope: 7, index: 9, }
+  types.push(Some(Record([{ label: "x", ty: Prim(U32), }])))
+  origins.push(Some(origin))
+  let counts = Counts::Counts()
+  counts.metadata_remaining = 16001
+  check_origin_values(
+    Array::make(10000, TypeIdx(0)),
+    types,
+    origins,
+    [],
+    Map([(origin, true)]),
+    Map([]),
+    counts,
+  )
+  assert_eq(counts.metadata_remaining, 0)
+  assert_eq(types.length(), 6001)
+  assert_true(origins[6000] == Some(origin))
+}
