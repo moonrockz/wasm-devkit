@@ -82,7 +82,9 @@ anonymous structural types, name attributes and export ascriptions.
 `package-docs` metadata versions 0 and 1 retain release/feature/deprecation
 annotations and validate docs, member names and item kinds. Unknown schema fields,
 duplicate struct fields and missing targets are errors. Dictionary duplicates keep
-the last value after every value has passed schema validation. Original docs remain
+the last value after every value has passed schema validation. Metadata structs
+also accept the reference loader's ordered JSON array forms. Dictionaries remain
+objects, and function metadata remains a string, null or object. Original docs remain
 available in `binaries()`; the semantic model exposes stability rather than a docs API.
 
 Binary metadata follows the pinned loader's own selection rules. Types,

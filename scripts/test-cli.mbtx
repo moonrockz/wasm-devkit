@@ -301,5 +301,21 @@ async fn main {
   let (_, metadata_error) = run(["verify", invalid_metadata_file], 1, wit)
   assert_true(metadata_error.contains("WIT-B004"))
   assert_true(metadata_error.contains("metadata-invalid.wasm:[binary]"))
+  let metadata_sequence = dir + "/metadata-sequence.wasm"
+  @fs.write_file(
+    metadata_sequence,
+    @fs.read_file(
+      "tests/semantic/wit-encoded-metadata-sequence-package-docs.wasm",
+    ).binary(),
+  )
+  let _ = run(["verify", metadata_sequence], 0, wit)
+  @fs.write_file(
+    metadata_sequence,
+    @fs.read_file(
+      "tests/semantic/wit-encoded-metadata-sequence-function-empty.wasm",
+    ).binary(),
+  )
+  let (_, sequence_error) = run(["verify", metadata_sequence], 1, wit)
+  assert_true(sequence_error.contains("WIT-B004"))
   println("CLI smoke checks passed")
 }

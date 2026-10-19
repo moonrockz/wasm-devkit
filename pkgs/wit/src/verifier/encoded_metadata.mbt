@@ -3,6 +3,7 @@
 // fields, while metadata StringMaps deliberately keep the last duplicate key.
 priv enum MetadataNode {
   Object(ReadOnlyArray[(Int32, Int32)])
+  Sequence(ReadOnlyArray[Int32])
   RawText(Bytes)
   Null
   Other
@@ -12,6 +13,7 @@ priv enum MetadataNode {
 priv struct MetadataFrame {
   object : Bool
   fields : Array[(Int32, Int32)]
+  elements : Array[Int32]
   mut key : Int32?
   mut state : Int32
 }
@@ -128,6 +130,7 @@ fn metadata_json(bytes : Bytes) -> MetadataJson raise EncodedFailure {
         frame.key = None
         frame.state = 3
       } else {
+        frame.elements.push(id)
         frame.state = 1
       }
     }
@@ -138,7 +141,7 @@ fn metadata_json(bytes : Bytes) -> MetadataJson raise EncodedFailure {
       if frame.object {
         Object(ReadOnlyArray::from_array(frame.fields))
       } else {
-        Other
+        Sequence(ReadOnlyArray::from_array(frame.elements))
       },
     )
   }
@@ -205,7 +208,13 @@ fn metadata_json(bytes : Bytes) -> MetadataJson raise EncodedFailure {
     }
     match byte {
       123 | 91 => {
-        frames.push({ object: byte == 123, fields: [], key: None, state: 0, })
+        frames.push({
+          object: byte == 123,
+          fields: [],
+          elements: [],
+          key: None,
+          state: 0,
+        })
         index += 1
       }
       34 => {
@@ -242,7 +251,18 @@ fn MetadataJson::fields(
   id : Int32,
   allowed : ReadOnlyArray[String],
   ignore_unknown~ : Bool = false,
+  allow_sequence~ : Bool = true,
 ) -> Map[String, Int32] raise EncodedFailure {
+  if allow_sequence && self.nodes[id] is Sequence(values) {
+    guard values.length() <= allowed.length() else {
+      raise Invalid("metadata struct sequence has extra elements")
+    }
+    let fields : Map[String, Int32] = Map([])
+    for i, value in values {
+      fields[allowed[i]] = value
+    }
+    return fields
+  }
   guard self.nodes[id] is Object(entries) else {
     raise Invalid("metadata entry must be an object")
   }
@@ -560,7 +580,11 @@ fn metadata_read(
           RawText(_) => ignore(json.string(meta)) // v0 doc-only form does not replace stability.
           Null => ()
           _ => {
-            let fields = json.fields(meta, ["docs", "stability"])
+            let fields = json.fields(
+              meta,
+              ["docs", "stability"],
+              allow_sequence=false,
+            )
             ignore(json.optional_string(fields.get("docs")))
             metadata_attach(
               tree,
@@ -765,7 +789,11 @@ fn metadata_schema(json : MetadataJson) -> Unit raise EncodedFailure {
           FunctionSchema => ["docs", "stability"]
           _ => []
         }
-        let fields = json.fields(id, allowed)
+        let fields = json.fields(
+          id,
+          allowed,
+          allow_sequence=!(schema is FunctionSchema),
+        )
         ignore(json.optional_string(fields.get("docs")))
         if !(schema is PackageSchema) {
           ignore(json.stability(fields.get("stability")))

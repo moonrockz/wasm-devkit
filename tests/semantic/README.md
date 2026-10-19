@@ -109,3 +109,8 @@ values, ignored unpaired surrogates/invalid UTF-8 and huge numbers accepted by t
 pinned serde loader. Required strings still reject invalid Unicode and UTF-8.
 Library tests also compare function selection, retained declaration stability,
 anonymous receiver stability and binary provenance, beyond the world projection.
+
+Sequence-form metadata cases compare serde struct arrays for packages, interfaces,
+worlds, types and stable/unstable payloads, including omitted default fields.
+Extra elements, array dictionaries, array function metadata and array enum tags
+remain invalid. The same exact bytes run through the pinned Resolve API and CLI.
