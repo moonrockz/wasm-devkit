@@ -4,6 +4,7 @@ package "moonrockz/wit/binary/validation"
 import {
   "Milky2018/wasm_component",
   "moonbitlang/core/debug",
+  "moonrockz/wit/core_types",
 }
 
 // Values
@@ -13,7 +14,7 @@ pub fn validate_component_for_instantiation(@wasm_component.Component) -> Valida
 
 pub fn validate_component_for_instantiation_with_config(@wasm_component.Component, ComponentValidationConfig) -> ValidatedComponent raise ComponentValidationError
 
-pub fn validate_component_with_config(@wasm_component.Component, ComponentValidationConfig) -> Unit raise ComponentValidationError
+pub fn validate_component_with_config(@wasm_component.Component, ComponentValidationConfig, core_contracts? : @core_types.ContractGraph?) -> Unit raise ComponentValidationError
 
 // Errors
 pub(all) suberror ComponentValidationError {

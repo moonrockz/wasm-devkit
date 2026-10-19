@@ -121,8 +121,13 @@ fn validate_component_inner(
   type_outer_depths : Array[Int32],
   core_type_bound_outers : Array[Int32],
   component_size_outers : Array[Array[Int32]],
+  core_contracts~ : @core_types.ContractGraph? = None,
 ) -> ValidatedComponentInfo raise ComponentValidationError {
   let counts = Counts::Counts()
+  counts.core_contracts = core_contracts
+  if counts.core_contracts is Some(graph) && graph.scope(0) is None {
+    raise SectionParseError(0, "core contract metadata has no root scope")
+  }
   let type_table : Array[@component.TypeDef?] = []
   // Track which type indices correspond to resource types defined in the
   // current concrete component (as opposed to imported/aliased resource types).
@@ -917,8 +922,20 @@ pub fn validate_component(
 pub fn validate_component_with_config(
   component : @component.Component,
   cfg : ComponentValidationConfig,
+  core_contracts~ : @core_types.ContractGraph? = None,
 ) -> Unit raise ComponentValidationError {
-  validate_component_inner(component, true, cfg, 0, [], [], [], []) |> ignore
+  validate_component_inner(
+    component,
+    true,
+    cfg,
+    0,
+    [],
+    [],
+    [],
+    [],
+    core_contracts~,
+  )
+  |> ignore
 }
 
 ///|

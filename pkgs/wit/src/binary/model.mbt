@@ -81,7 +81,9 @@ pub fn validate_declarative_component(
     let component = @component.parse_component(bytes) catch {
       error => raise Failure(None, "WIT-B001", error.to_string())
     }
-    let core_ascriptions = validate_core_definitions(component)
+    let (core_ascriptions, core_contracts) = validate_core_definitions(
+      component,
+    )
     let mut core_work = 1000000
     for pair in core_ascriptions {
       match
@@ -107,6 +109,7 @@ pub fn validate_declarative_component(
         restricted_map_keys=false,
         canonical_version_suffix=false,
       ),
+      core_contracts=Some(core_contracts),
     ) catch {
       @validation.UnsupportedFunctionAscription =>
         raise Failure(

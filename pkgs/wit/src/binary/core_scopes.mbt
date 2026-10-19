@@ -9,19 +9,12 @@ priv enum CoreDeclaration {
 }
 
 ///|
-priv enum CoreBinding {
-  Scope(Int32)
-  Module(@core_types.Module)
-  Other
-}
-
-///|
 priv struct CoreScope {
   parent : Int32?
   declarations : Array[CoreDeclaration]
   definitions : Array[@core_types.Definition]
-  slots : Map[Int32, Array[CoreBinding]]
-  exports : Map[String, CoreBinding]
+  slots : Map[Int32, Array[@core_types.ContractBinding]]
+  exports : Map[String, @core_types.ContractBinding]
   mut position : Int32
 }
 
@@ -57,7 +50,11 @@ fn core_sort(sort : @component.Sort) -> Int32 {
 }
 
 ///|
-fn CoreScope::bind(self : CoreScope, kind : Int32, value : CoreBinding) -> Unit {
+fn CoreScope::bind(
+  self : CoreScope,
+  kind : Int32,
+  value : @core_types.ContractBinding,
+) -> Unit {
   match self.slots.get(kind) {
     Some(slots) => slots.push(value)
     None => self.slots[kind] = [value]
@@ -69,7 +66,7 @@ fn CoreScope::lookup(
   self : CoreScope,
   kind : Int32,
   index : Int32,
-) -> CoreBinding raise Boundary {
+) -> @core_types.ContractBinding raise Boundary {
   guard self.slots.get(kind) is Some(slots) && slots.get(index) is Some(binding) else {
     raise Failure(
       None,
@@ -148,7 +145,7 @@ fn core_decl_sort(kind : Int32) -> @component.Sort {
 ///|
 fn validate_core_definitions(
   component : @component.Component,
-) -> ReadOnlyArray[CoreAscription] raise Boundary {
+) -> (ReadOnlyArray[CoreAscription], @core_types.ContractGraph) raise Boundary {
   let root : Array[CoreDeclaration] = []
   for section in component.binary.sections {
     try {
@@ -289,13 +286,16 @@ fn validate_core_definitions(
       Describe(importing, name, desc) => {
         let (kind, binding) = match desc {
           CoreModuleType(original) =>
-            (0x111, CoreBinding::Module(scope.module_type(original)))
+            (
+              0x111,
+              @core_types.ContractBinding::Module(scope.module_type(original)),
+            )
           InstanceType(original) => (5, scope.lookup(3, original))
           ComponentType(original) => (4, scope.lookup(3, original))
           Type(Eq(original)) => (3, scope.lookup(3, original))
-          Type(SubResource) => (3, CoreBinding::Other)
-          FuncType(_) => (1, CoreBinding::Other)
-          Value(_) => (2, CoreBinding::Other)
+          Type(SubResource) => (3, @core_types.ContractBinding::Other)
+          FuncType(_) => (1, @core_types.ContractBinding::Other)
+          Value(_) => (2, @core_types.ContractBinding::Other)
         }
         scope.bind(kind, binding)
         if !importing {
@@ -309,8 +309,24 @@ fn validate_core_definitions(
           (Module(actual), Some(CoreModuleType(original))) => {
             let expected = scope.module_type(original)
             ascriptions.push({ actual, expected, })
-            CoreBinding::Module(expected)
+            @core_types.ContractBinding::Module(expected)
           }
+          (Scope(_), Some(InstanceType(original))) if kind == 5 => {
+            guard scope.lookup(3, original) is Scope(expected) else {
+              raise Failure(
+                None,
+                "WIT-B003",
+                "instance annotation does not name an instance scope",
+              )
+            }
+            @core_types.ContractBinding::Scope(expected)
+          }
+          (_, Some(InstanceType(_))) =>
+            raise Failure(
+              None,
+              "WIT-B003",
+              "instance annotation has the wrong external sort",
+            )
           (_, Some(CoreModuleType(_))) =>
             raise Failure(
               None,
@@ -354,5 +370,29 @@ fn validate_core_definitions(
       }
     }
   }
-  ReadOnlyArray::from_array(ascriptions)
+  let frozen : Array[@core_types.ContractScope] = []
+  for scope in scopes {
+    let bindings : Array[(Int32, ReadOnlyArray[@core_types.ContractBinding])] = []
+    for sort, values in scope.slots {
+      step(values.length() + 1)
+      bindings.push((sort, ReadOnlyArray::from_array(values)))
+    }
+    let exports : Array[(String, @core_types.ContractBinding)] = []
+    for name, value in scope.exports {
+      step(1)
+      exports.push((name, value))
+    }
+    step(scope.definitions.length())
+    frozen.push(
+      @core_types.ContractScope::new(
+        ReadOnlyArray::from_array(scope.definitions),
+        ReadOnlyArray::from_array(bindings),
+        ReadOnlyArray::from_array(exports),
+      ),
+    )
+  }
+  (
+    ReadOnlyArray::from_array(ascriptions),
+    @core_types.ContractGraph::new(ReadOnlyArray::from_array(frozen)),
+  )
 }

@@ -124,6 +124,7 @@ pub fn ValidatedComponent::component_bytes(self : ValidatedComponent) -> Bytes {
 
 ///|
 priv struct Counts {
+  mut core_contracts : @core_types.ContractGraph?
   type_metadata : Map[Int32, (InstanceMetadata, Int32)]
   instance_metadata : Map[Int32, (InstanceMetadata, Int32)]
   mut metadata_remaining : Int32
@@ -751,6 +752,7 @@ fn Counts::Counts() -> Counts {
   {
     type_metadata: Map([]),
     instance_metadata: Map([]),
+    core_contracts: None,
     metadata_remaining: 1000000,
     ascription_remaining: 1000000,
     func: 0,

@@ -109,3 +109,10 @@ pass using complete immutable module contracts. Imported-instance aliases and
 re-exports preserve the annotation's contract; later declarations cannot supply
 an earlier type index. The retained legacy module tables do not determine this
 comparison.
+
+The optional `core_contracts` argument to `validate_component_with_config` carries
+immutable core scope metadata from the ordered binary boundary. It is retained
+in the current validation scope for full-width module-member checks. Direct
+callers may omit it; supplying metadata does not itself prove validity, and
+a supplied graph must contain a root scope. Runtime component admission remains
+controlled by the binary framing profile.
