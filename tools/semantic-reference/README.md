@@ -11,7 +11,10 @@ It checks WAC acceptance independently of the `wac resolve` CLI
 and emits ordered JSON type and import metadata for inspection. The `exported_nodes`
 projection records each node's last export name; the pinned public graph API
 does not expose its complete export-name map. Package mode below retains all
-component imports and exports.
+component imports and exports. The `nodes` projection retains definition, import,
+instance and alias roles, package lookup keys, alias sources and instantiation
+arguments. Arguments are sorted by external name; node/type IDs require
+normalization before comparing implementations.
 `wac-semantic-reference --package NAME BINARY [VERSION]` calls the pinned
 `wac_types::Package::from_bytes` API, returning the supplied package identity,
 component/instance IDs, definitions and type arenas. Record fields, variant

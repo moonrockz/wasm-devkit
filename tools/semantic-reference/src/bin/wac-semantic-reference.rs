@@ -110,6 +110,28 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         "{}",
         json!({
             "types": types_json(graph.types()),
+            "nodes": graph.node_ids().map(|id| {
+                let node = &graph[id];
+                let alias = graph.get_alias_source(id);
+                let role = if node.import_name().is_some() { "import" }
+                    else if alias.is_some() { "alias" }
+                    else if node.package().is_some() { "instance" }
+                    else { "definition" };
+                // Graph edges are stored in reverse insertion order. Sort arguments
+                // by external name so the snapshot does not expose that storage detail.
+                let mut arguments = graph.get_instantiation_arguments(id)
+                    .map(|(name, source)| (name.to_owned(), source.to_string()))
+                    .collect::<Vec<_>>();
+                arguments.sort_by(|a, b| a.0.cmp(&b.0));
+                json!({
+                    "id": id.to_string(), "role": role, "kind": node.item_kind(),
+                    "import": node.import_name(), "name": node.name(),
+                    "last_export_name": node.export_name(),
+                    "package": node.package().map(|package| graph[package].key().to_string()),
+                    "alias": alias.map(|(source, name)| (source.to_string(), name)),
+                    "arguments": arguments,
+                })
+            }).collect::<Vec<_>>(),
             "imports": graph.imports().map(|(name, kind, _)| (name, kind)).collect::<Vec<_>>(),
             // The public graph API exposes only the last export name on each node,
         // not the complete export-name map. Keep this projection explicit.
