@@ -44,6 +44,8 @@ priv struct Check {
   declarations : Array[ResolvedDeclaration]
   mut package_name : String
   mut package_version : String?
+  dependencies : Map[String, PackageSource]
+  loaded_packages : Map[String, LoadedPackage]
 }
 
 ///|
@@ -268,12 +270,22 @@ fn Check::expression(
           pending.push((expression, false))
         }
       Reference(name~) => values[node] = self.lookup(0, node, name)
-      New(..) =>
+      New(component~, ..) => {
+        if self.tree.nodes[component].data is Path(namespaces~, segments~, ..) &&
+          !segments.is_empty() &&
+          namespaces.join(":") + ":" + segments[0] == self.package_name {
+          raise Problem(
+            self.problem(
+              component, "WAC-P005", "cannot instantiate the package being defined",
+            ),
+          )
+        }
         raise Problem(
           self.problem(
             node, "WAC-S003", "component instantiation is not yet supported",
           ),
         )
+      }
       _ =>
         raise Problem(self.problem(node, "WAC-S001", "invalid expression role"))
     }
@@ -288,6 +300,7 @@ pub fn verify_ast(
   tree : @ast.Tree,
   source_id~ : String = "<input>",
   source~ : String,
+  dependencies~ : ReadOnlyArray[PackageSource] = [],
 ) -> Result[Verified, ReadOnlyArray[Diagnostic]] {
   guard tree.validate() && !tree.nodes.is_empty() else {
     return Err([
@@ -322,8 +335,11 @@ pub fn verify_ast(
     declarations: [],
     package_name: "",
     package_version: None,
+    dependencies: Map([]),
+    loaded_packages: Map([]),
   }
   try {
+    check.register_packages(dependencies)
     check.file(tree.nodes.length() - 1)
     Ok({
       source_id,

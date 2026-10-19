@@ -75,10 +75,9 @@ semantic profiles. WIT source-package dependencies also work through
 packages have a strict v1/v2 type-wrapper profile through the same provider paths. Syntax
 acceptance remains available through `parse` and `check`.
 WAC verification covers ordered local types, interfaces, worlds, resources,
-uses/includes and typed imports/exports. Package dependencies and component
-instantiation remain under development.
-The pure WAC binary package API reconstructs declarative component type graphs;
-connecting those packages to source verification and CLI lookup remains open.
+uses/includes and typed imports/exports. Caller-supplied binary dependencies resolve
+exact package keys and nested definition paths through immutable type graphs.
+CLI dependency lookup and component instantiation remain under development.
 See the [WIT verifier](pkgs/wit/src/verifier/README.mbt.md) and
 [WAC verifier](pkgs/wac/src/verifier/README.mbt.md) for checked examples and exact scope.
 Unsupported semantic constructs fail explicitly. Full dependency and component verification

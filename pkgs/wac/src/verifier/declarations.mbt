@@ -110,12 +110,8 @@ fn Check::local_path(
       self.problem(node, "WAC-S001", "expected an interface or world path"),
     )
   }
-  guard namespaces.is_empty() else {
-    raise Problem(
-      self.problem(
-        node, "WAC-S003", "package dependency paths are not yet supported",
-      ),
-    )
+  if !namespaces.is_empty() {
+    return self.package_path(node, namespaces, segments, version)
   }
   guard segments.length() == 1 && version is None else {
     raise Problem(self.problem(node, "WAC-S001", "invalid local path"))
@@ -505,17 +501,18 @@ fn Check::file(self : Check, root : Int32) -> Unit raise SemanticFailure {
           Signature(..) => Function(self.signature(ty, 0))
           Interface(..) => Instance(self.interface_type(ty, false))
           NamedType(name~) => self.lookup(0, ty, name).kind
-          Path(..) =>
-            raise Problem(
-              self.problem(
-                ty, "WAC-S003", "package dependency paths are not yet supported",
-              ),
-            )
+          Path(..) => self.local_path(ty).kind
           _ =>
             raise Problem(self.problem(ty, "WAC-S001", "invalid import type"))
         }
         let name = match renamed {
           Some(name) => self.external_name(name, true)
+          None if self.tree.nodes[ty].data
+            is Path(namespaces~, segments~, version~) =>
+            namespaces.join(":") +
+            ":" +
+            segments.join("/") +
+            version.map(value => "@" + value).unwrap_or("")
           None =>
             match kind {
               Instance(id) | Component(id) =>

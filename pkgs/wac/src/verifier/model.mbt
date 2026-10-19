@@ -120,6 +120,7 @@ pub fn verify(
   parsed : @parser.Parse,
   source_id~ : String = "<input>",
   source~ : String,
+  dependencies~ : ReadOnlyArray[PackageSource] = [],
 ) -> Result[Verified, ReadOnlyArray[Diagnostic]] {
   if !parsed.is_valid() {
     let errors : Array[Diagnostic] = []
@@ -130,7 +131,7 @@ pub fn verify(
     }
     return Err(ReadOnlyArray::from_array(errors))
   }
-  verify_ast(parsed.ast, source_id~, source~)
+  verify_ast(parsed.ast, source_id~, source~, dependencies~)
 }
 
 ///|

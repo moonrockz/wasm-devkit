@@ -25,9 +25,9 @@ resource function names and import-only URL, integrity and dependency names.
 These names are checked as strings and never cause network access. Interface
 version suffixes are opaque during resolution, as in the pinned resolver.
 
-Package dependency paths, component instantiation, instance access, export spreads,
+Component instantiation, instance access, export spreads,
 targets and parser-only named results fail with `WAC-S003`. These remaining
-composition and dependency operations are tracked under
+composition operations and CLI dependency loading are tracked under
 [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
 A successful result covers the entire supported input. An unsupported or unresolved
 construct never yields a `Verified` model.
@@ -126,7 +126,7 @@ Binary dependency diagnostics use `Location::binary` and byte offsets. Text
 locations use `Location::text` and UTF-16 spans. `Location::span()` returns `None`
 for binary locations; unknown binary offsets render as `[binary]`. This avoids
 interpreting dependency bytes as coordinates in the root WAC source. Binary
-package providers remain under development.
+package inputs preserve both dependency byte locations and the requesting source span.
 
 ## Declarative component packages
 
@@ -187,3 +187,33 @@ original probes also cover invalid metadata and the accepted-but-unsupported
 value/ascription boundaries. The dependency fixture sources, licenses, revision
 and named-result WAT exclusion live in
 [`pkgs/wit/src/binary/fixtures/wac`](../../../wit/src/binary/fixtures/wac/README.md).
+
+## Caller-supplied package dependencies
+
+`verify` and `verify_ast` accept `dependencies: ReadOnlyArray[PackageSource]`.
+Each input supplies a lookup `name`, optional exact `version`, diagnostic `source`
+and immutable component `bytes`. The lookup key is independent of the identities
+encoded inside the component. Unversioned requests only match unversioned inputs;
+versioned requests require that exact semantic version, including build metadata.
+Duplicate keys and invalid input identities are rejected deterministically.
+
+Packages are decoded on first use and cached within one verification operation.
+Unused bytes are not decoded. Imported type graphs share the verifier's immutable
+arena, preserve binary provenance and retain resource identity across repeated
+references to one package. Distinct lookup keys retain separate graphs. Named uses,
+world includes and imports resolve package definitions and nested exports. Paths
+naming the current package resolve earlier local declarations, matching the pinned
+resolver even when their version suffix differs. Self instantiation is rejected.
+
+`WAC-P001` reports invalid input keys, `WAC-P002` duplicate inputs, `WAC-P003`
+missing packages, `WAC-P004` missing definitions or nested exports, and `WAC-P005`
+self instantiation. Binary decode failures retain their `WAC-B` code and byte
+location, with a related label on the requesting WAC path. This API does no file,
+registry or network lookup. CLI dependency loading and component instantiation
+remain separate unfinished work.
+
+Twenty-two original dependency probes compare acceptance and ordered source models
+with pinned `Document::resolve`, covering version matching, lookup/embedded identity
+separation, repeated resources, nested exports, uses, includes and local paths.
+Contract tests cover malformed dependency provenance, unused inputs and duplicate
+keys. All supported binary inputs use the declarative profile described above.

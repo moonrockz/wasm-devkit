@@ -11,8 +11,6 @@ priv enum BinaryProjectionWork {
 // nominal resource equivalence. Numeric arena IDs and transparent aliases are
 // representation details and do not participate in this comparison.
 fn binary_projection(model : @verifier.BinaryPackage) -> Array[String] raise {
-  let output : Array[String] = []
-  let resources : Map[Int32, Int32] = Map([])
   let work : Array[BinaryProjectionWork] = []
   for i = model.definitions().length() - 1; i >= 0; i = i - 1 {
     work.push(Item(model.definitions()[i]))
@@ -22,6 +20,31 @@ fn binary_projection(model : @verifier.BinaryPackage) -> Array[String] raise {
   work.push(Type(model.instance()))
   work.push(Text("instance"))
   work.push(Type(model.world()))
+  project_graph(model.types(), id => model.resource_identity(id), work)
+}
+
+///|
+fn source_projection(model : @verifier.Verified) -> Array[String] raise {
+  let work : Array[BinaryProjectionWork] = []
+  for i = model.exports().length() - 1; i >= 0; i = i - 1 {
+    work.push(Item(model.exports()[i]))
+  }
+  work.push(Text(model.exports().length().to_string()))
+  for i = model.imports().length() - 1; i >= 0; i = i - 1 {
+    work.push(Item(model.imports()[i]))
+  }
+  work.push(Text(model.imports().length().to_string()))
+  project_graph(model.types(), id => model.resource_identity(id), work)
+}
+
+///|
+fn project_graph(
+  types : ReadOnlyArray[@verifier.ResolvedType],
+  resource_identity : (Int32) -> Int32?,
+  work : Array[BinaryProjectionWork],
+) -> Array[String] raise {
+  let output : Array[String] = []
+  let resources : Map[Int32, Int32] = Map([])
   let mut steps = 0
   while work.pop() is Some(current) {
     steps += 1
@@ -30,7 +53,7 @@ fn binary_projection(model : @verifier.BinaryPackage) -> Array[String] raise {
     match current {
       Text(text) => output.push(text)
       Resource(id) => {
-        let id = model.resource_identity(id).unwrap()
+        let id = resource_identity(id).unwrap()
         let ordinal = match resources.get(id) {
           Some(ordinal) => ordinal
           None => {
@@ -53,10 +76,8 @@ fn binary_projection(model : @verifier.BinaryPackage) -> Array[String] raise {
         next.push(Type(id))
       }
       Type(id) => {
-        guard id >= 0 && id < model.types().length() else {
-          fail("dangling type")
-        }
-        let kind = model.types()[id].kind
+        guard id >= 0 && id < types.length() else { fail("dangling type") }
+        let kind = types[id].kind
         match kind {
           Alias(id) => next.push(Type(id))
           Scalar(name) => {
@@ -177,7 +198,7 @@ fn binary_projection(model : @verifier.BinaryPackage) -> Array[String] raise {
             for used in uses {
               output.push(used.name)
               output.push(used.original_name)
-              guard model.types()[used.interface].kind is Interface(name, _, _) else {
+              guard types[used.interface].kind is Interface(name, _, _) else {
                 fail("invalid use owner")
               }
               output.push(name.unwrap_or(""))

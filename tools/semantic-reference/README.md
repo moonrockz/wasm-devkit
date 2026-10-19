@@ -1,11 +1,13 @@
 # Pinned semantic API oracle
 
 The companion `wac-semantic-reference` executable calls
-`wac_parser::Document::parse` and `Document::resolve` with an empty dependency map.
+`wac_parser::Document::parse` and `Document::resolve`. Dependencies default to an empty map;
+repeat `--dependency NAME[@VERSION] BINARY` after the WAC source path to supply exact
+package keys and component bytes. Duplicate keys are rejected by the harness.
 Its dependency is pinned to WAC revision
 `5a7480c69ae7a4dc9eb161f485cbcb8c95e372c9`, version 0.12.0. The lockfile retains
 wasmparser, wasm-encoder and wasm-metadata 0.258.0 from that revision's lockfile.
-It checks dependency-free WAC acceptance independently of the `wac resolve` CLI
+It checks WAC acceptance independently of the `wac resolve` CLI
 and emits ordered JSON type and import metadata for inspection. The `exported_nodes`
 projection records each node's last export name; the pinned public graph API
 does not expose its complete export-name map. Package mode below retains all

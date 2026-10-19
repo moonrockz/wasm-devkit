@@ -2,7 +2,7 @@
 use serde_json::{Value, json};
 use std::{env, fs};
 use wac_parser::Document;
-use wac_types::{DefinedType, Package, Types};
+use wac_types::{BorrowedPackageKey, DefinedType, Package, Types};
 
 fn types_json(types: &Types) -> Value {
     // JSON object keys cannot preserve core module import pairs. Ordered entry
@@ -75,7 +75,36 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
     let source = fs::read_to_string(path)?;
     let document = Document::parse(&source)?;
-    let resolution = document.resolve(Default::default())?;
+    let mut args = env::args().skip(2);
+    let mut dependencies = Vec::new();
+    while let Some(flag) = args.next() {
+        if flag != "--dependency" {
+            return Err("usage: SOURCE [--dependency NAME[@VERSION] BINARY]...".into());
+        }
+        let key = args.next().ok_or("expected dependency name")?;
+        let binary = args.next().ok_or("expected dependency binary path")?;
+        let (name, version) = match key.rsplit_once('@') {
+            Some((name, version)) => (name.to_owned(), Some(version.parse()?)),
+            None => (key, None),
+        };
+        if dependencies
+            .iter()
+            .any(|(n, v, _)| n == &name && v == &version)
+        {
+            return Err("duplicate dependency key".into());
+        }
+        dependencies.push((name, version, fs::read(binary)?));
+    }
+    let packages = dependencies
+        .iter()
+        .map(|(name, version, bytes)| {
+            (
+                BorrowedPackageKey::from_name_and_version(name, version.as_ref()),
+                bytes.clone(),
+            )
+        })
+        .collect();
+    let resolution = document.resolve(packages)?;
     let graph = resolution.graph();
     println!(
         "{}",

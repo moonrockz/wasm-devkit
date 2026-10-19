@@ -11,9 +11,9 @@ import {
 // Values
 pub fn decode_component_package(Bytes, source_id? : String) -> Result[BinaryPackage, ReadOnlyArray[Diagnostic]]
 
-pub fn verify(@parser.Parse, source_id? : String, source~ : String) -> Result[Verified, ReadOnlyArray[Diagnostic]]
+pub fn verify(@parser.Parse, source_id? : String, source~ : String, dependencies? : ReadOnlyArray[PackageSource]) -> Result[Verified, ReadOnlyArray[Diagnostic]]
 
-pub fn verify_ast(@ast.Tree, source_id? : String, source~ : String) -> Result[Verified, ReadOnlyArray[Diagnostic]]
+pub fn verify_ast(@ast.Tree, source_id? : String, source~ : String, dependencies? : ReadOnlyArray[PackageSource]) -> Result[Verified, ReadOnlyArray[Diagnostic]]
 
 // Errors
 
@@ -88,6 +88,16 @@ pub fn Location::render(Self) -> String
 pub fn Location::span(Self) -> @span.Span?
 pub fn Location::text(String, @span.Span) -> Self
 pub fn Location::to_repr(Self) -> @debug.Repr
+
+pub(all) struct PackageSource {
+  name : String
+  version : String?
+  source : String
+  bytes : Bytes
+} derive(Eq, @debug.Debug)
+pub fn PackageSource::equal(Self, Self) -> Bool
+pub fn PackageSource::not_equal(Self, Self) -> Bool
+pub fn PackageSource::to_repr(Self) -> @debug.Repr
 
 pub(all) enum Position {
   SourceSpan(@span.Span)
