@@ -210,7 +210,7 @@ missing packages, `WAC-P004` missing definitions or nested exports, and `WAC-P00
 self instantiation. Binary decode failures retain their `WAC-B` code and byte
 location, with a related label on the requesting WAC path. This API does no file,
 registry or network lookup. The CLI loads the supported binary profile from local
-paths; text/WIT dependency adapters and component instantiation remain unfinished.
+paths; WIT dependency adapters and component instantiation remain unfinished.
 
 Twenty-two original dependency probes compare acceptance and ordered source models
 with pinned `Document::resolve`, covering version matching, lookup/embedded identity
@@ -234,3 +234,31 @@ test "collect exact dependency keys before I/O" {
   assert_eq(requests[0].version, Some("1.2.3"))
 }
 ```
+
+## Portable WAT packages
+
+`decode_wat_component_package` compiles component WAT and applies the same
+validation and graph reconstruction as `decode_component_package`. It shares the
+strict portable frontend used for encoded WIT: quoted identifiers, byte/Unicode
+escapes, comments, custom/producers annotations and binary text forms retain their
+meaning. Input nesting is bounded before compiler helpers run. No host process or
+network service is needed on any target.
+
+The portable text grammar is a supported subset; unsupported forms return
+`WAC-B002`. Invalid text returns `WAC-B001`; binary validation/reconstruction retains
+its existing codes. Diagnostics use the WAT source identity and an unknown binary
+offset because compiled bytes cannot identify an original source position.
+`BinaryPackage::bytes()` returns the compiled component bytes.
+
+```mbt check
+///|
+test "decode a portable WAT component" {
+  let model = @verifier.decode_wat_component_package("(component)").unwrap()
+  assert_true(model.types()[model.world()].kind is World(None, [], [], []))
+}
+```
+
+All 49 retained WAC dependency sources now compile to the same ordered type,
+resource and use projections as their pinned binaries. The invalid named-result
+source remains rejected. Deep text and embedded-binary inputs, custom bytes,
+quoted names and deterministic diagnostic provenance have focused regression tests.

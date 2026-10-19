@@ -17,3 +17,15 @@ Original white-box tests remain unchanged. Additional tests cover signed-LEB
 boundaries, nested map syntax and deep-input rejection. WIT verifier and CLI tests
 compare encoded maps and wasi-http against wasm-tools 1.262.0 and wit-parser
 0.262.0. This patch is tracked by `wasm-devkit-p5m.8.1.5`.
+
+`normalized.mbt` is this project's strict normalization layer, shared by the WIT
+and WAC declarative package decoders. It validates source framing and Unicode,
+normalizes quoted names, and preserves custom/producers bytes. Its public
+`parse_normalized_component_wat` operation returns compiled bytes; callers must
+validate those bytes under their own binary profile before reconstructing types.
+Neither byte-compilation entry point eagerly parses an embedded binary component.
+The retained compiler rejects the nonstandard `component definition binary` form.
+
+`LOCAL.patch` also records the UTF-8 import used by normalization. The new layer is
+original project code rather than a copied upstream file, so it has no upstream
+hash. Existing WIT conformance fixtures exercise it alongside the WAC package corpus.

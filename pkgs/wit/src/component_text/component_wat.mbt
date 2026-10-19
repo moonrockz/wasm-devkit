@@ -7514,9 +7514,6 @@ pub fn parse_component_wat(input : String) -> Bytes raise ComponentTextError {
   if root is List(items) {
     if items.length() >= 2 && items[0] is Atom("component") {
       let mut index = 1
-      if index < items.length() && items[index] is Atom("definition") {
-        index += 1
-      }
       if index < items.length() {
         if items[index] is Atom(name) && name.has_prefix("$") {
           index += 1
@@ -7535,11 +7532,7 @@ pub fn parse_component_wat(input : String) -> Bytes raise ComponentTextError {
             raise Unsupported("component binary form expects string segments")
           }
         }
-        let bytes = Bytes::from_array(out)
-        ignore(@component.parse_component(bytes)) catch {
-          e => raise ParseError("\{e}")
-        }
-        return bytes
+        return Bytes::from_array(out)
       }
     }
     compile_component_expr(items)

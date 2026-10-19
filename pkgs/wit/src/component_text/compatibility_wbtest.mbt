@@ -77,3 +77,15 @@ test "component indices reject decimal overflow" {
     assert_true(rejected)
   }
 }
+
+///|
+test "binary text compilation leaves byte validation to the caller" {
+  assert_eq(parse_component_wat("(component binary \"bad\")"), b"bad")
+  let rejected = try {
+    ignore(parse_component_wat("(component definition binary \"bad\")"))
+    false
+  } catch {
+    _ => true
+  }
+  assert_true(rejected)
+}

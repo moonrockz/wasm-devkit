@@ -11,6 +11,8 @@ import {
 // Values
 pub fn decode_component_package(Bytes, source_id? : String) -> Result[BinaryPackage, ReadOnlyArray[Diagnostic]]
 
+pub fn decode_wat_component_package(String, source_id? : String) -> Result[BinaryPackage, ReadOnlyArray[Diagnostic]]
+
 pub fn package_requests(@parser.Parse, source~ : String, source_id? : String) -> Result[ReadOnlyArray[PackageRequest], ReadOnlyArray[Diagnostic]]
 
 pub fn verify(@parser.Parse, source_id? : String, source~ : String, dependencies? : ReadOnlyArray[PackageSource]) -> Result[Verified, ReadOnlyArray[Diagnostic]]

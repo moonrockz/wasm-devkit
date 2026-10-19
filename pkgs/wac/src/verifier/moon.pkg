@@ -4,6 +4,7 @@ import {
   "moonrockz/wac/span",
   "moonbitlang/core/debug",
   "moonrockz/wit/binary" @binary_validation,
+  "moonrockz/wit/component_text",
   "Milky2018/wasm_component" @component,
   "moonbitlang/core/encoding/utf8",
 }

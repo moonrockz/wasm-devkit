@@ -167,7 +167,30 @@ async fn main {
     1,
     wit,
   )
-  assert_true(text_package.contains("WAC-B002"))
+  assert_true(text_package.contains("WAC-P004"))
+  @fs.write_file(
+    package_dir + "/text.wat",
+    "(component\n  (type (;0;)\n    (component\n      (type (;0;)\n        (instance\n          (export (;0;) \"handle\" (type (sub resource)))\n          (type (;1;) u32)\n          (export (;2;) \"number\" (type (eq 1)))\n          (type (;3;) (borrow 0))\n          (type (;4;) (func (param \"h\" 3) (result 2)))\n          (export (;0;) \"take\" (func (type 4)))\n        )\n      )\n      (export (;0;) \"encoded:original/api@2.0.0\" (instance (type 0)))\n    )\n  )\n  (export (;1;) \"api\" (type 0))\n  (type (;2;)\n    (component\n      (type (;0;)\n        (component\n          (type (;0;)\n            (instance\n              (export (;0;) \"handle\" (type (sub resource)))\n              (type (;1;) u32)\n              (export (;2;) \"number\" (type (eq 1)))\n              (type (;3;) (borrow 0))\n              (type (;4;) (func (param \"h\" 3) (result 2)))\n              (export (;0;) \"take\" (func (type 4)))\n            )\n          )\n          (import \"encoded:original/api@2.0.0\" (instance (;0;) (type 0)))\n          (type (;1;) (func (result u32)))\n          (export (;0;) \"answer\" (func (type 1)))\n        )\n      )\n      (export (;0;) \"encoded:original/service@2.0.0\" (component (type 0)))\n    )\n  )\n  (export (;3;) \"service\" (type 2))\n  (@custom \"package-docs\" \"\\01{}\")\n  (@producers\n    (processed-by \"wit-component\" \"0.262.0\")\n  )\n)\n",
+  )
+  let _ = run(
+    ["verify", package_source, "--dep", "lookup:dep=text.wat"],
+    0,
+    wit,
+  )
+  @fs.write_file(
+    package_dir + "/binary-deps/lookup/dep.wat",
+    "(component\n  (type (;0;)\n    (component\n      (type (;0;)\n        (instance\n          (export (;0;) \"handle\" (type (sub resource)))\n          (type (;1;) u32)\n          (export (;2;) \"number\" (type (eq 1)))\n          (type (;3;) (borrow 0))\n          (type (;4;) (func (param \"h\" 3) (result 2)))\n          (export (;0;) \"take\" (func (type 4)))\n        )\n      )\n      (export (;0;) \"encoded:original/api@2.0.0\" (instance (type 0)))\n    )\n  )\n  (export (;1;) \"api\" (type 0))\n  (type (;2;)\n    (component\n      (type (;0;)\n        (component\n          (type (;0;)\n            (instance\n              (export (;0;) \"handle\" (type (sub resource)))\n              (type (;1;) u32)\n              (export (;2;) \"number\" (type (eq 1)))\n              (type (;3;) (borrow 0))\n              (type (;4;) (func (param \"h\" 3) (result 2)))\n              (export (;0;) \"take\" (func (type 4)))\n            )\n          )\n          (import \"encoded:original/api@2.0.0\" (instance (;0;) (type 0)))\n          (type (;1;) (func (result u32)))\n          (export (;0;) \"answer\" (func (type 1)))\n        )\n      )\n      (export (;0;) \"encoded:original/service@2.0.0\" (component (type 0)))\n    )\n  )\n  (export (;3;) \"service\" (type 2))\n  (@custom \"package-docs\" \"\\01{}\")\n  (@producers\n    (processed-by \"wit-component\" \"0.262.0\")\n  )\n)\n",
+  )
+  let _ = run(["verify", package_source, "--deps-dir", "binary-deps"], 0, wit)
+  @fs.write_file(package_dir + "/invalid.wat", "(component binary \"bad\")")
+  let (_, invalid_text) = run(
+    ["verify", package_source, "--dep", "lookup:dep=invalid.wat"],
+    1,
+    wit,
+  )
+  assert_true(invalid_text.contains("invalid.wat:[binary]"))
+  assert_false(invalid_text.contains("[byte "))
+  assert_true(invalid_text.contains("requested here"))
   @fs.write_file(package_dir + "/binary-deps/lookup/dep.wat", package_bytes)
   let _ = run(["verify", package_source, "--deps-dir", "binary-deps"], 0, wit)
   @fs.write_file(package_dir + "/binary-deps/lookup/dep.wat", b"\x00asm")

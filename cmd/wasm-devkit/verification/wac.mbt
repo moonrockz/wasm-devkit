@@ -102,20 +102,45 @@ async fn wac(options : @cli.Options) -> @cli.Output {
         )
       }
     }
-    // The binary decoder checks actual framing. Text dependencies remain an
-    // explicit boundary until the portable WAC text/WIT adapters are implemented.
-    if (path.has_suffix(".wat") || path.has_suffix(".wit")) &&
-      !(bytes.length() >= 4 &&
+    let binary = bytes.length() >= 4 &&
       bytes[0] == 0 &&
       bytes[1] == 0x61 &&
       bytes[2] == 0x73 &&
-      bytes[3] == 0x6d) {
-      let error = wac_problem(
-        request,
-        "WAC-B002",
-        "text dependencies are not yet supported for WAC: `" + path + "`",
-      )
-      return output("", @cli.render_wac_diagnostics([error], source, label), 1)
+      bytes[3] == 0x6d
+    let bytes = if path.has_suffix(".wat") && !binary {
+      let text = @utf8.decode(bytes, ignore_bom=false)
+      match @wac_verifier.decode_wat_component_package(text, source_id=path) {
+        Ok(model) => model.bytes()
+        Err(errors) => {
+          let errors = errors.map(problem => {
+            let related = problem.related.iter().to_array()
+            related.push({
+              location: request.location,
+              message: "package `" + request.name + "` requested here",
+            })
+            { ..problem, related: ReadOnlyArray::from_array(related), }
+          })
+          return output(
+            "",
+            @cli.render_wac_diagnostics(errors, source, label),
+            1,
+          )
+        }
+      }
+    } else {
+      if path.has_suffix(".wit") && !binary {
+        let error = wac_problem(
+          request,
+          "WAC-B002",
+          "WIT text dependencies are not yet supported for WAC: `" + path + "`",
+        )
+        return output(
+          "",
+          @cli.render_wac_diagnostics([error], source, label),
+          1,
+        )
+      }
+      bytes
     }
     dependencies.push({
       name: request.name,

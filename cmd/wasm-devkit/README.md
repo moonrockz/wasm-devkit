@@ -316,14 +316,16 @@ in WAC 0.12.0. Repeated mappings use the last value. Unrequested mappings are no
 read. The library API instead rejects duplicate supplied package keys.
 
 The current WAC dependency profile accepts validated declarative component bytes,
-including bytes in a file with another extension. WIT directories, WIT text and
-WAT text fail explicitly; their portable adapters remain unfinished. Runtime/core
+including bytes in a file with another extension. `.wat` dependencies use the
+portable component text frontend and then the same binary validator. WIT directories
+and WIT text fail explicitly; their adapters remain unfinished. Runtime/core
 sections, component values and root export ascriptions are also outside the
 binary profile. Component instantiation, access, spreads and target checks remain
 unfinished, so this does not yet verify arbitrary executable compositions.
 
 An unknown automatically discovered package is a semantic error (exit 1).
 A missing explicit mapping or a file read failure is an I/O error (exit 2).
-Invalid or unsupported component bytes return exit 1, with dependency byte
-provenance and a related requesting WAC location. `WAC-P006` identifies dependency
+Invalid or unsupported components return exit 1, with dependency provenance and a
+related requesting WAC location. WAT diagnostics use an unknown binary offset,
+never compiled byte positions presented as original text coordinates. `WAC-P006` identifies dependency
 read failures. No registry lookup, network access or component execution occurs.

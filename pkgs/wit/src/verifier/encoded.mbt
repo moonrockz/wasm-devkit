@@ -259,77 +259,6 @@ pub fn resolve_packages(
 }
 
 ///|
-// Guard the maintained WAT parser before its recursive s-expression reader.
-// Comments and strings have their own framing; input nesting uses explicit state.
-fn encoded_wat_preflight(text : String) -> Unit raise EncodedFailure {
-  let mut index = 0
-  let mut depth = 0
-  let mut comments = 0
-  let mut quoted = false
-  let mut line = false
-  while index < text.length() {
-    let unit = text.code_unit_at(index).to_int()
-    let next = if index + 1 < text.length() {
-      text.code_unit_at(index + 1).to_int()
-    } else {
-      -1
-    }
-    if unit >= 0xd800 && unit <= 0xdbff {
-      guard next >= 0xdc00 && next <= 0xdfff else {
-        raise Invalid("unpaired WAT surrogate")
-      }
-    } else if unit >= 0xdc00 && unit <= 0xdfff {
-      guard index > 0 &&
-        text.code_unit_at(index - 1).to_int() >= 0xd800 &&
-        text.code_unit_at(index - 1).to_int() <= 0xdbff else {
-        raise Invalid("unpaired WAT surrogate")
-      }
-    }
-    if line {
-      if unit == 10 || unit == 13 {
-        line = false
-      }
-    } else if quoted {
-      if unit == 92 {
-        index += 1
-      } else if unit == 34 {
-        quoted = false
-      }
-    } else if comments > 0 {
-      if unit == 40 && next == 59 {
-        comments += 1
-        index += 1
-      } else if unit == 59 && next == 41 {
-        comments -= 1
-        index += 1
-      }
-    } else if unit == 59 && next == 59 {
-      line = true
-      index += 1
-    } else if unit == 40 && next == 59 {
-      comments = 1
-      index += 1
-    } else if unit == 34 {
-      quoted = true
-    } else if unit == 40 {
-      depth += 1
-    } else if unit == 41 {
-      depth -= 1
-      guard depth >= 0 else {
-        raise Invalid("unmatched WAT closing parenthesis")
-      }
-    }
-    guard depth <= 256 && comments <= 256 else {
-      raise Unsupported("WAT nesting exceeds 256")
-    }
-    index += 1
-  }
-  guard depth == 0 && comments == 0 && !quoted else {
-    raise Invalid("unclosed WAT expression, comment or string")
-  }
-}
-
-///|
 /// Compile type-only component WAT using the pinned portable frontend, then run
 /// the binary decoder. Diagnostics have no byte offset: compiled byte positions
 /// cannot identify positions in the original WAT. bytes() returns compiled bytes.
@@ -338,7 +267,6 @@ pub fn decode_wat_package(
   source_id~ : String = "<wat>",
 ) -> Result[EncodedPackage, ReadOnlyArray[Diagnostic]] {
   try {
-    encoded_wat_preflight(text)
     let bytes = compile_encoded_wat(text)
     let binaries : Map[String, Bool] = Map([(source_id, true)])
     decode_package(bytes, source_id~).map_err(diagnostics => {

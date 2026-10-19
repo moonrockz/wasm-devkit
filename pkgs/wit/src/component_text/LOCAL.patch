@@ -590,3 +590,18 @@
 +  section_id : Int32,
 +  payload : Bytes,
 +) -> Unit {
+@@ -7433,3 +7516,0 @@
+-      if index < items.length() && items[index] is Atom("definition") {
+-        index += 1
+-      }
+@@ -7454,5 +7535 @@
+-        let bytes = Bytes::from_array(out)
+-        ignore(@component.parse_component(bytes)) catch {
+-          e => raise ParseError("\{e}")
+-        }
+-        return bytes
++        return Bytes::from_array(out)
+--- a/moon.pkg
++++ b/moon.pkg
+@@ -1,0 +2 @@
++  "moonbitlang/core/encoding/utf8",
