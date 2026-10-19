@@ -1,0 +1,80 @@
+[
+  {
+    "name": "exact",
+    "source": "package test:app; import f: func(); let i = new test:api@1.0.0 { f }; export i.run;",
+    "accepts": true
+  },
+  {
+    "name": "latest",
+    "source": "package test:app; import f: func(); let i = new test:api { f }; export i.run-v2;",
+    "accepts": true
+  },
+  {
+    "name": "build-one",
+    "source": "package test:app; import f: func(); let i = new test:build@1.0.0+one { f }; export i.run;",
+    "accepts": true
+  },
+  {
+    "name": "build-two",
+    "source": "package test:app; import f: func(); let i = new test:build@1.0.0+two { f }; export i.run-v2;",
+    "accepts": true
+  },
+  {
+    "name": "prerelease",
+    "source": "package test:app; import f: func(); let i = new test:pre@1.0.0-alpha { f }; export i.run;",
+    "accepts": true
+  },
+  {
+    "name": "prerelease-latest",
+    "source": "package test:app; import f: func(); let i = new test:pre { f }; export i.run;",
+    "accepts": false
+  },
+  {
+    "name": "yanked",
+    "source": "package test:app; import f: func(); let i = new test:yanked@1.0.0 { f }; export i.run;",
+    "accepts": false
+  },
+  {
+    "name": "yanked-latest",
+    "source": "package test:app; import f: func(); let i = new test:yanked { f }; export i.run;",
+    "accepts": false
+  },
+  {
+    "name": "missing",
+    "source": "package test:app; import f: func(); let i = new test:missing { f }; export i.run;",
+    "accepts": false
+  },
+  {
+    "name": "unknown",
+    "source": "package test:app; import f: func(); let i = new test:api@2.0.0 { f }; export i.run;",
+    "accepts": false
+  },
+  {
+    "name": "empty",
+    "source": "package test:app; import f: func(); let i = new test:empty { f }; export i.run;",
+    "accepts": false
+  },
+  {
+    "name": "invalid",
+    "source": "package test:app; import f: func(); let i = new test:invalid@1.0.0 { f }; export i.run;",
+    "accepts": false
+  },
+  {
+    "name": "encoded-wit",
+    "source": "package test:app; import api: test:wit/api; export api;",
+    "accepts": true
+  },
+  {
+    "name": "mixed-transitive",
+    "source": "package test:app; import api: test:wit/api; let i = new test:needs-wit { \"test:wit/api\": api }; export i.api;",
+    "accepts": true,
+    "deps": "tests/registry/local"
+  },
+  {
+    "name": "two-versions",
+    "source": "package test:app; import f: func(); let a = new test:api@1.0.0 { f }; let b = new test:api@1.1.0 { f }; export a.run; export b.run-v2;",
+    "accepts": true,
+    "reference_accepts": false,
+    "exception": "WAC registry resolver deduplicates requests by PackageName and loses one exact version; independent single-version requests and authenticated publish records establish both selected bytes."
+  }
+]

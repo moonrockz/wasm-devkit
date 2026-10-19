@@ -21,6 +21,13 @@ pub let help : String =
   #|  --base PATH          Dependency resolution base (required for verify stdin)
   #|  --deps-dir PATH      Dependency directory relative to the resolution base
   #|  --dep PKG=PATH       Map a package to a file/directory, relative to the base
+  #|  --registry URL       Fetch missing WAC packages from an explicit Warg registry
+  #|  --cache-dir PATH     Registry cache relative to base (default: user cache)
+  #|  --offline            Use local inputs and checked cache only
+  #|  --refresh            Refresh registry entries; existing lock versions stay pinned
+  #|  --lockfile PATH      Create or enforce a registry package lockfile
+  #|  --warg-provider PATH Optional network companion (default: wasm-devkit-warg)
+  #|  --registry-config PATH  Explicit Warg client configuration
   #|  --all-features       Enable documented grammar extensions
   #|  --semantic-feature NAME  Enable a named WIT semantic feature (repeatable)
   #|  --all-semantic-features   Enable all WIT semantic features
@@ -60,6 +67,17 @@ pub(all) struct DependencyMapping {
 } derive(Eq, Debug)
 
 ///|
+pub(all) struct RegistryOptions {
+  url : String
+  cache_dir : String?
+  lockfile : String?
+  provider : String
+  config : String?
+  offline : Bool
+  refresh : Bool
+} derive(Eq, Debug)
+
+///|
 pub(all) struct Options {
   command : Command
   language : Language
@@ -75,6 +93,7 @@ pub(all) struct Options {
   dependencies : ReadOnlyArray[DependencyMapping]
   world : String?
   json : Bool
+  registry : RegistryOptions?
 } derive(Eq, Debug)
 
 ///|
@@ -102,6 +121,9 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
     "format" => Format
     _ => return Err("unknown command: " + args[0])
   }
+  let registry_values : Map[String, String] = Map([])
+  let mut offline = false
+  let mut refresh = false
   let mut path = None
   let mut language = None
   let mut indent_width = 2
@@ -178,6 +200,22 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
           path: args[at][separator + 1:].to_owned(),
         })
       }
+    } else if !literal &&
+      [
+        "--registry", "--cache-dir", "--lockfile", "--warg-provider", "--registry-config",
+      ].contains(arg) {
+      at += 1
+      if at == args.length() || args[at].is_empty() || args[at].has_prefix("--") {
+        return Err(arg + " requires a value")
+      }
+      if registry_values.contains(arg) {
+        return Err("duplicate " + arg)
+      }
+      registry_values[arg] = args[at]
+    } else if !literal && arg == "--offline" {
+      offline = true
+    } else if !literal && arg == "--refresh" {
+      refresh = true
     } else if !literal && arg == "--world" {
       at += 1
       if at == args.length() || args[at].is_empty() {
@@ -231,6 +269,35 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
         )
       }
   }
+  let registry = if !registry_values.is_empty() || offline || refresh {
+    if command != Verify || language != Wac {
+      return Err("registry options require verify --language wac")
+    }
+    guard registry_values.get("--registry") is Some(url) else {
+      return Err("registry options require --registry URL")
+    }
+    if !@registry_model.valid_registry(url) {
+      return Err(
+        "--registry requires an HTTP(S) URL without credentials, query or fragment",
+      )
+    }
+    if offline && refresh {
+      return Err("--offline and --refresh are mutually exclusive")
+    }
+    Some({
+      url,
+      cache_dir: registry_values.get("--cache-dir"),
+      lockfile: registry_values.get("--lockfile"),
+      provider: registry_values
+      .get("--warg-provider")
+      .unwrap_or("wasm-devkit-warg"),
+      config: registry_values.get("--registry-config"),
+      offline,
+      refresh,
+    })
+  } else {
+    None
+  }
   if command != Verify &&
     (base is Some(_) || deps_dir is Some(_) || !dependencies.is_empty()) {
     return Err("dependency options require verify")
@@ -270,6 +337,7 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
       dependencies: ReadOnlyArray::from_array(dependencies),
       world,
       json,
+      registry,
     }),
   )
 }
@@ -303,3 +371,9 @@ pub extend DependencyMapping with Eq::{equal, not_equal}
 
 ///|
 pub extend DependencyMapping with @debug.Debug::{to_repr}
+
+///|
+pub extend RegistryOptions with Eq::{equal, not_equal}
+
+///|
+pub extend RegistryOptions with @debug.Debug::{to_repr}

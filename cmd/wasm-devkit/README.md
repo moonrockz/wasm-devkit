@@ -179,7 +179,7 @@ codes and formatter writes. `mise run test:cli -- --binary PATH` checks a packag
 ## Semantic verification
 
 Run `wasm-devkit verify api.wit` or `wasm-devkit verify app.wac` to check the current
-local semantic profile. Stdin requires `--language wit` or `--language wac`, plus `--base PATH` for dependency resolution.
+semantic profile. Stdin requires `--language wit` or `--language wac`, plus `--base PATH` for dependency resolution.
 Exit status is 0 for a fully verified supported model, 1 for syntax/semantic errors
 or unsupported constructs, and 2 for invalid arguments or I/O errors. Text labels
 use UTF-16 line/column coordinates; encoded provider labels use byte offsets or
@@ -315,18 +315,95 @@ Explicit `--dep lookup:dep=PATH` mappings override only unversioned requests, as
 in WAC 0.12.0. Repeated mappings use the last value. Unrequested mappings are not
 read. The library API instead rejects duplicate supplied package keys.
 
-The current WAC dependency profile accepts validated declarative component bytes,
-including bytes in a file with another extension. `.wat` dependencies use the
-portable component text frontend and then the same binary validator. WIT directories
-and WIT text fail explicitly; their adapters remain unfinished. Runtime/core
-sections, component values and root export ascriptions are also outside the
-binary profile. Source component instantiation, member access, argument/export
-spreads, implicit imports and target-world checks use the resolved package types.
-Full executable component packages remain unfinished.
+The WAC dependency profile accepts validated component types from binary, WAT
+and WIT inputs. A WIT directory loads its local `deps` closure; pure API callers
+can supply source or encoded closures directly. `.wat` dependencies use the
+portable component text frontend and then the same binary validator. Source
+instantiation, member access, argument/export spreads, implicit imports and
+target-world checks use resolved package types. See the
+[WAC verifier guide](../../pkgs/wac/src/verifier/README.mbt.md) for the exact
+binary profile and remaining runtime forms.
 
 An unknown automatically discovered package is a semantic error (exit 1).
 A missing explicit mapping or a file read failure is an I/O error (exit 2).
 Invalid or unsupported components return exit 1, with dependency provenance and a
 related requesting WAC location. WAT diagnostics use an unknown binary offset,
 never compiled byte positions presented as original text coordinates. `WAC-P006` identifies dependency
-read failures. No registry lookup, network access or component execution occurs.
+read failures. Registry access requires the explicit options below. Verification
+never executes a component.
+
+
+## Registry packages
+
+Registry access is opt-in for WAC verification. Local lookup runs first using the
+rules above; a missing automatically discovered package may then be fetched.
+Missing or invalid explicit mappings and invalid local packages never fall back
+to a registry. Pure WIT/WAC APIs perform no network or cache I/O. WIT consumers
+can pass downloaded encoded package bytes through the WIT provider API directly.
+
+Build the optional transport from this repository with
+`mise run build:warg-provider`. This uses pinned Rust 1.94.1 and produces
+`.dev/warg-target/release/wasm-devkit-warg`, with `.exe` on Windows. Put it on PATH
+or use `--warg-provider PATH`. Local, warm-cache and offline runs do not need this
+executable. The transport is currently installed separately from the CLI archive.
+
+```shell
+wasm-devkit verify app.wac --registry https://registry.example.org --lockfile app.lock.json
+wasm-devkit verify app.wac --registry https://registry.example.org --lockfile app.lock.json --offline
+wasm-devkit verify app.wac --registry https://registry.example.org --lockfile app.lock.json --refresh
+```
+
+`--registry` accepts an HTTP(S) URL without embedded credentials, query or
+fragment. No registry is inferred. `--registry-config PATH` selects an explicit
+Warg client configuration for authentication and namespace mappings; no ambient
+configuration is loaded and interactive prompts are disabled. Warg 0.9.0 verifies
+registry logs, signatures and proofs. Exact requested versions include build
+metadata; an unversioned request selects the latest non-yanked stable release.
+The lookup identity comes from the authenticated registry record, independent of
+any name embedded in the component.
+
+By default, a checked cache entry takes priority over the network. `--refresh`
+fetches updated registry metadata and bytes; `--offline` permits only local data
+and checked cache entries. These flags cannot be combined. Unlike upstream WAC's
+automatic registry update, the default preserves cached selections until an
+explicit refresh. An offline cached release may therefore remain usable after a
+registry yank. Semantic comparisons concern identical resolved bytes, not remote
+availability or freshness.
+
+`--cache-dir PATH` overrides the cache location. Otherwise the CLI uses
+`XDG_CACHE_HOME/wasm-devkit`, `LOCALAPPDATA/wasm-devkit`, or
+`HOME/.cache/wasm-devkit`, in that order. Entry keys include the exact registry URL,
+package name and requested version. Treat spelling and trailing slash changes as
+new registry identities. SHA-256 content addresses are verified on every load;
+the verifier receives the same byte snapshot that passed that check. Invalid
+cached or downloaded component data still fails semantic verification. Corrupt
+cache metadata/content fails explicitly; `--refresh` can repair it from the
+registry. Cache writes replace complete files atomically.
+
+`--lockfile PATH` creates a schema-1 JSON file only after successful verification.
+Each registry entry records its requested key, resolved exact version, requested
+and resolved registry, and SHA-256 content digest. An existing lockfile requires
+every registry request to be present and pins that release even during refresh.
+It is never rewritten automatically. To select new versions, use a new lockfile
+path or deliberately remove the old file and refresh. A temporary `PATH.lock`
+directory prevents simultaneous lockfile writers and is removed after normal
+success or failure. After an interrupted process, remove a stale guard only when
+no verifier is using it.
+
+Lockfiles cover registry inputs. Explicit and discovered local packages still
+take priority and are not hashed into this registry lockfile. For reproducible
+mixed inputs, preserve those files alongside the lockfile. All relative paths,
+including cache, lockfile, configuration and explicit provider paths, use the
+resolution base. A provider name without a path is searched on PATH.
+
+Missing registry packages, unknown versions and offline cache misses report
+`WAC-R001` and exit 1. Cache/lock identity or integrity failures use `WAC-R002` and
+exit 2. Registry transport/protocol failures use `WAC-R003` and exit 2. Filesystem
+setup errors also exit 2. Errors at a package request retain its WAC source
+location; invalid component data retains both dependency and request provenance.
+
+Two exact versions of one package are supported independently. The pinned WAC
+registry resolver drops one such request; the retained
+[registry comparison](../../tests/registry/README.md) documents that upstream
+exception. The test suite uses a controlled loopback registry and runs without
+public credentials on native and wasm CLI targets.

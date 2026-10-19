@@ -190,3 +190,15 @@ run = "moonx scripts/build-semantic-reference.mbtx"
 [tasks."build:semantic-tools"]
 description = "Build pinned semantic API and CLI references with local WIT/WAT providers"
 run = "moonx scripts/build-semantic-reference.mbtx --with-cli"
+
+[tasks."build:warg-provider"]
+description = "Build the optional authenticated Warg registry transport"
+run = "moonx scripts/build-registry.mbtx"
+
+[tasks."build:registry-reference"]
+description = "Build the Warg transport and controlled pinned registry reference"
+run = "moonx scripts/build-registry.mbtx --with-reference"
+
+[tasks."test:registry"]
+description = "Compare controlled Warg selection, cache and offline policy (native|wasm)"
+run = "moonx scripts/test-registry.mbtx"

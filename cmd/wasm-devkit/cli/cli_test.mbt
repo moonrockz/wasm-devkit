@@ -275,3 +275,41 @@ test "explicit feature values retain raw encoded metadata names" {
     @cli.arguments(["verify", "api.wac", "--semantic-feature="]) is Err(_),
   )
 }
+
+///|
+test "registry flags require explicit WAC registry and preserve offline lock settings" {
+  let result = @cli.arguments([
+    "verify", "app.wac", "--registry", "https://registry.example", "--offline", "--cache-dir",
+    "cache", "--lockfile", "packages.lock", "--warg-provider", "custom-provider",
+  ])
+  guard result is Ok(Run(options)) else { fail("expected registry options") }
+  guard options.registry is Some(settings) else {
+    fail("missing registry settings")
+  }
+  assert_eq(settings.url, "https://registry.example")
+  assert_eq(settings.cache_dir, Some("cache"))
+  assert_eq(settings.lockfile, Some("packages.lock"))
+  assert_eq(settings.provider, "custom-provider")
+  assert_true(settings.offline)
+  assert_true(!settings.refresh)
+  for
+    args in [
+      ["verify", "app.wac", "--offline"],
+      ["verify", "app.wit", "--registry", "https://registry.example"],
+      ["parse", "app.wac", "--registry", "https://registry.example"],
+      ["verify", "app.wac", "--registry", "file:///tmp/registry"],
+      [
+        "verify", "app.wac", "--registry", "https://registry.example", "--offline",
+        "--refresh",
+      ],
+      [
+        "verify", "app.wac", "--registry", "https://registry.example", "--registry",
+        "https://other.example",
+      ],
+      [
+        "verify", "app.wac", "--registry", "https://registry.example", "--lockfile",
+      ],
+    ] {
+    assert_true(@cli.arguments(args[:]) is Err(_))
+  }
+}

@@ -1,0 +1,413 @@
+///|
+/// Exercise real Warg authentication, pinned WAC selection and checked cache policy.
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/async@0.22.5/process",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+}
+
+///|
+priv struct Runner {
+  target : String
+  root : String
+  registry : String
+}
+
+///|
+async fn checked(
+  program : String,
+  args : Array[String],
+  expected : Int32,
+) -> String {
+  let (code, out, error) = @process.collect_output(program, args)
+  if code != expected {
+    fail(
+      program +
+      " " +
+      args.join(" ") +
+      ": expected " +
+      expected.to_string() +
+      ", got " +
+      code.to_string() +
+      "\n" +
+      out.text() +
+      error.text(),
+    )
+  }
+  out.text()
+}
+
+///|
+async fn Runner::verify(
+  self : Runner,
+  source : String,
+  extra : Array[String],
+  expected : Int32,
+  diagnostic~ : String = "",
+) -> Unit {
+  let (code, _, error) = @process.collect_output(
+    "moon",
+    [
+      "run",
+      "cmd/wasm-devkit",
+      "--target",
+      self.target,
+      "--quiet",
+      "--",
+      "verify",
+      source,
+      "--base",
+      ".",
+      "--registry",
+      self.registry,
+      "--cache-dir",
+      self.root + "/cache",
+      ..extra,
+    ],
+  )
+  if code != expected ||
+    (!diagnostic.is_empty() && !error.text().contains(diagnostic)) {
+    fail(
+      source +
+      ": expected exit " +
+      expected.to_string() +
+      " / " +
+      diagnostic +
+      ", got " +
+      code.to_string() +
+      "\n" +
+      error.text(),
+    )
+  }
+}
+
+///|
+async fn read_json(path : String) -> Json {
+  @json.parse(@fs.read_file(path).text())
+}
+
+///|
+fn field(input : Json, name : String) -> String raise {
+  guard input is Object(fields) && fields.get(name) is Some(String(value)) else {
+    fail("missing string " + name)
+  }
+  value
+}
+
+///|
+fn packages(input : Json) -> Array[Json] raise {
+  guard input is { "packages": Array(entries), .. } else {
+    fail("missing package list")
+  }
+  entries
+}
+
+///|
+async fn main {
+  checked(
+    "node",
+    [
+      "--input-type=module", "-e", "import {createHash} from 'node:crypto'; import {readFileSync} from 'node:fs'; const root='tests/registry/'; for(const line of readFileSync(root+'SHA256SUMS','utf8').trim().split('\\n')) { const match=/^([0-9a-f]{64})  (.+)$/.exec(line); if(!match || match[2].includes('..') || match[2].startsWith('/')) throw Error('invalid hash manifest'); if(createHash('sha256').update(readFileSync(root+match[2])).digest('hex')!==match[1]) throw Error('fixture hash mismatch: '+match[2]); }",
+    ],
+    0,
+  )
+  |> ignore
+
+  let suffix = if @env.get_env_var("OS") == Some("Windows_NT") {
+    ".exe"
+  } else {
+    ""
+  }
+  let (target, provider, reference) = match @env.args()[1:] {
+    [] =>
+      (
+        "native",
+        ".dev/warg-target/release/wasm-devkit-warg" + suffix,
+        ".dev/warg-target/release/wasm-devkit-registry-reference" + suffix,
+      )
+    [target] if target == "native" || target == "wasm" =>
+      (
+        target,
+        ".dev/warg-target/release/wasm-devkit-warg" + suffix,
+        ".dev/warg-target/release/wasm-devkit-registry-reference" + suffix,
+      )
+    [target, provider, reference] if target == "native" || target == "wasm" =>
+      (target, provider, reference)
+    _ => fail("Usage: test-registry.mbtx [native|wasm [PROVIDER REFERENCE]]")
+  }
+  let root = @fs.tmpdir(prefix="wasm-devkit-registry-test")
+  defer @fs.rmdir(root, recursive=true)
+  @async.with_task_group(async fn(group) {
+    let log = @process.redirect_to_file(root + "/server.log")
+    defer log.close()
+    let server = @process.spawn(
+      group,
+      reference,
+      ["serve", root, "tests/registry/packages.json"],
+      stdout=log,
+      stderr=log,
+    )
+    defer server.cancel()
+    let mut attempts = 0
+    while !@fs.exists(root + "/running.json") {
+      if attempts >= 1200 || server.try_wait() is Some(_) {
+        fail(
+          "fixture registry did not start: " +
+          @fs.read_file(root + "/server.log").text(),
+        )
+      }
+      attempts += 1
+      @async.sleep(50)
+    }
+    let running = read_json(root + "/running.json")
+    let registry = field(running, "registry")
+    guard running is { "published": Array(published), .. } else {
+      fail("missing publish records")
+    }
+    let runner = { target, root, registry, }
+    guard read_json("tests/registry/cases.json") is Array(cases) else {
+      fail("invalid registry cases")
+    }
+    let mut accepted = 0
+    for row in cases {
+      let name = field(row, "name")
+      let source = root + "/" + name + ".wac"
+      let lock = root + "/" + name + ".lock.json"
+      @fs.write_file(source, field(row, "source"))
+      let accepts = row is { "accepts": True, .. }
+      let expected = if accepts { 0 } else { 1 }
+      let deps = match row {
+        { "deps": String(path), .. } => [path]
+        _ => []
+      }
+      let args = if deps.is_empty() { [] } else { ["--deps-dir", deps[0]] }
+      runner.verify(
+        source,
+        ["--warg-provider", provider, "--lockfile", lock, ..args],
+        expected,
+      )
+      let reference_expected = if row is { "reference_accepts": False, .. } {
+        1
+      } else {
+        expected
+      }
+      let upstream = checked(
+        reference,
+        ["resolve", root + "/reference-config.json", source, ..deps],
+        reference_expected,
+      )
+      if @fs.exists(lock + ".lock") {
+        fail(name + ": leaked lock guard")
+      }
+      if @fs.exists(lock) != accepts {
+        fail(name + ": lockfile must be created only after semantic success")
+      }
+      if accepts {
+        accepted += 1
+        let before = @fs.read_file(lock).text()
+        let records = packages(@json.parse(before))
+        let selected = if reference_expected == 0 {
+          packages(@json.parse(upstream))
+        } else {
+          []
+        }
+        for entry in records {
+          let key = field(entry, "name") +
+            (match entry {
+              { "requested_version": String(version), .. } => "@" + version
+              _ => ""
+            })
+          let matching = selected.filter(item => field(item, "key") == key)
+          if reference_expected == 0 &&
+            (
+              matching.length() != 1 ||
+              field(matching[0], "digest") != field(entry, "digest")
+            ) {
+            fail(
+              name + ": authenticated bytes differ from pinned WAC for " + key,
+            )
+          }
+          let records = published.filter(record => {
+            field(record, "name") == field(entry, "name") &&
+            field(record, "version") == field(entry, "version")
+          })
+          if records.length() != 1 ||
+            field(records[0], "digest") != field(entry, "digest") {
+            fail(
+              name + ": selected bytes differ from authenticated publish record",
+            )
+          }
+        }
+        // A nonexistent helper proves both warm and offline runs avoid network.
+        for flags in [[], ["--offline"]] {
+          runner.verify(
+            source,
+            [
+              "--warg-provider",
+              root + "/absent",
+              "--lockfile",
+              lock,
+              ..args,
+              ..flags,
+            ],
+            0,
+          )
+        }
+        runner.verify(
+          source,
+          ["--warg-provider", provider, "--lockfile", lock, "--refresh", ..args],
+          0,
+        )
+        if @fs.read_file(lock).text() != before {
+          fail(name + ": existing lockfile changed")
+        }
+      } else if name == "invalid" {
+        runner.verify(
+          source,
+          ["--offline", "--warg-provider", root + "/absent"],
+          1,
+          diagnostic="WAC-B001",
+        )
+      }
+    }
+    // Metadata identity, corrupt bytes and pinned digests are independently checked.
+    let exact = root + "/exact.wac"
+    let exact_lock = root + "/exact.lock.json"
+    let original_lock = @fs.read_file(exact_lock).text()
+    let entry = packages(@json.parse(original_lock))[0]
+    let digest = field(entry, "digest")
+    let content = root + "/cache/content/" + digest[7:].to_owned() + ".wasm"
+    let original_content = @fs.read_file(content).binary()
+    @fs.write_file(content, "corrupt cache")
+    runner.verify(
+      exact,
+      ["--offline", "--lockfile", exact_lock],
+      2,
+      diagnostic="WAC-R002",
+    )
+    runner.verify(
+      exact,
+      ["--refresh", "--warg-provider", provider, "--lockfile", exact_lock],
+      0,
+    )
+    if @fs.read_file(content).binary() != original_content {
+      fail("refresh did not restore authenticated bytes")
+    }
+    let replacement = "sha256:" + "0".repeat(64)
+    @fs.write_file(
+      exact_lock,
+      original_lock.replace(old=digest, new=replacement),
+    )
+    runner.verify(
+      exact,
+      ["--offline", "--lockfile", exact_lock],
+      2,
+      diagnostic="WAC-R002",
+    )
+    runner.verify(
+      exact,
+      ["--refresh", "--warg-provider", provider, "--lockfile", exact_lock],
+      2,
+      diagnostic="WAC-R002",
+    )
+    @fs.write_file(exact_lock, original_lock)
+    let mut metadata_path = ""
+    for file in @fs.readdir(root + "/cache/entries") {
+      let path = root + "/cache/entries/" + file
+      if read_json(path)
+        is { "name": "test:api", "requested_version": "1.0.0", .. } {
+        metadata_path = path
+        break
+      }
+    }
+    if metadata_path.is_empty() {
+      fail("exact cache record missing")
+    }
+    let metadata = @fs.read_file(metadata_path).text()
+    @fs.write_file(
+      metadata_path,
+      metadata.replace(old="test:api", new="test:other"),
+    )
+    runner.verify(exact, ["--offline"], 2, diagnostic="WAC-R002")
+    @fs.write_file(metadata_path, "invalid JSON")
+    runner.verify(exact, ["--offline"], 2, diagnostic="WAC-R002")
+    @fs.write_file(metadata_path, metadata)
+    @fs.mkdir(exact_lock + ".lock")
+    runner.verify(
+      exact,
+      ["--offline", "--lockfile", exact_lock],
+      2,
+      diagnostic="lockfile guard",
+    )
+    @fs.rmdir(exact_lock + ".lock")
+    @fs.write_file(
+      exact_lock,
+      "{\"schema\":1,\"registry\":" +
+      Json::string(registry).stringify() +
+      ",\"packages\":[]}",
+    )
+    runner.verify(
+      exact,
+      ["--offline", "--lockfile", exact_lock],
+      2,
+      diagnostic="WAC-R002",
+    )
+    @fs.write_file(exact_lock, original_lock)
+    // Explicit local data takes priority; a versioned request ignores the override.
+    let local_source = root + "/local.wac"
+    @fs.write_file(
+      local_source, "package test:app; import f: func(); let i = new test:api { f }; export i.run;",
+    )
+    runner.verify(
+      local_source,
+      [
+        "--offline",
+        "--dep",
+        "test:api=" + content,
+        "--warg-provider",
+        root + "/absent",
+      ],
+      0,
+    )
+    runner.verify(
+      local_source,
+      ["--offline", "--dep", "test:api=tests/registry/invalid.bin.txt"],
+      1,
+      diagnostic="WAC-B001",
+    )
+    runner.verify(
+      exact,
+      ["--offline", "--dep", "test:api=" + root + "/absent"],
+      0,
+    )
+    // Stop the network server: checked data remains usable, refresh must fail.
+    @fs.write_file(root + "/stop", "stop")
+    if server.wait() != 0 {
+      fail("registry fixture shutdown failed")
+    }
+    runner.verify(exact, ["--offline", "--lockfile", exact_lock], 0)
+    runner.verify(
+      exact,
+      ["--refresh", "--warg-provider", provider],
+      2,
+      diagnostic="WAC-R003",
+    )
+    runner.verify(
+      root + "/missing.wac",
+      ["--offline", "--warg-provider", root + "/absent"],
+      1,
+      diagnostic="WAC-R001",
+    )
+    println(
+      "Registry: " +
+      cases.length().to_string() +
+      " pinned WAC comparisons (one retained upstream multi-version defect), " +
+      accepted.to_string() +
+      " cold/warm/offline/refresh successes, corruption/identity/lock/local/transport checks (" +
+      target +
+      ")",
+    )
+  })
+}

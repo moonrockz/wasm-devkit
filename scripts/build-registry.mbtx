@@ -1,0 +1,48 @@
+///|
+/// Build the optional authenticated Warg transport and controlled registry oracle.
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/process",
+  "moonbitlang/async@0.22.5/stdio",
+  "moonbitlang/core/env",
+  "moonbitlang/x@0.5.5/sys",
+}
+
+///|
+async fn main {
+  let reference = match @env.args()[1:] {
+    [] => false
+    ["--with-reference"] => true
+    _ => fail("Usage: build-registry.mbtx [--with-reference]")
+  }
+  let packages = ["warg-provider"]
+  if reference {
+    packages.push("registry-reference")
+  }
+  let version = @env.get_env_var("SEMANTIC_REFERENCE_RUST_VERSION").unwrap_or(
+    "1.94.1",
+  )
+  for package_name in packages {
+    let code = @process.run(
+      "mise",
+      [
+        "exec",
+        "rust@" + version,
+        "--",
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "tools/" + package_name + "/Cargo.toml",
+        "--target-dir",
+        ".dev/warg-target",
+      ],
+      stdout=@stdio.stdout,
+      stderr=@stdio.stderr,
+    )
+    if code != 0 {
+      @sys.exit(if code > 0 { code } else { 1 })
+    }
+  }
+}

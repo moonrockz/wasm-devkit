@@ -1,0 +1,23 @@
+[package]
+name = "wasm-devkit-registry-reference"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.94.1"
+publish = false
+license = "Apache-2.0"
+
+[dependencies]
+anyhow = "=1.0.102"
+futures = "=0.3.32"
+serde_json = "=1.0.149"
+sha2 = "=0.10.9"
+tokio = { version = "=1.48.0", features = ["macros", "rt-multi-thread", "time"] }
+warg-client = { version = "=0.9.0", default-features = false, features = ["rustls-tls"] }
+warg-crypto = "=0.9.0"
+warg-protocol = "=0.9.0"
+warg-server = { version = "=0.9.0", default-features = false }
+wat = "=1.258.0"
+wit-parser = "=0.258.0"
+wit-component = "=0.258.0"
+wac-parser = { git = "https://github.com/bytecodealliance/wac", rev = "5a7480c69ae7a4dc9eb161f485cbcb8c95e372c9" }
+wac-resolver = { git = "https://github.com/bytecodealliance/wac", rev = "5a7480c69ae7a4dc9eb161f485cbcb8c95e372c9", default-features = false, features = ["registry", "wit", "wat"] }

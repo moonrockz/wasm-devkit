@@ -34,6 +34,11 @@ async fn wac(options : @cli.Options) -> @cli.Output {
       return output("", @cli.render_wac_diagnostics(errors, source, label), 1)
   }
   let base = options.base.unwrap_or(parent(options.path))
+  let registry = match options.registry {
+    Some(settings) => Some(registry_session(settings, base))
+    None => None
+  }
+  defer (if registry is Some(session) { session.close() })
   let root = relative(base, options.deps_dir.unwrap_or("deps"))
   let overrides : Map[String, String] = Map([])
   for mapping in options.dependencies {
@@ -62,6 +67,38 @@ async fn wac(options : @cli.Options) -> @cli.Output {
       } else {
         path + ".wasm"
       }
+    }
+    if !@fs.exists(path) && !explicit && registry is Some(session) {
+      let dependency = session.fetch_package(request) catch {
+        RegistryProblem(code, message, status) =>
+          return output(
+            "",
+            @cli.render_wac_diagnostics(
+              [wac_problem(request, code, message)],
+              source,
+              label,
+            ),
+            status,
+          )
+        error =>
+          return output(
+            "",
+            @cli.render_wac_diagnostics(
+              [
+                wac_problem(
+                  request,
+                  "WAC-R003",
+                  "registry/cache provider failed: " + error.to_string(),
+                ),
+              ],
+              source,
+              label,
+            ),
+            2,
+          )
+      }
+      dependencies.push(dependency)
+      continue
     }
     if !@fs.exists(path) {
       let error = wac_problem(
@@ -212,10 +249,14 @@ async fn wac(options : @cli.Options) -> @cli.Output {
       bytes,
     })
   }
-  @cli.verify_wac(
+  let result = @cli.verify_wac(
     options,
     source,
     dependencies=ReadOnlyArray::from_array(dependencies),
     wit_dependencies=ReadOnlyArray::from_array(wit_dependencies),
   )
+  if result.exit_code == 0 && registry is Some(session) {
+    session.save()
+  }
+  result
 }

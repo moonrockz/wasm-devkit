@@ -1,4 +1,5 @@
 import {
+  "moonrockz/wasm-devkit/registry_model",
   "moonrockz/wit/verifier" @wit_verifier,
   "moonrockz/wit/parser" @wit_parser,
   "moonrockz/wit/scanner" @wit_scanner,

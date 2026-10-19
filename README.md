@@ -79,7 +79,9 @@ uses/includes, typed imports/exports, checked named/inferred/spread/implicit ins
 instance member access, export spreads and target-world checks. Caller-supplied binary dependencies resolve
 exact package keys and nested definition paths through immutable type graphs.
 The CLI loads binary, portable WAT and WIT dependencies from local paths. Pure APIs accept WIT source/encoded closures.
-Registry lookup remains under development.
+WAC registry lookup is opt-in through an optional authenticated Warg transport,
+with checked caches, offline verification and exact-version lockfiles. See the
+[CLI registry guide](cmd/wasm-devkit/README.md#registry-packages).
 See the [WIT verifier](pkgs/wit/src/verifier/README.mbt.md) and
 [WAC verifier](pkgs/wac/src/verifier/README.mbt.md) for checked examples and exact scope.
 Unsupported semantic constructs fail explicitly. Full dependency and component verification

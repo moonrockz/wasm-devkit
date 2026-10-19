@@ -1,0 +1,42 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonrockz/wasm-devkit/registry_model"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn artifact(Json) -> Result[Artifact, String]
+
+pub fn cache_key(String, String, String?) -> String
+
+pub fn digest(Bytes) -> String
+
+pub fn lockfile(Json, String) -> Result[ReadOnlyArray[Artifact], String]
+
+pub fn lockfile_json(String, ReadOnlyArray[Artifact]) -> Json
+
+pub fn valid_digest(String) -> Bool
+
+pub fn valid_registry(String) -> Bool
+
+// Errors
+
+// Types and methods
+pub(all) struct Artifact {
+  registry : String
+  name : String
+  requested_version : String?
+  version : String
+  resolved_registry : String
+  digest : String
+} derive(Eq, @debug.Debug)
+pub fn Artifact::equal(Self, Self) -> Bool
+pub fn Artifact::matches(Self, String, String, String?) -> Bool
+pub fn Artifact::not_equal(Self, Self) -> Bool
+pub fn Artifact::to_json(Self) -> Json
+pub fn Artifact::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

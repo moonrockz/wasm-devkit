@@ -76,6 +76,7 @@ pub(all) struct Options {
   dependencies : ReadOnlyArray[DependencyMapping]
   world : String?
   json : Bool
+  registry : RegistryOptions?
 } derive(Eq, @debug.Debug)
 pub fn Options::equal(Self, Self) -> Bool
 pub fn Options::not_equal(Self, Self) -> Bool
@@ -90,6 +91,19 @@ pub(all) struct Output {
 pub fn Output::equal(Self, Self) -> Bool
 pub fn Output::not_equal(Self, Self) -> Bool
 pub fn Output::to_repr(Self) -> @debug.Repr
+
+pub(all) struct RegistryOptions {
+  url : String
+  cache_dir : String?
+  lockfile : String?
+  provider : String
+  config : String?
+  offline : Bool
+  refresh : Bool
+} derive(Eq, @debug.Debug)
+pub fn RegistryOptions::equal(Self, Self) -> Bool
+pub fn RegistryOptions::not_equal(Self, Self) -> Bool
+pub fn RegistryOptions::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

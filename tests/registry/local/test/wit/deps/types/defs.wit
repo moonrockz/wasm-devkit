@@ -1,0 +1,2 @@
+package test:types;
+interface defs { type token = u32; }
