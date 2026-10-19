@@ -8,7 +8,7 @@ result-type	false	false	false
 result-count	false	false	false
 async-equal	true	true	true
 async-mismatch	false	false	false
-instance-alias	true	true	false
+instance-alias	true	true	true
 list-equal	true	true	true
 list-mismatch	false	false	false
 fixed-equal	true	true	true

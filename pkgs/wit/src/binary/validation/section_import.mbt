@@ -198,6 +198,7 @@ fn validate_component_section_import(
               InstanceType(decls) => {
                 let local_types : Array[@component.TypeDef] = []
                 let local_resource_ids : Array[Int32?] = []
+                let local_origins : Map[Int32, Int32] = Map([])
                 let out : Map[String, ExportedTypeInfo] = Map([])
                 let type_sigs : Map[String, TypeSig] = Map([])
                 let res : Map[String, Int32] = Map([])
@@ -216,9 +217,22 @@ fn validate_component_section_import(
                       local_types.push(t)
                       local_resource_ids.push(None)
                     }
-                    AliasOuter(kind, _count, _idx) =>
+                    AliasOuter(kind, count, index) =>
                       if kind == 0x03 {
-                        record_type_slot()
+                        let slot = local_types.length()
+                        if count == 1 && type_table.get(index) is Some(Some(_)) {
+                          record_type_slot()
+                          local_origins[slot] = index
+                        } else if count == 0 &&
+                          local_types.get(index) is Some(td) {
+                          local_types.push(td)
+                          local_resource_ids.push(local_resource_ids[index])
+                          if local_origins.get(index) is Some(origin) {
+                            local_origins[slot] = origin
+                          }
+                        } else {
+                          record_type_slot()
+                        }
                       }
                     AliasInstanceExport(kind, _inst, _name) =>
                       if kind == 0x03 {
@@ -245,6 +259,9 @@ fn validate_component_section_import(
                               if idx >= 0 && idx < local_types.length() {
                                 local_types.push(local_types[idx])
                                 local_resource_ids.push(local_resource_ids[idx])
+                                if local_origins.get(idx) is Some(origin) {
+                                  local_origins[new_idx] = origin
+                                }
                               } else {
                                 record_type_slot()
                               }
@@ -262,14 +279,25 @@ fn validate_component_section_import(
                             }
                           }
                         FuncType(ft_idx) => {
-                          let sig = if ft_idx >= 0 &&
-                            ft_idx < local_types.length() {
+                          let sig = if local_origins.get(ft_idx) is Some(origin) &&
+                            type_table.get(origin) is Some(Some(FuncType(ft))) {
+                            Some(
+                              funcsig_of_functype(ft, type_table, resource_ids),
+                            )
+                          } else if ft_idx >= 0 && ft_idx < local_types.length() {
                             match local_types[ft_idx] {
                               FuncType(ft) =>
                                 Some(
                                   funcsig_of_functype_lg(
-                                    ft, local_types, local_resource_ids, type_table,
+                                    ft,
+                                    local_types,
+                                    local_resource_ids,
+                                    type_table,
                                     resource_ids,
+                                    local_origins~,
+                                    global_function=local_origins.contains(
+                                      ft_idx,
+                                    ),
                                   ),
                                 )
                               _ => None

@@ -29,7 +29,11 @@ fn check_function_ascription(
   types : Array[@component.TypeDef?],
   resources : Array[Int32?],
   budget~ : Int32 = 1000000,
+  expected_types~ : Array[@component.TypeDef?]? = None,
+  expected_resources~ : Array[Int32?]? = None,
 ) -> Int32 raise ComponentValidationError {
+  let expected_types = expected_types.unwrap_or(types)
+  let expected_resources = expected_resources.unwrap_or(resources)
   if actual.is_async != expected.is_async ||
     actual.params.length() != expected.params.length() {
     raise AscribedExportTypeIncompatible
@@ -58,9 +62,6 @@ fn check_function_ascription(
     }
     match item {
       Value(a, b) => {
-        if a == b {
-          continue
-        }
         let ad = match a {
           Prim(p) => @component.TypeDef::DefValType(p)
           TypeIdx(id) => {
@@ -73,7 +74,7 @@ fn check_function_ascription(
         let bd = match b {
           Prim(p) => @component.TypeDef::DefValType(p)
           TypeIdx(id) => {
-            guard types.get(id) is Some(Some(td)) else {
+            guard expected_types.get(id) is Some(Some(td)) else {
               raise UnsupportedFunctionAscription
             }
             td
@@ -89,7 +90,7 @@ fn check_function_ascription(
       }
       Resource(a, b) => {
         guard resources.get(a) is Some(Some(ar)) &&
-          resources.get(b) is Some(Some(br)) else {
+          expected_resources.get(b) is Some(Some(br)) else {
           raise UnsupportedFunctionAscription
         }
         if ar != br {

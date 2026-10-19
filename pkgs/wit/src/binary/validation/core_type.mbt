@@ -869,7 +869,11 @@ fn funcsig_of_functype(
     Some(v) => Some(type_sig_of_valtype(v, type_table, resource_ids, visiting))
     None => None
   }
-  { params, result, }
+  {
+    params,
+    result,
+    complete: complete_function_signature(ft, [], [], type_table, resource_ids),
+  }
 }
 
 ///|
@@ -1050,6 +1054,8 @@ fn funcsig_of_functype_lg(
   local_resource_ids : Array[Int32?],
   global_types : Array[@component.TypeDef?],
   global_resource_ids : Array[Int32?],
+  local_origins~ : Map[Int32, Int32] = Map([]),
+  global_function~ : Bool = false,
 ) -> FuncSigShape {
   let visiting : Map[Int32, Int32] = Map([])
   let params : Array[ParamShape] = []
@@ -1076,7 +1082,19 @@ fn funcsig_of_functype_lg(
       )
     None => None
   }
-  { params, result, }
+  {
+    params,
+    result,
+    complete: complete_function_signature(
+      ft,
+      local_types,
+      local_resource_ids,
+      global_types,
+      global_resource_ids,
+      local_origins~,
+      global_function~,
+    ),
+  }
 }
 
 ///|
@@ -1343,7 +1361,11 @@ fn funcsig_subst_resources(
     None => None
     Some(r) => Some(type_sig_subst_resources(r, subst))
   }
-  { params, result, }
+  {
+    params,
+    result,
+    complete: complete_signature_substitute(sig.complete, subst),
+  }
 }
 
 ///|

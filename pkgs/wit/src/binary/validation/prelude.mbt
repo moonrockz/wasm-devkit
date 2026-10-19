@@ -172,7 +172,15 @@ priv struct ParamShape {
 priv struct FuncSigShape {
   params : Array[ParamShape]
   result : TypeSig?
-} derive(Eq)
+  complete : CompleteFunctionSignature?
+}
+
+///|
+// Preserve the retained validator's legacy equality outside ascription checks.
+// Lossless graph indices are local to each complete signature.
+impl Eq for FuncSigShape with fn equal(a, b) {
+  a.params == b.params && a.result == b.result
+}
 
 ///|
 priv enum ExportedTypeInfo {

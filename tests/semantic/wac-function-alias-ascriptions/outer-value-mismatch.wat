@@ -1,0 +1,1 @@
+(component (type $leaf u32) (type $base (list $leaf)) (type $i (instance (type $collision (list u64)) (alias outer 1 $base (type $n)) (type $f (func (param "x" $n))) (export "f" (func (type $f))))) (import "i" (instance $i (type $i))) (alias export $i "f" (func $f)) (type $n (list u64)) (type $f (func (param "x" $n))) (export "out" (func $f) (func (type $f))))

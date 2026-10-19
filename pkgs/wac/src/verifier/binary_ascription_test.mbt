@@ -325,30 +325,41 @@ test "binary function ascription instance-alias" {
   )
   assert_eq(
     result is Ok(_),
-    false,
+    true,
     msg=match result {
       Ok(_) => "accepted"
       Err(errors) => errors[0].render()
     },
   )
 
-  guard result is Err([error]) else {
-    fail("expected unsupported alias signature")
-  }
-  assert_eq(error.code, "WAC-B002")
+  let model = result.unwrap()
+  assert_eq(binary_projection(model), [
+    "world", "", "0", "1", "i", "instance", "interface", "", "0", "1", "f", "func",
+    "function", "false", "1", "x", "scalar", "u32", "none", "1", "out", "func", "function",
+    "false", "1", "x", "scalar", "u32", "none", "instance", "interface", "", "0",
+    "1", "out", "func", "function", "false", "1", "x", "scalar", "u32", "none", "definitions",
+    "0",
+  ])
+  assert_eq(model.bytes(), bytes)
   let text_result = @verifier.decode_wat_component_package(
     "(component (type $i (instance (type $f (func (param \"x\" u32))) (export \"f\" (func (type $f))))) (import \"i\" (instance $i (type $i))) (alias export $i \"f\" (func $f)) (type $f (func (param \"x\" u32))) (export \"out\" (func $f) (func (type $f))))",
     source_id="instance-alias.wat",
   )
   assert_eq(
     text_result is Ok(_),
-    false,
+    true,
     msg=match text_result {
       Ok(_) => "accepted"
       Err(errors) => errors[0].render()
     },
   )
-  assert_eq(text_result.unwrap_err()[0].code, "WAC-B002")
+  assert_eq(binary_projection(text_result.unwrap()), [
+    "world", "", "0", "1", "i", "instance", "interface", "", "0", "1", "f", "func",
+    "function", "false", "1", "x", "scalar", "u32", "none", "1", "out", "func", "function",
+    "false", "1", "x", "scalar", "u32", "none", "instance", "interface", "", "0",
+    "1", "out", "func", "function", "false", "1", "x", "scalar", "u32", "none", "definitions",
+    "0",
+  ])
 }
 
 ///|

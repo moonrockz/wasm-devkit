@@ -445,16 +445,28 @@ fn validate_component_section_export(
         guard type_table.get(index) is Some(Some(FuncType(expected))) else {
           raise AscribedExportTypeIncompatible
         }
-        guard func_types.get(e.sortidx.idx) is Some(Some(actual)) else {
+        if func_types.get(e.sortidx.idx) is Some(Some(actual)) {
+          counts.ascription_remaining = check_function_ascription(
+            actual,
+            expected,
+            type_table,
+            resource_ids,
+            budget=counts.ascription_remaining,
+          )
+        } else if func_sig_shapes.get(e.sortidx.idx) is Some(Some(shape)) &&
+          shape.complete is Some(actual) {
+          counts.ascription_remaining = check_function_ascription(
+            actual.function,
+            expected,
+            actual.types,
+            actual.resources,
+            expected_types=Some(type_table),
+            expected_resources=Some(resource_ids),
+            budget=counts.ascription_remaining,
+          )
+        } else {
           raise UnsupportedFunctionAscription
         }
-        counts.ascription_remaining = check_function_ascription(
-          actual,
-          expected,
-          type_table,
-          resource_ids,
-          budget=counts.ascription_remaining,
-        )
       }
       (Instance, Some(InstanceType(tyidx))) =>
         if tyidx >= 0 && tyidx < type_table.length() {

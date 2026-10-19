@@ -74,7 +74,12 @@ Root function export ascriptions now compare complete signatures using the origi
 upstream file. `ascription_wbtest.mbt` exercises 6,000-level value graphs with an
 explicit stack. Changes in `prelude.mbt` and `section_export.mbt` preserve typed
 unsupported errors and the ascribed function signature for later re-exports.
-Instance-exported aliases lack complete function metadata and remain unsupported
-for ascription; their reduced signature shapes are not treated as proof of equality.
+The additional `function_signature.mbt` retains complete private signature graphs
+for instance-exported aliases. Queue-based extraction keeps local and outer type
+indices separate and records nominal resource IDs. Substitution updates the
+resource table without changing the graph. Ascription checks compare complete
+graphs; the reduced legacy signature equality used by other retained checks is
+unchanged. Metadata through nested imported-instance aliases remains incomplete
+and unsupported for ascription.
 The enclosing declarative framing profile admits only function ascriptions. The
 WIT type-only profile still rejects them all.

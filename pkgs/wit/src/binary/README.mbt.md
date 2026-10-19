@@ -98,7 +98,8 @@ nested aliases, malformed metadata, truncation, random sections and deep scopes.
 The declarative profile accepts root function-export ascriptions when the function
 has a complete retained signature. An explicit work stack compares parameter
 names, async mode, structural values and nominal resources. Instance-exported
-function aliases remain unsupported for ascription because their legacy metadata
-omits signature details. The type-only WIT entry point continues to reject all
+function aliases retain complete reachable type graphs and defining scopes.
+Aliases through nested imported instances still lack complete metadata and remain
+unsupported for ascription. The type-only WIT entry point continues to reject all
 root export ascriptions. This slice does not enable component values or runtime
 sections.

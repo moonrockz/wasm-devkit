@@ -13,9 +13,9 @@ targets. Coverage includes parameter names/counts, result types, async mode,
 aggregate shapes and ordering, aliases, repeated exports and nominal handles.
 Invalid ascriptions report `WAC-B003`.
 
-Both pins accept 20 inputs. The product accepts 19. `instance-alias` remains an
-explicit `WAC-B002` exclusion because the retained validator's instance-exported
-function metadata lacks complete async and value-type details. Directly imported
-functions and later re-exports retain complete signatures. Reduced metadata is
-not used to infer successful compatibility. Other root export-ascription sorts
-remain outside this slice. Tracking: `wasm-devkit-p5m.8.2.2` and `.8.2.4`.
+Both pins and the product accept 20 inputs, including `instance-alias`, whose
+complete signature is now retained. Direct imports and re-exports keep the
+ascribed type. The follow-up [alias cases](../wac-function-alias-ascriptions/README.md)
+cover scoped values and resources and record the remaining nested-instance
+metadata boundary. Other root export-ascription sorts remain outside this slice.
+Tracking: `wasm-devkit-p5m.8.2.2` and `.8.2.4`.

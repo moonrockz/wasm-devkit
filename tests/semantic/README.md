@@ -361,5 +361,6 @@ follows the latter where nominal checks differ. See the
 The [function-ascription fixtures](wac-function-ascriptions/README.md) retain 41
 original binary/WAT inputs compared with pinned WAC package loading and
 wasm-tools with all features. Accepted package projections preserve the ascribed
-signature and nominal resource graph. The one supported-by-reference but
-unsupported instance-function alias case is recorded separately.
+signature and nominal resource graph. The follow-up
+[39 alias fixtures](wac-function-alias-ascriptions/README.md) cover complete scoped
+signatures, nominal captures and the remaining nested-instance metadata exclusion.
