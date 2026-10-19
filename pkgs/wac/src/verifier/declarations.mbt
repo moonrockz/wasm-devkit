@@ -550,14 +550,18 @@ fn Check::file(self : Check, root : Int32) -> Unit raise SemanticFailure {
         self.bind(0, node, name, item)
       }
       Export(expression~, renamed~, spread~) => {
-        guard !spread else {
-          raise Problem(
-            self.problem(
-              node, "WAC-S003", "export spreads are not yet supported",
-            ),
-          )
-        }
         let item = self.expression(expression)
+        if spread {
+          guard renamed is None else {
+            raise Problem(
+              self.problem(
+                node, "WAC-S001", "export spread cannot have a rename",
+              ),
+            )
+          }
+          self.export_spread(node, expression, item)
+          continue
+        }
         let inferred = match item.kind {
           Instance(ty) =>
             match self.types[ty].kind {
@@ -579,7 +583,7 @@ fn Check::file(self : Check, root : Int32) -> Unit raise SemanticFailure {
                 )
             }
         }
-        self.extern_item(0, node, name, item.kind, false, value=item.value)
+        self.export_value(node, name, item)
       }
       _ =>
         raise Problem(

@@ -149,6 +149,18 @@ async fn main {
   )
   let (_, empty_spread) = run(["verify", wiring], 1, wit)
   assert_true(empty_spread.contains("WAC-C007"))
+  @fs.write_file(
+    wiring, "package test:app; import f: func(x: u32) -> u32; export new test:first {f}...;",
+  )
+  let _ = run(["verify", wiring], 0, wit)
+  @fs.write_file(
+    wiring, "package test:app; import i: interface {f: func();}; export i.f; export i...;",
+  )
+  let (_, repeated_export) = run(["verify", wiring], 1, wit)
+  assert_true(repeated_export.contains("WAC-C007"))
+  @fs.write_file(wiring, "package test:app; import f: func(); export f...;")
+  let (_, wrong_export) = run(["verify", wiring], 1, wit)
+  assert_true(wrong_export.contains("WAC-C007"))
   let package_dir = dir + "/wac-packages"
   @fs.mkdir(package_dir + "/deps/lookup/dep", recursive=true, allow_exist=true)
   let package_source = package_dir + "/root.wac"

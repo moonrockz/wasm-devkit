@@ -9,7 +9,8 @@ filesystem, network or subprocess I/O. `Parse::is_valid()` still checks syntax;
 Verification follows WAC 0.12.0 declaration order. It supports scalar and composite
 types, records, flags, enums, variants, function types, resources, local interfaces
 and worlds, `use` and delayed `include` declarations, typed imports, expression
-aliases, named/inferred component arguments, instance member access and explicit exports. Async functions, future, stream and error-context
+aliases, named/inferred/spread component arguments, instance member access and
+explicit/spread exports. Async functions, future, stream and error-context
 types follow the pinned resolver. Functions cannot return borrowed resources,
 including borrows nested inside aliases or aggregates.
 
@@ -25,7 +26,7 @@ resource function names and import-only URL, integrity and dependency names.
 These names are checked as strings and never cause network access. Interface
 version suffixes are opaque during resolution, as in the pinned resolver.
 
-Implicit instantiation arguments, export spreads, targets and
+Implicit instantiation arguments, targets and
 parser-only named results fail with `WAC-S003`. These remaining
 composition operations are tracked under
 [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
@@ -307,7 +308,7 @@ test "wire two component instances" {
   assert_eq(argument.name, "f")
   assert_eq(argument.value, 2)
   assert_eq(model.composition_exports()[0].value, 4)
-  let source = "package example:app; interface api {f: func();} import runtime: api; let output = new deps:relay {...runtime}; export output.f;"
+  let source = "package example:app; interface api {f: func();} import runtime: api; let output = new deps:relay {...runtime}; export output...;"
   let model = @verifier.verify(@parser.parse(source), source~, dependencies=[
     { name: "deps:relay", version: None, source: "relay.wasm", bytes, },
   ]).unwrap()
@@ -328,6 +329,13 @@ source/binary diagnostic provenance on all four targets. The binary validator's
 100-level type-depth limit still applies to loaded packages. Thirty-two additional
 spread probes compare the pinned resolver's argument and alias edges, version
 tracks, precedence, no-effect errors and crossed nominal resources.
+
+Export spreads visit instance members in declaration order. An earlier export
+with the exact same name wins, even when its type differs. A spread that adds
+nothing fails with `WAC-C007`; spreading a function, component or type also fails.
+Repeated member access shares one graph value, including across renamed exports
+and spreads. A later explicit export of an already exported name is an error.
+Export names cannot collide with local aliases of type definitions.
 
 ## Portable WAT packages
 

@@ -287,3 +287,19 @@ a supplied scalar alias by the earlier inferred resource leaves a bare resource
 in function/aggregate value positions. The product rejects these values unless
 an own/borrow handle wraps the resource. Standalone inputs and source-first merge
 remain valid.
+
+The 28 original `export_spreads_test.mbt` probes compare pinned WAC 0.12.0
+`Document::resolve` and `wac resolve` acceptance, ordered composition types and
+alias edges. They retain their source and the qualified-interface package's
+WAT/bytes. Coverage includes earlier exports, conflicting types behind skipped
+names, cached aliases, local type-definition aliases, resource contexts, exact
+versioned names and nested instances. Export names are also checked independently,
+because the public reference graph exposes only the last export name per node.
+
+Sixteen of the seventeen accepted export cases also pass validating `wac compose`.
+The resource-constructor case fails the pin's encoder at offset `0xca` with
+`resource used in function does not have a name in this context`. Replacing its
+spread with explicit exports of `handle`, `[constructor]handle`,
+`[method]handle.take` and `handles` reproduces the same failure. This is an encoder
+limitation, not a spread-resolution exclusion. The exact case remains accepted by
+the verifier. Tracking: Beads `wasm-devkit-p5m.8.2.6`.
