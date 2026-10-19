@@ -1,0 +1,1 @@
+package example:accessors; world app { import dep:base/core; } package dep:base { interface core { p:get()->u32; p:set(x:u32); resource r { value:get()->u8; value:set(x:u8); } } }

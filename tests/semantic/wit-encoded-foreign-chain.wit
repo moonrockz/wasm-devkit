@@ -1,0 +1,1 @@
+package example:chain; interface api { use dep:middle/mid.{r,id}; f:func(x:borrow<r>)->id; } world app { import api; } package dep:base { interface core { resource r; type id=u32; } } package dep:middle { interface mid { use dep:base/core.{r,id}; extra:func(x:borrow<r>); } }

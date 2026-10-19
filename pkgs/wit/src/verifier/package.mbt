@@ -176,6 +176,9 @@ fn semantic_version(text : String) -> Bool {
 fn prepare(
   root : SourcePackage,
   dependencies : ReadOnlyArray[SourcePackage],
+  binary_sources~ : Map[String, Bool] = Map([]),
+  semantic_features~ : SemanticFeatures = SemanticFeatures::default(),
+  input_metadata~ : Map[String, Map[Int32, Stability]] = Map([]),
 ) -> Result[Prepared, ReadOnlyArray[Diagnostic]] {
   let inputs = [root]
   inputs.append(dependencies.iter().to_array())
@@ -344,13 +347,16 @@ fn prepare(
   let identities : Array[PackageIdentity] = []
   let known : Map[String, Location] = Map([])
   let by_identity : Map[String, Int32] = Map([])
-  for package_index, group in groups {
+  for group in groups {
     let key = identity_key(group.identity)
+    let partial = binary_sources.contains(group.documents[0].id) &&
+      group.documents[0].ast.nodes[group.sections[0]].data
+      is Package(nested=true, ..)
     let location : Location = {
       source: group.documents[0].id,
       position: SourceSpan(group.documents[0].ast.nodes[group.sections[0]].span),
     }
-    if known.get(key) is Some(previous) {
+    if !partial && known.get(key) is Some(previous) {
       let d = error_at(
         location,
         "WIT-S011",
@@ -361,9 +367,13 @@ fn prepare(
         related: [{ location: previous, message: "first package definition", }],
       })
     }
-    known[key] = location
-    by_identity[key] = package_index
-    identities.push(group.identity)
+    if !partial {
+      known[key] = location
+    }
+    if !by_identity.contains(key) {
+      by_identity[key] = identities.length()
+      identities.push(group.identity)
+    }
   }
   if !errors.is_empty() {
     return Err(ordered_diagnostics(errors))
@@ -375,7 +385,9 @@ fn prepare(
   let roots : Array[Int32] = []
   let root_owners : Map[Int32, Int32] = Map([])
   let node_packages : Array[Int32] = []
-  for package_index, group in groups {
+  let partial_roots : Map[Int32, Bool] = Map([])
+  for group in groups {
+    let package_index = by_identity[identity_key(group.identity)]
     for file_index, document in group.documents {
       let base = match bases.get(document.id) {
         Some(base) => base
@@ -399,6 +411,10 @@ fn prepare(
       }
       let section = base + group.sections[file_index]
       roots.push(section)
+      if binary_sources.contains(document.id) &&
+        nodes[section].data is Package(nested=true, ..) {
+        partial_roots[section] = true
+      }
       root_owners[section] = package_index
     }
   }
@@ -413,6 +429,21 @@ fn prepare(
         }
       }
     }
+  }
+  encoded_merge_sections(
+    nodes, origins, roots, root_owners, partial_roots, errors, binary_sources, semantic_features,
+    input_metadata,
+  ) catch {
+    Unsupported(message) | Invalid(message) => {
+      let location = origins[roots[0]].location
+      errors.push(error_at(location, "WIT-B002", message))
+    }
+  }
+  if !errors.is_empty() {
+    return Err(ordered_diagnostics(errors))
+  }
+  if !partial_roots.is_empty() {
+    encoded_compact_closure(nodes, origins, roots, node_packages)
   }
   Ok({
     tree: { nodes: ReadOnlyArray::from_array(nodes), },

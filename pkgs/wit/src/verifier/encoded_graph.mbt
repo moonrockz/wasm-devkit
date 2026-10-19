@@ -237,7 +237,8 @@ fn encoded_graph(
             }
           }
           InstanceType(index) => {
-            let child = encoded_graph_scope_type(graph, scope, index)
+            let template = encoded_graph_scope_type(graph, scope, index)
+            let child = encoded_graph_instance(graph, template)
             current.instances.push(child)
             current.items.push(InstanceItem(name, child, imported))
           }
@@ -402,7 +403,9 @@ fn encoded_graph_imports(
   interfaces : Map[String, Int32],
   wrappers : Map[Int32, Int32],
   member_order : Map[Int32, Int32],
-) -> Unit raise EncodedFailure {
+) -> Array[(String, Int32)] raise EncodedFailure {
+  let inferred : Array[(String, Int32)] = []
+  let foreign : Map[String, Bool] = Map([])
   let active : Map[Int32, Int32] = Map([])
   let work : Array[(Int32, Int32)] = []
   for scope in 0..<graph.scopes.length() {
@@ -450,13 +453,32 @@ fn encoded_graph_imports(
     for item in scope.items {
       encoded_graph_step(graph)
       if item is InstanceItem(name, projected, imported) && name.contains("/") {
-        guard interfaces.get(name) is Some(authoritative) else {
-          raise Unsupported("foreign encoded interface inference")
+        let authoritative = match interfaces.get(name) {
+          Some(scope) => scope
+          None => {
+            encoded_qualified(name) |> ignore
+            interfaces[name] = projected
+            foreign[name] = true
+            inferred.push((name, projected))
+            for item in graph.scopes[projected].items {
+              encoded_graph_step(graph)
+              if item is TypeItem(_, id, _) {
+                named_nodes[id] = true
+              }
+            }
+            for id in graph.scopes[projected].types {
+              encoded_graph_step(graph)
+              if graph.node_scopes[id] == projected {
+                authoritative_nodes[id] = true
+              }
+            }
+            projected
+          }
         }
         if !imported && wrappers.contains(scope_id) {
           continue
         }
-        guard member_order[authoritative] < order else {
+        guard foreign.contains(name) || member_order[authoritative] < order else {
           raise Unsupported(
             "forward local interface projection requires inference",
           )
@@ -464,6 +486,7 @@ fn encoded_graph_imports(
         if projected == authoritative {
           continue
         }
+        let name_of_interface = name
         let types = graph.scopes[authoritative].exported_types
         let functions = graph.scopes[authoritative].exported_functions
         for item in graph.scopes[projected].items {
@@ -471,9 +494,16 @@ fn encoded_graph_imports(
           match item {
             TypeItem(name, id, _) => {
               guard types.get(name) is Some(target) else {
-                raise Invalid(
-                  "instance type export is not defined in local interface",
-                )
+                guard foreign.contains(name_of_interface) else {
+                  raise Invalid(
+                    "instance type export is not defined in local interface",
+                  )
+                }
+                types[name] = id
+                named_nodes[id] = true
+                authoritative_nodes[id] = true
+                graph.scopes[authoritative].items.push(item)
+                continue
               }
               encoded_graph_bind(
                 graph, id, target, authoritative_nodes, named_nodes,
@@ -486,9 +516,14 @@ fn encoded_graph_imports(
             }
             FunctionItem(name, _, _) => {
               guard functions.contains(name) else {
-                raise Invalid(
-                  "instance function export is not defined in local interface",
-                )
+                guard foreign.contains(name_of_interface) else {
+                  raise Invalid(
+                    "instance function export is not defined in local interface",
+                  )
+                }
+                functions[name] = true
+                graph.scopes[authoritative].items.push(item)
+                continue
               }
               // The pinned Resolve loader checks presence, not signatures.
             }
@@ -498,6 +533,7 @@ fn encoded_graph_imports(
       }
     }
   }
+  inferred
 }
 
 ///|
@@ -642,7 +678,7 @@ fn encoded_graph_world(
           guard interface_names.get(name) is Some(local_name) else {
             raise Unsupported("foreign encoded world interface")
           }
-          out.write_string(encoded_name(local_name) + ";")
+          out.write_string(encoded_interface_path(local_name) + ";")
         } else {
           out.write_string(
             encoded_name(name) +
@@ -656,4 +692,72 @@ fn encoded_graph_world(
     }
   }
   out.to_string()
+}
+
+///|
+// Importing/exporting an instance type freshens resources declared in that type.
+// Outer aliases keep their existing identities. Local indices retain their order
+// while owned graph nodes receive new IDs, including their named alias edges.
+fn encoded_graph_instance(
+  graph : EncodedGraph,
+  template : Int32,
+) -> Int32 raise EncodedFailure {
+  let original = graph.scopes[template]
+  guard original.interface_scope else {
+    raise Invalid("instance references a component type")
+  }
+  let scope = graph.scopes.length()
+  let mapping : Map[Int32, Int32] = Map([])
+  let owned : Array[Int32] = []
+  for id in original.types {
+    encoded_graph_step(graph)
+    if graph.node_scopes[id] == template && !mapping.contains(id) {
+      mapping[id] = graph.nodes.length()
+      graph.nodes.push(graph.nodes[id])
+      graph.node_scopes.push(scope)
+      owned.push(id)
+    }
+  }
+  let remap = fn(id : Int32) { mapping.get(id).unwrap_or(id) }
+  for id in owned {
+    encoded_graph_step(graph)
+    graph.nodes[mapping[id]] = match graph.nodes[id] {
+      Link(target) => Link(remap(target))
+      Value(definition, _) => Value(definition, scope)
+      node => node
+    }
+  }
+  let items : Array[EncodedItem] = []
+  let exported_types : Map[String, Int32] = Map([])
+  let exported_functions : Map[String, Bool] = Map([])
+  for item in original.items {
+    encoded_graph_step(graph)
+    match item {
+      TypeItem(name, id, imported) => {
+        let id = remap(id)
+        items.push(TypeItem(name, id, imported))
+        if !imported {
+          exported_types[name] = id
+        }
+      }
+      FunctionItem(name, id, imported) => {
+        items.push(FunctionItem(name, remap(id), imported))
+        if !imported {
+          exported_functions[name] = true
+        }
+      }
+      _ => raise Unsupported("nested instance type item")
+    }
+  }
+  graph.scopes.push({
+    interface_scope: true,
+    parent: original.parent,
+    declarations: [],
+    types: original.types.map(remap),
+    instances: [],
+    items,
+    exported_types,
+    exported_functions,
+  })
+  scope
 }

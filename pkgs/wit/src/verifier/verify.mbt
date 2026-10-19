@@ -180,7 +180,12 @@ fn verify_prepared(
     prepared, scopes, bindings, package_edges, foreign_kinds, errors,
   )
   let foreign = foreign_gates(
-    prepared, scopes, file_aliases, stabilities, semantic_features,
+    prepared,
+    scopes,
+    file_aliases,
+    stabilities,
+    semantic_features,
+    binary_sources~,
   )
   let record_path = fn(
     owner : Int32,
@@ -196,7 +201,8 @@ fn verify_prepared(
     }
   }
   let disabled_foreign = fn(at : Int32, path : Int32) {
-    if !semantic_features.includes(stabilities[at].value) &&
+    if !binary_sources.contains(prepared.origins[at].location.source) &&
+      !semantic_features.includes(stabilities[at].value) &&
       prepared.foreign_package(path) is Some(package_index) {
       package_edges.push((prepared.node_packages[at], package_index, path))
       true

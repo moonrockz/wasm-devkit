@@ -159,7 +159,7 @@ fn encoded_type(
     Named(previous) => "type " + label + "=" + encoded_name(previous) + ";"
     Imported(owner, original) =>
       "use " +
-      encoded_name(owner) +
+      encoded_interface_path(owner) +
       ".{" +
       encoded_name(original) +
       (if original == name { "" } else { " as " + label }) +
@@ -519,7 +519,19 @@ fn lower_encoded(
       }
     }
   }
-  encoded_graph_imports(graph, interfaces, wrappers, member_order)
+  let inferred = encoded_graph_imports(
+    graph, interfaces, wrappers, member_order,
+  )
+  for (full, scope) in inferred {
+    let (owner, name) = encoded_qualified(full)
+    let path = if owner == identity { name } else { full }
+    interface_names[full] = path
+    for item in graph.scopes[scope].items {
+      if item is TypeItem(member_name, id, _) {
+        owners[id] = (path, member_name)
+      }
+    }
+  }
   let out = StringBuilder()
   out.write_string(
     "package " +
@@ -545,5 +557,67 @@ fn lower_encoded(
       "}",
     )
   }
+  let foreign_packages : Map[String, Array[(String, Int32)]] = Map([])
+  let foreign_order : Array[String] = []
+  for (full, scope) in inferred {
+    let (owner, name) = encoded_qualified(full)
+    if owner == identity {
+      out.write_string(
+        "interface " +
+        encoded_name(name) +
+        "{" +
+        encoded_graph_interface(graph, scope, owners) +
+        "}",
+      )
+    } else {
+      let key = encoded_package_path(owner)
+      if !foreign_packages.contains(key) {
+        foreign_packages[key] = []
+        foreign_order.push(key)
+      }
+      foreign_packages[key].push((name, scope))
+    }
+  }
+  for key in foreign_order {
+    out.write_string("package " + key + "{")
+    for (name, scope) in foreign_packages[key] {
+      out.write_string(
+        "interface " +
+        encoded_name(name) +
+        "{" +
+        encoded_graph_interface(graph, scope, owners) +
+        "}",
+      )
+    }
+    out.write_string("}")
+  }
   (out.to_string(), metadata)
+}
+
+///|
+fn encoded_interface_path(name : String) -> String raise EncodedFailure {
+  if !name.contains("/") {
+    return encoded_name(name)
+  }
+  let (owner, member_name) = encoded_qualified(name)
+  encoded_name(owner.namespace_name) +
+  ":" +
+  encoded_name(owner.name) +
+  "/" +
+  encoded_name(member_name) +
+  (match owner.version {
+    Some(version) => "@" + version
+    None => ""
+  })
+}
+
+///|
+fn encoded_package_path(owner : PackageIdentity) -> String raise EncodedFailure {
+  encoded_name(owner.namespace_name) +
+  ":" +
+  encoded_name(owner.name) +
+  (match owner.version {
+    Some(version) => "@" + version
+    None => ""
+  })
 }

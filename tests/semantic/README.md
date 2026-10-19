@@ -160,3 +160,19 @@ The exclusion remains tracked under `wasm-devkit-p5m.8.1.5` and `.8.1.7`.
 Version 0/1 alias metadata fixtures also compare renamed interface uses and world
 uses. Their own type stability survives binary feature selection and keeps binary
 provenance, including unstable aliases and future stable world type annotations.
+
+Foreign encoded fixtures cover unioned and transitive inferred interfaces,
+renamed world uses, aggregates, accessors, metadata, reserved names and fresh
+resources when an instance type is reused. Original source/WAT/binary triples
+use Apache-2.0 and the same pinned encoder. Library comparisons cover named type
+and function edges plus reachable anonymous types; unused lowering intermediates
+are excluded. This is not the complete upstream model-conformance gate.
+
+Binary dependency directories exercise compatible partial unions and function
+kind/parameter/result mismatches. Mixed source/binary directories that repeat an
+inferred package are an explicit oracle exclusion: wit-parser 0.262.0 panics at
+resolve/mod.rs:3521, attempting to re-add the package. Direct mixed-input behavior
+is checked with the test oracle's `--merge PATH` mode instead. The directory panic
+is tracked under `wasm-devkit-p5m.8.1.5` and `.8.1.7`, outside the normal manifest.
+Feature-disabled overlapping views currently fail closed in product regressions;
+per-input selection before merging remains on the encoded dependency task.

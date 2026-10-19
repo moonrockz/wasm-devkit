@@ -1,0 +1,1 @@
+package example:reserved; world app { import dep:%world/%interface; } package dep:%world { interface %interface { type %type=u32; } }

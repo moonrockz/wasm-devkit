@@ -191,14 +191,22 @@ pub fn resolve_packages(
 ) -> Result[Resolution, ReadOnlyArray[Diagnostic]] {
   let binaries : Map[String, Bool] = Map([])
   let encoded_inputs = []
+  let input_metadata : Map[String, Map[Int32, Stability]] = Map([])
   for input in [root].iter().concat(dependencies.iter()) {
     if input is Encoded(encoded) {
       binaries[encoded.source_id] = true
       encoded_inputs.push(encoded)
+      input_metadata[encoded.source_id] = encoded.metadata
     }
   }
   let result = match
-    prepare(root.lowered(), dependencies.map(PackageInput::lowered)) {
+    prepare(
+      root.lowered(),
+      dependencies.map(PackageInput::lowered),
+      binary_sources=binaries,
+      semantic_features~,
+      input_metadata~,
+    ) {
     Err(errors) => Err(errors)
     Ok(prepared) => {
       let metadata : Map[Int32, Stability] = Map([])

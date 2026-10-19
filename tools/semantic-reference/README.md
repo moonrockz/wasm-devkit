@@ -38,3 +38,9 @@ the actual `WorldKey` enum variant and item, including colliding map entries. Th
 MoonBit runner normalizes those variants to package-qualified interface/world IDs
 and compares world keys, kinds and resource identities. Function/type bodies
 remain outside this projection and are covered by the separate full conformance gates.
+
+Pass `--merge PATH` repeatedly to resolve additional WIT inputs independently and
+merge each result using `Resolve::merge`. Feature options apply to every input.
+The default `push_path` operation is unchanged. This mode checks mixed source and
+encoded inputs where the pinned directory loader panics when a source package
+repeats a package already inferred from encoded dependencies.

@@ -1,0 +1,1 @@
+package example:union; interface left { use dep:base/core.{r}; f:func(x:borrow<r>); } interface right { use dep:base/core.{id}; g:func()->id; } world app { import left; import right; } package dep:base { interface core { resource r; type id=u32; extra:func(); } }

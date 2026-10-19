@@ -1,0 +1,31 @@
+(component
+  (type (;0;)
+    (component
+      (type (;0;)
+        (component
+          (type (;0;)
+            (instance
+              (export (;0;) "r" (type (sub resource)))
+              (type (;1;) u32)
+              (export (;2;) "id" (type (eq 1)))
+            )
+          )
+          (import "dep:base/core" (instance (;0;) (type 0)))
+          (alias export 0 "r" (type (;1;)))
+          (import "renamed" (type (;2;) (eq 1)))
+          (alias export 0 "id" (type (;3;)))
+          (import "id" (type (;4;) (eq 3)))
+          (type (;5;) (borrow 2))
+          (type (;6;) (func (param "x" 5) (result 4)))
+          (export (;0;) "f" (func (type 6)))
+        )
+      )
+      (export (;0;) "example:worlduses/app" (component (type 0)))
+    )
+  )
+  (export (;1;) "app" (type 0))
+  (@custom "package-docs" "\01{}")
+  (@producers
+    (processed-by "wit-component" "0.262.0")
+  )
+)

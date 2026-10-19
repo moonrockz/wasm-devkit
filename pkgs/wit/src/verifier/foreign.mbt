@@ -85,6 +85,7 @@ fn foreign_gates(
   aliases : Map[String, Map[String, Int32]],
   infos : ReadOnlyArray[StabilityInfo],
   features : SemanticFeatures,
+  binary_sources~ : Map[String, Bool] = Map([]),
 ) -> ForeignGates {
   let tree = prepared.tree
   let paths : Map[Int32, Bool] = Map([])
@@ -138,6 +139,11 @@ fn foreign_gates(
             prepared.node_packages[id] => prepared.interface_name(target)
           _ => continue
         }
+    }
+    // Decoded named types and world items survive metadata feature gates.
+    // Their dependencies must not inherit source-only first-selector gating.
+    if binary_sources.contains(prepared.origins[id].location.source) {
+      continue
     }
     paths[id] = true
     let key = prepared.node_packages[id].to_string() + ":" + canonical

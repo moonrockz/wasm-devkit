@@ -1,0 +1,1 @@
+package example:aggregates; interface api { use dep:base/core.{payload}; f:func(x:payload); } world app { import dep:base/core; import api; } package dep:base { interface core { resource r; record payload { key:string, value:list<borrow<r>> } f:func(x:payload); } }

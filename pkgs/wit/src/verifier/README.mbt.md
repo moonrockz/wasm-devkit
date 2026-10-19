@@ -73,7 +73,8 @@ interfaces contain exported named scalar/composite types, records, flags, enums,
 variants, resources, constructors, ordinary/static/async methods, getters/setters
 and freestanding functions. Worlds contain function or
 instance imports/exports and named type imports. Qualified instances bind to an
-already declared interface in the same encoded package. An instance with an ordinary name becomes an inline
+already declared local interface or infer a foreign interface by its qualified
+package name and version. An instance with an ordinary name becomes an inline
 interface. Component type indices include aliases introduced by type exports.
 
 V1 uses its outer package identity, including empty packages and multiple members.
@@ -85,12 +86,30 @@ of its interface. The authoritative local member determines its identity and typ
 the pinned loader checks aggregate structure but ignores primitive, flag, enum,
 handle and resource leaf differences and existing function signatures. Missing projected members are errors.
 
-The profile rejects foreign or forward interface inference, world-owned resource
+Foreign projections union their referenced type and function members across
+wrappers and worlds. Transitive foreign uses preserve nominal resource and named
+alias identities. Reusing an instance type freshens its declared resources while
+retaining outer aliases. Inferred package blocks remain private; they do not
+appear in `sources()`. Supplied source documents and their original node origins
+remain intact when inferred members are added to the closure.
+
+Overlapping inferred and supplied interfaces union their members. At the pinned
+`Resolve::merge` API, shared named types map by name without definition comparison;
+shared functions must agree on kind, parameter names/count, primitive types and
+result presence. Named/composite type IDs are not structurally compared during
+this merge. This differs from aggregate checks within one encoded input.
+
+The profile rejects forward local interface inference, world-owned resource
 members, anonymous structural types, name attributes and export ascriptions.
+Overlapping interface views containing feature-disabled source declarations or
+encoded functions currently return `WIT-B002`; selecting those features enables
+the merge. Independent per-input selection before merging remains unfinished.
 Private scope/type graphs use explicit stacks and a one-million-step work budget.
 Scope scans, alias links, projection matching and per-interface type-slot tables
 consume that budget. Large collections of otherwise unrelated interfaces can reach
-this limit. Public models and provenance retain the same immutable contracts.
+this limit. Inferred closure merging has a separate one-million-step budget for
+arena size, member scans and signature comparisons. Public models and provenance
+retain the same immutable contracts.
 `package-docs` metadata versions 0 and 1 retain release/feature/deprecation
 annotations and validate docs, member names and item kinds. Imported alias types
 in interfaces and worlds retain their own metadata, including renamed uses. Unknown schema fields,

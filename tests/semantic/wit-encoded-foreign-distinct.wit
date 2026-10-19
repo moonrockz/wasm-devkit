@@ -1,0 +1,1 @@
+package example:distinct; interface api { use dep:one/first.{r as left}; use dep:two/second.{r as right}; f:func(x:borrow<left>,y:borrow<right>); } world app { import api; } package dep:one { interface first { resource r; } } package dep:two { interface second { resource r; } }

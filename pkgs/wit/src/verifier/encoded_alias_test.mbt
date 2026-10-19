@@ -53,7 +53,10 @@ test "scoped encoded aliases preserve local interface and world identities" {
 ///|
 // Compare named and anonymous type edges by their owning declaration and shape,
 // never by source/decoder allocation indices.
-fn encoded_alias_model(model : @verifier.Resolution) -> Map[String, String] {
+fn encoded_alias_model(
+  model : @verifier.Resolution,
+  reachable_only~ : Bool = false,
+) -> Map[String, String] {
   let labels : Map[Int32, String] = Map([])
   for interface_info in model.interfaces() {
     for ty in interface_info.types {
@@ -70,6 +73,40 @@ fn encoded_alias_model(model : @verifier.Resolution) -> Map[String, String] {
       }
     }
   }
+  let reachable : Map[Int32, Bool] = Map([])
+  let kinds : Map[Int32, @verifier.TypeKind] = Map([])
+  let work : Array[Int32] = []
+  for ty in model.types() {
+    kinds[ty.id] = ty.kind
+    if labels.contains(ty.id) {
+      work.push(ty.id)
+    }
+  }
+  for function in model.functions() {
+    for param in function.params {
+      work.push(param.ty)
+    }
+    if function.result is Some(id) {
+      work.push(id)
+    }
+  }
+  while work.pop() is Some(id) {
+    if reachable.contains(id) {
+      continue
+    }
+    reachable[id] = true
+    let edges : Array[Int32] = match kinds[id] {
+      Own(id) | Borrow(id) | Alias(id) | List(id, _) | Option(id) => [id]
+      Tuple(ids) => ids.iter().to_array()
+      Result(a, b) => [a, b].filter_map(id => id)
+      Future(id) | Stream(id) => [id].filter_map(id => id)
+      Map(a, b) => [a, b]
+      Record(fields) => fields.map(field => field.ty).iter().to_array()
+      Variant(cases) => cases.iter().filter_map(case => case.payload).to_array()
+      _ => []
+    }
+    work.append(edges)
+  }
   let result : Map[String, String] = Map([])
   let pending = model.types().iter().to_array()
   while !pending.is_empty() {
@@ -79,7 +116,9 @@ fn encoded_alias_model(model : @verifier.Resolution) -> Map[String, String] {
       if encoded_alias_shape(ty.kind, labels) is Some(shape) {
         let label = labels.get(ty.id).unwrap_or("anonymous/" + shape)
         labels[ty.id] = label
-        result[label] = shape
+        if !reachable_only || reachable.contains(ty.id) {
+          result[label] = shape
+        }
         ignore(pending.remove(index))
       }
     }

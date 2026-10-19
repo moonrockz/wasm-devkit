@@ -1,0 +1,1 @@
+package example:methods; world app { import dep:base/core; } package dep:base { interface core { resource r { constructor(); f:func(x:u32)->string; } } }

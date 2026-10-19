@@ -18,6 +18,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
     let mut resolve = Resolve::default();
     let mut args = env::args().skip(2);
+    let mut merges = Vec::new();
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--features" => {
@@ -25,10 +26,20 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 resolve.features.extend(names.split(',').map(str::to_owned));
             }
             "--all-features" => resolve.all_features = true,
+            "--merge" => merges.push(args.next().ok_or("--merge requires a path")?),
             _ => return Err(format!("unknown option: {arg}").into()),
         }
     }
     resolve.push_path(path)?;
+    for path in merges {
+        let mut input = Resolve {
+            features: resolve.features.clone(),
+            all_features: resolve.all_features,
+            ..Resolve::default()
+        };
+        input.push_path(path)?;
+        resolve.merge(input)?;
+    }
     let mut value = serde_json::to_value(&resolve)?;
     // Resolve's JSON map keys cannot distinguish a user name `interface-0`
     // from WorldKey::Interface(0). Preserve actual key discriminants and items.

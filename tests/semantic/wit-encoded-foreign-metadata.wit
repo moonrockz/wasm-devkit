@@ -1,0 +1,1 @@
+package example:metadata@1.0.0; interface api { @unstable(feature=preview) use dep:base/core.{r}; @unstable(feature=preview) f:func(x:borrow<r>); } world app { import api; } package dep:base { interface core { resource r; } }
