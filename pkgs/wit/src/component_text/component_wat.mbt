@@ -2325,6 +2325,7 @@ fn inline_externdesc_sort(
 fn parse_inline_alias_decl(
   field : Array[SExpr],
   state : ComponentBuildState,
+  ambient_type_names : Array[NamedBinding],
   local_type_names : Array[NamedBinding],
   local_instance_names : Array[NamedBinding],
   local_type_count : Int32,
@@ -2393,7 +2394,7 @@ fn parse_inline_alias_decl(
     let inferred_outer_count = if field[3] is Atom(target_name) &&
       target_name.has_prefix("$") {
       if is_type_alias {
-        if lookup_named_index(state.type_names, target_name) is Some(_) {
+        if lookup_named_index(ambient_type_names, target_name) is Some(_) {
           Some(1)
         } else {
           let mut found : Int32? = None
@@ -2477,7 +2478,7 @@ fn parse_inline_alias_decl(
     let target_idx = if is_type_alias {
       if field[3] is Atom(target_name) && target_name.has_prefix("$") {
         if count == 1 &&
-          lookup_named_index(state.type_names, target_name) is Some(idx) {
+          lookup_named_index(ambient_type_names, target_name) is Some(idx) {
           idx
         } else if count > 1 &&
           count - 2 < state.outer_type_scopes.length() &&
@@ -2678,8 +2679,8 @@ fn build_inline_instance_type_bytes_with_ambient(
         next_local_core_type_count,
         next_local_instance_count,
       ) = parse_inline_alias_decl(
-        field, state, local_type_names, local_instance_names, local_type_count, local_core_type_count,
-        local_instance_count,
+        field, state, ambient_type_names, local_type_names, local_instance_names,
+        local_type_count, local_core_type_count, local_instance_count,
       )
       local_type_count = next_local_type_count
       local_core_type_count = next_local_core_type_count
@@ -2855,8 +2856,8 @@ fn build_inline_component_type_bytes_with_ambient(
         next_local_core_type_count,
         next_local_instance_count,
       ) = parse_inline_alias_decl(
-        field, state, local_type_names, local_instance_names, local_type_count, local_core_type_count,
-        local_instance_count,
+        field, state, ambient_type_names, local_type_names, local_instance_names,
+        local_type_count, local_core_type_count, local_instance_count,
       )
       local_type_count = next_local_type_count
       local_core_type_count = next_local_core_type_count

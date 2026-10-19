@@ -201,6 +201,15 @@ async fn main {
   let (_, binary_target) = run(["verify", wiring], 1, wit)
   assert_true(binary_target.contains("WAC-T003"))
   assert_true(binary_target.contains("target.wat:[binary]"))
+  @fs.write_file(
+    wiring, "package test:app; let first = new test:first {...}; let second = new test:second {f: first.out, ...}; export second.out;",
+  )
+  let _ = run(["verify", wiring], 0, wit)
+  @fs.write_file(
+    wiring, "package test:app; let first = new test:first {...}; import f: func(x: u32) -> u32;",
+  )
+  let (_, fill_conflict) = run(["verify", wiring], 1, wit)
+  assert_true(fill_conflict.contains("WAC-C008"))
   let package_dir = dir + "/wac-packages"
   @fs.mkdir(package_dir + "/deps/lookup/dep", recursive=true, allow_exist=true)
   let package_source = package_dir + "/root.wac"

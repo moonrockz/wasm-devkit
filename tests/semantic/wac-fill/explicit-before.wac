@@ -1,0 +1,1 @@
+package test:app; import f: func(); let i=new test:first {...};

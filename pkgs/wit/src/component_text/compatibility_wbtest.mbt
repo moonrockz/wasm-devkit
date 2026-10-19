@@ -117,3 +117,37 @@ test "component indices accept WAT radix sign and digit separators" {
   }
   assert_eq(parse_index_literal("+0x7fff_ffff"), Some(2147483647))
 }
+
+///|
+test "explicit named outer aliases retain the parent type index" {
+  for scope in ["instance", "component"] {
+    let parsed = @component.parse_component(
+      parse_component_wat(
+        "(component (type u32) (type $r u64) (type (" +
+        scope +
+        " (alias outer 1 $r (type $r)) (type (func (param \"x\" $r))))))",
+      ),
+    )
+    let mut aliases = 0
+    match parsed.types[2] {
+      InstanceType(declarations) =>
+        for declaration in declarations {
+          if declaration is AliasOuter(_, depth, index) {
+            assert_eq(depth, 1)
+            assert_eq(index, 1)
+            aliases += 1
+          }
+        }
+      ComponentType(declarations) =>
+        for declaration in declarations {
+          if declaration is AliasOuter(_, depth, index) {
+            assert_eq(depth, 1)
+            assert_eq(index, 1)
+            aliases += 1
+          }
+        }
+      _ => fail("missing inline scope")
+    }
+    assert_true(aliases >= 1)
+  }
+}

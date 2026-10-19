@@ -1,0 +1,1 @@
+(component (type (component (type (func)) (export "f" (func (type 0))))) (import "component" (component (type 0))))

@@ -1,0 +1,1 @@
+package test:app; interface local {f: func(); g: func();} import api as "test:api/run@1.2.0": local; let i=new test:first {...}; export api;

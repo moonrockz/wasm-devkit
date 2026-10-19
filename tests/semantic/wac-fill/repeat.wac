@@ -1,0 +1,1 @@
+package test:app; let i=new test:first {...}; let j=new test:first {...}; export i.out as first; export j.out as second;

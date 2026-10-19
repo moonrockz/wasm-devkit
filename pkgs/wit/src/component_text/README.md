@@ -31,3 +31,8 @@ The retained compiler rejects the nonstandard `component definition binary` form
 `LOCAL.patch` also records the UTF-8 import used by normalization. The new layer is
 original project code rather than a copied upstream file, so it has no upstream
 hash. Existing WIT conformance fixtures exercise it alongside the WAC package corpus.
+
+Explicit named outer type aliases resolve against the saved parent bindings.
+Automatic aliases in an inline instance/component type cannot overwrite those
+parent indices. WAC Fill fixtures compare the resulting imported resource graph
+with the binary encoded by the pinned wasm-tools.

@@ -344,3 +344,9 @@ The accepted `resource-implicit-use` source panics in pinned `wac compose` at
 same panic. Resolution acceptance remains the oracle for this encoder limitation;
 it is not excluded from target-resolution comparisons. These findings are tracked
 on Beads `wasm-devkit-p5m.8.2.6`.
+
+The original [WAC Fill cases](wac-fill/README.md) retain dependency bytes, WAT,
+source, hashes and separate resolve/aggregation/validating-compose outcomes.
+Library tests compare ordered aggregate models and binary/WAT equivalence; graph
+contracts cover 3,000 chained instantiations and captured resource identity.
+Reference panic and post-aggregation rejection cases are listed explicitly.

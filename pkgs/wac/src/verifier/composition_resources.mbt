@@ -38,6 +38,7 @@ fn Check::resource_parameters(
   self : Check,
   node : Int32,
   kind : ItemKind,
+  budget~ : VerificationBudget? = None,
 ) -> (Array[Int32], Map[Int32, Bool]) raise SemanticFailure {
   let pending = [binary_kind_id(kind)]
   let seen : Map[Int32, Bool] = Map([])
@@ -48,6 +49,9 @@ fn Check::resource_parameters(
   }
   let mut remaining = 1000000
   while pending.pop() is Some(id) {
+    if budget is Some(budget) {
+      self.verification_step(budget, node)
+    }
     if seen.contains(id) {
       continue
     }
@@ -77,12 +81,18 @@ fn Check::resource_parameters(
       _ => []
     }
     for item in externs {
+      if budget is Some(budget) {
+        self.verification_step(budget, node)
+      }
       if item.kind is Type(resource) &&
         self.types[resource].kind is Resource(None) {
         owned[resource] = true
       }
     }
     for child in binary_children(ty) {
+      if budget is Some(budget) {
+        self.verification_step(budget, node)
+      }
       pending.push(child)
     }
   }

@@ -1,0 +1,1 @@
+package test:app; let i=new test:first {...}; let j=new test:first {...}; export j.take;

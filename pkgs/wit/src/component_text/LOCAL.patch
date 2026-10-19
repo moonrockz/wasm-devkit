@@ -415,7 +415,9 @@
 @@ -2201 +2302 @@
 -) -> (Int, Int?, String?) raise ComponentTextError {
 +) -> (Int32, Int32?, String?) raise ComponentTextError {
-@@ -2229,4 +2330,4 @@
+@@ -2226,0 +2328 @@
++  ambient_type_names : Array[NamedBinding],
+@@ -2229,4 +2331,4 @@
 -  local_type_count : Int,
 -  local_core_type_count : Int,
 -  local_instance_count : Int,
@@ -424,66 +426,82 @@
 +  local_core_type_count : Int32,
 +  local_instance_count : Int32,
 +) -> (Bytes, Int32, Int32, Int32) raise ComponentTextError {
-@@ -2298 +2399 @@
+@@ -2295 +2397 @@
+-        if lookup_named_index(state.type_names, target_name) is Some(_) {
++        if lookup_named_index(ambient_type_names, target_name) is Some(_) {
+@@ -2298 +2400 @@
 -          let mut found : Int? = None
 +          let mut found : Int32? = None
-@@ -2312 +2413 @@
+@@ -2312 +2414 @@
 -          let mut found : Int? = None
 +          let mut found : Int32? = None
-@@ -2329 +2430 @@
+@@ -2329 +2431 @@
 -          let mut found : Int? = None
 +          let mut found : Int32? = None
-@@ -2346 +2447 @@
+@@ -2346 +2448 @@
 -        let mut found : Int? = None
 +        let mut found : Int32? = None
-@@ -2363 +2464 @@
+@@ -2363 +2465 @@
 -      if parse_decimal_index(count_atom) is Some(count) {
 +      if parse_index_literal(count_atom) is Some(count) {
-@@ -2480 +2581 @@
+@@ -2379 +2481 @@
+-          lookup_named_index(state.type_names, target_name) is Some(idx) {
++          lookup_named_index(ambient_type_names, target_name) is Some(idx) {
+@@ -2480 +2582 @@
 -  start : Int,
 +  start : Int32,
-@@ -2647 +2748 @@
+@@ -2580,2 +2682,2 @@
+-        field, state, local_type_names, local_instance_names, local_type_count, local_core_type_count,
+-        local_instance_count,
++        field, state, ambient_type_names, local_type_names, local_instance_names,
++        local_type_count, local_core_type_count, local_instance_count,
+@@ -2647 +2749 @@
 -  start : Int,
 +  start : Int32,
-@@ -2659 +2760 @@
+@@ -2659 +2761 @@
 -  start : Int,
 +  start : Int32,
-@@ -2838 +2939 @@
+@@ -2757,2 +2859,2 @@
+-        field, state, local_type_names, local_instance_names, local_type_count, local_core_type_count,
+-        local_instance_count,
++        field, state, ambient_type_names, local_type_names, local_instance_names,
++        local_type_count, local_core_type_count, local_instance_count,
+@@ -2838 +2940 @@
 -  start : Int,
 +  start : Int32,
-@@ -2850 +2951 @@
+@@ -2850 +2952 @@
 -  start : Int,
 +  start : Int32,
-@@ -2852 +2953 @@
+@@ -2852 +2954 @@
 -) -> Int raise ComponentTextError {
 +) -> Int32 raise ComponentTextError {
-@@ -2864 +2965 @@
+@@ -2864 +2966 @@
 -  start : Int,
 +  start : Int32,
-@@ -2866 +2967 @@
+@@ -2866 +2968 @@
 -) -> Int raise ComponentTextError {
 +) -> Int32 raise ComponentTextError {
-@@ -3090,2 +3191,2 @@
+@@ -3090,2 +3192,2 @@
 -  sort_tag : Int,
 -  core_kind : Int?,
 +  sort_tag : Int32,
 +  core_kind : Int32?,
-@@ -3147 +3248 @@
+@@ -3147 +3249 @@
 -  section_id : Int,
 +  section_id : Int32,
-@@ -3211,2 +3312,2 @@
+@@ -3211,2 +3313,2 @@
 -  kind : Int,
 -  instance_idx : Int,
 +  kind : Int32,
 +  instance_idx : Int32,
-@@ -3226,3 +3327,3 @@
+@@ -3226,3 +3328,3 @@
 -  sort_tag : Int,
 -  core_kind : Int?,
 -  instance_idx : Int,
 +  sort_tag : Int32,
 +  core_kind : Int32?,
 +  instance_idx : Int32,
-@@ -3241,4 +3342,4 @@
+@@ -3241,4 +3343,4 @@
 -  sort_tag : Int,
 -  core_kind : Int?,
 -  count : Int,
@@ -492,32 +510,32 @@
 +  core_kind : Int32?,
 +  count : Int32,
 +  idx : Int32,
-@@ -3261,2 +3362,2 @@
+@@ -3261,2 +3363,2 @@
 -  count : Int,
 -  idx : Int,
 +  count : Int32,
 +  idx : Int32,
-@@ -3334 +3435 @@
+@@ -3334 +3436 @@
 -) -> Int raise ComponentTextError {
 +) -> Int32 raise ComponentTextError {
-@@ -3342 +3443 @@
+@@ -3342 +3444 @@
 -    if parse_decimal_index(text) is Some(idx) {
 +    if parse_index_literal(text) is Some(idx) {
-@@ -3423 +3524 @@
+@@ -3423 +3525 @@
 -  opcode : Int,
 +  opcode : Int32,
-@@ -3475 +3576 @@
+@@ -3475 +3577 @@
 -  opcode : Int,
 +  opcode : Int32,
-@@ -3510 +3611 @@
+@@ -3510 +3612 @@
 -  let mut dtor_idx : Int? = None
 +  let mut dtor_idx : Int32? = None
-@@ -3563 +3664,3 @@
+@@ -3563 +3665,3 @@
 -  let push_type_exports = fn(type_idx : Int) -> Unit raise ComponentTextError {
 +  let push_type_exports = fn(
 +    type_idx : Int32,
 +  ) -> Unit raise ComponentTextError {
-@@ -3626,0 +3730,12 @@
+@@ -3626,0 +3731,12 @@
 +    if head == "map" {
 +      if items.length() != 3 {
 +        raise Unsupported("map type must be `(map <valtype> <valtype>)`")
@@ -530,172 +548,172 @@
 +      push_type_exports(type_idx)
 +      return
 +    }
-@@ -3808,2 +3923,2 @@
+@@ -3808,2 +3924,2 @@
 -  sort_tag : Int,
 -  core_kind : Int?,
 +  sort_tag : Int32,
 +  core_kind : Int32?,
-@@ -3811 +3926 @@
+@@ -3811 +3927 @@
 -  idx : Int,
 +  idx : Int32,
-@@ -3843,2 +3958,2 @@
+@@ -3843,2 +3959,2 @@
 -  sort_tag : Int,
 -  core_kind : Int?,
 +  sort_tag : Int32,
 +  core_kind : Int32?,
-@@ -3846 +3961 @@
+@@ -3846 +3962 @@
 -) -> Int raise ComponentTextError {
 +) -> Int32 raise ComponentTextError {
-@@ -3927,2 +4042,2 @@
+@@ -3927,2 +4043,2 @@
 -  kind : Int,
 -  instance_idx : Int,
 +  kind : Int32,
 +  instance_idx : Int32,
-@@ -3931 +4046 @@
+@@ -3931 +4047 @@
 -) -> Int raise ComponentTextError {
 +) -> Int32 raise ComponentTextError {
-@@ -3953 +4068 @@
+@@ -3953 +4069 @@
 -) -> Int raise ComponentTextError {
 +) -> Int32 raise ComponentTextError {
-@@ -3991 +4106 @@
+@@ -3991 +4107 @@
 -) -> Int raise ComponentTextError {
 +) -> Int32 raise ComponentTextError {
-@@ -4006 +4121 @@
+@@ -4006 +4122 @@
 -) -> Int raise ComponentTextError {
 +) -> Int32 raise ComponentTextError {
-@@ -4018 +4133 @@
+@@ -4018 +4134 @@
 -) -> Int raise ComponentTextError {
 +) -> Int32 raise ComponentTextError {
-@@ -4143,2 +4258,2 @@
+@@ -4143,2 +4259,2 @@
 -  start : Int,
 -  end_exclusive : Int,
 +  start : Int32,
 +  end_exclusive : Int32,
-@@ -4146 +4261 @@
+@@ -4146 +4262 @@
 -) -> (Int, Bytes) raise ComponentTextError {
 +) -> (Int32, Bytes) raise ComponentTextError {
-@@ -4160 +4275 @@
+@@ -4160 +4276 @@
 -  type_idx : Int,
 +  type_idx : Int32,
-@@ -4186 +4301 @@
+@@ -4186 +4302 @@
 -  options_end : Int,
 +  options_end : Int32,
-@@ -4205 +4320 @@
+@@ -4205 +4321 @@
 -fn canon_prim_sleb(opcode : Int) -> Int raise ComponentTextError {
 +fn canon_prim_sleb(opcode : Int32) -> Int32 raise ComponentTextError {
-@@ -4272 +4387 @@
+@@ -4272 +4388 @@
 -) -> Int raise ComponentTextError {
 +) -> Int32 raise ComponentTextError {
-@@ -4290 +4405 @@
+@@ -4290 +4406 @@
 -) -> Int raise ComponentTextError {
 +) -> Int32 raise ComponentTextError {
-@@ -4305 +4420 @@
+@@ -4305 +4421 @@
 -) -> Int raise ComponentTextError {
 +) -> Int32 raise ComponentTextError {
-@@ -4330 +4445 @@
+@@ -4330 +4446 @@
 -) -> (Int, String?) raise ComponentTextError {
 +) -> (Int32, String?) raise ComponentTextError {
-@@ -4546 +4661 @@
+@@ -4546 +4662 @@
 -    let mut memory_idx_opt : Int? = None
 +    let mut memory_idx_opt : Int32? = None
-@@ -4690,2 +4805,2 @@
+@@ -4690,2 +4806,2 @@
 -  sort_tag : Int,
 -  core_kind : Int?,
 +  sort_tag : Int32,
 +  core_kind : Int32?,
-@@ -4723,3 +4838,3 @@
+@@ -4723,3 +4839,3 @@
 -  sort_tag : Int,
 -  core_kind : Int?,
 -) -> Int raise ComponentTextError {
 +  sort_tag : Int32,
 +  core_kind : Int32?,
 +) -> Int32 raise ComponentTextError {
-@@ -4755,2 +4870,2 @@
+@@ -4755,2 +4871,2 @@
 -  sort_tag : Int,
 -  core_kind : Int?,
 +  sort_tag : Int32,
 +  core_kind : Int32?,
-@@ -4778 +4893 @@
+@@ -4778 +4894 @@
 -  let mut type_idx_opt : Int? = None
 +  let mut type_idx_opt : Int32? = None
-@@ -4932,2 +5047,2 @@
+@@ -4932,2 +5048,2 @@
 -  sort_tag : Int,
 -  core_kind : Int?,
 +  sort_tag : Int32,
 +  core_kind : Int32?,
-@@ -4952 +5067 @@
+@@ -4952 +5068 @@
 -    let mut type_idx_opt : Int? = None
 +    let mut type_idx_opt : Int32? = None
-@@ -5409 +5524 @@
+@@ -5409 +5525 @@
 -fn parse_core_valtype_opcode(expr : SExpr) -> Int raise ComponentTextError {
 +fn parse_core_valtype_opcode(expr : SExpr) -> Int32 raise ComponentTextError {
-@@ -5430 +5545 @@
+@@ -5430 +5546 @@
 -) -> Int raise ComponentTextError {
 +) -> Int32 raise ComponentTextError {
-@@ -5438 +5553 @@
+@@ -5438 +5554 @@
 -    if parse_decimal_index(name) is Some(idx) {
 +    if parse_index_literal(name) is Some(idx) {
-@@ -5567 +5682 @@
+@@ -5567 +5683 @@
 -) -> Int raise ComponentTextError {
 +) -> Int32 raise ComponentTextError {
-@@ -5569 +5684 @@
+@@ -5569 +5685 @@
 -    if parse_decimal_index(text) is Some(value) {
 +    if parse_index_literal(text) is Some(value) {
-@@ -5580 +5695 @@
+@@ -5580 +5696 @@
 -  func_type_count : Int,
 +  func_type_count : Int32,
-@@ -5582 +5697 @@
+@@ -5582 +5698 @@
 -) -> (Bytes, Int, Int) raise ComponentTextError {
 +) -> (Bytes, Int32, Int32) raise ComponentTextError {
-@@ -5596 +5711 @@
+@@ -5596 +5712 @@
 -    let mut type_use_opt : Int? = None
 +    let mut type_use_opt : Int32? = None
-@@ -5790 +5905 @@
+@@ -5790 +5906 @@
 -  start : Int,
 +  start : Int32,
-@@ -5822 +5937 @@
+@@ -5822 +5938 @@
 -            let mut found : Int? = None
 +            let mut found : Int32? = None
-@@ -5839 +5954 @@
+@@ -5839 +5955 @@
 -          if parse_decimal_index(count_atom) is Some(count) {
 +          if parse_index_literal(count_atom) is Some(count) {
-@@ -6010 +6125 @@
+@@ -6010 +6126 @@
 -fn parse_component_sort_tag(sort_name : String) -> Int? {
 +fn parse_component_sort_tag(sort_name : String) -> Int32? {
-@@ -6457 +6572 @@
+@@ -6457 +6573 @@
 -fn parse_core_sort_kind(sort_name : String) -> Int? {
 +fn parse_core_sort_kind(sort_name : String) -> Int32? {
-@@ -6917,3 +7032,3 @@
+@@ -6917,3 +7033,3 @@
 -  sort_tag : Int,
 -  core_kind : Int?,
 -) -> Int raise ComponentTextError {
 +  sort_tag : Int32,
 +  core_kind : Int32?,
 +) -> Int32 raise ComponentTextError {
-@@ -6921 +7036 @@
+@@ -6921 +7037 @@
 -    if parse_decimal_index(atom) is Some(idx) {
 +    if parse_index_literal(atom) is Some(idx) {
-@@ -7017 +7132 @@
+@@ -7017 +7133 @@
 -        let mut found : Int? = None
 +        let mut found : Int32? = None
-@@ -7027 +7142 @@
+@@ -7027 +7143 @@
 -        let mut found : Int? = None
 +        let mut found : Int32? = None
-@@ -7046 +7161 @@
+@@ -7046 +7162 @@
 -      if parse_decimal_index(count_atom) is Some(count) {
 +      if parse_index_literal(count_atom) is Some(count) {
-@@ -7203 +7318,5 @@
+@@ -7203 +7319,5 @@
 -fn append_section(output : ByteBuf, section_id : Int, payload : Bytes) -> Unit {
 +fn append_section(
 +  output : ByteBuf,
 +  section_id : Int32,
 +  payload : Bytes,
 +) -> Unit {
-@@ -7433,3 +7551,0 @@
+@@ -7433,3 +7552,0 @@
 -      if index < items.length() && items[index] is Atom("definition") {
 -        index += 1
 -      }
-@@ -7454,5 +7570 @@
+@@ -7454,5 +7571 @@
 -        let bytes = Bytes::from_array(out)
 -        ignore(@component.parse_component(bytes)) catch {
 -          e => raise ParseError("\{e}")

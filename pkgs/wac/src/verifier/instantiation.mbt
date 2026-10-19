@@ -102,8 +102,21 @@ fn Check::instantiate(
   }
   let named : Array[(String, Int32, LocalItem)] = []
   let seen : Map[String, Int32] = Map([])
+  let mut fill : Int32? = None
+  for index, argument in arguments {
+    if self.tree.nodes[argument].data is FillArgument {
+      if fill is Some(_) || index + 1 != arguments.length() {
+        raise Problem(
+          self.problem(
+            argument, "WAC-C008", "fill must be the final instantiation argument",
+          ),
+        )
+      }
+      fill = Some(argument)
+    }
+  }
   for argument in arguments {
-    if self.tree.nodes[argument].data is SpreadArgument(_) {
+    if self.tree.nodes[argument].data is (SpreadArgument(_) | FillArgument) {
       continue
     }
     let item = values[argument]
@@ -155,15 +168,58 @@ fn Check::instantiate(
     }
     edges.push({ name, value, location: self.location(argument), })
   }
-  for imported in imports {
-    if !seen.contains(imported.name) {
-      raise Problem(
-        self.problem(
-          component,
-          "WAC-C004",
-          "missing instantiation argument `" + imported.name + "`",
-        ),
+  // Each missing input starts with the same instance-local context. Imported
+  // resource declarations will be unified only when their import groups merge.
+  if fill is Some(fill_node) {
+    for imported in imports {
+      if seen.contains(imported.name) {
+        continue
+      }
+      let (resources, _) = self.resource_parameters(fill_node, imported.kind)
+      for resource in resources {
+        if !bindings.contains(resource) {
+          bindings[resource] = self.new_resource_identity()
+        }
+      }
+    }
+    for imported in imports {
+      if seen.contains(imported.name) {
+        continue
+      }
+      let (resources, _) = self.resource_parameters(fill_node, imported.kind)
+      let context = resources.map(ty => ResourceBinding::{
+        ty,
+        identity: bindings[ty],
+      })
+      let value = self.composition_node(
+        fill_node,
+        Import(imported.name),
+        imported.kind,
+        resources=Some(ReadOnlyArray::from_array(context)),
       )
+      self.implicit_imports.push({
+        node: fill_node,
+        value,
+        name: imported.name,
+        kind: imported.kind,
+      })
+      edges.push({
+        name: imported.name,
+        value,
+        location: self.location(fill_node),
+      })
+    }
+  } else {
+    for imported in imports {
+      if !seen.contains(imported.name) {
+        raise Problem(
+          self.problem(
+            component,
+            "WAC-C004",
+            "missing instantiation argument `" + imported.name + "`",
+          ),
+        )
+      }
     }
   }
   for constraint in constraints {
@@ -184,6 +240,18 @@ fn Check::instantiate(
       })
     }
   }
+  let expected_bindings : Array[ResourceBinding] = []
+  let keys = bindings.keys().to_array()
+  keys.sort()
+  for ty in keys {
+    expected_bindings.push({ ty, identity: bindings[ty], })
+  }
+  self.instantiation_checks.push({
+    node,
+    imports,
+    arguments: ReadOnlyArray::from_array(edges.copy()),
+    resources: ReadOnlyArray::from_array(expected_bindings),
+  })
   let (resources, _) = self.resource_parameters(node, Instance(loaded.instance))
   let context : Array[ResourceBinding] = []
   for ty in resources {

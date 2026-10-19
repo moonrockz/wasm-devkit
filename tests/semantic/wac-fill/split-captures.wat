@@ -1,0 +1,1 @@
+(component (import "handle" (type (sub resource))) (type $take (func (param "h" (own 0)))) (import "first" (func (type $take))) (import "second" (func (type $take))))

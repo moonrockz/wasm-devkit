@@ -1,0 +1,1 @@
+(component (type (instance (type (func (param "x" u32)))(export "f" (func (type 0))))) (import "api" (instance (type 0))) (export "api" (instance 0)))

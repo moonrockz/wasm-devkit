@@ -321,8 +321,8 @@ portable component text frontend and then the same binary validator. WIT directo
 and WIT text fail explicitly; their adapters remain unfinished. Runtime/core
 sections, component values and root export ascriptions are also outside the
 binary profile. Source component instantiation, member access, argument/export
-spreads and target-world checks use the resolved package types. Implicit arguments
-and full executable component packages remain unfinished.
+spreads, implicit imports and target-world checks use the resolved package types.
+Full executable component packages remain unfinished.
 
 An unknown automatically discovered package is a semantic error (exit 1).
 A missing explicit mapping or a file read failure is an I/O error (exit 2).

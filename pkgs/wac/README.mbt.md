@@ -237,10 +237,9 @@ Package/targets directives, WIT-style definitions supported by the WAC reference
 Syntax parsing is separate from semantic resolution. The
 [verifier](src/verifier/README.mbt.md) checks ordered local declarations and returns
 immutable resource, interface and world contracts. It resolves supplied declarative
-binary packages, named/inferred/spread instantiation arguments, instance member access,
+binary packages, named/inferred/spread/implicit instantiation arguments, instance member access,
 export spreads and target-world checks; the CLI loads binary and portable WAT
-dependencies. WIT source packages, registry access and implicit arguments
-remain under development.
+dependencies. WIT source packages and registry access remain under development.
 The syntax parser must not perform I/O.
 
 ## Packages

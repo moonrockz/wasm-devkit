@@ -26,9 +26,8 @@ resource function names and import-only URL, integrity and dependency names.
 These names are checked as strings and never cause network access. Interface
 version suffixes are opaque during resolution, as in the pinned resolver.
 
-Implicit instantiation arguments and
-parser-only named results fail with `WAC-S003`. These remaining
-composition operations are tracked under
+Parser-only named results fail with `WAC-S003`. Remaining
+composition coverage is tracked under
 [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
 A successful result covers the entire supported input. An unsupported or unresolved
 construct never yields a `Verified` model.
@@ -284,8 +283,18 @@ nonzero major matches that major, and `0.minor.patch` matches that nonzero minor
 Prereleases and `0.0.patch` names require exact equality. Build metadata does not
 change a nonzero major/minor track. Versions may be newer or older; structural
 compatibility is still required. A spread that contributes nothing is an error,
-including a second spread whose exports were all supplied earlier. Fill `...`
-without an instance remains unsupported.
+including a second spread whose exports were all supplied earlier.
+
+A final `...` fills the remaining arguments with implicit imports. Shared imports
+are aggregated after all declarations, including explicit imports written later.
+An exact implicit/explicit name conflict is an error. Compatible version tracks
+share one import under the greatest version name; interface exports are merged in
+order. Named resource aliases also import their owning interface. Resource
+binders may unify across shared imports, while captured handles retain their
+nominal identities. Every consumer is checked again against the final aggregate.
+The published composition is topologically ordered and uses the aggregate's type
+and resource identities. Aggregation uses explicit work stacks and a shared
+one-million-step limit, reported as `WAC-C006`.
 
 Function parameters, names, result types and async markers must agree. Aggregate
 fields/cases retain their order. Instance arguments may provide extra exports;
@@ -317,6 +326,13 @@ test "wire two component instances" {
   assert_true(
     model.composition()[3].operation is Instantiate("deps:relay", None, [_]),
   )
+  let source = "package example:app; let first = new deps:relay {...}; let second = new deps:relay {f: first.f, ...}; export second.f;"
+  let model = @verifier.verify(@parser.parse(source), source~, dependencies=[
+    { name: "deps:relay", version: None, source: "relay.wasm", bytes, },
+  ]).unwrap()
+  assert_eq(model.imports().length(), 1)
+  assert_eq(model.imports()[0].name, "f")
+  assert_eq(model.composition().length(), 5)
 }
 ```
 
@@ -409,4 +425,4 @@ resource export is rejected despite pinned source resolution accepting it. A
 component-model subtype witness independently rejects the same resource mismatch;
 the exact witness and control are recorded in the semantic fixture guide. Deep
 value types, 5,000 aliases, immutable results and deterministic provenance run on
-all four targets. WIT dependency adapters and implicit imports remain unfinished.
+all four targets. WIT dependency adapters remain unfinished.

@@ -1,0 +1,1 @@
+(component (type (func (param "x" u32))) (import "f" (func (type 0))) (export "out" (func 0)))

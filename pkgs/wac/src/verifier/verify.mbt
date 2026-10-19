@@ -47,6 +47,8 @@ priv struct Check {
   composition_outputs : Array[CompositionExport]
   composition_aliases : Map[(Int32, String), Int32]
   root_resources : Map[Int32, Int32]
+  implicit_imports : Array[ImplicitImport]
+  instantiation_checks : Array[InstantiationCheck]
   mut next_resource_identity : Int32
   mut package_name : String
   mut package_version : String?
@@ -354,12 +356,7 @@ fn Check::expression(
         }
       InferredArgument(name~) => values[node] = self.lookup(0, node, name)
       SpreadArgument(_) => ()
-      FillArgument =>
-        raise Problem(
-          self.problem(
-            node, "WAC-S003", "implicit instantiation arguments are not yet supported",
-          ),
-        )
+      FillArgument => ()
       _ =>
         raise Problem(self.problem(node, "WAC-S001", "invalid expression role"))
     }
@@ -411,6 +408,8 @@ pub fn verify_ast(
     composition_outputs: [],
     composition_aliases: Map([]),
     root_resources: Map([]),
+    implicit_imports: [],
+    instantiation_checks: [],
     next_resource_identity: 0,
     package_name: "",
     package_version: None,
@@ -420,6 +419,7 @@ pub fn verify_ast(
   try {
     check.register_packages(dependencies)
     check.file(tree.nodes.length() - 1)
+    check.finalize_implicit_imports()
     check.verify_target()
     Ok({
       source_id,

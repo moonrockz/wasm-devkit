@@ -1,0 +1,1 @@
+package test:app; interface api {resource handle;} import a as "test:dep/api": api; let i=new test:first {"test:dep/api": a,...};
