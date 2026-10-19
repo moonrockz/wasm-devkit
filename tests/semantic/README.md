@@ -122,3 +122,22 @@ The v2 duplicate-member case is intentionally excluded from the differential
 manifest: wit-parser 0.262.0 panics at decoding.rs:799 (`prev.is_none()`) instead
 of returning an error. The product regression requires an ordinary diagnostic.
 Tracked exclusions: `wasm-devkit-p5m.8.1.5` and `wasm-devkit-p5m.8.1.7`.
+
+Local encoded alias fixtures cover wrapper imports, instance-export aliases,
+lexical outer aliases including count zero, renamed and multi-hop type/resource
+aliases, partial interface projections, world type imports and implicit imports.
+Source/binary/WAT pairs compare named type and function graph edges in library
+tests, including distinct resources with identical declarations and aggregate
+anonymous types. Invalid indices, missing members, aggregate field order and
+resource receiver names are pinned negative cases. A 1,500-link named alias chain
+also runs on all four library targets. The original fixtures use Apache-2.0.
+
+A second explicit oracle exclusion covers importing a later local interface before
+its root export. wit-parser 0.262.0 panics while merging its inferred package at
+decoding.rs:1567. The product rejects forward inference without panicking, tested
+in `encoded_alias_test.mbt`; this case is outside the normal 0/1 reference manifest.
+The exclusion remains tracked under `wasm-devkit-p5m.8.1.5` and `.8.1.7`.
+
+Version 0/1 alias metadata fixtures also compare renamed interface uses and world
+uses. Their own type stability survives binary feature selection and keeps binary
+provenance, including unstable aliases and future stable world type annotations.

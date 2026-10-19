@@ -1048,8 +1048,14 @@ fn validate_typedef(
           }
           AliasOuter(kind, count, idx) =>
             if kind == 0x03 {
-              let outer = outer_type_of_alias(type_outers, count, idx)
-              if type_outer_depths[count - 1] < component_depth {
+              // Count zero aliases an earlier type in the current lexical scope.
+              let outer = if count == 0 {
+                check_typeidx(idx, local_type_table.length())
+                local_type_table[idx]
+              } else {
+                outer_type_of_alias(type_outers, count, idx)
+              }
+              if count > 0 && type_outer_depths[count - 1] < component_depth {
                 match outer {
                   Some(td) =>
                     if typedef_refers_to_resource(
@@ -1064,8 +1070,9 @@ fn validate_typedef(
                   None => ()
                 }
               }
+              let rid = if count == 0 { local_resource_ids[idx] } else { None }
               local_type_table.push(outer)
-              local_resource_ids.push(None)
+              local_resource_ids.push(rid)
             } else if kind == 0x110 {
               local_core_type_exports.push(
                 outer_core_type_of_alias(core_type_outers, count, idx),
@@ -1333,8 +1340,14 @@ fn validate_typedef(
           }
           AliasOuter(kind, count, idx) =>
             if kind == 0x03 {
-              let outer = outer_type_of_alias(type_outers, count, idx)
-              if type_outer_depths[count - 1] < component_depth {
+              // Count zero aliases an earlier type in the current lexical scope.
+              let outer = if count == 0 {
+                check_typeidx(idx, local_type_table.length())
+                local_type_table[idx]
+              } else {
+                outer_type_of_alias(type_outers, count, idx)
+              }
+              if count > 0 && type_outer_depths[count - 1] < component_depth {
                 match outer {
                   Some(td) =>
                     if typedef_refers_to_resource(
@@ -1349,8 +1362,9 @@ fn validate_typedef(
                   None => ()
                 }
               }
+              let rid = if count == 0 { local_resource_ids[idx] } else { None }
               local_type_table.push(outer)
-              local_resource_ids.push(None)
+              local_resource_ids.push(rid)
             } else if kind == 0x110 {
               local_core_type_exports.push(
                 outer_core_type_of_alias(core_type_outers, count, idx),

@@ -12,7 +12,8 @@ The parser, binary model and core validator remain pinned external dependencies.
 This local validator adds modern component accessor-name validation needed by the
 wasm-tools 1.262.0 WIT encoding profile. It also retains instance exported type
 aliases and nominal resource IDs, checks original resource signatures, and enforces
-preceding getter/property-type matching. Constructor and accessor signatures reject
+preceding getter/property-type matching. Current-scope outer aliases preserve
+type indices, nominal resource IDs and effective sizes. Constructor and accessor signatures reject
 async forms where the reference forbids them. Its original encoded names and signatures
 remain available to all semantic checks. The enclosing binary package guards
 physical input nesting and separately checks pinned memory64 layout limits.
@@ -23,7 +24,7 @@ is part of Beads task `wasm-devkit-p5m.8.1.5`; it does not establish complete
 upstream component conformance by itself.
 
 Functional changes are marked in `prelude.mbt`, `core_type.mbt` and
-`component_type_sig.mbt`; other retained sources have local formatting changes. `moon.pkg` removes an unused hashset import. The retained
+`component_type_sig.mbt` and `canon_abi.mbt`; other retained sources have local formatting changes. `moon.pkg` removes an unused hashset import. The retained
 validator's core imports are pinned directly to `Milky2018/wasm_core@0.16.0`.
 Original white-box tests are retained alongside the source. New fixtures compare
 constructors, nominal method receivers, ordinary/static/async functions, free and

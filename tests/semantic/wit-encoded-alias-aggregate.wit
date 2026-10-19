@@ -1,0 +1,1 @@
+package example:aggregate; interface base { record item { values:list<u32>, id:u32 } variant selection { item(item), none } type pack=tuple<item,selection>; } interface api { use base.{item,selection,pack}; run:func(x:pack)->selection; } world app { import api; }

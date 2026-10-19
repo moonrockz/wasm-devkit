@@ -1792,10 +1792,22 @@ fn instancetype_valid_for_use_as_interface(
           Type(t) => push_local(Some(t))
           AliasOuter(kind, count, idx) =>
             if kind == 0x03 {
-              let td = outer_type_of_alias(type_outers, count, idx) catch {
-                _ => None
+              let td = if count == 0 {
+                local_type_table.get(idx).unwrap_or(None)
+              } else {
+                outer_type_of_alias(type_outers, count, idx) catch {
+                  _ => None
+                }
+              }
+              let rid = if count == 0 {
+                local_resource_ids.get(idx).unwrap_or(None)
+              } else {
+                None
               }
               push_local(td)
+              if count == 0 {
+                local_resource_ids[local_resource_ids.length() - 1] = rid
+              }
             }
           AliasInstanceExport(kind, _inst, _name) =>
             if kind == 0x03 {

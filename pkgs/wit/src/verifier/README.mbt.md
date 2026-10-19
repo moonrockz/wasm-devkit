@@ -72,17 +72,28 @@ Encoded package loading has a strict v1/v2 type-wrapper profile. Use
 interfaces contain exported named scalar/composite types, records, flags, enums,
 variants, resources, constructors, ordinary/static/async methods, getters/setters
 and freestanding functions. Worlds contain function or
-instance imports/exports; qualified instances must match a supplied interface in
-the same encoded package. An instance with an ordinary name becomes an inline
+instance imports/exports and named type imports. Qualified instances bind to an
+already declared interface in the same encoded package. An instance with an ordinary name becomes an inline
 interface. Component type indices include aliases introduced by type exports.
 
 V1 uses its outer package identity, including empty packages and multiple members.
-V2 derives member names from qualified inner exports. The profile rejects
-outer/instance aliases, wrapper imports,
-foreign or structurally different world instances, world-owned resource members,
-anonymous structural types, name attributes and export ascriptions.
+V2 derives member names from qualified inner exports. Wrapper instance imports,
+instance-export type aliases and lexical outer aliases preserve named alias edges
+and nominal resource identities. World type imports lower to WIT use declarations,
+including implicit interface dependencies. A local projection may contain a subset
+of its interface. The authoritative local member determines its identity and type;
+the pinned loader checks aggregate structure but ignores primitive, flag, enum,
+handle and resource leaf differences and existing function signatures. Missing projected members are errors.
+
+The profile rejects foreign or forward interface inference, world-owned resource
+members, anonymous structural types, name attributes and export ascriptions.
+Private scope/type graphs use explicit stacks and a one-million-step work budget.
+Scope scans, alias links, projection matching and per-interface type-slot tables
+consume that budget. Large collections of otherwise unrelated interfaces can reach
+this limit. Public models and provenance retain the same immutable contracts.
 `package-docs` metadata versions 0 and 1 retain release/feature/deprecation
-annotations and validate docs, member names and item kinds. Unknown schema fields,
+annotations and validate docs, member names and item kinds. Imported alias types
+in interfaces and worlds retain their own metadata, including renamed uses. Unknown schema fields,
 duplicate struct fields and missing targets are errors. Dictionary duplicates keep
 the last value after every value has passed schema validation. Metadata structs
 also accept the reference loader's ordered JSON array forms. Dictionaries remain

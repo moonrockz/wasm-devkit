@@ -319,7 +319,9 @@ fn validate_layouts(component : @component.Component) -> Unit raise Boundary {
       }
       AliasOuter(kind, count, index) =>
         if kind == 3 {
-          if count <= 0 || count > scope.outers.length() {
+          if count == 0 {
+            scope.types.push(layout_type(scope, index))
+          } else if count < 0 || count > scope.outers.length() {
             layout_error("invalid outer type layout depth")
           } else {
             scope.types.push(

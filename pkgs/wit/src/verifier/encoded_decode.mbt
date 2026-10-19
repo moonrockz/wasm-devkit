@@ -8,6 +8,8 @@ priv suberror EncodedFailure {
 priv enum EncodedSlot {
   Definition(@component.TypeDef)
   Named(String)
+  Imported(String, String)
+  Unavailable
 }
 
 ///|
@@ -80,6 +82,8 @@ fn encoded_expression(
       Value(TypeIdx(index)) =>
         match encoded_slot(slots, index) {
           Named(name) => out.write_string(encoded_name(name))
+          Imported(_, _) | Unavailable =>
+            raise Unsupported("type requires a named local use declaration")
           Definition(definition) => {
             guard !active.contains(index) else {
               raise Invalid("cyclic WIT type")
@@ -153,6 +157,15 @@ fn encoded_type(
   let label = encoded_name(name)
   match encoded_slot(slots, index) {
     Named(previous) => "type " + label + "=" + encoded_name(previous) + ";"
+    Imported(owner, original) =>
+      "use " +
+      encoded_name(owner) +
+      ".{" +
+      encoded_name(original) +
+      (if original == name { "" } else { " as " + label }) +
+      "};"
+    Unavailable =>
+      raise Unsupported("unnamed resource or scope used as a value type")
     Definition(definition) =>
       match definition {
         Record(fields) => {
@@ -271,6 +284,15 @@ fn encoded_function(
     (function.params.is_empty() || function.params[0].label != "self") {
     raise Invalid("resource method is missing its self parameter")
   }
+  // The component naming rule uses the most recently exported resource name.
+  // A nominally equal resource alias cannot keep an older method receiver name.
+  if is_method &&
+    function.params[0].ty is TypeIdx(handle) &&
+    encoded_slot(slots, handle) is Definition(Borrow(target)) &&
+    encoded_slot(slots, target) is Named(receiver) &&
+    resource != Some(receiver) {
+    raise Invalid("method receiver uses a different exported resource name")
+  }
   for i in first..<function.params.length() {
     if i > first {
       out.write_string(",")
@@ -294,83 +316,6 @@ fn encoded_function(
 priv enum EncodedInterfaceItem {
   ItemText(String)
   Resource(String)
-}
-
-///|
-fn encoded_interface(
-  definition : @component.TypeDef,
-) -> String raise EncodedFailure {
-  let declarations = match definition {
-    InstanceType(declarations) => declarations
-    InstanceTypeEmpty => []
-    _ => raise Invalid("WIT interface is not an instance type")
-  }
-  let slots : Array[EncodedSlot] = []
-  let items : Array[EncodedInterfaceItem] = []
-  let resources : Map[String, Array[String]] = Map([])
-  for declaration in declarations {
-    match declaration {
-      Type(definition) => slots.push(Definition(definition))
-      Export(name, attributes, description) => {
-        guard attributes.is_empty() else {
-          raise Unsupported("interface export name attributes")
-        }
-        match description {
-          Type(Eq(index)) => {
-            items.push(ItemText(encoded_type(slots, name, index)))
-            slots.push(Named(name))
-          }
-          Type(SubResource) => {
-            guard !resources.contains(name) else {
-              raise Invalid("duplicate resource name")
-            }
-            resources[name] = []
-            items.push(Resource(name))
-            slots.push(Named(name))
-          }
-          FuncType(index) => {
-            let (resource, text) = encoded_function(slots, name, index)
-            match resource {
-              None => items.push(ItemText(text))
-              Some(resource) =>
-                match resources.get(resource) {
-                  Some(methods) => methods.push(text)
-                  None =>
-                    raise Invalid("resource function names an unknown resource")
-                }
-            }
-          }
-          _ => raise Unsupported("non-WIT interface export")
-        }
-      }
-      _ => raise Unsupported("interface type aliases or core declarations")
-    }
-  }
-  let out = StringBuilder()
-  for item in items {
-    match item {
-      ItemText(text) => out.write_string(text)
-      Resource(name) => {
-        out.write_string("resource " + encoded_name(name) + "{")
-        for text in resources[name] {
-          out.write_string(text)
-        }
-        out.write_string("}")
-      }
-    }
-  }
-  out.to_string()
-}
-
-///|
-fn encoded_definition(
-  slots : Array[@component.TypeDef],
-  index : Int32,
-) -> @component.TypeDef raise EncodedFailure {
-  guard index >= 0 && index < slots.length() else {
-    raise Invalid("component type index is outside its scope")
-  }
-  slots[index]
 }
 
 ///|
@@ -409,77 +354,13 @@ fn encoded_qualified(
 }
 
 ///|
-fn encoded_world(
-  definition : @component.TypeDef,
-  interfaces : Map[String, String],
-  interface_names : Map[String, String],
-) -> String raise EncodedFailure {
-  guard definition is ComponentType(declarations) else {
-    raise Invalid("WIT world is not a component type")
-  }
-  let slots : Array[@component.TypeDef] = []
-  let out = StringBuilder()
-  for declaration in declarations {
-    match declaration {
-      Type(definition) => slots.push(definition)
-      Import(name, attributes, description)
-      | Export(name, attributes, description) => {
-        guard attributes.is_empty() else {
-          raise Unsupported("world name attributes")
-        }
-        out.write_string(
-          if declaration is Import(_, _, _) {
-            "import "
-          } else {
-            "export "
-          },
-        )
-        match description {
-          InstanceType(index) => {
-            let body = encoded_interface(encoded_definition(slots, index))
-            if name.contains("/") {
-              guard interface_names.get(name) is Some(member_name) &&
-                interfaces.get(member_name) == Some(body) else {
-                raise Unsupported(
-                  "world interface requires foreign or nonidentical interface reconstruction",
-                )
-              }
-              out.write_string(encoded_name(member_name) + ";")
-            } else {
-              out.write_string(encoded_name(name) + ":interface{" + body + "}")
-            }
-          }
-          FuncType(index) => {
-            let type_slots = slots.map(definition => {
-              EncodedSlot::Definition(definition)
-            })
-            let (resource, text) = encoded_function(type_slots, name, index)
-            guard resource is None else {
-              raise Unsupported("world-owned resource functions")
-            }
-            out.write_string(text)
-          }
-          _ => raise Unsupported("world item other than a function or instance")
-        }
-      }
-      _ => raise Unsupported("world type alias or core declaration")
-    }
-  }
-  out.to_string()
-}
-
-///|
 // Consume v1 package wrappers and v2 member wrappers. Root export names identify
 // the encoding; v2 member names come from each wrapper's qualified inner export.
 fn lower_encoded(
   component : @component.Component,
 ) -> (String, Bytes?) raise EncodedFailure {
-  let slots : Array[@component.TypeDef] = []
-  let members : Array[(String, String, @component.TypeDef)] = []
+  let declarations : Array[@component.ComponentDecl] = []
   let mut metadata : Bytes? = None
-  let mut package_identity : PackageIdentity? = None
-  let mut v1 = false
-  let mut export_count = 0
   for section in component.binary.sections {
     match section.id {
       0 => {
@@ -518,7 +399,9 @@ fn lower_encoded(
         let definitions = @component.parse_type_section(section.payload) catch {
           _ => raise Invalid("invalid component type section")
         }
-        slots.append(definitions)
+        for definition in definitions {
+          declarations.push(Type(definition))
+        }
       }
       11 => {
         let exports = @component.parse_export_section(section.payload) catch {
@@ -539,97 +422,104 @@ fn lower_encoded(
               }
             _ => raise Unsupported("versioned package export name")
           }
-          if export_count == 0 {
-            if name.contains("/") {
-              let (identity, member_name) = encoded_qualified(name)
-              guard member_name == "wit" else {
-                raise Invalid("unrecognized WIT package export name")
-              }
-              package_identity = Some(identity)
-              v1 = true
-            } else {
-              guard identifier(name) else {
-                raise Invalid("expected a bare v2 package export name")
-              }
-            }
-          } else if v1 {
-            raise Invalid("v1 package requires exactly one root export")
-          }
-          export_count += 1
-          let definition = encoded_definition(slots, item.sortidx.idx)
-          guard definition is ComponentType(declarations) else {
-            raise Invalid("package member lacks a component type wrapper")
-          }
-          let nested : Array[@component.TypeDef] = []
-          let mut exported = false
-          for declaration in declarations {
-            match declaration {
-              Type(definition) => nested.push(definition)
-              Export(full_name, attributes, description) => {
-                guard (v1 || !exported) && attributes.is_empty() else {
-                  raise Unsupported(
-                    "wrapper must have exactly one unannotated export",
-                  )
-                }
-                exported = true
-                let (_, member_name) = encoded_qualified(full_name)
-                match description {
-                  InstanceType(index) =>
-                    members.push(
-                      (
-                        member_name,
-                        full_name,
-                        encoded_definition(nested, index),
-                      ),
-                    )
-                  ComponentType(index) =>
-                    members.push(
-                      (
-                        member_name,
-                        full_name,
-                        encoded_definition(nested, index),
-                      ),
-                    )
-                  _ =>
-                    raise Invalid("wrapper export is not an interface or world")
-                }
-              }
-              _ => raise Unsupported("wrapper imports or aliases")
-            }
-          }
-          guard v1 || exported else {
-            raise Invalid("empty WIT package member wrapper")
-          }
-          // Root type exports introduce a new alias in the component type space.
-          slots.push(definition)
+          declarations.push(Export(name, [], Type(Eq(item.sortidx.idx))))
         }
       }
       _ => raise Unsupported("non-type package section")
     }
   }
-  guard package_identity is Some(_) || !members.is_empty() else {
+  let graph = encoded_graph(ComponentType(declarations))
+  let roots = graph.scopes[0].items
+  guard !roots.is_empty() else {
     raise Invalid("component contains no WIT package exports")
   }
-  let identity = match package_identity {
-    Some(identity) => identity
-    None => encoded_qualified(members[0].1).0
+  let mut identity : PackageIdentity? = None
+  let mut v1 = false
+  let members : Array[(String, String, Int32, Bool)] = []
+  let wrappers : Map[Int32, Int32] = Map([])
+  let member_order : Map[Int32, Int32] = Map([])
+  for i, root in roots {
+    guard root is TypeItem(name, id, false) else {
+      raise Invalid("invalid package root export")
+    }
+    if i == 0 {
+      if name.contains("/") {
+        let (owner, member_name) = encoded_qualified(name)
+        guard member_name == "wit" else {
+          raise Invalid("unrecognized WIT package export name")
+        }
+        identity = Some(owner)
+        v1 = true
+      } else {
+        guard identifier(name) else {
+          raise Invalid("expected a bare v2 package export name")
+        }
+      }
+    } else if v1 {
+      raise Invalid("v1 package requires exactly one root export")
+    }
+    guard graph.nodes[id] is Link(target) &&
+      graph.nodes[target] is Scope(wrapper) else {
+      raise Invalid("package member lacks a component type wrapper")
+    }
+    guard !graph.scopes[wrapper].interface_scope else {
+      raise Invalid("package wrapper is not a component type")
+    }
+    wrappers[wrapper] = if v1 { -1 } else { members.length() }
+    let mut exported = 0
+    for item in graph.scopes[wrapper].items {
+      match item {
+        InstanceItem(full, scope, false) | WorldItem(full, scope) => {
+          exported += 1
+          guard v1 || exported == 1 else {
+            raise Unsupported("v2 wrapper must export exactly one member")
+          }
+          let (owner, member_name) = encoded_qualified(full)
+          if identity is None {
+            identity = Some(owner)
+          }
+          guard v1 || identity == Some(owner) else {
+            raise Invalid("conflicting WIT package member identity")
+          }
+          guard !member_order.contains(scope) else {
+            raise Invalid(
+              "one encoded scope cannot define multiple package members",
+            )
+          }
+          member_order[scope] = members.length()
+          members.push((member_name, full, scope, item is WorldItem(_, _)))
+        }
+        InstanceItem(_, _, true) => ()
+        _ => raise Unsupported("non-interface wrapper import or export")
+      }
+    }
+    guard v1 || exported == 1 else {
+      raise Invalid("empty WIT package member wrapper")
+    }
   }
-  let interfaces : Map[String, String] = Map([])
+  guard identity is Some(identity) else {
+    raise Invalid("missing encoded package identity")
+  }
+  let interfaces : Map[String, Int32] = Map([])
   let interface_names : Map[String, String] = Map([])
   let names : Map[String, Bool] = Map([])
-  for (name, full_name, definition) in members {
-    let (owner, member_name) = encoded_qualified(full_name)
-    guard (v1 || identity == owner) &&
-      name == member_name &&
-      !names.contains(name) else {
+  let owners : Map[Int32, (String, String)] = Map([])
+  for (name, full, scope, world) in members {
+    guard !names.contains(name) else {
       raise Invalid("conflicting WIT package member identity")
     }
     names[name] = true
-    if definition is InstanceType(_) || definition is InstanceTypeEmpty {
-      interfaces[name] = encoded_interface(definition)
-      interface_names[full_name] = name
+    if !world {
+      interfaces[full] = scope
+      interface_names[full] = name
+      for item in graph.scopes[scope].items {
+        if item is TypeItem(member_name, id, _) {
+          owners[id] = (name, member_name)
+        }
+      }
     }
   }
+  encoded_graph_imports(graph, interfaces, wrappers, member_order)
   let out = StringBuilder()
   out.write_string(
     "package " +
@@ -641,18 +531,19 @@ fn lower_encoded(
     out.write_string("@" + version)
   }
   out.write_string(";")
-  for (name, _, definition) in members {
-    if interfaces.get(name) is Some(body) {
-      out.write_string("interface " + encoded_name(name) + "{" + body + "}")
+  for (name, _, scope, world) in members {
+    let body = if world {
+      encoded_graph_world(graph, scope, owners, interface_names)
     } else {
-      out.write_string(
-        "world " +
-        encoded_name(name) +
-        "{" +
-        encoded_world(definition, interfaces, interface_names) +
-        "}",
-      )
+      encoded_graph_interface(graph, scope, owners)
     }
+    out.write_string(
+      (if world { "world " } else { "interface " }) +
+      encoded_name(name) +
+      "{" +
+      body +
+      "}",
+    )
   }
   (out.to_string(), metadata)
 }

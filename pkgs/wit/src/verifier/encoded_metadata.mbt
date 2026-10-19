@@ -435,6 +435,13 @@ fn metadata_types(
       declaration(tree.nodes[id].data) is Some(name) {
       result[name] = id
     }
+    if tree.nodes[id].data is Use(names~, ..) {
+      for selector in names {
+        if tree.nodes[selector].data is Rename(name~, renamed~) {
+          result[renamed.unwrap_or(name)] = selector
+        }
+      }
+    }
   }
   result
 }
@@ -687,9 +694,11 @@ fn metadata_read(
             }
           }
         }
-        if fields.get("types") is Some(entries) &&
-          !json.dictionary(entries).is_empty() {
-          raise Invalid("metadata refers to missing world type")
+        if fields.get("types") is Some(entries) {
+          let targets = metadata_types(tree, items)
+          for (name, meta) in json.dictionary(entries) {
+            queued.push(Type(metadata_target(name, targets), meta))
+          }
         }
         for
           (field, imported, docs) in [

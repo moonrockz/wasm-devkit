@@ -1,4 +1,5 @@
 // Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
+// Modified by wasm-devkit: retain current-scope alias sizes.
 
 ///|
 fn core_valtypes_for_component_valtype(
@@ -687,7 +688,9 @@ fn effective_typedef_size(
           Type(t) => local_sizes.push(effective_typedef_size(t, outer_sizes))
           AliasOuter(kind, count, idx) =>
             if kind == 0x03 {
-              let s = if count == 1 && idx >= 0 && idx < outer_sizes.length() {
+              let s = if count == 0 && idx >= 0 && idx < local_sizes.length() {
+                local_sizes[idx]
+              } else if count == 1 && idx >= 0 && idx < outer_sizes.length() {
                 outer_sizes[idx]
               } else {
                 1
@@ -728,7 +731,9 @@ fn effective_typedef_size(
           Type(t) => local_sizes.push(effective_typedef_size(t, outer_sizes))
           AliasOuter(kind, count, idx) =>
             if kind == 0x03 {
-              let s = if count == 1 && idx >= 0 && idx < outer_sizes.length() {
+              let s = if count == 0 && idx >= 0 && idx < local_sizes.length() {
+                local_sizes[idx]
+              } else if count == 1 && idx >= 0 && idx < outer_sizes.length() {
                 outer_sizes[idx]
               } else {
                 1

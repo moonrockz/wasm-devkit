@@ -1,0 +1,1 @@
+package example:chain; interface base { resource r; type n=u32; } interface middle { use base.{r,n}; type next=n; } interface last { use middle.{r as renamed,next}; type last=next; run:func(x:borrow<renamed>)->last; } world app { import last; }
