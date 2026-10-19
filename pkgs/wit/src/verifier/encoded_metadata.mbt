@@ -505,9 +505,16 @@ fn metadata_world_entries(
     } else if !(tree.nodes[target].data is Signature(..)) {
       if name is Some(name) {
         result[name] = id
-      } else if tree.nodes[target].data is Path(segments~, ..) &&
-        segments.length() == 1 {
-        result[qualified_item(identity, segments[0])] = id
+      } else if tree.nodes[target].data
+        is Path(namespaces~, segments~, version~) {
+        if namespaces.is_empty() && segments.length() == 1 {
+          result[qualified_item(identity, segments[0])] = id
+        } else if namespaces.length() == 1 && segments.length() == 2 {
+          result[qualified_item(
+            { namespace_name: namespaces[0], name: segments[0], version, },
+            segments[1],
+          )] = id
+        }
       }
     }
   }

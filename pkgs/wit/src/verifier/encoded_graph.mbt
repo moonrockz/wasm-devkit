@@ -12,7 +12,7 @@ priv enum EncodedNode {
 priv enum EncodedItem {
   TypeItem(String, Int32, Bool)
   FunctionItem(String, Int32, Bool)
-  InstanceItem(String, Int32, Bool)
+  InstanceItem(String, Int32, Bool, String?)
   WorldItem(String, Int32)
 }
 
@@ -204,8 +204,13 @@ fn encoded_graph(
         current.types.push(id)
       }
       Import(name, attributes, desc) | Export(name, attributes, desc) => {
-        guard attributes.is_empty() else {
-          raise Unsupported("encoded name attributes")
+        let mut implements : String? = None
+        for attribute in attributes {
+          match attribute {
+            Implements(bytes) if implements is None && desc is InstanceType(_) =>
+              implements = Some(wat_text(bytes))
+            _ => raise Unsupported("encoded name attributes")
+          }
         }
         let imported = current.declarations[position] is Import(_, _, _)
         match desc {
@@ -240,7 +245,7 @@ fn encoded_graph(
             let template = encoded_graph_scope_type(graph, scope, index)
             let child = encoded_graph_instance(graph, template)
             current.instances.push(child)
-            current.items.push(InstanceItem(name, child, imported))
+            current.items.push(InstanceItem(name, child, imported, implements))
           }
           ComponentType(index) => {
             guard !imported else {
@@ -423,7 +428,7 @@ fn encoded_graph_imports(
     for item in graph.scopes[scope].items {
       encoded_graph_step(graph)
       match item {
-        InstanceItem(_, child, _) | WorldItem(_, child) =>
+        InstanceItem(_, child, _, _) | WorldItem(_, child) =>
           work.push((child, order))
         _ => ()
       }
@@ -452,7 +457,9 @@ fn encoded_graph_imports(
     guard active.get(scope_id) is Some(order) else { continue }
     for item in scope.items {
       encoded_graph_step(graph)
-      if item is InstanceItem(name, projected, imported) && name.contains("/") {
+      if item is InstanceItem(item_name, projected, imported, implements) {
+        let name = implements.unwrap_or(item_name)
+        guard name.contains("/") else { continue }
         let authoritative = match interfaces.get(name) {
           Some(scope) => scope
           None => {
@@ -698,14 +705,24 @@ fn encoded_graph_world(
             )
         }
       }
-      InstanceItem(name, child, imported) => {
+      InstanceItem(name, child, imported, implements) => {
         let prefix = if imported { "import " } else { "export " }
-        if name.contains("/") {
-          guard interface_names.get(name) is Some(local_name) else {
+        let reference = implements.unwrap_or(name)
+        if reference.contains("/") {
+          guard interface_names.get(reference) is Some(local_name) else {
             raise Unsupported("foreign encoded world interface")
           }
           items.push(
-            ItemText(prefix + encoded_interface_path(local_name) + ";"),
+            ItemText(
+              prefix +
+              (if implements is Some(_) {
+                encoded_name(name) + ":"
+              } else {
+                ""
+              }) +
+              encoded_interface_path(local_name) +
+              ";",
+            ),
           )
         } else {
           items.push(

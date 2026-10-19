@@ -1,0 +1,1 @@
+package example:labels; interface api { resource r { constructor(); f:func(); } take:func(x:borrow<r>); } world app { import first: api; import second: api; export output: api; }

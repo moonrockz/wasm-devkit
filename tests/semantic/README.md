@@ -1,8 +1,10 @@
 # Semantic reference fixtures
 
-These are original Apache-2.0 fixtures for the initial verifier API path.
+Most fixtures are original Apache-2.0 examples for the verifier API.
 They are a seed suite, not the complete upstream conformance gate required by issue #5.
-No upstream fixture sources are copied here yet.
+`wit-encoded-upstream/` retains four encoded WIT regression fixtures and two
+source inputs from the pinned wasm-tools revision, with upstream licenses and
+exact hashes. Their README records provenance.
 
 `wac-ordered/` adds 107 original cases covering ordered scopes, aggregate and
 function contracts, nominal resources, uses, world includes, typed imports and

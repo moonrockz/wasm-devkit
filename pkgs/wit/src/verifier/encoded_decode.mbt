@@ -469,7 +469,7 @@ fn lower_encoded(
     let mut exported = 0
     for item in graph.scopes[wrapper].items {
       match item {
-        InstanceItem(full, scope, false) | WorldItem(full, scope) => {
+        InstanceItem(full, scope, false, None) | WorldItem(full, scope) => {
           exported += 1
           guard v1 || exported == 1 else {
             raise Unsupported("v2 wrapper must export exactly one member")
@@ -489,7 +489,7 @@ fn lower_encoded(
           member_order[scope] = members.length()
           members.push((member_name, full, scope, item is WorldItem(_, _)))
         }
-        InstanceItem(_, _, true) => ()
+        InstanceItem(_, _, true, None) => ()
         _ => raise Unsupported("non-interface wrapper import or export")
       }
     }
@@ -579,13 +579,41 @@ fn lower_encoded(
     }
   }
   for key in foreign_order {
+    // Owner paths are relative to the package being rendered. A qualified
+    // self-reference would introduce a false package dependency during lowering.
+    let relative_owners : Map[Int32, (String, String)] = Map([])
+    for id, (path, item_name) in owners {
+      encoded_graph_step(graph)
+      let full = if path.contains("/") {
+        path
+      } else {
+        identity.namespace_name +
+        ":" +
+        identity.name +
+        "/" +
+        path +
+        (match identity.version {
+          Some(version) => "@" + version
+          None => ""
+        })
+      }
+      let (owner, name) = encoded_qualified(full)
+      relative_owners[id] = (
+        if encoded_package_path(owner) == key {
+          name
+        } else {
+          full
+        },
+        item_name,
+      )
+    }
     out.write_string("package " + key + "{")
     for (name, scope) in foreign_packages[key] {
       out.write_string(
         "interface " +
         encoded_name(name) +
         "{" +
-        encoded_graph_interface(graph, scope, owners) +
+        encoded_graph_interface(graph, scope, relative_owners) +
         "}",
       )
     }

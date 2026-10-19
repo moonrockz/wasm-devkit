@@ -75,7 +75,8 @@ and freestanding functions. Worlds contain function or
 instance imports/exports and named type imports. Qualified instances bind to an
 already declared local interface or infer a foreign interface by its qualified
 package name and version. An instance with an ordinary name becomes an inline
-interface. Component type indices include aliases introduced by type exports.
+interface unless an `implements` attribute binds that label to a named interface.
+Multiple labels preserve the same interface and resource identities. Component type indices include aliases introduced by type exports.
 
 V1 uses its outer package identity, including empty packages and multiple members.
 V2 derives member names from qualified inner exports. Wrapper instance imports,
@@ -103,7 +104,7 @@ Worlds support owned resources, resource aliases, imported constructors/methods,
 static functions and accessors. Resource metadata retains world type/function
 stability under the binary selection rules.
 The profile rejects forward local interface inference, resource functions attached
-to resource aliases, anonymous structural types, name attributes and export ascriptions.
+to resource aliases, anonymous structural types, name attributes other than `implements`, and export ascriptions.
 The tested forward-local projections panic in the pinned decoder; product
 regressions require a diagnostic.
 Overlapping inferred packages validate each encoded input against its own inferred
@@ -142,7 +143,9 @@ WAT supports root `@custom` and `@producers` annotations, quoted identifiers,
 byte/Unicode string escapes and the component `binary` form. Custom payload bytes
 are preserved, including non-UTF-8 data; custom names and producer strings require
 UTF-8. Package metadata applies identically to WAT and binary inputs. Type syntax
-uses the portable frontend from `Milky2018/wasm_component@0.16.0`. Physical WAT
+uses a [retained portable frontend](../component_text/README.md) from
+`Milky2018/wasm_component@0.16.0`, patched for map syntax and signed value-type
+indices. Physical WAT
 nesting is limited to 256 before that frontend runs. Expanded value types have a one-million-step decoding limit.
 Binary resource signatures retain their encoded nominal identities and implicit
 receivers. Constructors return an owned handle or a result containing that handle;
