@@ -62,10 +62,10 @@ aliases. It returns a separate `ValidatedDeclarativeComponent` with immutable
 bytes. It supports imported functions, instances and components, type aliases,
 and re-exports, plus declarative core module/function types and module externs.
 Core instances and synchronous canonical lift/lower validate full core contracts
-and canonical signatures. Nested concrete component definitions, component
-instantiation, async canonical functions and other intrinsics, and
-component start sections remain unsupported and
-return `WIT-B002`. Physical type-scope nesting has the same 256 limit.
+and canonical signatures. Imported-component instantiation and inline instances
+validate complete argument contracts. Concrete nested component definitions,
+non-resource runtime type arguments, runtime-produced values, async canonical
+functions, other intrinsics and component start sections return `WIT-B002`. Physical type-scope nesting has the same 256 limit.
 Component-value externs use a framing-guided adapter for the retained parser's
 legacy descriptor tags while preserving the original bytes. Supported export annotations are described below; missing
 complete contracts produce explicit unsupported diagnostics.

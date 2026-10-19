@@ -205,8 +205,10 @@ imports and re-exports. It follows WAC 0.12.0's wasmparser 0.258.0 map-key rules
 `WAC-B003` invalid component metadata, and `WAC-B004` reconstruction failures.
 All diagnostic positions count bytes. Unknown offsets remain absent.
 
-Concrete nested components, component instantiation, async canonical
-functions and other intrinsics, component start sections remain unsupported. Function export ascriptions validate parameter
+Imported-component instantiation and inline instances validate full argument
+contracts. Concrete nested components, non-resource runtime type arguments,
+runtime-produced values, async canonical functions, other intrinsics and component
+start sections remain unsupported. Function export ascriptions validate parameter
 names, async mode, structural value types and nominal resource identities, and
 retain the ascribed function type. Type-equality export annotations compare
 complete value shapes and nominal resource identity, including imported aliases
