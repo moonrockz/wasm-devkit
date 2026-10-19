@@ -1497,30 +1497,41 @@ test "aliased function ascription nested-instance" {
   )
   assert_eq(
     result is Ok(_),
-    false,
+    true,
     msg=match result {
       Ok(_) => "accepted"
       Err(errors) => errors[0].render()
     },
   )
 
-  guard result is Err([error]) else {
-    fail("expected unsupported alias signature")
-  }
-  assert_eq(error.code, "WAC-B002")
+  let model = result.unwrap()
+  assert_eq(binary_projection(model), [
+    "world", "", "0", "1", "parent", "instance", "interface", "", "0", "1", "child",
+    "instance", "interface", "", "0", "1", "f", "func", "function", "false", "1",
+    "x", "scalar", "u32", "none", "1", "out", "func", "function", "false", "1", "x",
+    "scalar", "u32", "none", "instance", "interface", "", "0", "1", "out", "func",
+    "function", "false", "1", "x", "scalar", "u32", "none", "definitions", "0",
+  ])
+  assert_eq(model.bytes(), bytes)
   let text_result = @verifier.decode_wat_component_package(
     "(component (type $parent (instance (type $child (instance (type $f (func (param \"x\" u32))) (export \"f\" (func (type $f))))) (export \"child\" (instance (type $child))))) (import \"parent\" (instance $parent (type $parent))) (alias export $parent \"child\" (instance $child)) (alias export $child \"f\" (func $f)) (type $f (func (param \"x\" u32))) (export \"out\" (func $f) (func (type $f))))",
     source_id="nested-instance.wat",
   )
   assert_eq(
     text_result is Ok(_),
-    false,
+    true,
     msg=match text_result {
       Ok(_) => "accepted"
       Err(errors) => errors[0].render()
     },
   )
-  assert_eq(text_result.unwrap_err()[0].code, "WAC-B002")
+  assert_eq(binary_projection(text_result.unwrap()), [
+    "world", "", "0", "1", "parent", "instance", "interface", "", "0", "1", "child",
+    "instance", "interface", "", "0", "1", "f", "func", "function", "false", "1",
+    "x", "scalar", "u32", "none", "1", "out", "func", "function", "false", "1", "x",
+    "scalar", "u32", "none", "instance", "interface", "", "0", "1", "out", "func",
+    "function", "false", "1", "x", "scalar", "u32", "none", "definitions", "0",
+  ])
 }
 
 ///|

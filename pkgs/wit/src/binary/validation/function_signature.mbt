@@ -2,6 +2,7 @@
 
 ///|
 priv struct CompleteFunctionSignature {
+  work : Int32
   function : @component.FuncType
   types : Array[@component.TypeDef?]
   resources : Array[Int32?]
@@ -10,6 +11,7 @@ priv struct CompleteFunctionSignature {
 ///|
 priv suberror IncompleteFunctionSignature {
   IncompleteFunctionSignature
+  SignatureBudgetExceeded
 }
 
 ///|
@@ -55,20 +57,21 @@ fn complete_function_signature(
   global_resources : Array[Int32?],
   local_origins~ : Map[Int32, Int32] = Map([]),
   global_function~ : Bool = false,
+  budget~ : Int32 = 1000000,
 ) -> CompleteFunctionSignature? {
   try {
     let types : Array[@component.TypeDef?] = []
     let resources : Array[Int32?] = []
     let mapping : Map[(Bool, Int32), Int32] = Map([])
     let pending : Array[(Bool, Int32)] = []
-    let mut remaining = 1000000
+    let mut remaining = budget
     fn value(
       v : @component.ValType,
       global : Bool,
     ) -> @component.ValType raise IncompleteFunctionSignature {
       remaining -= 1
       if remaining < 0 {
-        raise IncompleteFunctionSignature
+        raise SignatureBudgetExceeded
       }
       match v {
         Prim(_) => v
@@ -103,7 +106,7 @@ fn complete_function_signature(
     while pending.pop() is Some((global, id)) {
       remaining -= 1
       if remaining < 0 {
-        raise IncompleteFunctionSignature
+        raise SignatureBudgetExceeded
       }
       let td = if global {
         global_types.get(id).bind(x => x)
@@ -126,13 +129,18 @@ fn complete_function_signature(
         _ => ()
       }
       if remaining < 0 {
-        raise IncompleteFunctionSignature
+        raise SignatureBudgetExceeded
       }
       types[slot] = Some(signature_definition(td, v => value(v, global)))
     }
-    Some({ function: { ..ft, params, result, }, types, resources, })
+    Some({
+      work: budget - remaining,
+      function: { ..ft, params, result, },
+      types,
+      resources,
+    })
   } catch {
-    IncompleteFunctionSignature => None
+    IncompleteFunctionSignature | SignatureBudgetExceeded => None
   }
 }
 

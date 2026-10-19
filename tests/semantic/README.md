@@ -300,7 +300,7 @@ in function/aggregate value positions. The product rejects these values unless
 an own/borrow handle wraps the resource. Standalone inputs and source-first merge
 remain valid.
 
-The 28 original `export_spreads_test.mbt` probes compare pinned WAC 0.12.0
+The 29 original `export_spreads_test.mbt` probes compare pinned WAC 0.12.0
 `Document::resolve` and `wac resolve` acceptance, ordered composition types and
 alias edges. They retain their source and the qualified-interface package's
 WAT/bytes. Coverage includes earlier exports, conflicting types behind skipped
@@ -375,4 +375,6 @@ original binary/WAT inputs compared with pinned WAC package loading and
 wasm-tools with all features. Accepted package projections preserve the ascribed
 signature and nominal resource graph. The follow-up
 [39 alias fixtures](wac-function-alias-ascriptions/README.md) cover complete scoped
-signatures, nominal captures and the remaining nested-instance metadata exclusion.
+signatures and nominal captures. [29 hierarchical cases](wac-hierarchical-ascriptions/README.md)
+cover nested imported instances, sibling resource identities, re-exports and
+transitive composite-type captures.

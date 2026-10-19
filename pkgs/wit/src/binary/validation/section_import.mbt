@@ -358,6 +358,26 @@ fn validate_component_section_import(
           }
           None => instance_sigs.push(None)
         }
+        if type_table[tyidx] is Some(td) {
+          let (metadata, next, remaining) = imported_instance_metadata(
+            td,
+            type_table,
+            resource_ids,
+            resource_exports.unwrap_or(Map([])),
+            counts.type_metadata,
+            next_resource_id,
+            counts.metadata_remaining,
+          )
+          counts.metadata_remaining = remaining
+          next_resource_id = next
+          if metadata is Some(metadata) {
+            func_export_sigs = Some(metadata.nodes[0].functions)
+            counts.instance_metadata[instance_sigs.length() - 1] = (metadata, 0)
+            instance_sigs[instance_sigs.length() - 1] = Some(
+              metadata_instance_sig(metadata, 0),
+            )
+          }
+        }
         instance_export_type_idxs.push(None)
         instance_export_func_idxs.push(None)
         instance_export_type_map.push(type_map)

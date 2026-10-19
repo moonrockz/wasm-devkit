@@ -14,7 +14,7 @@ Outer value/function/resource aliases preserve their defining namespace even
 when local type indices collide. Subsequent exports retain the ascribed type.
 Accepted binary and WAT package projections match the pinned oracle.
 
-`nested-instance` remains a reference-accepted `WAC-B002` exclusion. The retained
-validator does not yet carry complete metadata through aliases of nested imported
-instances. The missing signature is never replaced by an empty one. This case is
-tracked on `wasm-devkit-p5m.8.2.2` for the next hierarchical metadata slice.
+`nested-instance` is supported. The [hierarchical cases](../wac-hierarchical-ascriptions/README.md)
+extend it with deeper scopes, resource captures, alias chains and transitive
+value-type captures. Remaining binary boundaries stay tracked on
+`wasm-devkit-p5m.8.2.2`.

@@ -1358,7 +1358,7 @@
 +    canonical_version_suffix,
 +    restricted_map_keys,
 +  }
-@@ -114,12 +127,13 @@
+@@ -114,12 +127,16 @@
 -  mut func : Int
 -  mut value : Int
 -  mut component : Int
@@ -1371,6 +1371,9 @@
 -  mut core_memory : Int
 -  mut core_global : Int
 -  mut core_tag : Int
++  type_metadata : Map[Int32, (InstanceMetadata, Int32)]
++  instance_metadata : Map[Int32, (InstanceMetadata, Int32)]
++  mut metadata_remaining : Int32
 +  mut ascription_remaining : Int32
 +  mut func : Int32
 +  mut value : Int32
@@ -1384,7 +1387,7 @@
 +  mut core_memory : Int32
 +  mut core_global : Int32
 +  mut core_tag : Int32
-@@ -161 +175,9 @@
+@@ -161 +178,9 @@
 -} derive(Eq)
 +  complete : CompleteFunctionSignature?
 +}
@@ -1395,83 +1398,86 @@
 +impl Eq for FuncSigShape with fn equal(a, b) {
 +  a.params == b.params && a.result == b.result
 +}
-@@ -165,2 +187,2 @@
+@@ -165,2 +190,2 @@
 -  Existing(Int)
 -  Resource(Int)
 +  Existing(Int32)
 +  Resource(Int32)
-@@ -182,3 +204,3 @@
+@@ -182,3 +207,3 @@
 -  Resource(Int)
 -  Own(Int)
 -  Borrow(Int)
 +  Resource(Int32)
 +  Own(Int32)
 +  Borrow(Int32)
-@@ -204,2 +226,2 @@
+@@ -204,2 +229,2 @@
 -  resource_ids : Array[Int?],
 -) -> Int? {
 +  resource_ids : Array[Int32?],
 +) -> Int32? {
-@@ -218,3 +240,3 @@
+@@ -218,3 +243,3 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 -) -> Int? {
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
 +) -> Int32? {
-@@ -238,2 +260,2 @@
+@@ -238,2 +263,2 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
-@@ -258,2 +280,2 @@
+@@ -258,2 +283,2 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
-@@ -460 +482,4 @@
+@@ -460 +485,4 @@
 -fn core_func_type_of_idx(m : @types.Module, func_idx : Int) -> @types.FuncType? {
 +fn core_func_type_of_idx(
 +  m : @types.Module,
 +  func_idx : Int32,
 +) -> @types.FuncType? {
-@@ -485 +510 @@
+@@ -485 +513 @@
 -  table_idx : Int,
 +  table_idx : Int32,
-@@ -506 +531 @@
+@@ -506 +534 @@
 -  mem_idx : Int,
 +  mem_idx : Int32,
-@@ -527 +552 @@
+@@ -527 +555 @@
 -  global_idx : Int,
 +  global_idx : Int32,
-@@ -546 +571 @@
+@@ -546 +574 @@
 -fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int) -> @types.FuncType? {
 +fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int32) -> @types.FuncType? {
-@@ -642 +667 @@
+@@ -642 +670 @@
 -fn core_kind_of_extern_type(ty : CoreExternType) -> Int {
 +fn core_kind_of_extern_type(ty : CoreExternType) -> Int32 {
-@@ -679 +704 @@
+@@ -679 +707 @@
 -  idx : Int,
 +  idx : Int32,
-@@ -723,0 +749 @@
+@@ -723,0 +752,4 @@
++    type_metadata: Map([]),
++    instance_metadata: Map([]),
++    metadata_remaining: 1000000,
 +    ascription_remaining: 1000000,
-@@ -763 +789 @@
+@@ -763 +795 @@
 -fn is_lower_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_lower_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -793 +819 @@
+@@ -793 +825 @@
 -fn is_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -843,2 +869,2 @@
+@@ -843,2 +875,2 @@
 -fn is_canonversion_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 -  if start < 0 || end_ <= start || end_ > name.length() {
 +fn is_semver_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
 +  if start < 0 || start >= end_ || end_ > name.length() {
-@@ -848,2 +874,2 @@
+@@ -848,2 +880,2 @@
 -  if name[i].to_int() >= 0x31 && name[i].to_int() <= 0x39 {
 -    i += 1
 +  for component in 0..<3 {
 +    let begin = i
-@@ -853,11 +879,27 @@
+@@ -853,11 +885,27 @@
 -    return i == end_
 -  }
 -  if name[i].to_int() != 0x30 || i + 1 >= end_ {
@@ -1510,7 +1516,7 @@
 +
 +  // Numeric prerelease identifiers cannot contain leading zeroes.
 +  if i < end_ && name[i] == 0x2d {
-@@ -865 +907,15 @@
+@@ -865 +913,15 @@
 -    while i < end_ && is_ascii_digit(name[i]) {
 +    while true {
 +      let begin = i
@@ -1527,7 +1533,7 @@
 +      if i >= end_ || name[i] != 0x2e {
 +        break
 +      }
-@@ -867,95 +922,0 @@
+@@ -867,95 +928,0 @@
 -    }
 -    return i == end_
 -  }
@@ -1623,13 +1629,13 @@
 -    }
 -    if need_id {
 -      return false
-@@ -1016,3 +976,0 @@
+@@ -1016,3 +982,0 @@
 -      if at != -1 {
 -        return false
 -      }
-@@ -1019,0 +978 @@
+@@ -1019,0 +984 @@
 +      break
-@@ -1028,9 +987 @@
+@@ -1028,9 +993 @@
 -  if at != -1 {
 -    if at >= name.length() - 1 {
 -      return false
@@ -1640,14 +1646,14 @@
 -    }
 -  }
 +  // Version syntax is checked with the separately encoded suffix.
-@@ -1185 +1136 @@
+@@ -1185 +1142 @@
 -fn is_integrity_value(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_integrity_value(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -1453,0 +1405,3 @@
+@@ -1453,0 +1411,3 @@
 +  if prefix_eq("get") || prefix_eq("set") {
 +    return is_kebab_case_range(name, close + 1, name.length())
 +  }
-@@ -1460 +1414,9 @@
+@@ -1460 +1420,9 @@
 -  // method/static: require exactly one '.' and kebab-case around it.
 +  // Method/static names can have one accessor annotation before the resource.
 +  let mut start = close + 1
@@ -1658,10 +1664,10 @@
 +    ) {
 +    start += 5
 +  }
-@@ -1462 +1424 @@
+@@ -1462 +1430 @@
 -  for k in (close + 1)..<name.length() {
 +  for k in start..<name.length() {
-@@ -1470,4 +1432,4 @@
+@@ -1470,4 +1438,4 @@
 -  if dot < 0 || dot == close + 1 || dot == name.length() - 1 {
 -    return false
 -  }
@@ -1670,40 +1676,40 @@
 +    return false
 +  }
 +  is_kebab_case_range(name, start, dot) &&
-@@ -1506 +1468 @@
+@@ -1506 +1474 @@
 -  mut pos : Int
 +  mut pos : Int32
-@@ -1522 +1484 @@
+@@ -1522 +1490 @@
 -) -> Int raise ComponentValidationError {
 +) -> Int32 raise ComponentValidationError {
-@@ -1534 +1496 @@
+@@ -1534 +1502 @@
 -) -> Int raise ComponentValidationError {
 +) -> Int32 raise ComponentValidationError {
-@@ -1554 +1516 @@
+@@ -1554 +1522 @@
 -  n : Int,
 +  n : Int32,
-@@ -1627,2 +1589,2 @@
+@@ -1627,2 +1595,2 @@
 -  kind : Int,
 -  func_type_bound : Int,
 +  kind : Int32,
 +  func_type_bound : Int32,
-@@ -1679 +1641 @@
+@@ -1679 +1647 @@
 -    heap : Int,
 +    heap : Int32,
-@@ -1748 +1710 @@
+@@ -1748 +1716 @@
 -  kind : Int,
 +  kind : Int32,
-@@ -1750 +1712 @@
+@@ -1750 +1718 @@
 -  func_type_bound : Int,
 +  func_type_bound : Int32,
-@@ -1859,3 +1821,3 @@
+@@ -1859,3 +1827,3 @@
 -  max_outer_depth : Int,
 -  current_core_type_bound : Int,
 -  outer_core_type_bounds : Array[Int],
 +  max_outer_depth : Int32,
 +  current_core_type_bound : Int32,
 +  outer_core_type_bounds : Array[Int32],
-@@ -1864 +1826 @@
+@@ -1864 +1832 @@
 -  let seen_imports : Map[String, Int] = Map([])
 +  let seen_imports : Map[String, Int32] = Map([])
 --- a/prelude_wbtest.mbt
@@ -1752,10 +1758,35 @@
 @@ -58 +62 @@
 -  component_size_outers : Array[Array[Int]],
 +  component_size_outers : Array[Array[Int32]],
-@@ -218 +222 @@
+@@ -132,0 +137,8 @@
++    let mut new_metadata : (InstanceMetadata, Int32)? = None
++    if (a.sort, a.target) is (Instance, Export(parent, name)) &&
++      counts.instance_metadata.get(parent) is Some((metadata, node)) &&
++      metadata.nodes[node].children.get(name) is Some(child) {
++      new_metadata = Some((metadata, child))
++      new_instance_sig = Some(metadata_instance_sig(metadata, child))
++      new_instance_export_func_sigs = Some(metadata.nodes[child].functions)
++    }
+@@ -218 +230 @@
 -      let mut new_rid : Int? = None
 +      let mut new_rid : Int32? = None
-@@ -322,0 +327,8 @@
+@@ -317,0 +330,15 @@
++      if a.target is Export(instance, name) &&
++        counts.instance_metadata.get(instance) is Some((metadata, node)) &&
++        metadata.nodes[node].types.get(name) is Some(ty) {
++        counts.type_metadata[type_table.length()] = (metadata, ty)
++        if metadata.resources.get(ty) is Some(Some(resource)) {
++          new_td = Some(ResourceType(-1, 0x7f, None, HostDefined))
++          new_rid = Some(resource)
++        } else if metadata.types.get(ty) is Some(Some(DefValType(primitive))) {
++          new_td = Some(DefValType(primitive))
++        }
++      }
++      if a.target is Outer(0, original) &&
++        counts.type_metadata.get(original) is Some(metadata) {
++        counts.type_metadata[type_table.length()] = metadata
++      }
+@@ -322,0 +350,8 @@
 +      if a.target is Outer(0, original) {
 +        if named_types.contains(original) {
 +          named_types.set(type_table.length() - 1, 1)
@@ -1764,14 +1795,17 @@
 +          import_named_types.set(type_table.length() - 1, 1)
 +        }
 +      }
-@@ -324 +336 @@
+@@ -324 +359 @@
 -        interface_instance_idxs.get(instance_idx) is Some(_) {
 +        interface_instance_idxs.get(instance_idx) is Some(visibility) {
-@@ -325,0 +338,3 @@
+@@ -325,0 +361,3 @@
 +        if (visibility & 2) != 0 {
 +          import_named_types.set(type_table.length() - 1, 1)
 +        }
-@@ -365,0 +381,4 @@
+@@ -365,0 +404,7 @@
++          if new_metadata is Some(metadata) {
++            counts.instance_metadata[instance_sigs.length() - 1] = metadata
++          }
 +          if a.target is Export(parent, _) &&
 +            interface_instance_idxs.get(parent) is Some(visibility) {
 +            interface_instance_idxs.set(instance_sigs.length() - 1, visibility)
@@ -1853,35 +1887,50 @@
 @@ -447 +442 @@
 -    // the actual export (we currently model instance-type compatibility).
 +    // the actual export. Functions require complete invariant signatures.
-@@ -448,0 +444,27 @@
+@@ -448,0 +444,38 @@
 +      (Func, Some(FuncType(index))) => {
 +        guard type_table.get(index) is Some(Some(FuncType(expected))) else {
 +          raise AscribedExportTypeIncompatible
 +        }
-+        if func_types.get(e.sortidx.idx) is Some(Some(actual)) {
-+          counts.ascription_remaining = check_function_ascription(
++        let expected = metadata_global_function(
++          expected,
++          type_table,
++          resource_ids,
++          counts.type_metadata,
++          counts.metadata_remaining,
++        )
++        counts.metadata_remaining -= expected.work
++        let actual = if func_types.get(e.sortidx.idx) is Some(Some(actual)) {
++          let signature = metadata_global_function(
 +            actual,
-+            expected,
 +            type_table,
 +            resource_ids,
-+            budget=counts.ascription_remaining,
++            counts.type_metadata,
++            counts.metadata_remaining,
 +          )
++          counts.metadata_remaining -= signature.work
++          signature
 +        } else if func_sig_shapes.get(e.sortidx.idx) is Some(Some(shape)) &&
 +          shape.complete is Some(actual) {
-+          counts.ascription_remaining = check_function_ascription(
-+            actual.function,
-+            expected,
-+            actual.types,
-+            actual.resources,
-+            expected_types=Some(type_table),
-+            expected_resources=Some(resource_ids),
-+            budget=counts.ascription_remaining,
-+          )
++          actual
 +        } else {
 +          raise UnsupportedFunctionAscription
 +        }
++        counts.ascription_remaining = check_function_ascription(
++          actual.function,
++          expected.function,
++          actual.types,
++          actual.resources,
++          expected_types=Some(expected.types),
++          expected_resources=Some(expected.resources),
++          budget=counts.ascription_remaining,
++        )
 +      }
-@@ -528 +550,9 @@
+@@ -487,0 +521,3 @@
++        if counts.type_metadata.get(idx) is Some(metadata) {
++          counts.type_metadata[type_table.length()] = metadata
++        }
+@@ -528 +564,9 @@
 -            func_types.push(func_types[e.sortidx.idx])
 +            let exported = match e.desc {
 +              Some(FuncType(index)) =>
@@ -1892,7 +1941,11 @@
 +              _ => func_types[e.sortidx.idx]
 +            }
 +            func_types.push(exported)
-@@ -602 +632,4 @@
+@@ -540,0 +585,3 @@
++            if counts.instance_metadata.get(e.sortidx.idx) is Some(metadata) {
++              counts.instance_metadata[instance_sigs.length() - 1] = metadata
++            }
+@@ -602 +649,4 @@
 -            interface_instance_idxs.set(instance_sigs.length() - 1, 1)
 +            interface_instance_idxs.set(
 +              instance_sigs.length() - 1,
@@ -2015,11 +2068,32 @@
 +                                    global_function=local_origins.contains(
 +                                      ft_idx,
 +                                    ),
-@@ -345 +371,2 @@
+@@ -334,0 +361,20 @@
++        if type_table[tyidx] is Some(td) {
++          let (metadata, next, remaining) = imported_instance_metadata(
++            td,
++            type_table,
++            resource_ids,
++            resource_exports.unwrap_or(Map([])),
++            counts.type_metadata,
++            next_resource_id,
++            counts.metadata_remaining,
++          )
++          counts.metadata_remaining = remaining
++          next_resource_id = next
++          if metadata is Some(metadata) {
++            func_export_sigs = Some(metadata.nodes[0].functions)
++            counts.instance_metadata[instance_sigs.length() - 1] = (metadata, 0)
++            instance_sigs[instance_sigs.length() - 1] = Some(
++              metadata_instance_sig(metadata, 0),
++            )
++          }
++        }
+@@ -345 +391,2 @@
 -        interface_instance_idxs.set(instance_sigs.length() - 1, 1)
 +        // Bit 1 names exported types; bit 2 also permits using them in imports.
 +        interface_instance_idxs.set(instance_sigs.length() - 1, 3)
-@@ -360 +387 @@
+@@ -360 +407 @@
 -      let mut import_core_module_exports : Map[String, Map[String, Int]]? = None
 +      let mut import_core_module_exports : Map[String, Map[String, Int32]]? = None
 --- a/section_instance.mbt

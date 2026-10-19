@@ -79,7 +79,12 @@ for instance-exported aliases. Queue-based extraction keeps local and outer type
 indices separate and records nominal resource IDs. Substitution updates the
 resource table without changing the graph. Ascription checks compare complete
 graphs; the reduced legacy signature equality used by other retained checks is
-unchanged. Metadata through nested imported-instance aliases remains incomplete
-and unsupported for ascription.
+unchanged. The additional `instance_metadata.mbt` retains hierarchical imported
+instance scopes and value aliases. Scope construction, signature normalization
+and legacy signature projection use explicit work stacks. A shared one-million
+step metadata budget covers imports and ascriptions. Instance aliases and
+re-exports preserve graph identities; nested resource declarations receive fresh
+IDs from the existing allocator. Private graph definitions never shift binary
+type indices. Additional whitebox tests exercise 6,000-level scope/value graphs.
 The enclosing declarative framing profile admits only function ascriptions. The
 WIT type-only profile still rejects them all.

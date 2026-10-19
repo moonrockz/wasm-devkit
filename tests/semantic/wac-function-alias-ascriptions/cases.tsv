@@ -36,5 +36,5 @@ outer-value-equal	true	true	true
 outer-resource-mismatch	false	false	false
 outer-value-mismatch	false	false	false
 outer-function	true	true	true
-nested-instance	true	true	false
+nested-instance	true	true	true
 reexport-chain	true	true	true

@@ -99,7 +99,7 @@ The declarative profile accepts root function-export ascriptions when the functi
 has a complete retained signature. An explicit work stack compares parameter
 names, async mode, structural values and nominal resources. Instance-exported
 function aliases retain complete reachable type graphs and defining scopes.
-Aliases through nested imported instances still lack complete metadata and remain
-unsupported for ascription. The type-only WIT entry point continues to reject all
+Nested imported instances retain complete signatures, nominal resource binders
+and exported value-type aliases in private indexed graphs. The type-only WIT entry point continues to reject all
 root export ascriptions. This slice does not enable component values or runtime
 sections.

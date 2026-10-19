@@ -210,9 +210,9 @@ functions, start sections, component-value externs and non-function root export
 ascriptions remain unsupported. Function export ascriptions validate parameter
 names, async mode, structural value types and nominal resource identities, and
 retain the ascribed function type. Instance-exported function aliases preserve
-complete value/resource signatures and outer declaration scopes. Aliases through
-nested imported instances still report `WAC-B002` because their retained metadata
-is incomplete. The pinned external parser uses obsolete value-bound
+complete value/resource signatures and outer declaration scopes, including nested
+imported instances and parent/child re-exports. Private type graphs preserve
+exported composite aliases and transitive captures without changing binary indices. The pinned external parser uses obsolete value-bound
 encoding, and the retained validator does not yet check all export ascriptions.
 Both valid and invalid examples of those forms fail explicitly rather than
 producing a package model. Source `verify` and CLI lookup use this same declarative boundary.

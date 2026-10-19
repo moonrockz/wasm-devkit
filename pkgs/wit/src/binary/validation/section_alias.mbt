@@ -134,6 +134,14 @@ fn validate_component_section_alias(
         new_instance_export_func_sigs = Some(m)
       }
     }
+    let mut new_metadata : (InstanceMetadata, Int32)? = None
+    if (a.sort, a.target) is (Instance, Export(parent, name)) &&
+      counts.instance_metadata.get(parent) is Some((metadata, node)) &&
+      metadata.nodes[node].children.get(name) is Some(child) {
+      new_metadata = Some((metadata, child))
+      new_instance_sig = Some(metadata_instance_sig(metadata, child))
+      new_instance_export_func_sigs = Some(metadata.nodes[child].functions)
+    }
     match a.target {
       Export(instance_idx, name) => {
         // Keep validation robust even if our auxiliary tables lag behind
@@ -319,6 +327,21 @@ fn validate_component_section_alias(
         }
         _ => ()
       }
+      if a.target is Export(instance, name) &&
+        counts.instance_metadata.get(instance) is Some((metadata, node)) &&
+        metadata.nodes[node].types.get(name) is Some(ty) {
+        counts.type_metadata[type_table.length()] = (metadata, ty)
+        if metadata.resources.get(ty) is Some(Some(resource)) {
+          new_td = Some(ResourceType(-1, 0x7f, None, HostDefined))
+          new_rid = Some(resource)
+        } else if metadata.types.get(ty) is Some(Some(DefValType(primitive))) {
+          new_td = Some(DefValType(primitive))
+        }
+      }
+      if a.target is Outer(0, original) &&
+        counts.type_metadata.get(original) is Some(metadata) {
+        counts.type_metadata[type_table.length()] = metadata
+      }
       type_table.push(new_td)
       local_resource_types.push(new_local_resource)
       resource_ids.push(new_rid)
@@ -378,6 +401,9 @@ fn validate_component_section_alias(
         }
         Instance => {
           instance_sigs.push(new_instance_sig)
+          if new_metadata is Some(metadata) {
+            counts.instance_metadata[instance_sigs.length() - 1] = metadata
+          }
           if a.target is Export(parent, _) &&
             interface_instance_idxs.get(parent) is Some(visibility) {
             interface_instance_idxs.set(instance_sigs.length() - 1, visibility)

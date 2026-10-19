@@ -124,6 +124,9 @@ pub fn ValidatedComponent::component_bytes(self : ValidatedComponent) -> Bytes {
 
 ///|
 priv struct Counts {
+  type_metadata : Map[Int32, (InstanceMetadata, Int32)]
+  instance_metadata : Map[Int32, (InstanceMetadata, Int32)]
+  mut metadata_remaining : Int32
   mut ascription_remaining : Int32
   mut func : Int32
   mut value : Int32
@@ -746,6 +749,9 @@ fn check_core_module_import_subtype(
 ///|
 fn Counts::Counts() -> Counts {
   {
+    type_metadata: Map([]),
+    instance_metadata: Map([]),
+    metadata_remaining: 1000000,
     ascription_remaining: 1000000,
     func: 0,
     value: 0,

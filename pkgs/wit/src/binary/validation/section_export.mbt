@@ -445,28 +445,39 @@ fn validate_component_section_export(
         guard type_table.get(index) is Some(Some(FuncType(expected))) else {
           raise AscribedExportTypeIncompatible
         }
-        if func_types.get(e.sortidx.idx) is Some(Some(actual)) {
-          counts.ascription_remaining = check_function_ascription(
+        let expected = metadata_global_function(
+          expected,
+          type_table,
+          resource_ids,
+          counts.type_metadata,
+          counts.metadata_remaining,
+        )
+        counts.metadata_remaining -= expected.work
+        let actual = if func_types.get(e.sortidx.idx) is Some(Some(actual)) {
+          let signature = metadata_global_function(
             actual,
-            expected,
             type_table,
             resource_ids,
-            budget=counts.ascription_remaining,
+            counts.type_metadata,
+            counts.metadata_remaining,
           )
+          counts.metadata_remaining -= signature.work
+          signature
         } else if func_sig_shapes.get(e.sortidx.idx) is Some(Some(shape)) &&
           shape.complete is Some(actual) {
-          counts.ascription_remaining = check_function_ascription(
-            actual.function,
-            expected,
-            actual.types,
-            actual.resources,
-            expected_types=Some(type_table),
-            expected_resources=Some(resource_ids),
-            budget=counts.ascription_remaining,
-          )
+          actual
         } else {
           raise UnsupportedFunctionAscription
         }
+        counts.ascription_remaining = check_function_ascription(
+          actual.function,
+          expected.function,
+          actual.types,
+          actual.resources,
+          expected_types=Some(expected.types),
+          expected_resources=Some(expected.resources),
+          budget=counts.ascription_remaining,
+        )
       }
       (Instance, Some(InstanceType(tyidx))) =>
         if tyidx >= 0 && tyidx < type_table.length() {
@@ -507,6 +518,9 @@ fn validate_component_section_export(
         type_sizes.push(1)
         type_depths.push(1)
       } else if idx >= 0 && idx < type_table.length() {
+        if counts.type_metadata.get(idx) is Some(metadata) {
+          counts.type_metadata[type_table.length()] = metadata
+        }
         type_table.push(type_table[idx])
         if idx >= 0 && idx < local_resource_types.length() {
           local_resource_types.push(local_resource_types[idx])
@@ -568,6 +582,9 @@ fn validate_component_section_export(
         Instance =>
           if e.sortidx.idx >= 0 && e.sortidx.idx < instance_sigs.length() {
             instance_sigs.push(instance_sigs[e.sortidx.idx])
+            if counts.instance_metadata.get(e.sortidx.idx) is Some(metadata) {
+              counts.instance_metadata[instance_sigs.length() - 1] = metadata
+            }
             if e.sortidx.idx >= 0 &&
               e.sortidx.idx < instance_export_type_idxs.length() {
               instance_export_type_idxs.push(
