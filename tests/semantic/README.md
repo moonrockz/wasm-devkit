@@ -381,7 +381,8 @@ signature and nominal resource graph. The follow-up
 [39 alias fixtures](wac-function-alias-ascriptions/README.md) cover complete scoped
 signatures and nominal captures. [29 hierarchical cases](wac-hierarchical-ascriptions/README.md)
 cover nested imported instances, sibling resource identities, re-exports and
-transitive composite-type captures.
+transitive composite-type captures. The [39 type-export cases](wac-type-ascriptions/README.md)
+compare aggregate equality, nominal resource identity and alias/re-export annotations.
 
 The [complete WAC resolution corpus](wac-upstream/README.md) retains all 128
 upstream groups and 191 original inputs. Four-target tests compare every accepted

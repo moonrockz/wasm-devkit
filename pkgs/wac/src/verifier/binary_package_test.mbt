@@ -7,18 +7,11 @@ test "package graph valid-type-ascription" {
     b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x07\x02\x01\x79\x0b\x0a\x01\x00\x01\x6e\x03\x00\x01\x03\x00\x00",
     source_id="valid-type-ascription.wasm",
   )
-  assert_eq(
-    result is Ok(_),
-    false,
-    msg=match result {
-      Ok(_) => "accepted"
-      Err(errors) => errors[0].message
-    },
-  )
-  guard result is Err([error]) else {
-    fail("unsupported binary profile accepted")
-  }
-  assert_eq(error.code, "WAC-B002")
+  assert_true(result is Ok(_))
+  assert_eq(binary_projection(result.unwrap()), [
+    "world", "", "0", "0", "1", "n", "type", "scalar", "u32", "instance", "interface",
+    "", "0", "1", "n", "type", "scalar", "u32", "definitions", "0",
+  ])
 }
 
 ///|

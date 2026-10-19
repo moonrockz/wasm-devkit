@@ -1989,7 +1989,7 @@
 +++ b/section_export.mbt
 @@ -0,0 +1,3 @@
 +// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
-+// Modified by wasm-devkit: permit re-exports and validate function ascriptions.
++// Modified by wasm-devkit: permit re-exports and validate function/type ascriptions.
 +
 @@ -6 +9 @@
 -  is_root : Bool,
@@ -2062,7 +2062,7 @@
 @@ -447 +442 @@
 -    // the actual export (we currently model instance-type compatibility).
 +    // the actual export. Functions require complete invariant signatures.
-@@ -448,0 +444,38 @@
+@@ -448,0 +444,60 @@
 +      (Func, Some(FuncType(index))) => {
 +        guard type_table.get(index) is Some(Some(FuncType(expected))) else {
 +          raise AscribedExportTypeIncompatible
@@ -2101,11 +2101,33 @@
 +          budget=counts.ascription_remaining,
 +        )
 +      }
-@@ -487,0 +521,3 @@
++      (Type, Some(Type(Eq(index)))) => {
++        let (types, resources, remaining) = metadata_global_types(
++          type_table,
++          resource_ids,
++          counts.type_metadata,
++          counts.metadata_remaining,
++        ) catch {
++          SignatureBudgetExceeded =>
++            raise SectionParseError(
++              11, "type ascription metadata exceeds the verification work limit",
++            )
++          IncompleteFunctionSignature => raise UnsupportedFunctionAscription
++        }
++        counts.metadata_remaining = remaining
++        counts.ascription_remaining = check_value_ascriptions(
++          [Value(TypeIdx(e.sortidx.idx), TypeIdx(index))],
++          types,
++          resources,
++          counts.ascription_remaining,
++        )
++      }
++      (Type, Some(Type(SubResource))) => raise AscribedExportTypeIncompatible
+@@ -487,0 +543,3 @@
 +        if counts.type_metadata.get(idx) is Some(metadata) {
 +          counts.type_metadata[type_table.length()] = metadata
 +        }
-@@ -528 +564,9 @@
+@@ -528 +586,9 @@
 -            func_types.push(func_types[e.sortidx.idx])
 +            let exported = match e.desc {
 +              Some(FuncType(index)) =>
@@ -2116,11 +2138,11 @@
 +              _ => func_types[e.sortidx.idx]
 +            }
 +            func_types.push(exported)
-@@ -540,0 +585,3 @@
+@@ -540,0 +607,3 @@
 +            if counts.instance_metadata.get(e.sortidx.idx) is Some(metadata) {
 +              counts.instance_metadata[instance_sigs.length() - 1] = metadata
 +            }
-@@ -602 +649,4 @@
+@@ -602 +671,4 @@
 -            interface_instance_idxs.set(instance_sigs.length() - 1, 1)
 +            interface_instance_idxs.set(
 +              instance_sigs.length() - 1,

@@ -506,8 +506,10 @@ fn preflight(
             0 => ()
             1 if declarations &&
               payload.position < payload.end &&
-              payload.bytes[payload.position] == b'\x01' =>
-              payload.description(core=declarations)
+              (
+                payload.bytes[payload.position] == b'\x01' ||
+                payload.bytes[payload.position] == b'\x03'
+              ) => payload.description(core=declarations)
             1 =>
               raise Failure(
                 Some(payload.position - 1),

@@ -1,0 +1,1 @@
+{"definitions":[],"instance":0,"name":"test:dep","types":{"defined":[{"future":"u32"}],"funcs":[],"interfaces":[{"exports":[["value",{"type":{"value":0}}]],"id":null,"uses":[]}],"modules":[],"resources":[],"worlds":[{"exports":[["value",{"type":{"value":0}}]],"id":null,"imports":[],"uses":[]}]},"version":null,"world":0}

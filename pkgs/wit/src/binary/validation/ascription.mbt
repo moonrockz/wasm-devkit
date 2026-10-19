@@ -32,15 +32,13 @@ fn check_function_ascription(
   expected_types~ : Array[@component.TypeDef?]? = None,
   expected_resources~ : Array[Int32?]? = None,
 ) -> Int32 raise ComponentValidationError {
-  let expected_types = expected_types.unwrap_or(types)
-  let expected_resources = expected_resources.unwrap_or(resources)
   if actual.is_async != expected.is_async ||
     actual.params.length() != expected.params.length() {
     raise AscribedExportTypeIncompatible
   }
   if actual.params.length() >= budget {
     raise SectionParseError(
-      11, "function ascription exceeds the verification work limit",
+      11, "export ascription exceeds the verification work limit",
     )
   }
   let work : Array[AscriptionWork] = []
@@ -51,13 +49,34 @@ fn check_function_ascription(
     work.push(Value(actual.params[i].ty, expected.params[i].ty))
   }
   ascription_optional(work, actual.result, expected.result)
+  check_value_ascriptions(
+    work,
+    types,
+    resources,
+    budget - actual.params.length() - 1,
+    expected_types~,
+    expected_resources~,
+  )
+}
+
+///|
+fn check_value_ascriptions(
+  work : Array[AscriptionWork],
+  types : Array[@component.TypeDef?],
+  resources : Array[Int32?],
+  budget : Int32,
+  expected_types~ : Array[@component.TypeDef?]? = None,
+  expected_resources~ : Array[Int32?]? = None,
+) -> Int32 raise ComponentValidationError {
+  let expected_types = expected_types.unwrap_or(types)
+  let expected_resources = expected_resources.unwrap_or(resources)
   let seen : Map[(Int32, Int32), Bool] = Map([])
-  let mut remaining = budget - actual.params.length() - 1
+  let mut remaining = budget
   while work.pop() is Some(item) {
     remaining -= 1
     if remaining < 0 {
       raise SectionParseError(
-        11, "function ascription exceeds the verification work limit",
+        11, "export ascription exceeds the verification work limit",
       )
     }
     match item {
@@ -86,7 +105,14 @@ fn check_function_ascription(
           }
           seen[(ai, bi)] = true
         }
-        work.push(Definition(ad, bd))
+        if a is TypeIdx(ai) &&
+          b is TypeIdx(bi) &&
+          ad is ResourceType(_, _, _, _) &&
+          bd is ResourceType(_, _, _, _) {
+          work.push(Resource(ai, bi))
+        } else {
+          work.push(Definition(ad, bd))
+        }
       }
       Resource(a, b) => {
         guard resources.get(a) is Some(Some(ar)) &&
@@ -128,7 +154,7 @@ fn check_function_ascription(
             remaining -= a.length()
             if remaining < 0 {
               raise SectionParseError(
-                11, "function ascription exceeds the verification work limit",
+                11, "export ascription exceeds the verification work limit",
               )
             }
             for i in 0..<a.length() {
@@ -142,7 +168,7 @@ fn check_function_ascription(
             remaining -= a.length()
             if remaining < 0 {
               raise SectionParseError(
-                11, "function ascription exceeds the verification work limit",
+                11, "export ascription exceeds the verification work limit",
               )
             }
             for i in 0..<a.length() {
@@ -160,7 +186,7 @@ fn check_function_ascription(
               remaining -= 1
               if remaining < 0 {
                 raise SectionParseError(
-                  11, "function ascription exceeds the verification work limit",
+                  11, "export ascription exceeds the verification work limit",
                 )
               }
               if a[i].label != b[i].label || a[i].refines != b[i].refines {
@@ -177,7 +203,7 @@ fn check_function_ascription(
               remaining -= 1
               if remaining < 0 {
                 raise SectionParseError(
-                  11, "function ascription exceeds the verification work limit",
+                  11, "export ascription exceeds the verification work limit",
                 )
               }
               if a[i] != b[i] {

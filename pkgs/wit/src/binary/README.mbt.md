@@ -64,7 +64,8 @@ and re-exports, plus declarative core module/function types and module externs.
 Concrete core module bodies, nested concrete component definitions,
 instantiation, canonical functions and start sections remain unsupported and
 return `WIT-B002`. Physical type-scope nesting has the same 256 limit.
-Component-value externs and non-function root export ascriptions also return `WIT-B002`:
+Component-value externs and instance/component/core-module root export
+ascriptions also return `WIT-B002`:
 the pinned parser's value-bound encoding is obsolete, and the retained validator
 does not yet implement complete ascription compatibility checks.
 
@@ -101,7 +102,9 @@ has a complete retained signature. An explicit work stack compares parameter
 names, async mode, structural values and nominal resources. Instance-exported
 function aliases retain complete reachable type graphs and defining scopes.
 Nested imported instances retain complete signatures, nominal resource binders
-and exported value-type aliases in private indexed graphs. The type-only WIT entry point continues to reject all
+and exported value-type aliases in private indexed graphs. Type-equality export
+ascriptions compare complete structural shapes and nominal resource identities,
+including aliases and re-exports. The type-only WIT entry point continues to reject all
 root export ascriptions. Component values and runtime component sections remain unsupported.
 
 Core declarations have separate lexical index validation and retain complete

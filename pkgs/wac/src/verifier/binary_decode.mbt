@@ -143,6 +143,8 @@ fn BinaryGraph::export_entry(
   let kind = match (original, export_entry.desc) {
     (Type(id), None) => Type(self.type_alias(id, name))
     (_, None) => original
+    (Type(_), Some(Type(Eq(index)))) =>
+      Type(self.type_alias(binary_index(scope.types, index), name))
     (Function(_), Some(FuncType(index))) =>
       Function(self.follow(binary_index(scope.types, index)))
     _ =>

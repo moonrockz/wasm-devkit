@@ -1,5 +1,5 @@
 // Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
-// Modified by wasm-devkit: permit re-exports and validate function ascriptions.
+// Modified by wasm-devkit: permit re-exports and validate function/type ascriptions.
 
 ///|
 /// Handle component export section (id 11).
@@ -479,6 +479,28 @@ fn validate_component_section_export(
           budget=counts.ascription_remaining,
         )
       }
+      (Type, Some(Type(Eq(index)))) => {
+        let (types, resources, remaining) = metadata_global_types(
+          type_table,
+          resource_ids,
+          counts.type_metadata,
+          counts.metadata_remaining,
+        ) catch {
+          SignatureBudgetExceeded =>
+            raise SectionParseError(
+              11, "type ascription metadata exceeds the verification work limit",
+            )
+          IncompleteFunctionSignature => raise UnsupportedFunctionAscription
+        }
+        counts.metadata_remaining = remaining
+        counts.ascription_remaining = check_value_ascriptions(
+          [Value(TypeIdx(e.sortidx.idx), TypeIdx(index))],
+          types,
+          resources,
+          counts.ascription_remaining,
+        )
+      }
+      (Type, Some(Type(SubResource))) => raise AscribedExportTypeIncompatible
       (Instance, Some(InstanceType(tyidx))) =>
         if tyidx >= 0 && tyidx < type_table.length() {
           let expected = instancetype_sig_of_global_idx(
