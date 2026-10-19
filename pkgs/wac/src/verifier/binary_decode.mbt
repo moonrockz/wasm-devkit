@@ -147,6 +147,8 @@ fn BinaryGraph::export_entry(
       Type(self.type_alias(binary_index(scope.types, index), name))
     (Function(_), Some(FuncType(index))) =>
       Function(self.follow(binary_index(scope.types, index)))
+    (Instance(_), Some(InstanceType(index))) =>
+      Instance(self.instantiate_type(scope, binary_index(scope.types, index)))
     (Module(_), Some(CoreModuleType(index))) => {
       guard scope.core_ids.get(index) is Some(Some(id)) else {
         raise Invalid("core module ascription index is invalid")

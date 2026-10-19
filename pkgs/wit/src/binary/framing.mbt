@@ -509,7 +509,8 @@ fn preflight(
               (
                 payload.bytes[payload.position] == b'\x00' ||
                 payload.bytes[payload.position] == b'\x01' ||
-                payload.bytes[payload.position] == b'\x03'
+                payload.bytes[payload.position] == b'\x03' ||
+                payload.bytes[payload.position] == b'\x05'
               ) => payload.description(core=declarations)
             1 =>
               raise Failure(

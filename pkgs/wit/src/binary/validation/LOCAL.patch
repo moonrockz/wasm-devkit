@@ -1346,20 +1346,21 @@
 -  MissingCoreInstanceExport(Int, String)
 +  MissingInstanceExport(Int32, String)
 +  MissingCoreInstanceExport(Int32, String)
-@@ -53,0 +57 @@
+@@ -53,0 +57,2 @@
 +  UnsupportedFunctionAscription
-@@ -55 +59 @@
++  UnsupportedInstanceAscription
+@@ -55 +60 @@
 -  SectionParseError(Int, String)
 +  SectionParseError(Int32, String)
-@@ -77,0 +82,2 @@
+@@ -77,0 +83,2 @@
 +  canonical_version_suffix : Bool
 +  restricted_map_keys : Bool
-@@ -83 +89,3 @@
+@@ -83 +90,3 @@
 -  component_implements? : Bool = true,
 +  component_implements~ : Bool = true,
 +  canonical_version_suffix~ : Bool = true,
 +  restricted_map_keys~ : Bool = true,
-@@ -85 +93,6 @@
+@@ -85 +94,6 @@
 -  { wit_names, component_implements, }
 +  {
 +    wit_names,
@@ -1367,7 +1368,7 @@
 +    canonical_version_suffix,
 +    restricted_map_keys,
 +  }
-@@ -114,12 +127,17 @@
+@@ -114,12 +128,17 @@
 -  mut func : Int
 -  mut value : Int
 -  mut component : Int
@@ -1397,7 +1398,7 @@
 +  mut core_memory : Int32
 +  mut core_global : Int32
 +  mut core_tag : Int32
-@@ -161 +179,9 @@
+@@ -161 +180,9 @@
 -} derive(Eq)
 +  complete : CompleteFunctionSignature?
 +}
@@ -1408,87 +1409,87 @@
 +impl Eq for FuncSigShape with fn equal(a, b) {
 +  a.params == b.params && a.result == b.result
 +}
-@@ -165,2 +191,2 @@
+@@ -165,2 +192,2 @@
 -  Existing(Int)
 -  Resource(Int)
 +  Existing(Int32)
 +  Resource(Int32)
-@@ -182,3 +208,3 @@
+@@ -182,3 +209,3 @@
 -  Resource(Int)
 -  Own(Int)
 -  Borrow(Int)
 +  Resource(Int32)
 +  Own(Int32)
 +  Borrow(Int32)
-@@ -204,2 +230,2 @@
+@@ -204,2 +231,2 @@
 -  resource_ids : Array[Int?],
 -) -> Int? {
 +  resource_ids : Array[Int32?],
 +) -> Int32? {
-@@ -218,3 +244,3 @@
+@@ -218,3 +245,3 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 -) -> Int? {
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
 +) -> Int32? {
-@@ -238,2 +264,2 @@
+@@ -238,2 +265,2 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
-@@ -258,2 +284,2 @@
+@@ -258,2 +285,2 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
-@@ -460 +486,4 @@
+@@ -460 +487,4 @@
 -fn core_func_type_of_idx(m : @types.Module, func_idx : Int) -> @types.FuncType? {
 +fn core_func_type_of_idx(
 +  m : @types.Module,
 +  func_idx : Int32,
 +) -> @types.FuncType? {
-@@ -485 +514 @@
+@@ -485 +515 @@
 -  table_idx : Int,
 +  table_idx : Int32,
-@@ -506 +535 @@
+@@ -506 +536 @@
 -  mem_idx : Int,
 +  mem_idx : Int32,
-@@ -527 +556 @@
+@@ -527 +557 @@
 -  global_idx : Int,
 +  global_idx : Int32,
-@@ -546 +575 @@
+@@ -546 +576 @@
 -fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int) -> @types.FuncType? {
 +fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int32) -> @types.FuncType? {
-@@ -642 +671 @@
+@@ -642 +672 @@
 -fn core_kind_of_extern_type(ty : CoreExternType) -> Int {
 +fn core_kind_of_extern_type(ty : CoreExternType) -> Int32 {
-@@ -679 +708 @@
+@@ -679 +709 @@
 -  idx : Int,
 +  idx : Int32,
-@@ -723,0 +753,5 @@
+@@ -723,0 +754,5 @@
 +    type_metadata: Map([]),
 +    instance_metadata: Map([]),
 +    core_contracts: None,
 +    metadata_remaining: 1000000,
 +    ascription_remaining: 1000000,
-@@ -763 +797 @@
+@@ -763 +798 @@
 -fn is_lower_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_lower_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -793 +827 @@
+@@ -793 +828 @@
 -fn is_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -843,2 +877,2 @@
+@@ -843,2 +878,2 @@
 -fn is_canonversion_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 -  if start < 0 || end_ <= start || end_ > name.length() {
 +fn is_semver_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
 +  if start < 0 || start >= end_ || end_ > name.length() {
-@@ -848,2 +882,2 @@
+@@ -848,2 +883,2 @@
 -  if name[i].to_int() >= 0x31 && name[i].to_int() <= 0x39 {
 -    i += 1
 +  for component in 0..<3 {
 +    let begin = i
-@@ -853,11 +887,27 @@
+@@ -853,11 +888,27 @@
 -    return i == end_
 -  }
 -  if name[i].to_int() != 0x30 || i + 1 >= end_ {
@@ -1527,7 +1528,7 @@
 +
 +  // Numeric prerelease identifiers cannot contain leading zeroes.
 +  if i < end_ && name[i] == 0x2d {
-@@ -865 +915,15 @@
+@@ -865 +916,15 @@
 -    while i < end_ && is_ascii_digit(name[i]) {
 +    while true {
 +      let begin = i
@@ -1544,7 +1545,7 @@
 +      if i >= end_ || name[i] != 0x2e {
 +        break
 +      }
-@@ -867,95 +930,0 @@
+@@ -867,95 +931,0 @@
 -    }
 -    return i == end_
 -  }
@@ -1640,13 +1641,13 @@
 -    }
 -    if need_id {
 -      return false
-@@ -1016,3 +984,0 @@
+@@ -1016,3 +985,0 @@
 -      if at != -1 {
 -        return false
 -      }
-@@ -1019,0 +986 @@
+@@ -1019,0 +987 @@
 +      break
-@@ -1028,9 +995 @@
+@@ -1028,9 +996 @@
 -  if at != -1 {
 -    if at >= name.length() - 1 {
 -      return false
@@ -1657,14 +1658,14 @@
 -    }
 -  }
 +  // Version syntax is checked with the separately encoded suffix.
-@@ -1185 +1144 @@
+@@ -1185 +1145 @@
 -fn is_integrity_value(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_integrity_value(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -1453,0 +1413,3 @@
+@@ -1453,0 +1414,3 @@
 +  if prefix_eq("get") || prefix_eq("set") {
 +    return is_kebab_case_range(name, close + 1, name.length())
 +  }
-@@ -1460 +1422,9 @@
+@@ -1460 +1423,9 @@
 -  // method/static: require exactly one '.' and kebab-case around it.
 +  // Method/static names can have one accessor annotation before the resource.
 +  let mut start = close + 1
@@ -1675,10 +1676,10 @@
 +    ) {
 +    start += 5
 +  }
-@@ -1462 +1432 @@
+@@ -1462 +1433 @@
 -  for k in (close + 1)..<name.length() {
 +  for k in start..<name.length() {
-@@ -1470,4 +1440,4 @@
+@@ -1470,4 +1441,4 @@
 -  if dot < 0 || dot == close + 1 || dot == name.length() - 1 {
 -    return false
 -  }
@@ -1687,19 +1688,19 @@
 +    return false
 +  }
 +  is_kebab_case_range(name, start, dot) &&
-@@ -1506 +1476 @@
+@@ -1506 +1477 @@
 -  mut pos : Int
 +  mut pos : Int32
-@@ -1522 +1492 @@
+@@ -1522 +1493 @@
 -) -> Int raise ComponentValidationError {
 +) -> Int32 raise ComponentValidationError {
-@@ -1534 +1504 @@
+@@ -1534 +1505 @@
 -) -> Int raise ComponentValidationError {
 +) -> Int32 raise ComponentValidationError {
-@@ -1554 +1524 @@
+@@ -1554 +1525 @@
 -  n : Int,
 +  n : Int32,
-@@ -1585,5 +1555,9 @@
+@@ -1585,5 +1556,9 @@
 -  ascii_bytes_to_string(self.read_bytes(len))
 -}
 -
@@ -1714,7 +1715,7 @@
 +
 +///|
 +fn CoreTypeReader::read_limit(
-@@ -1591 +1565,23 @@
+@@ -1591 +1566,23 @@
 -) -> Unit raise ComponentValidationError {
 +  wide : Bool,
 +) -> UInt64 raise ComponentValidationError {
@@ -1739,7 +1740,7 @@
 +  self : CoreTypeReader,
 +  memory : Bool,
 +) -> (Int32, UInt64, UInt64?, Int32) raise ComponentValidationError {
-@@ -1593,4 +1589,24 @@
+@@ -1593,4 +1590,24 @@
 -  self.read_leb_u32() |> ignore
 -  if (flags & 0x01) != 0 {
 -    self.read_leb_u32() |> ignore
@@ -1768,12 +1769,12 @@
 +    }
 +  }
 +  (flags, min, max, page)
-@@ -1627,2 +1643,2 @@
+@@ -1627,2 +1644,2 @@
 -  kind : Int,
 -  func_type_bound : Int,
 +  kind : Int32,
 +  func_type_bound : Int32,
-@@ -1639,17 +1655,3 @@
+@@ -1639,17 +1656,3 @@
 -      self.skip_limits()
 -    }
 -    0x02 => {
@@ -1794,16 +1795,16 @@
 +      self.read_limits(false) |> ignore
 +    }
 +    0x02 => self.read_limits(true) |> ignore
-@@ -1679 +1681 @@
+@@ -1679 +1682 @@
 -    heap : Int,
 +    heap : Int32,
-@@ -1748 +1750 @@
+@@ -1748 +1751 @@
 -  kind : Int,
 +  kind : Int32,
-@@ -1750 +1752 @@
+@@ -1750 +1753 @@
 -  func_type_bound : Int,
 +  func_type_bound : Int32,
-@@ -1775,6 +1777,5 @@
+@@ -1775,6 +1778,5 @@
 -      let flags = self.read_u8()
 -      let min = self.read_leb_u32()
 -      let max = if (flags & 0x01) != 0 {
@@ -1815,7 +1816,7 @@
 +        (max is Some(n) && n > 9223372036854775807UL) ||
 +        (flags & 2) != 0 {
 +        return None
-@@ -1783,7 +1784,4 @@
+@@ -1783,7 +1785,4 @@
 -        min: min.to_int64(),
 -        max: match max {
 -          Some(v) => Some(v.to_int64())
@@ -1827,7 +1828,7 @@
 +        max: max.map(n => n.reinterpret_as_int64()),
 +      }
 +      Some(Table({ elem_type: elem_ty, limits, is_table64: (flags & 4) != 0, }))
-@@ -1792,14 +1790,6 @@
+@@ -1792,14 +1791,6 @@
 -      // memtype: flags + limits (track memory64 when present)
 -      let flags = self.read_u8()
 -      let min = self.read_leb_u32()
@@ -1848,7 +1849,7 @@
 +      if min > 9223372036854775807UL ||
 +        (max is Some(n) && n > 9223372036854775807UL) {
 +        return None
-@@ -1808,7 +1798,3 @@
+@@ -1808,7 +1799,3 @@
 -        min: min.to_int64(),
 -        max: match max {
 -          Some(v) => Some(v.to_int64())
@@ -1859,33 +1860,33 @@
 +        min: min.reinterpret_as_int64(),
 +        max: max.map(n => n.reinterpret_as_int64()),
 +      }
-@@ -1818,3 +1804,3 @@
+@@ -1818,3 +1805,3 @@
 -          is_memory64,
 -          is_shared: (flags & 0x02) != 0,
 -          page_size_log2: 16,
 +          is_memory64: (flags & 4) != 0,
 +          is_shared: (flags & 2) != 0,
 +          page_size_log2: page,
-@@ -1828 +1814,4 @@
+@@ -1828 +1815,4 @@
 -      let mutable = mut_ != 0
 +      if (mut_ & 2) != 0 {
 +        return None
 +      }
 +      let mutable = (mut_ & 1) != 0
-@@ -1859,3 +1848,3 @@
+@@ -1859,3 +1849,3 @@
 -  max_outer_depth : Int,
 -  current_core_type_bound : Int,
 -  outer_core_type_bounds : Array[Int],
 +  max_outer_depth : Int32,
 +  current_core_type_bound : Int32,
 +  outer_core_type_bounds : Array[Int32],
-@@ -1864 +1853 @@
+@@ -1864 +1854 @@
 -  let seen_imports : Map[String, Int] = Map([])
 +  let seen_imports : Map[(String, String), Int32] = Map([])
-@@ -1883 +1872 @@
+@@ -1883 +1873 @@
 -        let key = "\{mod_s}:\{name_s}"
 +        let key = (mod_s, name_s)
-@@ -1919 +1908,3 @@
+@@ -1919 +1909,3 @@
 -                let bound = if depth <= 1 {
 +                let bound = if depth == 0 {
 +                  func_type_bound - 1
@@ -2041,31 +2042,37 @@
 -) -> (Int, Int) raise ComponentValidationError {
 +  next_resource_id : Int32,
 +) -> (Int32, Int32) raise ComponentValidationError {
-@@ -86,5 +88,0 @@
+@@ -77,0 +81 @@
++    let mut ascribed_instance : InstanceMetadata? = None
+@@ -86,5 +89,0 @@
 -    if is_root && e.sortidx.sort is Component {
 -      raise SectionParseError(
 -        11, "exporting a component from the root component is not supported",
 -      )
 -    }
-@@ -117,3 +114,0 @@
+@@ -117,3 +115,0 @@
 -    if is_root && e.sortidx.sort is Func && e.sortidx.idx < imported_funcs {
 -      raise ExportedImportedFunc(e.sortidx.idx)
 -    }
-@@ -121 +116 @@
+@@ -121 +117 @@
 -    let mut ascribed_resource_id : Int? = None
 +    let mut ascribed_resource_id : Int32? = None
-@@ -247,2 +242,2 @@
+@@ -247,2 +243,2 @@
 -          let exported_type_idxs : Array[Int] = []
 -          let seen : Map[Int, Int] = Map([])
 +          let exported_type_idxs : Array[Int32] = []
 +          let seen : Map[Int32, Int32] = Map([])
-@@ -295 +290 @@
+@@ -295 +291 @@
 -          let inst_named : Map[Int, Int] = Map([])
 +          let inst_named : Map[Int32, Int32] = Map([])
-@@ -447 +442 @@
+@@ -447 +443 @@
 -    // the actual export (we currently model instance-type compatibility).
 +    // the actual export. Functions require complete invariant signatures.
-@@ -448,0 +444,60 @@
+@@ -449,4 +445,15 @@
+-      (Instance, Some(InstanceType(tyidx))) =>
+-        if tyidx >= 0 && tyidx < type_table.length() {
+-          let expected = instancetype_sig_of_global_idx(
+-            tyidx,
 +      (Func, Some(FuncType(index))) => {
 +        guard type_table.get(index) is Some(Some(FuncType(expected))) else {
 +          raise AscribedExportTypeIncompatible
@@ -2081,11 +2088,26 @@
 +        let actual = if func_types.get(e.sortidx.idx) is Some(Some(actual)) {
 +          let signature = metadata_global_function(
 +            actual,
-+            type_table,
+@@ -454 +461,3 @@
+-            Map([]),
 +            resource_ids,
 +            counts.type_metadata,
 +            counts.metadata_remaining,
-+          )
+@@ -456,14 +465,91 @@
+-          let actual = if e.sortidx.idx >= 0 &&
+-            e.sortidx.idx < instance_sigs.length() {
+-            instance_sigs[e.sortidx.idx]
+-          } else {
+-            None
+-          }
+-          check_instance_subtype(actual, expected)
+-          match exportname_to_string(e.name) {
+-            Some(name) => my_export_instance_sigs.set(name, expected)
+-            None => ()
+-          }
+-        } else {
+-          raise AscribedExportTypeIncompatible
+-        }
 +          counts.metadata_remaining -= signature.work
 +          signature
 +        } else if func_sig_shapes.get(e.sortidx.idx) is Some(Some(shape)) &&
@@ -2126,11 +2148,62 @@
 +        )
 +      }
 +      (Type, Some(Type(SubResource))) => raise AscribedExportTypeIncompatible
-@@ -487,0 +543,3 @@
++      (Instance, Some(InstanceType(tyidx))) => {
++        guard type_table.get(tyidx) is Some(Some(td)) &&
++          counts.instance_metadata.get(e.sortidx.idx)
++          is Some((actual, actual_node)) else {
++          raise UnsupportedInstanceAscription
++        }
++        let (expected, next, remaining) = imported_instance_metadata(
++          td,
++          type_table,
++          resource_ids,
++          Map([]),
++          counts.type_metadata,
++          next_resource_id,
++          counts.metadata_remaining,
++        )
++        counts.metadata_remaining = remaining
++        next_resource_id = next
++        guard expected is Some(expected) else {
++          if remaining == 0 {
++            raise SectionParseError(
++              11, "instance ascription metadata exceeds the verification work limit",
++            )
++          }
++          raise UnsupportedInstanceAscription
++        }
++        let core_scopes = match counts.core_contracts {
++          Some(graph) =>
++            match graph.scope(0) {
++              Some(root) =>
++                match (root.binding(5, e.sortidx.idx), root.binding(3, tyidx)) {
++                  (Some(Scope(a)), Some(Scope(b))) => Some((a, b))
++                  _ => None
++                }
++              None => None
++            }
++          None => None
++        }
++        counts.ascription_remaining = check_instance_ascription(
++          actual,
++          actual_node,
++          expected,
++          counts.ascription_remaining,
++          core_contracts=counts.core_contracts,
++          core_scopes~,
++        )
++        ascribed_instance = Some(expected)
++        if exportname_to_string(e.name) is Some(name) {
++          my_export_instance_sigs[name] = metadata_instance_sig(expected, 0)
++          my_export_instance_func_sigs[name] = expected.nodes[0].functions
++        }
++      }
+@@ -487,0 +574,3 @@
 +        if counts.type_metadata.get(idx) is Some(metadata) {
 +          counts.type_metadata[type_table.length()] = metadata
 +        }
-@@ -528 +586,9 @@
+@@ -528 +617,9 @@
 -            func_types.push(func_types[e.sortidx.idx])
 +            let exported = match e.desc {
 +              Some(FuncType(index)) =>
@@ -2141,11 +2214,25 @@
 +              _ => func_types[e.sortidx.idx]
 +            }
 +            func_types.push(exported)
-@@ -540,0 +607,3 @@
-+            if counts.instance_metadata.get(e.sortidx.idx) is Some(metadata) {
+@@ -540,0 +638,11 @@
++            if ascribed_instance is Some(metadata) {
++              instance_sigs[instance_sigs.length() - 1] = Some(
++                metadata_instance_sig(metadata, 0),
++              )
++              counts.instance_metadata[instance_sigs.length() - 1] = (
++                metadata, 0,
++              )
++            } else if counts.instance_metadata.get(e.sortidx.idx)
++              is Some(metadata) {
 +              counts.instance_metadata[instance_sigs.length() - 1] = metadata
 +            }
-@@ -602 +671,4 @@
+@@ -580,0 +689,5 @@
++            if ascribed_instance is Some(metadata) {
++              instance_export_func_sigs[instance_export_func_sigs.length() - 1] = Some(
++                metadata.nodes[0].functions,
++              )
++            }
+@@ -602 +715,4 @@
 -            interface_instance_idxs.set(instance_sigs.length() - 1, 1)
 +            interface_instance_idxs.set(
 +              instance_sigs.length() - 1,

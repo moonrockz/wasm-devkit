@@ -55,6 +55,7 @@ pub(all) suberror ComponentValidationError {
   MissingExpectedExport(String)
   AscribedExportTypeIncompatible
   UnsupportedFunctionAscription
+  UnsupportedInstanceAscription
   AliasTargetMismatch(String)
   SectionParseError(Int32, String)
   CoreModuleError(String)

@@ -104,7 +104,10 @@ function aliases retain complete reachable type graphs and defining scopes.
 Nested imported instances retain complete signatures, nominal resource binders
 and exported value-type aliases in private indexed graphs. Type-equality export
 ascriptions compare complete structural shapes and nominal resource identities,
-including aliases and re-exports. The type-only WIT entry point continues to reject all
+including aliases and re-exports. Instance annotations check functions, values,
+nominal resources, nested instances and core modules against the complete expected
+contract; component members remain unsupported. Annotated aliases and re-exports
+retain the narrowed contract. The type-only WIT entry point continues to reject all
 root export ascriptions. Component values and runtime component sections remain unsupported.
 
 Core declarations have separate lexical index validation and retain complete

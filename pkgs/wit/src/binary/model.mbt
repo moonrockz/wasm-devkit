@@ -111,6 +111,12 @@ pub fn validate_declarative_component(
       ),
       core_contracts=Some(core_contracts),
     ) catch {
+      @validation.UnsupportedInstanceAscription =>
+        raise Failure(
+          None,
+          "WIT-B002",
+          "instance ascription requires complete supported export contracts",
+        )
       @validation.UnsupportedFunctionAscription =>
         raise Failure(
           None,

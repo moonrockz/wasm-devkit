@@ -78,6 +78,7 @@ fn validate_component_section_export(
     e => raise SectionParseError(11, "\{e}")
   }
   for e in exports {
+    let mut ascribed_instance : InstanceMetadata? = None
     validate_export_name(e.name, cfg)
     validate_name_attributes(
       11,
@@ -501,27 +502,57 @@ fn validate_component_section_export(
         )
       }
       (Type, Some(Type(SubResource))) => raise AscribedExportTypeIncompatible
-      (Instance, Some(InstanceType(tyidx))) =>
-        if tyidx >= 0 && tyidx < type_table.length() {
-          let expected = instancetype_sig_of_global_idx(
-            tyidx,
-            type_table,
-            Map([]),
-          )
-          let actual = if e.sortidx.idx >= 0 &&
-            e.sortidx.idx < instance_sigs.length() {
-            instance_sigs[e.sortidx.idx]
-          } else {
-            None
-          }
-          check_instance_subtype(actual, expected)
-          match exportname_to_string(e.name) {
-            Some(name) => my_export_instance_sigs.set(name, expected)
-            None => ()
-          }
-        } else {
-          raise AscribedExportTypeIncompatible
+      (Instance, Some(InstanceType(tyidx))) => {
+        guard type_table.get(tyidx) is Some(Some(td)) &&
+          counts.instance_metadata.get(e.sortidx.idx)
+          is Some((actual, actual_node)) else {
+          raise UnsupportedInstanceAscription
         }
+        let (expected, next, remaining) = imported_instance_metadata(
+          td,
+          type_table,
+          resource_ids,
+          Map([]),
+          counts.type_metadata,
+          next_resource_id,
+          counts.metadata_remaining,
+        )
+        counts.metadata_remaining = remaining
+        next_resource_id = next
+        guard expected is Some(expected) else {
+          if remaining == 0 {
+            raise SectionParseError(
+              11, "instance ascription metadata exceeds the verification work limit",
+            )
+          }
+          raise UnsupportedInstanceAscription
+        }
+        let core_scopes = match counts.core_contracts {
+          Some(graph) =>
+            match graph.scope(0) {
+              Some(root) =>
+                match (root.binding(5, e.sortidx.idx), root.binding(3, tyidx)) {
+                  (Some(Scope(a)), Some(Scope(b))) => Some((a, b))
+                  _ => None
+                }
+              None => None
+            }
+          None => None
+        }
+        counts.ascription_remaining = check_instance_ascription(
+          actual,
+          actual_node,
+          expected,
+          counts.ascription_remaining,
+          core_contracts=counts.core_contracts,
+          core_scopes~,
+        )
+        ascribed_instance = Some(expected)
+        if exportname_to_string(e.name) is Some(name) {
+          my_export_instance_sigs[name] = metadata_instance_sig(expected, 0)
+          my_export_instance_func_sigs[name] = expected.nodes[0].functions
+        }
+      }
       (_sort, Some(d)) =>
         if sort_of_externdesc(d) != e.sortidx.sort {
           raise AscribedExportTypeIncompatible
@@ -604,7 +635,15 @@ fn validate_component_section_export(
         Instance =>
           if e.sortidx.idx >= 0 && e.sortidx.idx < instance_sigs.length() {
             instance_sigs.push(instance_sigs[e.sortidx.idx])
-            if counts.instance_metadata.get(e.sortidx.idx) is Some(metadata) {
+            if ascribed_instance is Some(metadata) {
+              instance_sigs[instance_sigs.length() - 1] = Some(
+                metadata_instance_sig(metadata, 0),
+              )
+              counts.instance_metadata[instance_sigs.length() - 1] = (
+                metadata, 0,
+              )
+            } else if counts.instance_metadata.get(e.sortidx.idx)
+              is Some(metadata) {
               counts.instance_metadata[instance_sigs.length() - 1] = metadata
             }
             if e.sortidx.idx >= 0 &&
@@ -646,6 +685,11 @@ fn validate_component_section_export(
               )
             } else {
               instance_export_func_sigs.push(None)
+            }
+            if ascribed_instance is Some(metadata) {
+              instance_export_func_sigs[instance_export_func_sigs.length() - 1] = Some(
+                metadata.nodes[0].functions,
+              )
             }
             if e.sortidx.idx >= 0 &&
               e.sortidx.idx < instance_nested_instance_type_sigs.length() {
