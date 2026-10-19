@@ -958,7 +958,7 @@ fn component_validation_frame(
             e => raise SectionParseError(8, "\{e}")
           }
           for c in canons {
-            let complete_lower = if contract_scope is Some(_) {
+            let complete_lower = if contract_scope is Some(scope) {
               match c {
                 ResourceNew(_) | ResourceDrop(_) | ResourceRep(_) =>
                   Some(
@@ -966,10 +966,23 @@ fn component_validation_frame(
                       c, type_table, local_resource_types, resource_ids, contract_work,
                     ),
                   )
-                _ =>
+                Lift(_, _, _) | Lower(_, _) =>
                   check_canonical_contract(
-                    c, type_table, func_types, func_sig_shapes, external_contracts,
-                    canonical_budget, contract_work,
+                    c,
+                    type_table,
+                    func_types,
+                    func_sig_shapes,
+                    scope,
+                    counts.core_type,
+                    external_contracts,
+                    canonical_budget,
+                    contract_work,
+                  )
+                _ =>
+                  Some(
+                    canonical_handle_function(
+                      c, type_table, external_contracts, contract_work,
+                    ),
                   )
               }
             } else {
@@ -1032,9 +1045,9 @@ fn component_validation_frame(
           let start = @component.parse_start_section(s.payload) catch {
             e => raise SectionParseError(9, "\{e}")
           }
-          if start.func_idx < 0 || start.func_idx >= counts.func {
-            raise InvalidFuncIndex(start.func_idx)
-          }
+          validate_component_start(
+            start, counts, func_types, type_table, resource_ids,
+          )
         }
         _ => ()
       }

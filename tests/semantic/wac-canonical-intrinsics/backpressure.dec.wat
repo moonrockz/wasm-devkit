@@ -1,0 +1,1 @@
+(component   (core func $f (canon backpressure.dec)) (core instance $env (export "f" (func $f))) (core module $m (import "env" "f" (func))) (core instance (instantiate $m (with "env" (instance $env)))) )

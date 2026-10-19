@@ -1,0 +1,1 @@
+{"definitions":[],"instance":1,"name":"test:composition","types":{"defined":[],"funcs":[],"interfaces":[{"exports":[],"id":null,"uses":[]},{"exports":[["out",{"instance":0}]],"id":null,"uses":[]}],"modules":[],"resources":[],"worlds":[{"exports":[["out",{"instance":0}]],"id":null,"imports":[],"uses":[]}]},"version":null,"world":0}

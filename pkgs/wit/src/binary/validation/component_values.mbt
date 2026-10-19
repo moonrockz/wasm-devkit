@@ -81,6 +81,71 @@ fn Counts::consume_value(
 }
 
 ///|
+
+///|
+fn validate_component_start(
+  start : @component.Start,
+  counts : Counts,
+  func_types : Array[@component.FuncType?],
+  type_table : Array[@component.TypeDef?],
+  resource_ids : Array[Int32?],
+) -> Unit raise ComponentValidationError {
+  if counts.started {
+    raise SectionParseError(
+      9, "component cannot have more than one start function",
+    )
+  }
+  counts.started = true
+  guard func_types.get(start.func_idx) is Some(Some(ft)) else {
+    raise InvalidFuncIndex(start.func_idx)
+  }
+  if ft.params.length() != start.args.length() {
+    raise SectionParseError(
+      9,
+      "component start function requires \{ft.params.length()} arguments but was given \{start.args.length()}",
+    )
+  }
+  let type_results = if ft.result is Some(_) { 1 } else { 0 }
+  if start.results != type_results {
+    raise SectionParseError(
+      9,
+      "component start function has a result count of \{start.results} but the function type has a result count of \{type_results}",
+    )
+  }
+  for i, arg in start.args {
+    let actual = counts.consume_value(arg, 9)
+    let expected = counts.value_signature(
+      ft.params[i].ty,
+      type_table,
+      resource_ids,
+    )
+    try {
+      counts.ascription_remaining = check_function_ascription(
+        actual.function,
+        expected.function,
+        actual.types,
+        actual.resources,
+        budget=counts.ascription_remaining,
+        expected_types=Some(expected.types),
+        expected_resources=Some(expected.resources),
+      )
+    } catch {
+      AscribedExportTypeIncompatible =>
+        raise SectionParseError(
+          9,
+          "value type mismatch for component start function argument \{i}",
+        )
+      error => raise error
+    }
+  }
+  if ft.result is Some(result) {
+    let signature = counts.value_signature(result, type_table, resource_ids)
+    counts.values.push({ signature, used: false, })
+    counts.value += 1
+  }
+}
+
+///|
 fn check_value_export(
   signature : CompleteFunctionSignature,
   cfg : ComponentValidationConfig,

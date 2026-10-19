@@ -371,6 +371,7 @@ priv struct ComponentBuildState {
   mut next_core_memory_idx : Int32
   mut next_core_global_idx : Int32
   mut next_core_tag_idx : Int32
+  mut has_start : Bool
 }
 
 ///|
@@ -419,6 +420,7 @@ fn ComponentBuildState::ComponentBuildState(
     next_core_memory_idx: 0,
     next_core_global_idx: 0,
     next_core_tag_idx: 0,
+    has_start: false,
   }
 }
 
@@ -4273,6 +4275,10 @@ fn parse_canon_option(
       option_bytes.push_u8(0x02)
       return
     }
+    if atom_name == "gc" {
+      option_bytes.push_u8(0x09)
+      return
+    }
     if atom_name == "async" {
       option_bytes.push_u8(0x06)
       return
@@ -4347,6 +4353,16 @@ fn parse_canon_option(
     }
     option_bytes.push_u8(0x05)
     option_bytes.push_uleb_u32(func_idx)
+    return
+  }
+  if option_items[0] is Atom("core-type") {
+    if option_items.length() != 2 {
+      raise Unsupported(
+        "core-type option must be `(core-type <core-type-ref>)`",
+      )
+    }
+    option_bytes.push_u8(0x08)
+    option_bytes.push_uleb_u32(parse_core_type_ref(option_items[1], state))
     return
   }
   if option_items[0] is Atom("callback") {
@@ -4630,7 +4646,10 @@ fn parse_canon_decl(
   if op_name == "subtask.cancel" {
     let mut is_async = false
     if decl_end == 3 {
-      is_async = parse_canon_bool_flag(canon_items[2])
+      if !(canon_items[2] is Atom("async")) {
+        raise Unsupported("subtask.cancel only accepts an async flag")
+      }
+      is_async = true
     } else if decl_end != 2 {
       raise Unsupported("subtask.cancel accepts at most one `async` flag")
     }
@@ -4802,6 +4821,9 @@ fn parse_canon_decl(
         } else {
           raise Unsupported("memory option must be `(memory <memory-ref>)`")
         }
+        if memory_idx_opt is Some(_) {
+          raise Unsupported("duplicate waitable-set memory option")
+        }
         memory_idx_opt = Some(memory_ref)
         continue
       }
@@ -4889,7 +4911,10 @@ fn parse_canon_decl(
     }
     let type_idx = parse_component_type_ref(canon_items[2], state)
     let is_async = if decl_end == 4 {
-      parse_canon_bool_flag(canon_items[3])
+      if !(canon_items[3] is Atom("async")) {
+        raise Unsupported("cancellation only accepts an async flag")
+      }
+      true
     } else {
       false
     }
@@ -5154,6 +5179,81 @@ fn parse_func_field(
     })
     bump_sort_index_after_export(state, 0x01, None)
   }
+}
+
+///|
+fn parse_start_field(
+  field : Array[SExpr],
+  state : ComponentBuildState,
+) -> Unit raise ComponentTextError {
+  if state.has_start {
+    raise Unsupported("component cannot have more than one start function")
+  }
+  if field.length() < 2 {
+    raise Unsupported("start requires a function reference")
+  }
+  let func_idx = resolve_reference(field[1], state.func_names, "function")
+  let args : Array[Int32] = []
+  let mut results = 0
+  let mut saw_result = false
+  for i in 2..<field.length() {
+    let item = field[i]
+    if item is Atom(_) {
+      args.push(resolve_reference(item, state.value_names, "value"))
+      continue
+    }
+    let list = if item is List(items) {
+      items
+    } else {
+      raise Unsupported("unsupported start argument")
+    }
+    if list.length() == 0 {
+      raise Unsupported("empty start argument")
+    }
+    if list[0] is Atom("value") {
+      if list.length() < 2 {
+        raise Unsupported("start value requires a value reference")
+      }
+      for j in 1..<list.length() {
+        args.push(resolve_reference(list[j], state.value_names, "value"))
+      }
+    } else if list[0] is Atom("result") {
+      if saw_result || list.length() != 2 {
+        raise Unsupported(
+          "start result must be `(result <count>)` or `(result $name)`",
+        )
+      }
+      saw_result = true
+      guard list[1] is Atom(text) else {
+        raise Unsupported("start result must name a count or value")
+      }
+      if text.has_prefix("$") {
+        results = 1
+        let idx = state.next_value_idx
+        state.next_value_idx += 1
+        bind_named_index(state.value_names, Some(text), idx)
+      } else {
+        results = parse_u32_literal(list[1], "start result count")
+        if results != 0 && results != 1 {
+          raise Unsupported("start result count must be 0 or 1")
+        }
+        if results == 1 {
+          state.next_value_idx += 1
+        }
+      }
+    } else {
+      raise Unsupported("unsupported start argument")
+    }
+  }
+  state.has_start = true
+  let payload = ByteBuf::ByteBuf()
+  payload.push_uleb_u32(func_idx)
+  payload.push_uleb_u32(args.length())
+  for arg in args {
+    payload.push_uleb_u32(arg)
+  }
+  payload.push_uleb_u32(results)
+  state.sections_ordered.push({ section_id: 9, payload: payload.to_bytes(), })
 }
 
 ///|
@@ -7718,6 +7818,10 @@ fn component_compile_frame(
       }
       if field[0] is Atom("export") {
         parse_export_field(field, state)
+        continue
+      }
+      if field[0] is Atom("start") {
+        parse_start_field(field, state)
         continue
       }
       let head_name = match expr_head_atom(field_expr) {

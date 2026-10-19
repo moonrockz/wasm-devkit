@@ -1774,6 +1774,16 @@ fn canon_post_return_idx(opts : Array[@component.CanonOpt]) -> Int32? {
 }
 
 ///|
+fn canon_callback_idx(opts : Array[@component.CanonOpt]) -> Int32? {
+  for o in opts {
+    if o is Callback(idx) {
+      return Some(idx)
+    }
+  }
+  None
+}
+
+///|
 fn functype_params_need_memory(
   ft : @component.FuncType,
   type_table : Array[@component.TypeDef?],

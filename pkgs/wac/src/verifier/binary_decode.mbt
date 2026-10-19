@@ -163,6 +163,26 @@ fn BinaryGraph::export_entry(
 }
 
 ///|
+fn BinaryGraph::start_values(
+  self : BinaryGraph,
+  scope : BinaryScope,
+  start : @component.Start,
+) -> Unit raise BinaryFailure {
+  self.step()
+  if start.results == 0 {
+    return
+  }
+  if start.results != 1 {
+    raise Invalid("component start result count is outside the profile")
+  }
+  let id = self.follow(binary_index(scope.functions, start.func_idx))
+  guard self.types[id].kind is Function(_, Some(value), _) else {
+    raise Invalid("component start function has no result")
+  }
+  scope.bind(Value(self.follow(value)))
+}
+
+///|
 fn binary_root_declarations(
   component : @component.ComponentBinary,
 ) -> Array[BinaryDeclaration] raise BinaryFailure {
@@ -201,6 +221,12 @@ fn binary_root_declarations(
               ),
             )
           }
+        9 => {
+          let start = @component.parse_start_section(section.payload) catch {
+            error => raise Invalid(error.to_string())
+          }
+          declarations.push(Start(start))
+        }
         11 =>
           for exported in @component.parse_export_section(section.payload) {
             declarations.push(Export(exported))
@@ -298,8 +324,35 @@ fn binary_decode(
       RuntimeInstance(instance) => graph.runtime_instance(scope, instance)
       Canonical(Lift(_, _, index)) =>
         scope.bind(Function(graph.follow(binary_index(scope.types, index))))
-      Canonical(Lower(_, _) | ResourceNew(_) | ResourceDrop(_) | ResourceRep(_)) =>
-        ()
+      // Core-only intrinsics have already passed the complete ordered ABI
+      // validator. They add no component-level public type or value.
+      Canonical(
+        Lower(_, _)
+        | ResourceNew(_)
+        | ResourceDrop(_)
+        | ResourceRep(_)
+        | BackpressureInc
+        | BackpressureDec
+        | TaskCancel
+        | SubtaskDrop
+        | SubtaskCancel(_)
+        | WaitableSetNew
+        | WaitableSetDrop
+        | WaitableJoin
+        | WaitableSetWait(_, _)
+        | WaitableSetPoll(_, _)
+        | ErrorContextDrop
+        | StreamNew(_)
+        | StreamDropReadable(_)
+        | StreamDropWritable(_)
+        | StreamCancelRead(_, _)
+        | StreamCancelWrite(_, _)
+        | FutureNew(_)
+        | FutureDropReadable(_)
+        | FutureDropWritable(_)
+        | FutureCancelRead(_, _)
+        | FutureCancelWrite(_, _)
+      ) => ()
       Canonical(_) => raise Unsupported("unsupported canonical intrinsic")
       Describe(importing, name, attributes, desc) => {
         let kind = graph.describe(scope, importing, name, attributes, desc)
@@ -311,6 +364,7 @@ fn binary_decode(
         }
       }
       Export(export_entry) => graph.export_entry(scope, export_entry)
+      Start(start) => graph.start_values(scope, start)
     }
   }
   let root_scope = graph.scopes[root]

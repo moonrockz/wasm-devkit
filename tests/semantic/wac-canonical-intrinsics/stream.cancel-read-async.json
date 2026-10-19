@@ -1,0 +1,1 @@
+{"definitions":[],"instance":0,"name":"test:intrinsics","types":{"defined":[{"stream":"u32"}],"funcs":[],"interfaces":[{"exports":[["t",{"type":{"value":0}}]],"id":null,"uses":[]}],"modules":[],"resources":[],"worlds":[{"exports":[["t",{"type":{"value":0}}]],"id":null,"imports":[],"uses":[]}]},"version":null,"world":0}

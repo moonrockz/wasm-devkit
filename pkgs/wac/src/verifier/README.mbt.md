@@ -207,8 +207,9 @@ All diagnostic positions count bytes. Unknown offsets remain absent.
 Imported-component instantiation and inline instances validate full argument
 contracts, including named type arguments and runtime values. Concrete nested
 components preserve scoped imports, exports and captured declaration identities.
-Async canonical functions, other intrinsics and component start
-sections remain unsupported. Function export ascriptions validate parameter
+Async callback and stackful lift, async lower and component start sections
+are supported. Canonical handle/cancellation intrinsics and scalar GC lift/lower
+are also supported as described below. Function export ascriptions validate parameter
 names, async mode, structural value types and nominal resource identities, and
 retain the ascribed function type. Type-equality export annotations compare
 complete value shapes and nominal resource identity, including imported aliases
@@ -536,16 +537,20 @@ wasm-tools subtype witnesses in `tests/semantic/wac-core-modules/fill`.
 Both binary and WAT inputs support these contracts and concrete core module
 bodies. Core instantiation and synchronous canonical lift/lower are supported.
 Imported and concrete component instantiation and inline instances are supported.
-Async canonical functions, other intrinsics and component starts remain outside
-this profile.
-Concrete GC/reference types, supertypes and shared heap types remain
+Async callback and stackful lift, async lower and a component start with zero
+or one result are in this profile. A component function type without the async
+option keeps the synchronous core ABI. The handle/cancellation intrinsics and
+scalar `gc`/`core-type` options below also validate; other forms remain explicit
+unsupported failures.
+Concrete GC/reference types, supertypes, shared heap types, exception
+instructions, shared concrete globals and limits above signed Int64 remain
 unsupported. Nested component/instance core declarations with limits above u32
 or custom memory pages return `WAC-B002` before the pinned parser runs; root
 core-type sections support full UInt64 limits. The pinned WAC encoder panics
 when composing the accepted core-module instance-export cases, so independent
 validator witnesses establish their subtype behavior. No public API executes a
-module or component. Optional binary proposal extensions outside this profile
-are tracked in `wasm-devkit-p5m.10`.
+module or component. The remaining profile extensions are tracked in
+`wasm-devkit-p5m.12`.
 
 
 Concrete core modules retain ordered contracts and original bytes. Function
@@ -659,3 +664,22 @@ once; separate aliases of an instance value have separate consumption state.
 The 28 package and 11 composition probes in `tests/semantic/wac-runtime-values`
 compare full ordered models and composition resource contexts, with pinned
 encoder failures recorded separately.
+
+## Canonical handles and scalar GC
+
+`task.cancel`, `backpressure.inc/dec`, `subtask.cancel/drop`,
+`waitable-set.new/wait/poll/drop`, `waitable.join`, `error-context.drop`, and
+`stream/future.new/cancel-read/cancel-write/drop-readable/drop-writable` validate
+complete core contracts. Wait/poll require an unshared memory and use its pointer
+width. Stream/future operations require the matching declared type. Cancellation
+intrinsics accept either async flag; legacy cancellable wait/poll is unsupported.
+
+`gc` lift and `gc (core-type ...)` lower admit numeric/boolean primitives, char,
+enums and flags with one core slot per argument, including more than 16 arguments.
+Lower checks an earlier core function type; lift derives its type and disallows
+an explicit `core-type`. GC references and aggregates remain unsupported, as do
+`task.return`, context/thread helpers, stream/future read/write/forward and
+error-context new/debug-message. Every excluded form returns `WAC-B002` without
+a model. Existing work and depth limits apply unchanged. The 92 retained probes in
+[`wac-canonical-intrinsics`](../../../../tests/semantic/wac-canonical-intrinsics/README.md)
+record exact signatures, reference results and complete model comparisons.

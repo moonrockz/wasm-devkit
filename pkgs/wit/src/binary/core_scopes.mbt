@@ -10,6 +10,7 @@ priv enum CoreDeclaration {
   CoreInstance
   RuntimeInstance(@component.Instance)
   Canonical(@component.Canon)
+  Start(@component.Start)
 }
 
 ///|
@@ -191,6 +192,12 @@ fn core_root_declarations(
           for entry in @component.parse_export_section(section.payload) {
             root.push(Export(entry))
           }
+        9 => {
+          let start = @component.parse_start_section(section.payload) catch {
+            error => raise Failure(None, "WIT-B001", error.to_string())
+          }
+          root.push(Start(start))
+        }
         _ => ()
       }
     } catch {
@@ -289,6 +296,16 @@ fn validate_core_definitions(
         }
       Canonical(Lift(_, _, _)) => scope.bind(1, Other)
       Canonical(_) => scope.bind(0x100, Other)
+      Start(start) =>
+        if start.results == 1 {
+          scope.bind(2, Other)
+        } else if start.results != 0 {
+          raise Failure(
+            None,
+            "WIT-B003",
+            "component start result count is outside the profile",
+          )
+        }
       Nested(td) =>
         match td {
           ComponentType(_) | InstanceType(_) | InstanceTypeEmpty => {

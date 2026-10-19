@@ -154,6 +154,7 @@ priv struct Counts {
   mut ascription_remaining : Int32
   mut func : Int32
   mut value : Int32
+  mut started : Bool
   values : Array[ComponentValue]
   mut component : Int32
   mut instance : Int32
@@ -795,6 +796,7 @@ fn Counts::Counts() -> Counts {
     ascription_remaining: 1000000,
     func: 0,
     value: 0,
+    started: false,
     values: [],
     component: 0,
     instance: 0,

@@ -76,8 +76,10 @@ WIT source and encoded conformance and WAC source-corpus laws pass for the
 documented profile on all four targets. Separate binary/runtime suites retain
 pinned acceptance, model and composition comparisons. Exact reference panics and
 accepted invalid outputs are recorded beside their witnesses and never counted
-as successful matches. Optional binary proposal extensions outside this profile
-are tracked in `wasm-devkit-p5m.10`.
+as successful matches. Async canonical lift/lower and component start are covered
+by `wac-proposal-profiles/`. Concrete GC and reference types, exception
+instructions, shared concrete globals and limits above signed Int64 stay outside
+the profile and are tracked in `wasm-devkit-p5m.12`.
 
 WIT type cases establish the pinned resolver's aggregate constraints, map-key categories,
 fixed-list u32 bounds and lexical representation, forward references and recursive graphs.
@@ -424,3 +426,8 @@ stdin dependency bases. Verification never executes a component.
 `wac-value-externs` retains 45 complete package probes and 17 source compositions
 for component values. Full binary/WAT models, linear-use failures, scoped naming
 and the pinned resolver/encoder discrepancies are documented in its README.
+
+`wac-canonical-intrinsics` retains 92 probes for handle/cancellation intrinsics
+and scalar `gc`/`core-type` lift/lower. The semantic gate checks both pinned
+validators, complete reference models and binary/WAT CLI acceptance, alongside
+all 128 WAC resolution bundles. Its README records the chosen set and exclusions.

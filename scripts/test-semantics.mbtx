@@ -168,6 +168,7 @@ async fn main {
     fail("WAC corpus gate: " + corpus_error.text())
   }
   println(corpus_output.text().trim())
+  canonical_intrinsic_gate(wasm_tools, wac_oracle)
   println(
     "\{count} semantic fixture comparisons and \{models} normalized WIT world summaries passed",
   )
@@ -373,4 +374,99 @@ test "reference normalization preserves key discriminants despite JSON map colli
     _ => true
   }
   assert_true(rejected)
+}
+
+///|
+// Keep the admitted canonical profile tied to both pinned binary validators.
+// The CLI checks providers independently for the retained WAT and binary forms.
+async fn canonical_intrinsic_gate(wasm_tools : String, oracle : String) -> Unit {
+  let root = "tests/semantic/wac-canonical-intrinsics/"
+  let (code, _, error) = @process.collect_output("node", [
+    "--input-type=module", "-e", "import {createHash} from 'node:crypto'; import {readFileSync} from 'node:fs'; const root=process.argv[1]; for(const line of readFileSync(root+'SHA256SUMS','utf8').trim().split('\\n')) { const match=/^([0-9a-f]{64})  (.+)$/.exec(line); if(!match || match[2].includes('..') || match[2].startsWith('/')) throw Error('invalid hash manifest'); if(createHash('sha256').update(readFileSync(root+match[2])).digest('hex')!==match[1]) throw Error('fixture hash mismatch: '+match[2]); }",
+    root,
+  ])
+  if code != 0 {
+    fail("canonical intrinsic hashes: " + error.text())
+  }
+  guard @json.parse(@fs.read_file(root + "cases.json").text()) is Array(cases) else {
+    fail("invalid canonical intrinsic manifest")
+  }
+  if cases.length() != 92 {
+    fail("expected all 92 canonical intrinsic probes")
+  }
+  @fs.mkdir(".dev/canonical-intrinsic-gate", recursive=true, allow_exist=true)
+  let mut models = 0
+  for row in cases {
+    guard row
+      is {
+        "name": String(name),
+        "accepts": True
+        | False as accepts,
+        "validator": Number(validator, ..),
+        "reference": Number(reference, ..),
+        ..
+      } else {
+      fail("invalid canonical intrinsic case")
+    }
+    if name.contains("/") || name.contains("\\") || name.contains("..") {
+      fail("invalid canonical intrinsic path")
+    }
+    let binary = root + name + ".wasm"
+    let (code, _, error) = @process.collect_output(wasm_tools, [
+      "parse",
+      root + name + ".wat",
+      "-o",
+      ".dev/canonical-intrinsic-gate/parsed.wasm",
+    ])
+    if code != 0 ||
+      @fs.read_file(binary).binary() !=
+      @fs.read_file(".dev/canonical-intrinsic-gate/parsed.wasm").binary() {
+      fail(name + ": WAT binary identity mismatch: " + error.text())
+    }
+    let (code, _, error) = @process.collect_output(wasm_tools, [
+      "validate", "--features", "all", binary,
+    ])
+    if code != validator.to_int() {
+      fail(name + ": wasm-tools acceptance mismatch: " + error.text())
+    }
+    let (code, output, error) = @process.collect_output(oracle, [
+      "--package", "test:intrinsics", binary,
+    ])
+    if code != reference.to_int() {
+      fail(name + ": WAC package acceptance mismatch: " + error.text())
+    }
+    if code == 0 {
+      let expected = @json.parse(@fs.read_file(root + name + ".json").text())
+      if @json.parse(output.text()) != expected {
+        fail(name + ": complete reference model changed")
+      }
+      models += 1
+    }
+    for extension in ["wasm", "wat"] {
+      let (code, _, error) = @process.collect_output("moon", [
+        "run",
+        "cmd/wasm-devkit",
+        "--target",
+        "wasm",
+        "--quiet",
+        "--",
+        "verify",
+        root + "package.wac",
+        "--dep",
+        "test:intrinsics=" + name + "." + extension,
+      ])
+      if code != (if accepts == Json::boolean(true) { 0 } else { 1 }) {
+        fail(
+          name +
+          "." +
+          extension +
+          ": provider acceptance mismatch: " +
+          error.text(),
+        )
+      }
+    }
+  }
+  println(
+    "92 canonical intrinsic comparisons and \{models} complete pinned package models passed",
+  )
 }

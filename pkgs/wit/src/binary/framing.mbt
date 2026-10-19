@@ -555,11 +555,44 @@ fn preflight(
               ignore(payload.unsigned())
               continue
             }
+            // Admit only intrinsics with complete signatures checked by the
+            // ordered validator. Validate flags here before the retained parser
+            // converts their bytes to Bool.
+            match tag {
+              0x05 | 0x0d | 0x1e | 0x1f | 0x22 | 0x23 | 0x24 | 0x25 => continue
+              0x06 => {
+                payload.canonical_flag()
+                continue
+              }
+              0x0e | 0x13 | 0x14 | 0x15 | 0x1a | 0x1b => {
+                ignore(payload.unsigned())
+                continue
+              }
+              0x11 | 0x12 | 0x18 | 0x19 => {
+                ignore(payload.unsigned())
+                payload.canonical_flag()
+                continue
+              }
+              0x20 | 0x21 => {
+                let flag_offset = payload.position
+                payload.canonical_flag()
+                if payload.bytes[flag_offset] != 0 {
+                  raise Failure(
+                    Some(flag_offset),
+                    "WIT-B002",
+                    "legacy cancellable waitable operations are outside the supported profile",
+                  )
+                }
+                ignore(payload.unsigned())
+                continue
+              }
+              _ => ()
+            }
             if tag != 0 && tag != 1 {
               raise Failure(
                 Some(payload.position - 1),
                 "WIT-B002",
-                "canonical intrinsic is outside the synchronous lift/lower profile",
+                "canonical intrinsic is outside the supported handle/cancellation profile",
               )
             }
             if payload.byte() != 0 {
@@ -573,13 +606,13 @@ fn preflight(
             let options = payload.count()
             for _ in 0..<options {
               match payload.byte() {
-                0 | 1 | 2 => ()
-                3 | 4 | 5 => ignore(payload.unsigned())
+                0 | 1 | 2 | 6 | 9 => ()
+                3 | 4 | 5 | 7 | 8 => ignore(payload.unsigned())
                 _ =>
                   raise Failure(
                     Some(payload.position - 1),
                     "WIT-B002",
-                    "canonical option is outside the synchronous ABI profile",
+                    "canonical option is outside the async lift/lower profile",
                   )
               }
             }
@@ -640,6 +673,14 @@ fn preflight(
             base_depth=depth,
             value_offsets~,
           )
+        9 if declarations => {
+          ignore(payload.unsigned())
+          let arguments = payload.count()
+          for _ in 0..<arguments {
+            ignore(payload.unsigned())
+          }
+          ignore(payload.unsigned())
+        }
         10 if declarations => {
           let count = payload.count()
           for _ in 0..<count {
@@ -724,5 +765,16 @@ fn Reader::core_type(
         },
         error.message,
       )
+  }
+}
+
+///|
+fn Reader::canonical_flag(self : Reader) -> Unit raise Boundary {
+  if self.byte() > 1 {
+    raise Failure(
+      Some(self.position - 1),
+      "WIT-B001",
+      "invalid canonical boolean flag",
+    )
   }
 }

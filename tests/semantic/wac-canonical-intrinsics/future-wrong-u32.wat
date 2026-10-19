@@ -1,0 +1,1 @@
+(component (type $t u32)  (core func $f (canon future.new $t)) (core instance $env (export "f" (func $f))) (core module $m (import "env" "f" (func (result i64)))) (core instance (instantiate $m (with "env" (instance $env)))) )

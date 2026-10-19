@@ -1,0 +1,1 @@
+(component (type $t (future u32)) (export "t" (type $t))  (core func $f (canon future.drop-writable $t)) (core instance $env (export "f" (func $f))) (core module $m (import "env" "f" (func (param i64)))) (core instance (instantiate $m (with "env" (instance $env)))) )
