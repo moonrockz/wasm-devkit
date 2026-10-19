@@ -804,13 +804,17 @@ test "concrete module canonical-lift" {
   )
   assert_eq(
     result is Ok(_),
-    false,
+    true,
     msg=match result {
       Ok(_) => "accepted"
       Err(e) => e[0].render()
     },
   )
-  assert_eq(result.unwrap_err()[0].code, "WAC-B002")
+  assert_eq(binary_projection(result.unwrap()), [
+    "world", "", "0", "0", "1", "f", "func", "function", "false", "0", "none", "instance",
+    "interface", "", "0", "1", "f", "func", "function", "false", "0", "none", "definitions",
+    "0",
+  ])
 }
 
 ///|

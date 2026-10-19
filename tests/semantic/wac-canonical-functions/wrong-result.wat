@@ -1,0 +1,1 @@
+(component (core module $m (func (export "f") (result i64) i64.const 0)) (core instance $i (instantiate $m)) (alias core export $i "f" (core func $f))  (type $t (func (result s32))) (func $f (type $t) (canon lift (core func $f) )) (export "f" (func $f)))

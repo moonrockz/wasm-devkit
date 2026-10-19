@@ -1,0 +1,143 @@
+// Canonical ABI checks against complete, unsigned core contract metadata.
+
+///|
+fn canonical_contract_function(
+  ft : @types.FuncType,
+) -> @core_types.Function raise ComponentValidationError {
+  fn value(
+    v : @types.ValueType,
+  ) -> @core_types.Value raise ComponentValidationError {
+    match v {
+      I32 => Scalar("i32")
+      I64 => Scalar("i64")
+      F32 => Scalar("f32")
+      F64 => Scalar("f64")
+      _ => raise UnsupportedCanonical
+    }
+  }
+  {
+    params: ReadOnlyArray::from_array(ft.params.map(value)),
+    results: ReadOnlyArray::from_array(ft.results.map(value)),
+  }
+}
+
+///|
+fn check_canonical_core_function(
+  index : Int32,
+  expected : @types.FuncType,
+  externs : Map[(Int32, Int32), @core_types.External],
+  work : CoreContractWork,
+) -> Unit raise ComponentValidationError {
+  guard externs.get((0, index)) is Some(Func(actual)) else {
+    raise InvalidCoreFuncIndex(index)
+  }
+  match
+    @core_types.check_external_subtype(
+      Func(actual),
+      Func(canonical_contract_function(expected)),
+      work_limit=work.remaining,
+    ) {
+    Ok(remaining) => work.remaining = remaining
+    Err(WorkLimit) => raise CoreContractBudgetExceeded
+    Err(Mismatch(message)) => raise CanonCoreFuncTypeMismatch(message)
+  }
+}
+
+///|
+fn check_canonical_contract(
+  declaration : @component.Canon,
+  types : Array[@component.TypeDef?],
+  functions : Array[@component.FuncType?],
+  signatures : Array[FuncSigShape?],
+  externs : Map[(Int32, Int32), @core_types.External],
+  budget : CanonicalBudget,
+  work : CoreContractWork,
+) -> @types.FuncType? raise ComponentValidationError {
+  work.charge(1)
+  let (lifting, index, opts, ft, type_table) = match declaration {
+    Lift(index, opts, type_index) => {
+      guard types.get(type_index) is Some(Some(FuncType(ft))) else {
+        raise CanonExpectedFuncType(type_index)
+      }
+      (true, index, opts, ft, types)
+    }
+    Lower(index, opts) => {
+      if index < 0 || index >= functions.length() {
+        raise InvalidFuncIndex(index)
+      }
+      if signatures.get(index) is Some(Some(signature)) &&
+        signature.complete is Some(complete) {
+        (false, index, opts, complete.function, complete.types)
+      } else {
+        guard functions.get(index) is Some(Some(ft)) else {
+          raise UnsupportedCanonical
+        }
+        (false, index, opts, ft, types)
+      }
+    }
+    _ => raise UnsupportedCanonical
+  }
+  if ft.is_async {
+    raise UnsupportedCanonical
+  }
+  validate_canon_opts(opts)
+  let mut pointer : @types.ValueType = I32
+  for option in opts {
+    work.charge(1)
+    match option {
+      Memory(index) => {
+        guard externs.get((2, index)) is Some(Memory(_, _, memory64, shared, _)) else {
+          raise InvalidCoreMemoryIndex(index)
+        }
+        if shared {
+          raise CanonCoreFuncTypeMismatch("canonical memory must not be shared")
+        }
+        pointer = if memory64 { I64 } else { I32 }
+      }
+      StringEncoding(_) | Realloc(_) | PostReturn(_) => ()
+      _ => raise UnsupportedCanonical
+    }
+  }
+  let context : CanonicalContext = {
+    types: type_table,
+    pointer,
+    budget,
+    cache: Map([]),
+  }
+  let shape = context.function(ft)
+  if shape.memory && !canon_has_memory(opts) {
+    raise MissingCanonOption("memory")
+  }
+  if (if lifting { shape.lift_realloc } else { shape.lower_realloc }) &&
+    !canon_has_realloc(opts) {
+    raise MissingCanonOption("realloc")
+  }
+  if canon_realloc_idx(opts) is Some(realloc) {
+    if !canon_has_memory(opts) {
+      raise MissingCanonOption("memory")
+    }
+    check_canonical_core_function(
+      realloc,
+      { params: [pointer, pointer, pointer, pointer], results: [pointer], },
+      externs,
+      work,
+    )
+  }
+  if canon_post_return_idx(opts) is Some(post_return) {
+    if !lifting {
+      raise CanonOptionNotAllowed("post-return")
+    }
+    check_canonical_core_function(
+      post_return,
+      { params: shape.lifted.results, results: [], },
+      externs,
+      work,
+    )
+  }
+  if lifting {
+    check_canonical_core_function(index, shape.lifted, externs, work)
+    None
+  } else {
+    Some(shape.lowered)
+  }
+}

@@ -44,6 +44,9 @@ pub(all) suberror ComponentValidationError {
   CanonMemoryNot32Bit(Int)
   CanonCoreFuncTypeMismatch(String)
   CanonOptionNotAllowed(String)
+  CoreContractBudgetExceeded
+  CanonicalBudgetExceeded
+  UnsupportedCanonical
   UnsupportedCoreSort(Int)
   UnsupportedComponentImport
   UnsupportedComponentExport

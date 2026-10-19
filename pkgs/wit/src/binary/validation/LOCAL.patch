@@ -4,51 +4,167 @@
 +// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
 +// Modified by wasm-devkit: retain current-scope alias sizes.
 +
-@@ -105 +108 @@
+@@ -5,14 +8,13 @@
+-) -> Array[@types.ValueType]? {
+-  match @component.canonical_abi_plan(ty, type_table, false, max_flat=17) {
+-    Some(plan) => if plan.contains_memory { None } else { Some(plan.flat) }
+-    None => None
+-  }
+-}
+-
+-///|
+-fn core_functype_for_component_functype(
+-  ft : @component.FuncType,
+-  type_table : Array[@component.TypeDef?],
+-  pointer_type : @types.ValueType,
+-) -> @types.FuncType? {
+-  @component.canonical_lift_core_func_type(ft, type_table, pointer_type)
++) -> Array[@types.ValueType]? raise ComponentValidationError {
++  let context : CanonicalContext = {
++    types: type_table,
++    pointer: @types.I32,
++    budget: { remaining: 1000000, },
++    cache: Map([]),
++  }
++  let shape = context.shape(ty)
++  if shape.dynamic {
++    None
++  } else {
++    Some(shape.flat)
++  }
+@@ -26 +28 @@
+-) -> @types.FuncType? {
++) -> @types.FuncType? raise ComponentValidationError {
+@@ -32,5 +34,8 @@
+-        @component.canonical_flat_types(
+-          vt,
+-          type_table,
+-          pointer_type,
+-          max_flat=17,
++        Some(
++          (
++            {
++              types: type_table,
++              pointer: pointer_type,
++              budget: { remaining: 1000000, },
++              cache: Map([]),
++            } : CanonicalContext).shape(vt).flat,
+@@ -57 +62,3 @@
+-) -> @types.FuncType? {
++  functions : Array[@component.FuncType?],
++  budget : CanonicalBudget,
++) -> @types.FuncType? raise ComponentValidationError {
+@@ -58,0 +66,12 @@
++    Lower(index, opts) => {
++      guard functions.get(index) is Some(Some(function)) else {
++        raise InvalidFuncIndex(index)
++      }
++      let context : CanonicalContext = {
++        types: type_table,
++        pointer: canon_address_type(opts, core_memory_types),
++        budget,
++        cache: Map([]),
++      }
++      Some(context.function(function).lowered)
++    }
+@@ -105 +124 @@
 -  type_bound : Int,
 +  type_bound : Int32,
-@@ -367 +370 @@
+@@ -108,0 +128 @@
++  budget~ : CanonicalBudget = { remaining: 1000000, },
+@@ -140,0 +161,10 @@
++          if ft.is_async {
++            raise UnsupportedCanonical
++          }
++          let context : CanonicalContext = {
++            types: type_table,
++            pointer: canon_address_type(opts, core_memory_types),
++            budget,
++            cache: Map([]),
++          }
++          let shape = context.function(ft)
+@@ -185,5 +215 @@
+-          let needs_memory = if canon_has_async(opts) {
+-            functype_async_lift_needs_memory(ft, type_table)
+-          } else {
+-            functype_needs_memory(ft, type_table)
+-          }
++          let needs_memory = shape.memory
+@@ -193,2 +219 @@
+-          if functype_needs_realloc_for_lift(ft, type_table) &&
+-            !canon_has_realloc(opts) {
++          if shape.lift_realloc && !canon_has_realloc(opts) {
+@@ -200,9 +225 @@
+-            match
+-              (
+-                core_func_types[core_func_idx],
+-                core_functype_for_component_functype(
+-                  ft,
+-                  type_table,
+-                  canon_address_type(opts, core_memory_types),
+-                ),
+-              ) {
++            match (core_func_types[core_func_idx], Some(shape.lifted)) {
+@@ -246,0 +264,10 @@
++          if ft.is_async {
++            raise UnsupportedCanonical
++          }
++          let context : CanonicalContext = {
++            types: type_table,
++            pointer: canon_address_type(opts, core_memory_types),
++            budget,
++            cache: Map([]),
++          }
++          let shape = context.function(ft)
+@@ -273 +300 @@
+-          if functype_needs_memory(ft, type_table) && !canon_has_memory(opts) {
++          if shape.memory && !canon_has_memory(opts) {
+@@ -276,2 +303 @@
+-          if functype_needs_realloc_for_lower(ft, type_table) &&
+-            !canon_has_realloc(opts) {
++          if shape.lower_realloc && !canon_has_realloc(opts) {
+@@ -367 +393 @@
 -  visiting : Map[Int, Int],
 +  visiting : Map[Int32, Int32],
-@@ -392 +395 @@
+@@ -392 +418 @@
 -  visiting : Map[Int, Int],
 +  visiting : Map[Int32, Int32],
-@@ -495 +498 @@
+@@ -495 +521 @@
 -  visiting : Map[Int, Int],
 +  visiting : Map[Int32, Int32],
-@@ -626 +629 @@
+@@ -626 +652 @@
 -fn clamp_type_size(size : Int) -> Int {
 +fn clamp_type_size(size : Int32) -> Int32 {
-@@ -635 +638 @@
+@@ -635 +661 @@
 -fn add_type_size(acc : Int, delta : Int) -> Int {
 +fn add_type_size(acc : Int32, delta : Int32) -> Int32 {
-@@ -645 +648 @@
+@@ -645 +671 @@
 -fn local_type_size_of(idx : Int, local_sizes : Array[Int]) -> Int {
 +fn local_type_size_of(idx : Int32, local_sizes : Array[Int32]) -> Int32 {
-@@ -655,2 +658,2 @@
+@@ -655,2 +681,2 @@
 -  local_sizes : Array[Int],
 -) -> Int {
 +  local_sizes : Array[Int32],
 +) -> Int32 {
-@@ -670,3 +673,3 @@
+@@ -670,3 +696,3 @@
 -  outer_sizes : Array[Int],
 -) -> Int {
 -  fn valtype_size(ty : @component.ValType) -> Int {
 +  outer_sizes : Array[Int32],
 +) -> Int32 {
 +  fn valtype_size(ty : @component.ValType) -> Int32 {
-@@ -681 +684 @@
+@@ -681 +707 @@
 -      let local_sizes : Array[Int] = []
 +      let local_sizes : Array[Int32] = []
-@@ -688 +691,3 @@
+@@ -688 +714,3 @@
 -              let s = if count == 1 && idx >= 0 && idx < outer_sizes.length() {
 +              let s = if count == 0 && idx >= 0 && idx < local_sizes.length() {
 +                local_sizes[idx]
 +              } else if count == 1 && idx >= 0 && idx < outer_sizes.length() {
-@@ -722 +727 @@
+@@ -722 +750 @@
 -      let local_sizes : Array[Int] = []
 +      let local_sizes : Array[Int32] = []
-@@ -729 +734,3 @@
+@@ -729 +757,3 @@
 -              let s = if count == 1 && idx >= 0 && idx < outer_sizes.length() {
 +              let s = if count == 0 && idx >= 0 && idx < local_sizes.length() {
 +                local_sizes[idx]
@@ -58,6 +174,35 @@
 @@ -0,0 +1,2 @@
 +// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
 +
+@@ -154,0 +157,28 @@
++
++///|
++fn functype_needs_realloc_for_lift(
++  ft : @component.FuncType,
++  types : Array[@component.TypeDef?],
++) -> Bool raise ComponentValidationError {
++  let context : CanonicalContext = {
++    types,
++    pointer: @types.I32,
++    budget: { remaining: 1000000, },
++    cache: Map([]),
++  }
++  context.function(ft).lift_realloc
++}
++
++///|
++fn functype_needs_realloc_for_lower(
++  ft : @component.FuncType,
++  types : Array[@component.TypeDef?],
++) -> Bool raise ComponentValidationError {
++  let context : CanonicalContext = {
++    types,
++    pointer: @types.I32,
++    budget: { remaining: 1000000, },
++    cache: Map([]),
++  }
++  context.function(ft).lower_realloc
++}
 --- a/component_type_sig.mbt
 +++ b/component_type_sig.mbt
 @@ -0,0 +1,3 @@
@@ -329,9 +474,184 @@
 @@ -1598 +1691 @@
 -fn canon_post_return_idx(opts : Array[@component.CanonOpt]) -> Int? {
 +fn canon_post_return_idx(opts : Array[@component.CanonOpt]) -> Int32? {
-@@ -1680 +1773 @@
+@@ -1608 +1701 @@
+-fn functype_needs_memory(
++fn functype_params_need_memory(
+@@ -1611,5 +1704 @@
+-) -> Bool {
+-  // Canonical ABI uses linear memory when:
+-  // - any param/result type itself needs memory (e.g. string/list), or
+-  // - the flattened parameter list is too large (>16), or
+-  // - the result can't be represented as a single core value.
++) -> Bool raise ComponentValidationError {
+@@ -1628,27 +1716,0 @@
+-  match ft.result {
+-    None => false
+-    Some(r) =>
+-      match core_valtypes_for_component_valtype(r, type_table) {
+-        None => true
+-        Some(ts) => ts.length() != 1
+-      }
+-  }
+-}
+-
+-///|
+-fn functype_params_need_memory(
+-  ft : @component.FuncType,
+-  type_table : Array[@component.TypeDef?],
+-) -> Bool {
+-  let mut param_count = 0
+-  for p in ft.params {
+-    match core_valtypes_for_component_valtype(p.ty, type_table) {
+-      Some(ts) => {
+-        param_count += ts.length()
+-        if param_count > 16 {
+-          return true
+-        }
+-      }
+-      None => return true
+-    }
+-  }
+@@ -1662 +1724 @@
+-) -> Bool {
++) -> Bool raise ComponentValidationError {
+@@ -1675,136 +1736,0 @@
+-
+-///|
+-fn valtype_contains_list_or_string(
+-  ty : @component.ValType,
+-  type_table : Array[@component.TypeDef?],
 -  visiting : Map[Int, Unit],
-+  visiting : Map[Int32, Unit],
+-) -> Bool {
+-  match ty {
+-    Prim(String) => true
+-    Prim(_) => false
+-    TypeIdx(idx) =>
+-      if idx < 0 || idx >= type_table.length() || visiting.get(idx) is Some(_) {
+-        false
+-      } else {
+-        visiting.set(idx, ())
+-        let found = match type_table[idx] {
+-          None => false
+-          Some(td) =>
+-            match td {
+-              DefValType(String) | List(_) | MapType(_, _) => true
+-              DefValType(_)
+-              | Flags(_)
+-              | Enum(_)
+-              | Own(_)
+-              | Borrow(_)
+-              | ResourceType(_, _, _, _)
+-              | Stream(_)
+-              | Future(_)
+-              | InstanceTypeEmpty => false
+-              FixedList(element, _) =>
+-                valtype_contains_list_or_string(element, type_table, visiting)
+-              Record(fields) => {
+-                let mut any = false
+-                for field in fields {
+-                  if valtype_contains_list_or_string(
+-                      field.ty,
+-                      type_table,
+-                      visiting,
+-                    ) {
+-                    any = true
+-                    break
+-                  }
+-                }
+-                any
+-              }
+-              Variant(cases) => {
+-                let mut any = false
+-                for variant_case in cases {
+-                  if variant_case.ty is Some(case_ty) &&
+-                    valtype_contains_list_or_string(
+-                      case_ty, type_table, visiting,
+-                    ) {
+-                    any = true
+-                    break
+-                  }
+-                }
+-                any
+-              }
+-              Tuple(types) => {
+-                let mut any = false
+-                for element in types {
+-                  if valtype_contains_list_or_string(
+-                      element, type_table, visiting,
+-                    ) {
+-                    any = true
+-                    break
+-                  }
+-                }
+-                any
+-              }
+-              Option(inner) =>
+-                valtype_contains_list_or_string(inner, type_table, visiting)
+-              Result(ok, err) => {
+-                let ok_has = match ok {
+-                  Some(inner) =>
+-                    valtype_contains_list_or_string(inner, type_table, visiting)
+-                  None => false
+-                }
+-                let err_has = match err {
+-                  Some(inner) =>
+-                    valtype_contains_list_or_string(inner, type_table, visiting)
+-                  None => false
+-                }
+-                ok_has || err_has
+-              }
+-              FuncType(_) | ComponentType(_) | InstanceType(_) => false
+-            }
+-        }
+-        visiting.remove(idx) |> ignore
+-        found
+-      }
+-  }
+-}
+-
+-///|
+-fn functype_needs_realloc_for_lift(
+-  ft : @component.FuncType,
+-  type_table : Array[@component.TypeDef?],
+-) -> Bool {
+-  // For canon lift, `realloc` is required when the wrapper must allocate/write
+-  // linear memory to pass params (strings/lists or indirect args).
+-  let mut param_count = 0
+-  for p in ft.params {
+-    if valtype_contains_list_or_string(p.ty, type_table, Map([])) {
+-      return true
+-    }
+-    match core_valtypes_for_component_valtype(p.ty, type_table) {
+-      Some(ts) => {
+-        param_count += ts.length()
+-        if param_count > 16 {
+-          return true
+-        }
+-      }
+-      None => return true
+-    }
+-  }
+-  // Results are lifted from memory written by the core callee. Reading a
+-  // string/list result needs `memory`, but does not allocate through the
+-  // component's realloc function.
+-  false
+-}
+-
+-///|
+-fn functype_needs_realloc_for_lower(
+-  ft : @component.FuncType,
+-  type_table : Array[@component.TypeDef?],
+-) -> Bool {
+-  // Canon lower reads parameters already written by the core caller, so
+-  // dynamic parameters only require `memory`. A dynamic result is written
+-  // back into that memory and therefore requires the supplied allocator.
+-  match ft.result {
+-    Some(result_ty) =>
+-      valtype_contains_list_or_string(result_ty, type_table, Map([]))
+-    None => false
+-  }
+-}
 --- a/core_type.mbt
 +++ b/core_type.mbt
 @@ -0,0 +1,3 @@
@@ -1335,33 +1655,36 @@
 +  CanonExpectedFuncType(Int32)
 +  CanonAsyncTypeMismatch(Int32)
 +  CanonMemoryNot32Bit(Int32)
-@@ -39 +42 @@
+@@ -39 +42,4 @@
 -  UnsupportedCoreSort(Int)
++  CoreContractBudgetExceeded
++  CanonicalBudgetExceeded
++  UnsupportedCanonical
 +  UnsupportedCoreSort(Int32)
-@@ -42 +45 @@
+@@ -42 +48 @@
 -  ExportedImportedFunc(Int)
 +  ExportedImportedFunc(Int32)
-@@ -48,2 +51,2 @@
+@@ -48,2 +54,2 @@
 -  MissingInstanceExport(Int, String)
 -  MissingCoreInstanceExport(Int, String)
 +  MissingInstanceExport(Int32, String)
 +  MissingCoreInstanceExport(Int32, String)
-@@ -53,0 +57,3 @@
+@@ -53,0 +60,3 @@
 +  UnsupportedFunctionAscription
 +  UnsupportedInstanceAscription
 +  UnsupportedComponentAscription
-@@ -55 +61 @@
+@@ -55 +64 @@
 -  SectionParseError(Int, String)
 +  SectionParseError(Int32, String)
-@@ -77,0 +84,2 @@
+@@ -77,0 +87,2 @@
 +  canonical_version_suffix : Bool
 +  restricted_map_keys : Bool
-@@ -83 +91,3 @@
+@@ -83 +94,3 @@
 -  component_implements? : Bool = true,
 +  component_implements~ : Bool = true,
 +  canonical_version_suffix~ : Bool = true,
 +  restricted_map_keys~ : Bool = true,
-@@ -85 +95,6 @@
+@@ -85 +98,6 @@
 -  { wit_names, component_implements, }
 +  {
 +    wit_names,
@@ -1369,7 +1692,7 @@
 +    canonical_version_suffix,
 +    restricted_map_keys,
 +  }
-@@ -114,12 +129,18 @@
+@@ -114,12 +132,18 @@
 -  mut func : Int
 -  mut value : Int
 -  mut component : Int
@@ -1400,7 +1723,7 @@
 +  mut core_memory : Int32
 +  mut core_global : Int32
 +  mut core_tag : Int32
-@@ -161 +182,9 @@
+@@ -161 +185,9 @@
 -} derive(Eq)
 +  complete : CompleteFunctionSignature?
 +}
@@ -1411,88 +1734,88 @@
 +impl Eq for FuncSigShape with fn equal(a, b) {
 +  a.params == b.params && a.result == b.result
 +}
-@@ -165,2 +194,2 @@
+@@ -165,2 +197,2 @@
 -  Existing(Int)
 -  Resource(Int)
 +  Existing(Int32)
 +  Resource(Int32)
-@@ -182,3 +211,3 @@
+@@ -182,3 +214,3 @@
 -  Resource(Int)
 -  Own(Int)
 -  Borrow(Int)
 +  Resource(Int32)
 +  Own(Int32)
 +  Borrow(Int32)
-@@ -204,2 +233,2 @@
+@@ -204,2 +236,2 @@
 -  resource_ids : Array[Int?],
 -) -> Int? {
 +  resource_ids : Array[Int32?],
 +) -> Int32? {
-@@ -218,3 +247,3 @@
+@@ -218,3 +250,3 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 -) -> Int? {
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
 +) -> Int32? {
-@@ -238,2 +267,2 @@
+@@ -238,2 +270,2 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
-@@ -258,2 +287,2 @@
+@@ -258,2 +290,2 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
-@@ -460 +489,4 @@
+@@ -460 +492,4 @@
 -fn core_func_type_of_idx(m : @types.Module, func_idx : Int) -> @types.FuncType? {
 +fn core_func_type_of_idx(
 +  m : @types.Module,
 +  func_idx : Int32,
 +) -> @types.FuncType? {
-@@ -485 +517 @@
+@@ -485 +520 @@
 -  table_idx : Int,
 +  table_idx : Int32,
-@@ -506 +538 @@
+@@ -506 +541 @@
 -  mem_idx : Int,
 +  mem_idx : Int32,
-@@ -527 +559 @@
+@@ -527 +562 @@
 -  global_idx : Int,
 +  global_idx : Int32,
-@@ -546 +578 @@
+@@ -546 +581 @@
 -fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int) -> @types.FuncType? {
 +fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int32) -> @types.FuncType? {
-@@ -642 +674 @@
+@@ -642 +677 @@
 -fn core_kind_of_extern_type(ty : CoreExternType) -> Int {
 +fn core_kind_of_extern_type(ty : CoreExternType) -> Int32 {
-@@ -679 +711 @@
+@@ -679 +714 @@
 -  idx : Int,
 +  idx : Int32,
-@@ -723,0 +756,6 @@
+@@ -723,0 +759,6 @@
 +    type_metadata: Map([]),
 +    instance_metadata: Map([]),
 +    component_contracts: Map([]),
 +    core_contracts: None,
 +    metadata_remaining: 1000000,
 +    ascription_remaining: 1000000,
-@@ -763 +801 @@
+@@ -763 +804 @@
 -fn is_lower_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_lower_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -793 +831 @@
+@@ -793 +834 @@
 -fn is_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -843,2 +881,2 @@
+@@ -843,2 +884,2 @@
 -fn is_canonversion_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 -  if start < 0 || end_ <= start || end_ > name.length() {
 +fn is_semver_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
 +  if start < 0 || start >= end_ || end_ > name.length() {
-@@ -848,2 +886,2 @@
+@@ -848,2 +889,2 @@
 -  if name[i].to_int() >= 0x31 && name[i].to_int() <= 0x39 {
 -    i += 1
 +  for component in 0..<3 {
 +    let begin = i
-@@ -853,11 +891,27 @@
+@@ -853,11 +894,27 @@
 -    return i == end_
 -  }
 -  if name[i].to_int() != 0x30 || i + 1 >= end_ {
@@ -1531,7 +1854,7 @@
 +
 +  // Numeric prerelease identifiers cannot contain leading zeroes.
 +  if i < end_ && name[i] == 0x2d {
-@@ -865 +919,15 @@
+@@ -865 +922,15 @@
 -    while i < end_ && is_ascii_digit(name[i]) {
 +    while true {
 +      let begin = i
@@ -1548,7 +1871,7 @@
 +      if i >= end_ || name[i] != 0x2e {
 +        break
 +      }
-@@ -867,95 +934,0 @@
+@@ -867,95 +937,0 @@
 -    }
 -    return i == end_
 -  }
@@ -1644,13 +1967,13 @@
 -    }
 -    if need_id {
 -      return false
-@@ -1016,3 +988,0 @@
+@@ -1016,3 +991,0 @@
 -      if at != -1 {
 -        return false
 -      }
-@@ -1019,0 +990 @@
+@@ -1019,0 +993 @@
 +      break
-@@ -1028,9 +999 @@
+@@ -1028,9 +1002 @@
 -  if at != -1 {
 -    if at >= name.length() - 1 {
 -      return false
@@ -1661,14 +1984,14 @@
 -    }
 -  }
 +  // Version syntax is checked with the separately encoded suffix.
-@@ -1185 +1148 @@
+@@ -1185 +1151 @@
 -fn is_integrity_value(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_integrity_value(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -1453,0 +1417,3 @@
+@@ -1453,0 +1420,3 @@
 +  if prefix_eq("get") || prefix_eq("set") {
 +    return is_kebab_case_range(name, close + 1, name.length())
 +  }
-@@ -1460 +1426,9 @@
+@@ -1460 +1429,9 @@
 -  // method/static: require exactly one '.' and kebab-case around it.
 +  // Method/static names can have one accessor annotation before the resource.
 +  let mut start = close + 1
@@ -1679,10 +2002,10 @@
 +    ) {
 +    start += 5
 +  }
-@@ -1462 +1436 @@
+@@ -1462 +1439 @@
 -  for k in (close + 1)..<name.length() {
 +  for k in start..<name.length() {
-@@ -1470,4 +1444,4 @@
+@@ -1470,4 +1447,4 @@
 -  if dot < 0 || dot == close + 1 || dot == name.length() - 1 {
 -    return false
 -  }
@@ -1691,19 +2014,19 @@
 +    return false
 +  }
 +  is_kebab_case_range(name, start, dot) &&
-@@ -1506 +1480 @@
+@@ -1506 +1483 @@
 -  mut pos : Int
 +  mut pos : Int32
-@@ -1522 +1496 @@
+@@ -1522 +1499 @@
 -) -> Int raise ComponentValidationError {
 +) -> Int32 raise ComponentValidationError {
-@@ -1534 +1508 @@
+@@ -1534 +1511 @@
 -) -> Int raise ComponentValidationError {
 +) -> Int32 raise ComponentValidationError {
-@@ -1554 +1528 @@
+@@ -1554 +1531 @@
 -  n : Int,
 +  n : Int32,
-@@ -1585,5 +1559,9 @@
+@@ -1585,5 +1562,9 @@
 -  ascii_bytes_to_string(self.read_bytes(len))
 -}
 -
@@ -1718,7 +2041,7 @@
 +
 +///|
 +fn CoreTypeReader::read_limit(
-@@ -1591 +1569,23 @@
+@@ -1591 +1572,23 @@
 -) -> Unit raise ComponentValidationError {
 +  wide : Bool,
 +) -> UInt64 raise ComponentValidationError {
@@ -1743,7 +2066,7 @@
 +  self : CoreTypeReader,
 +  memory : Bool,
 +) -> (Int32, UInt64, UInt64?, Int32) raise ComponentValidationError {
-@@ -1593,4 +1593,24 @@
+@@ -1593,4 +1596,24 @@
 -  self.read_leb_u32() |> ignore
 -  if (flags & 0x01) != 0 {
 -    self.read_leb_u32() |> ignore
@@ -1772,12 +2095,12 @@
 +    }
 +  }
 +  (flags, min, max, page)
-@@ -1627,2 +1647,2 @@
+@@ -1627,2 +1650,2 @@
 -  kind : Int,
 -  func_type_bound : Int,
 +  kind : Int32,
 +  func_type_bound : Int32,
-@@ -1639,17 +1659,3 @@
+@@ -1639,17 +1662,3 @@
 -      self.skip_limits()
 -    }
 -    0x02 => {
@@ -1798,16 +2121,16 @@
 +      self.read_limits(false) |> ignore
 +    }
 +    0x02 => self.read_limits(true) |> ignore
-@@ -1679 +1685 @@
+@@ -1679 +1688 @@
 -    heap : Int,
 +    heap : Int32,
-@@ -1748 +1754 @@
+@@ -1748 +1757 @@
 -  kind : Int,
 +  kind : Int32,
-@@ -1750 +1756 @@
+@@ -1750 +1759 @@
 -  func_type_bound : Int,
 +  func_type_bound : Int32,
-@@ -1775,6 +1781,5 @@
+@@ -1775,6 +1784,5 @@
 -      let flags = self.read_u8()
 -      let min = self.read_leb_u32()
 -      let max = if (flags & 0x01) != 0 {
@@ -1819,7 +2142,7 @@
 +        (max is Some(n) && n > 9223372036854775807UL) ||
 +        (flags & 2) != 0 {
 +        return None
-@@ -1783,7 +1788,4 @@
+@@ -1783,7 +1791,4 @@
 -        min: min.to_int64(),
 -        max: match max {
 -          Some(v) => Some(v.to_int64())
@@ -1831,7 +2154,7 @@
 +        max: max.map(n => n.reinterpret_as_int64()),
 +      }
 +      Some(Table({ elem_type: elem_ty, limits, is_table64: (flags & 4) != 0, }))
-@@ -1792,14 +1794,6 @@
+@@ -1792,14 +1797,6 @@
 -      // memtype: flags + limits (track memory64 when present)
 -      let flags = self.read_u8()
 -      let min = self.read_leb_u32()
@@ -1852,7 +2175,7 @@
 +      if min > 9223372036854775807UL ||
 +        (max is Some(n) && n > 9223372036854775807UL) {
 +        return None
-@@ -1808,7 +1802,3 @@
+@@ -1808,7 +1805,3 @@
 -        min: min.to_int64(),
 -        max: match max {
 -          Some(v) => Some(v.to_int64())
@@ -1863,33 +2186,33 @@
 +        min: min.reinterpret_as_int64(),
 +        max: max.map(n => n.reinterpret_as_int64()),
 +      }
-@@ -1818,3 +1808,3 @@
+@@ -1818,3 +1811,3 @@
 -          is_memory64,
 -          is_shared: (flags & 0x02) != 0,
 -          page_size_log2: 16,
 +          is_memory64: (flags & 4) != 0,
 +          is_shared: (flags & 2) != 0,
 +          page_size_log2: page,
-@@ -1828 +1818,4 @@
+@@ -1828 +1821,4 @@
 -      let mutable = mut_ != 0
 +      if (mut_ & 2) != 0 {
 +        return None
 +      }
 +      let mutable = (mut_ & 1) != 0
-@@ -1859,3 +1852,3 @@
+@@ -1859,3 +1855,3 @@
 -  max_outer_depth : Int,
 -  current_core_type_bound : Int,
 -  outer_core_type_bounds : Array[Int],
 +  max_outer_depth : Int32,
 +  current_core_type_bound : Int32,
 +  outer_core_type_bounds : Array[Int32],
-@@ -1864 +1857 @@
+@@ -1864 +1860 @@
 -  let seen_imports : Map[String, Int] = Map([])
 +  let seen_imports : Map[(String, String), Int32] = Map([])
-@@ -1883 +1876 @@
+@@ -1883 +1879 @@
 -        let key = "\{mod_s}:\{name_s}"
 +        let key = (mod_s, name_s)
-@@ -1919 +1912,3 @@
+@@ -1919 +1915,3 @@
 -                let bound = if depth <= 1 {
 +                let bound = if depth == 0 {
 +                  func_type_bound - 1
@@ -2569,89 +2892,402 @@
 +  core_type_bound_outers : Array[Int32],
 +  component_size_outers : Array[Array[Int32]],
 +  core_contracts~ : @core_types.ContractGraph? = None,
-@@ -122,0 +127,4 @@
+@@ -122,0 +127,12 @@
 +  counts.core_contracts = core_contracts
 +  if counts.core_contracts is Some(graph) && graph.scope(0) is None {
 +    raise SectionParseError(0, "core contract metadata has no root scope")
 +  }
-@@ -129 +137 @@
++  let contract_scope = match counts.core_contracts {
++    Some(graph) => graph.scope(0)
++    None => None
++  }
++  let contract_work : CoreContractWork = { remaining: 1000000, }
++  let instance_contracts : Array[Map[String, @core_types.External]] = []
++  let external_contracts : Map[(Int32, Int32), @core_types.External] = Map([])
++  let canonical_budget : CanonicalBudget = { remaining: 1000000, }
+@@ -129 +145 @@
 -  let resource_ids : Array[Int?] = []
 +  let resource_ids : Array[Int32?] = []
-@@ -131,2 +139,2 @@
+@@ -131,2 +147,2 @@
 -  let type_sizes : Array[Int] = []
 -  let type_depths : Array[Int] = []
 +  let type_sizes : Array[Int32] = []
 +  let type_depths : Array[Int32] = []
-@@ -134,2 +142,2 @@
+@@ -134,2 +150,2 @@
 -  let component_sizes : Array[Int] = []
 -  let instance_sizes : Array[Int] = []
 +  let component_sizes : Array[Int32] = []
 +  let instance_sizes : Array[Int32] = []
-@@ -138 +146 @@
+@@ -138 +154 @@
 -  let named_types : Map[Int, Int] = Map([])
 +  let named_types : Map[Int32, Int32] = Map([])
-@@ -141,2 +149,2 @@
+@@ -141,2 +157,2 @@
 -  let import_named_types : Map[Int, Int] = Map([])
 -  let core_type_exports : Array[Map[String, Int]?] = []
 +  let import_named_types : Map[Int32, Int32] = Map([])
 +  let core_type_exports : Array[Map[String, Int32]?] = []
-@@ -145 +153 @@
+@@ -145 +161 @@
 -  let core_module_exports : Array[Map[String, Int]?] = []
 +  let core_module_exports : Array[Map[String, Int32]?] = []
-@@ -151 +159 @@
+@@ -151 +167 @@
 -  let core_instance_exports : Array[Map[String, Int]?] = []
 +  let core_instance_exports : Array[Map[String, Int32]?] = []
-@@ -158 +166 @@
+@@ -158 +174 @@
 -    Map[String, Map[String, Int]]?,
 +    Map[String, Map[String, Int32]]?,
-@@ -161 +169 @@
+@@ -161 +177 @@
 -    Map[String, Map[String, Int]]?,
 +    Map[String, Map[String, Int32]]?,
-@@ -181,3 +189,3 @@
+@@ -181,3 +197,3 @@
 -  let interface_instance_idxs : Map[Int, Int] = Map([])
 -  let instance_export_type_idxs : Array[Array[Int]?] = []
 -  let instance_export_func_idxs : Array[Array[Int]?] = []
 +  let interface_instance_idxs : Map[Int32, Int32] = Map([])
 +  let instance_export_type_idxs : Array[Array[Int32]?] = []
 +  let instance_export_func_idxs : Array[Array[Int32]?] = []
-@@ -199,2 +207,2 @@
+@@ -199,2 +215,2 @@
 -  let import_resource_names : Map[String, Int] = Map([])
 -  let export_resource_names : Map[String, Int] = Map([])
 +  let import_resource_names : Map[String, Int32] = Map([])
 +  let export_resource_names : Map[String, Int32] = Map([])
-@@ -206 +214 @@
+@@ -206 +222 @@
 -  let my_import_instance_resource_exports : Map[String, Map[String, Int]] = Map([],
 +  let my_import_instance_resource_exports : Map[String, Map[String, Int32]] = Map([],
-@@ -229 +237 @@
+@@ -229 +245 @@
 -        let seen_imports : Map[String, Int] = Map([])
 +        let seen_imports : Map[(String, String), Int32] = Map([])
-@@ -231 +239 @@
+@@ -231 +247 @@
 -          let key = "\{imp.mod_name}:\{imp.name}"
 +          let key = (imp.mod_name, imp.name)
-@@ -233 +241,3 @@
+@@ -233 +249,3 @@
 -            raise CoreModuleError("duplicate import name `\{key}`")
 +            raise CoreModuleError(
 +              "duplicate import name `\{imp.mod_name}:\{imp.name}`",
 +            )
-@@ -240 +250 @@
+@@ -240 +258 @@
 -        let exports : Map[String, Int] = Map([])
 +        let exports : Map[String, Int32] = Map([])
-@@ -266 +276 @@
+@@ -266 +284,8 @@
 -          let mut export_map : Map[String, Int]? = None
++          if contract_scope is Some(scope) {
++            instance_contracts.push(
++              core_contract_instance(
++                inst, scope, instance_contracts, external_contracts, contract_work,
++              ),
++            )
++          }
 +          let mut export_map : Map[String, Int32]? = None
-@@ -283,2 +293,2 @@
+@@ -283,2 +308,2 @@
 -              let providers : Map[String, Int] = Map([])
 -              let seen_arg_names : Map[String, Int] = Map([])
 +              let providers : Map[String, Int32] = Map([])
 +              let seen_arg_names : Map[String, Int32] = Map([])
-@@ -428 +438 @@
+@@ -304,35 +329,33 @@
+-              match mod_def {
+-                Some(mod_) =>
+-                  for imp in mod_.imports {
+-                    match providers.get(imp.mod_name) {
+-                      None =>
+-                        raise CoreModuleError(
+-                          "module import `\{imp.mod_name}::\{imp.name}` not defined",
+-                        )
+-                      Some(provider_idx) => {
+-                        if provider_idx < 0 ||
+-                          provider_idx >= core_instance_export_types.length() {
+-                          raise InvalidCoreInstanceIndex(provider_idx)
+-                        }
+-                        let expected = core_import_type_of_module(
+-                          mod_,
+-                          imp.desc,
+-                        )
+-                        match expected {
+-                          None => ()
+-                          Some(exp_ty) => {
+-                            let expected_kind = core_kind_of_extern_type(exp_ty)
+-                            // Check presence/kind first (even if we don't have full type info).
+-                            if provider_idx < 0 ||
+-                              provider_idx >= core_instance_exports.length() {
+-                              raise InvalidCoreInstanceIndex(provider_idx)
+-                            }
+-                            match core_instance_exports[provider_idx] {
+-                              Some(kinds) =>
+-                                match kinds.get(imp.name) {
+-                                  None =>
+-                                    raise CoreModuleError(
+-                                      "module import `\{imp.mod_name}::\{imp.name}` not defined",
+-                                    )
+-                                  Some(actual_kind) =>
+-                                    if actual_kind != expected_kind {
++              if contract_scope is None {
++                match mod_def {
++                  Some(mod_) =>
++                    for imp in mod_.imports {
++                      match providers.get(imp.mod_name) {
++                        None =>
++                          raise CoreModuleError(
++                            "module import `\{imp.mod_name}::\{imp.name}` not defined",
++                          )
++                        Some(provider_idx) => {
++                          if provider_idx < 0 ||
++                            provider_idx >= core_instance_export_types.length() {
++                            raise InvalidCoreInstanceIndex(provider_idx)
++                          }
++                          let expected = core_import_type_of_module(
++                            mod_,
++                            imp.desc,
++                          )
++                          match expected {
++                            None => ()
++                            Some(exp_ty) => {
++                              let expected_kind = core_kind_of_extern_type(
++                                exp_ty,
++                              )
++                              // Check presence/kind first (even if we don't have full type info).
++                              if provider_idx < 0 ||
++                                provider_idx >= core_instance_exports.length() {
++                                raise InvalidCoreInstanceIndex(provider_idx)
++                              }
++                              match core_instance_exports[provider_idx] {
++                                Some(kinds) =>
++                                  match kinds.get(imp.name) {
++                                    None =>
+@@ -340 +363 @@
+-                                        "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
++                                        "module import `\{imp.mod_name}::\{imp.name}` not defined",
+@@ -342,17 +365,25 @@
+-                                    }
+-                                }
+-                              None => ()
+-                            }
+-                            // If we also know full types, enforce type compatibility.
+-                            match core_instance_export_types[provider_idx] {
+-                              Some(map) =>
+-                                match map.get(imp.name) {
+-                                  Some(prov_ty) =>
+-                                    if !core_import_compatible(exp_ty, prov_ty) {
+-                                      raise CoreModuleError(
+-                                        "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
+-                                      )
+-                                    }
+-                                  None => ()
+-                                }
+-                              None => ()
++                                    Some(actual_kind) =>
++                                      if actual_kind != expected_kind {
++                                        raise CoreModuleError(
++                                          "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
++                                        )
++                                      }
++                                  }
++                                None => ()
++                              }
++                              // If we also know full types, enforce type compatibility.
++                              match core_instance_export_types[provider_idx] {
++                                Some(map) =>
++                                  match map.get(imp.name) {
++                                    Some(prov_ty) =>
++                                      if !core_import_compatible(
++                                          exp_ty, prov_ty,
++                                        ) {
++                                        raise CoreModuleError(
++                                          "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
++                                        )
++                                      }
++                                    None => ()
++                                  }
++                                None => ()
++                              }
+@@ -364,36 +395,32 @@
+-                  }
+-                None =>
+-                  match
+-                    (if module_idx >= 0 &&
+-                      module_idx < core_module_type_imports.length() {
+-                      core_module_type_imports[module_idx]
+-                    } else {
+-                      None
+-                    }) {
+-                    Some(sigs) =>
+-                      for imp in sigs {
+-                        match providers.get(imp.mod_name) {
+-                          None =>
+-                            raise CoreModuleError(
+-                              "module import `\{imp.mod_name}::\{imp.name}` not defined",
+-                            )
+-                          Some(provider_idx) => {
+-                            if provider_idx < 0 ||
+-                              provider_idx >=
+-                              core_instance_export_types.length() {
+-                              raise InvalidCoreInstanceIndex(provider_idx)
+-                            }
+-                            let expected_kind = core_kind_of_extern_type(imp.ty)
+-                            if provider_idx < 0 ||
+-                              provider_idx >= core_instance_exports.length() {
+-                              raise InvalidCoreInstanceIndex(provider_idx)
+-                            }
+-                            match core_instance_exports[provider_idx] {
+-                              Some(kinds) =>
+-                                match kinds.get(imp.name) {
+-                                  None =>
+-                                    raise CoreModuleError(
+-                                      "module import `\{imp.mod_name}::\{imp.name}` not defined",
+-                                    )
+-                                  Some(actual_kind) =>
+-                                    if actual_kind != expected_kind {
++                  None =>
++                    match
++                      (if module_idx >= 0 &&
++                        module_idx < core_module_type_imports.length() {
++                        core_module_type_imports[module_idx]
++                      } else {
++                        None
++                      }) {
++                      Some(sigs) =>
++                        for imp in sigs {
++                          match providers.get(imp.mod_name) {
++                            None =>
++                              raise CoreModuleError(
++                                "module import `\{imp.mod_name}::\{imp.name}` not defined",
++                              )
++                            Some(provider_idx) => {
++                              if provider_idx < 0 ||
++                                provider_idx >=
++                                core_instance_export_types.length() {
++                                raise InvalidCoreInstanceIndex(provider_idx)
++                              }
++                              let expected_kind = core_kind_of_extern_type(
++                                imp.ty,
++                              )
++                              if provider_idx < 0 ||
++                                provider_idx >= core_instance_exports.length() {
++                                raise InvalidCoreInstanceIndex(provider_idx)
++                              }
++                              match core_instance_exports[provider_idx] {
++                                Some(kinds) =>
++                                  match kinds.get(imp.name) {
++                                    None =>
+@@ -401 +428 @@
+-                                        "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
++                                        "module import `\{imp.mod_name}::\{imp.name}` not defined",
+@@ -403,16 +430,25 @@
+-                                    }
+-                                }
+-                              None => ()
+-                            }
+-                            match core_instance_export_types[provider_idx] {
+-                              Some(map) =>
+-                                match map.get(imp.name) {
+-                                  Some(prov_ty) =>
+-                                    if !core_import_compatible(imp.ty, prov_ty) {
+-                                      raise CoreModuleError(
+-                                        "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
+-                                      )
+-                                    }
+-                                  None => ()
+-                                }
+-                              None => ()
++                                    Some(actual_kind) =>
++                                      if actual_kind != expected_kind {
++                                        raise CoreModuleError(
++                                          "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
++                                        )
++                                      }
++                                  }
++                                None => ()
++                              }
++                              match core_instance_export_types[provider_idx] {
++                                Some(map) =>
++                                  match map.get(imp.name) {
++                                    Some(prov_ty) =>
++                                      if !core_import_compatible(
++                                          imp.ty,
++                                          prov_ty,
++                                        ) {
++                                        raise CoreModuleError(
++                                          "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
++                                        )
++                                      }
++                                    None => ()
++                                  }
++                                None => ()
++                              }
+@@ -422,3 +458,3 @@
+-                      }
+-                    None => ()
+-                  }
++                      None => ()
++                    }
++                }
+@@ -428 +464 @@
 -              let map : Map[String, Int] = Map([])
 +              let map : Map[String, Int32] = Map([])
-@@ -787,0 +798 @@
+@@ -776 +812,10 @@
+-      6 =>
++      6 => {
++        if contract_scope is Some(_) {
++          core_contract_aliases(
++            s.payload,
++            counts,
++            instance_contracts,
++            external_contracts,
++            contract_work,
++          )
++        }
+@@ -787,0 +833 @@
 +          import_named_types,
-@@ -913,0 +925 @@
+@@ -823,0 +870 @@
++      }
+@@ -829,9 +876,18 @@
+-          validate_canon(
+-            c,
+-            type_table,
+-            local_resource_types,
+-            type_table.length(),
+-            core_memory_types,
+-            core_func_types,
+-            func_types,
+-          )
++          let complete_lower = if contract_scope is Some(_) {
++            check_canonical_contract(
++              c, type_table, func_types, func_sig_shapes, external_contracts, canonical_budget,
++              contract_work,
++            )
++          } else {
++            validate_canon(
++              c,
++              type_table,
++              local_resource_types,
++              type_table.length(),
++              core_memory_types,
++              core_func_types,
++              func_types,
++              budget=canonical_budget,
++            )
++            None
++          }
+@@ -856,4 +912,15 @@
+-            _ =>
+-              core_func_types.push(
+-                core_functype_for_canon(c, type_table, core_memory_types),
+-              )
++            _ => {
++              let signature = if contract_scope is Some(_) {
++                complete_lower
++              } else {
++                core_functype_for_canon(
++                  c, type_table, core_memory_types, func_types, canonical_budget,
++                )
++              }
++              if contract_scope is Some(_) && signature is Some(ft) {
++                external_contracts[(0, core_func_types.length())] = Func(
++                  canonical_contract_function(ft),
++                )
++              }
++              core_func_types.push(signature)
++            }
+@@ -913,0 +981 @@
 +  core_contracts~ : @core_types.ContractGraph? = None,
-@@ -915 +927,12 @@
+@@ -915 +983,12 @@
 -  validate_component_inner(component, true, cfg, 0, [], [], [], []) |> ignore
 +  validate_component_inner(
 +    component,

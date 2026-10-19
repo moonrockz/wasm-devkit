@@ -24,7 +24,7 @@ custom-pages	0	0	0
 import-global-init	0	0	0
 extended-const	0	0	0
 bad-global-init	1	1	1
-canonical-lift	0	0	1
+canonical-lift	0	0	0
 nested-component	0	0	1
 arithmetic	0	0	0
 load-store	0	0	0

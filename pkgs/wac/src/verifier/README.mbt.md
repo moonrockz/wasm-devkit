@@ -205,8 +205,8 @@ imports and re-exports. It follows WAC 0.12.0's wasmparser 0.258.0 map-key rules
 `WAC-B003` invalid component metadata, and `WAC-B004` reconstruction failures.
 All diagnostic positions count bytes. Unknown offsets remain absent.
 
-Concrete nested components, instantiation, canonical
-functions, component start sections and component-value externs remain unsupported. Function export ascriptions validate parameter
+Concrete nested components, component instantiation, async canonical
+functions and intrinsics, component start sections and component-value externs remain unsupported. Function export ascriptions validate parameter
 names, async mode, structural value types and nominal resource identities, and
 retain the ascribed function type. Type-equality export annotations compare
 complete value shapes and nominal resource identity, including imported aliases
@@ -532,7 +532,8 @@ incompatible module contracts; the product rejects them, backed by independent
 wasm-tools subtype witnesses in `tests/semantic/wac-core-modules/fill`.
 
 Both binary and WAT inputs support these contracts and flat concrete core module
-bodies. Core/component instantiation, canonical functions, component starts, component
+bodies. Core instantiation and synchronous canonical lift/lower are supported.
+Component instantiation, async canonical functions and intrinsics, component starts, component
 values remain outside this profile.
 Concrete GC/reference types, supertypes and shared heap types remain
 unsupported. Nested component/instance core declarations with limits above u32
@@ -584,3 +585,21 @@ identities and alias constraints remain fixed. Re-exports preserve the narrowed
 contract. The 54 cases in `tests/semantic/wac-component-ascriptions` retain full
 binary/WAT model comparisons and both reference results. Component aliases from
 imported instances still require complete scoped metadata and return `WAC-B002`.
+
+## Core instances and canonical functions
+
+Binary and WAT dependencies support ordered core module instantiation, inline
+core instances and core export aliases. Import checks retain complete unsigned
+module contracts, shared flags and reference types. Synchronous canonical
+lift/lower checks flattened signatures, indirect parameters/results, memory32
+and memory64, realloc and post-return options. Imported instance functions retain
+their defining type graph when lowered. Original module bodies are validated;
+verification never executes them.
+
+The canonical graph walk uses explicit stacks, cached shared types and a shared
+work limit. Signature prefixes stop at 17 slots while every reachable aggregate
+child is checked. Core instance contract checks share a separate work limit.
+The 71 package probes and twelve composition cases in
+`tests/semantic/wac-canonical-functions` compare the pinned APIs and ordered
+models. Two package-loader flag mismatches are retained as explicit upstream
+false positives, with independent validator rejection.

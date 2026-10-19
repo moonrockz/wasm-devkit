@@ -1,5 +1,6 @@
 ///|
 priv enum BinaryDeclaration {
+  Canonical(@component.Canon)
   Define(@component.TypeDef)
   CoreDefine(Bytes, Bool)
   CoreModule(Bytes)

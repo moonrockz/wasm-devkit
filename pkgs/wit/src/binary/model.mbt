@@ -123,6 +123,24 @@ pub fn validate_declarative_component(
           "WIT-B002",
           "instance ascription requires complete supported export contracts",
         )
+      @validation.CoreContractBudgetExceeded =>
+        raise Failure(
+          None,
+          "WIT-B002",
+          "core runtime contract work limit exceeded",
+        )
+      @validation.CanonicalBudgetExceeded =>
+        raise Failure(
+          None,
+          "WIT-B002",
+          "canonical ABI graph exceeds its work budget",
+        )
+      @validation.UnsupportedCanonical =>
+        raise Failure(
+          None,
+          "WIT-B002",
+          "canonical function form is outside the supported profile",
+        )
       @validation.UnsupportedFunctionAscription =>
         raise Failure(
           None,

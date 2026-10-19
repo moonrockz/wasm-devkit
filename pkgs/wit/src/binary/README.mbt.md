@@ -61,7 +61,9 @@ payloads and 10,000 physical type scopes on all four targets.
 aliases. It returns a separate `ValidatedDeclarativeComponent` with immutable
 bytes. It supports imported functions, instances and components, type aliases,
 and re-exports, plus declarative core module/function types and module externs.
-Nested concrete component definitions, instantiation, canonical functions and
+Core instances and synchronous canonical lift/lower validate full core contracts
+and canonical signatures. Nested concrete component definitions, component
+instantiation, async canonical functions and intrinsics, and
 component start sections remain unsupported and
 return `WIT-B002`. Physical type-scope nesting has the same 256 limit.
 Component-value externs return `WIT-B002` because the pinned parser's value-bound

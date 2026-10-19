@@ -6,6 +6,8 @@ priv enum CoreDeclaration {
   Describe(Bool, String, @component.ExternDesc)
   Export(@component.Export)
   Module(Bytes)
+  CoreInstance
+  Canonical(@component.Canon)
 }
 
 ///|
@@ -151,6 +153,14 @@ fn validate_core_definitions(
     try {
       match section.id {
         1 => root.push(Module(section.payload))
+        2 =>
+          for _ in @component.parse_core_instance_section(section.payload) {
+            root.push(CoreInstance)
+          }
+        8 =>
+          for declaration in @component.parse_canon_section(section.payload) {
+            root.push(Canonical(declaration))
+          }
         3 => root.push(Definition(section.payload, true))
         7 =>
           for td in @component.parse_type_section(section.payload) {
@@ -216,6 +226,9 @@ fn validate_core_definitions(
     let declaration = scope.declarations[scope.position]
     scope.position += 1
     match declaration {
+      CoreInstance => scope.bind(0x112, Other)
+      Canonical(Lift(_, _, _)) => scope.bind(1, Other)
+      Canonical(_) => scope.bind(0x100, Other)
       Nested(td) =>
         match td {
           ComponentType(_) | InstanceType(_) | InstanceTypeEmpty => {
@@ -274,12 +287,10 @@ fn validate_core_definitions(
             }
             binding
           }
-          CoreExport(_, _) =>
-            raise Failure(
-              None,
-              "WIT-B002",
-              "core runtime alias contract is not available",
-            )
+          CoreExport(original, _) => {
+            ignore(scope.lookup(0x112, original))
+            @core_types.ContractBinding::Other
+          }
         }
         scope.bind(kind, binding)
       }

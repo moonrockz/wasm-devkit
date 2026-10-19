@@ -1,0 +1,1 @@
+(component (core func (canon lower (func 0))))

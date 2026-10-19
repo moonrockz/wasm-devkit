@@ -5,20 +5,19 @@
 fn core_valtypes_for_component_valtype(
   ty : @component.ValType,
   type_table : Array[@component.TypeDef?],
-) -> Array[@types.ValueType]? {
-  match @component.canonical_abi_plan(ty, type_table, false, max_flat=17) {
-    Some(plan) => if plan.contains_memory { None } else { Some(plan.flat) }
-    None => None
+) -> Array[@types.ValueType]? raise ComponentValidationError {
+  let context : CanonicalContext = {
+    types: type_table,
+    pointer: @types.I32,
+    budget: { remaining: 1000000, },
+    cache: Map([]),
   }
-}
-
-///|
-fn core_functype_for_component_functype(
-  ft : @component.FuncType,
-  type_table : Array[@component.TypeDef?],
-  pointer_type : @types.ValueType,
-) -> @types.FuncType? {
-  @component.canonical_lift_core_func_type(ft, type_table, pointer_type)
+  let shape = context.shape(ty)
+  if shape.dynamic {
+    None
+  } else {
+    Some(shape.flat)
+  }
 }
 
 ///|
@@ -26,17 +25,20 @@ fn core_functype_for_task_return(
   result : @component.ValType?,
   type_table : Array[@component.TypeDef?],
   pointer_type : @types.ValueType,
-) -> @types.FuncType? {
+) -> @types.FuncType? raise ComponentValidationError {
   let params : Array[@types.ValueType] = []
   match result {
     None => ()
     Some(vt) =>
       match
-        @component.canonical_flat_types(
-          vt,
-          type_table,
-          pointer_type,
-          max_flat=17,
+        Some(
+          (
+            {
+              types: type_table,
+              pointer: pointer_type,
+              budget: { remaining: 1000000, },
+              cache: Map([]),
+            } : CanonicalContext).shape(vt).flat,
         ) {
         Some(ts) =>
           if ts.length() > 16 {
@@ -57,8 +59,22 @@ fn core_functype_for_canon(
   c : @component.Canon,
   type_table : Array[@component.TypeDef?],
   core_memory_types : Array[@types.MemoryType?],
-) -> @types.FuncType? {
+  functions : Array[@component.FuncType?],
+  budget : CanonicalBudget,
+) -> @types.FuncType? raise ComponentValidationError {
   match c {
+    Lower(index, opts) => {
+      guard functions.get(index) is Some(Some(function)) else {
+        raise InvalidFuncIndex(index)
+      }
+      let context : CanonicalContext = {
+        types: type_table,
+        pointer: canon_address_type(opts, core_memory_types),
+        budget,
+        cache: Map([]),
+      }
+      Some(context.function(function).lowered)
+    }
     BackpressureInc | BackpressureDec | TaskCancel =>
       Some({ params: [], results: [], })
     TaskReturn(result, opts) =>
@@ -109,6 +125,7 @@ fn validate_canon(
   core_memory_types : Array[@types.MemoryType?],
   core_func_types : Array[@types.FuncType?],
   func_types : Array[@component.FuncType?],
+  budget~ : CanonicalBudget = { remaining: 1000000, },
 ) -> Unit raise ComponentValidationError {
   match c {
     Lift(core_func_idx, opts, tyidx) => {
@@ -141,6 +158,16 @@ fn validate_canon(
       let td = type_table[tyidx]
       match td {
         Some(FuncType(ft)) => {
+          if ft.is_async {
+            raise UnsupportedCanonical
+          }
+          let context : CanonicalContext = {
+            types: type_table,
+            pointer: canon_address_type(opts, core_memory_types),
+            budget,
+            cache: Map([]),
+          }
+          let shape = context.function(ft)
           if canon_has_async(opts) && !ft.is_async {
             raise CanonAsyncTypeMismatch(tyidx)
           }
@@ -185,30 +212,17 @@ fn validate_canon(
               }
             None => ()
           }
-          let needs_memory = if canon_has_async(opts) {
-            functype_async_lift_needs_memory(ft, type_table)
-          } else {
-            functype_needs_memory(ft, type_table)
-          }
+          let needs_memory = shape.memory
           if needs_memory && !canon_has_memory(opts) {
             raise MissingCanonOption("memory")
           }
-          if functype_needs_realloc_for_lift(ft, type_table) &&
-            !canon_has_realloc(opts) {
+          if shape.lift_realloc && !canon_has_realloc(opts) {
             raise MissingCanonOption("realloc")
           }
           // Async-lifted functions use a callback/event-code ABI and do not
           // match the direct lowering signature.
           if !canon_has_async(opts) {
-            match
-              (
-                core_func_types[core_func_idx],
-                core_functype_for_component_functype(
-                  ft,
-                  type_table,
-                  canon_address_type(opts, core_memory_types),
-                ),
-              ) {
+            match (core_func_types[core_func_idx], Some(shape.lifted)) {
               (Some(core_ft), Some(expected_core_ft)) =>
                 if core_ft != expected_core_ft {
                   raise CanonCoreFuncTypeMismatch(
@@ -247,6 +261,16 @@ fn validate_canon(
       }
       match func_types[func_idx] {
         Some(ft) => {
+          if ft.is_async {
+            raise UnsupportedCanonical
+          }
+          let context : CanonicalContext = {
+            types: type_table,
+            pointer: canon_address_type(opts, core_memory_types),
+            budget,
+            cache: Map([]),
+          }
+          let shape = context.function(ft)
           if canon_has_async(opts) && !ft.is_async {
             raise CanonAsyncTypeMismatch(func_idx)
           }
@@ -273,11 +297,10 @@ fn validate_canon(
               }
             None => ()
           }
-          if functype_needs_memory(ft, type_table) && !canon_has_memory(opts) {
+          if shape.memory && !canon_has_memory(opts) {
             raise MissingCanonOption("memory")
           }
-          if functype_needs_realloc_for_lower(ft, type_table) &&
-            !canon_has_realloc(opts) {
+          if shape.lower_realloc && !canon_has_realloc(opts) {
             raise MissingCanonOption("realloc")
           }
         }

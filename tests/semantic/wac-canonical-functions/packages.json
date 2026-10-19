@@ -1,0 +1,499 @@
+[
+  {
+    "name": "empty",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "scalar",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "bool",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "wrong-parameter",
+    "reference": 1,
+    "validator": 1,
+    "error": "lowered parameter types `[I32]` do not match parameter types `[I64]` of core function 0 (at offset 0x51)\n",
+    "validation": "error: lowered parameter types `[I32]` do not match parameter types `[I64]` of core function 0 (at offset 0x51)\n"
+  },
+  {
+    "name": "wrong-result",
+    "reference": 1,
+    "validator": 1,
+    "error": "lowered result types `[I32]` do not match result types `[I64]` of core function 0 (at offset 0x50)\n",
+    "validation": "error: lowered result types `[I32]` do not match result types `[I64]` of core function 0 (at offset 0x50)\n"
+  },
+  {
+    "name": "tuple",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "string-missing-memory",
+    "reference": 1,
+    "validator": 1,
+    "error": "canonical option `memory` is required (at offset 0x52)\n",
+    "validation": "error: canonical option `memory` is required (at offset 0x52)\n"
+  },
+  {
+    "name": "string",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "result-string",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "post-return",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "wrong-post-return",
+    "reference": 1,
+    "validator": 1,
+    "error": "canonical option `post-return` uses a core function with an incorrect signature (at offset 0x68)\n",
+    "validation": "error: canonical option `post-return` uses a core function with an incorrect signature (at offset 0x68)\n"
+  },
+  {
+    "name": "lower",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "wrong-lower",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x62)\n",
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x62)\n"
+  },
+  {
+    "name": "missing-argument",
+    "reference": 1,
+    "validator": 1,
+    "error": "missing module instantiation argument named `env` (at offset 0x31)\n",
+    "validation": "error: missing module instantiation argument named `env` (at offset 0x31)\n"
+  },
+  {
+    "name": "missing-export",
+    "reference": 1,
+    "validator": 1,
+    "error": "core instance 0 has no export named `missing` (at offset 0x26)\n",
+    "validation": "error: core instance 0 has no export named `missing` (at offset 0x26)\n"
+  },
+  {
+    "name": "wrong-alias-sort",
+    "reference": 1,
+    "validator": 1,
+    "error": "export `m` for core instance 0 is not a function (at offset 0x32)\n",
+    "validation": "error: export `m` for core instance 0 is not a function (at offset 0x32)\n"
+  },
+  {
+    "name": "flags-0",
+    "reference": 1,
+    "validator": 1,
+    "error": "flags must have at least one entry (at offset 0x46)\n",
+    "validation": "error: flags must have at least one entry (at offset 0x46)\n"
+  },
+  {
+    "name": "flags-1",
+    "reference": 1,
+    "validator": 1,
+    "error": "func not valid to be used as export (at offset 0x5e)\n",
+    "validation": "error: func not valid to be used as export (at offset 0x5e)\n"
+  },
+  {
+    "name": "flags-32",
+    "reference": 1,
+    "validator": 1,
+    "error": "func not valid to be used as export (at offset 0xd2)\n",
+    "validation": "error: func not valid to be used as export (at offset 0xd2)\n"
+  },
+  {
+    "name": "flags-33",
+    "reference": 1,
+    "validator": 1,
+    "error": "cannot have more than 32 flags (at offset 0x49)\n",
+    "validation": "error: cannot have more than 32 flags (at offset 0x49)\n"
+  },
+  {
+    "name": "flags-64",
+    "reference": 1,
+    "validator": 1,
+    "error": "cannot have more than 32 flags (at offset 0x49)\n",
+    "validation": "error: cannot have more than 32 flags (at offset 0x49)\n"
+  },
+  {
+    "name": "flags-65",
+    "reference": 1,
+    "validator": 1,
+    "error": "cannot have more than 32 flags (at offset 0x4a)\n",
+    "validation": "error: cannot have more than 32 flags (at offset 0x4a)\n"
+  },
+  {
+    "name": "empty-tuple-result",
+    "reference": 1,
+    "validator": 1,
+    "error": "tuple type must have at least one type (at offset 0x46)\n",
+    "validation": "error: tuple type must have at least one type (at offset 0x46)\n"
+  },
+  {
+    "name": "map",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "flags-named",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "flags32-named",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "record-named",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "variant-join",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "variant-wide-join",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "result-join",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "option-string",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "tuple-indirect",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "tuple-return",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "fixed-list",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "list-string",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "map-return",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "future-handle",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "stream-handle",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "unused-memory",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "shared-memory",
+    "reference": 1,
+    "validator": 1,
+    "error": "mismatch in the shared flag for memories (at offset 0x67)\n",
+    "validation": "error: mismatch in the shared flag for memories (at offset 0x67)\n"
+  },
+  {
+    "name": "memory64-string",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "wrong-realloc",
+    "reference": 1,
+    "validator": 1,
+    "error": "canonical option `realloc` uses a core function with an incorrect signature (at offset 0x8e)\n",
+    "validation": "error: canonical option `realloc` uses a core function with an incorrect signature (at offset 0x8e)\n"
+  },
+  {
+    "name": "post-lower",
+    "reference": 1,
+    "validator": 1,
+    "error": "canonical option `post-return` cannot be specified for lowerings (at offset 0x1d)\n",
+    "validation": "error: canonical option `post-return` cannot be specified for lowerings (at offset 0x1d)\n"
+  },
+  {
+    "name": "duplicate-memory",
+    "reference": 1,
+    "validator": 1,
+    "error": "canonical option `memory` is specified more than once (at offset 0x8f)\n",
+    "validation": "error: canonical option `memory` is specified more than once (at offset 0x8f)\n"
+  },
+  {
+    "name": "duplicate-encoding",
+    "reference": 1,
+    "validator": 1,
+    "error": "canonical encoding option `utf8` conflicts with option `utf16` (at offset 0x4d)\n",
+    "validation": "error: canonical encoding option `utf8` conflicts with option `utf16` (at offset 0x4d)\n"
+  },
+  {
+    "name": "alias-lower",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "alias-lower-wrong",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for export `take` of module instantiation argument `env`\nexpected: (func (param i64 i32))\nfound:    (func (param i32 i32)) (at offset 0xd3)\n",
+    "validation": "error: type mismatch for export `take` of module instantiation argument `env`\nexpected: (func (param i64 i32))\nfound:    (func (param i32 i32)) (at offset 0xd3)\n"
+  },
+  {
+    "name": "core-duplicate-argument",
+    "reference": 1,
+    "validator": 1,
+    "error": "duplicate module instantiation argument named `env` (at offset 0x62)\n",
+    "validation": "error: duplicate module instantiation argument named `env` (at offset 0x62)\n"
+  },
+  {
+    "name": "core-duplicate-export",
+    "reference": 1,
+    "validator": 1,
+    "error": "duplicate instantiation export name `f` already defined (at offset 0x24)\n",
+    "validation": "error: duplicate instantiation export name `f` already defined (at offset 0x24)\n"
+  },
+  {
+    "name": "core-future-module",
+    "reference": 1,
+    "validator": 1,
+    "error": "unknown module 0: module index out of bounds (at offset 0xb)\n",
+    "validation": "error: unknown module 0: module index out of bounds (at offset 0xb)\n"
+  },
+  {
+    "name": "core-self-instance",
+    "reference": 1,
+    "validator": 1,
+    "error": "unknown core instance 0: instance index out of bounds (at offset 0x31)\n",
+    "validation": "error: unknown core instance 0: instance index out of bounds (at offset 0x31)\n"
+  },
+  {
+    "name": "contract-memory",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "contract-memory-min",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for export `x` of module instantiation argument `env`\nmismatch in memory limits (at offset 0x44)\n",
+    "validation": "error: type mismatch for export `x` of module instantiation argument `env`\nmismatch in memory limits (at offset 0x44)\n"
+  },
+  {
+    "name": "contract-memory-max",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for export `x` of module instantiation argument `env`\nmismatch in memory limits (at offset 0x44)\n",
+    "validation": "error: type mismatch for export `x` of module instantiation argument `env`\nmismatch in memory limits (at offset 0x44)\n"
+  },
+  {
+    "name": "contract-table64",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "contract-table64-flag",
+    "reference": 0,
+    "validator": 1,
+    "error": "",
+    "validation": "error: type mismatch for export `x` of module instantiation argument `env`\nmismatch in index type used for tables (at offset 0x44)\n"
+  },
+  {
+    "name": "contract-global",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "contract-global-mut",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for export `x` of module instantiation argument `env`\nglobal types differ in mutability (at offset 0x42)\n",
+    "validation": "error: type mismatch for export `x` of module instantiation argument `env`\nglobal types differ in mutability (at offset 0x42)\n"
+  },
+  {
+    "name": "contract-global-shared",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "contract-global-shared-flag",
+    "reference": 0,
+    "validator": 1,
+    "error": "",
+    "validation": "error: type mismatch for export `x` of module instantiation argument `env`\nmismatch in the shared flag for globals (at offset 0x42)\n"
+  },
+  {
+    "name": "contract-global-ref-narrow",
+    "reference": 1,
+    "validator": 0,
+    "error": "type mismatch for export `x` of module instantiation argument `env`\nexpected global type anyref, found nullref (at offset 0x42)\n",
+    "validation": ""
+  },
+  {
+    "name": "contract-tag",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "contract-tag-mismatch",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for export `x` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func (param i32)) (at offset 0x4c)\n",
+    "validation": "error: type mismatch for export `x` of module instantiation argument `env`\nexpected: (func (param i32))\nfound:    (func (param i64)) (at offset 0x4c)\n"
+  },
+  {
+    "name": "missing-lower-function",
+    "reference": 1,
+    "validator": 1,
+    "error": "unknown function 0: function index out of bounds (at offset 0xb)\n",
+    "validation": "error: unknown function 0: function index out of bounds (at offset 0xb)\n"
+  },
+  {
+    "name": "resource-own",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "resource-result-own",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "resource-borrow",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "resource-result-borrow",
+    "reference": 1,
+    "validator": 1,
+    "error": "function result cannot contain a `borrow` type (at offset 0x5a)\n",
+    "validation": "error: function result cannot contain a `borrow` type (at offset 0x5a)\n"
+  },
+  {
+    "name": "alias-resource-lower",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "core-future-alias",
+    "reference": 1,
+    "validator": 1,
+    "error": "unknown core instance 0: instance index out of bounds (at offset 0xb)\n",
+    "validation": "error: unknown core instance 0: instance index out of bounds (at offset 0xb)\n"
+  },
+  {
+    "name": "core-future-function",
+    "reference": 1,
+    "validator": 1,
+    "error": "unknown core function 0: function index out of bounds (at offset 0xb)\n",
+    "validation": "error: unknown core function 0: function index out of bounds (at offset 0xb)\n"
+  }
+]

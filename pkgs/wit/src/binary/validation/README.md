@@ -36,8 +36,8 @@ wasm-tools 1.262.0 validation and WAC 0.12.0 `Package::from_bytes` accept those
 operations. `section_import.mbt` and `section_export.mbt` contain those changes.
 `core_type.mbt` checks interface value naming with an explicit work stack,
 including fixed lists and map keys/values. These additions are tracked under
-`wasm-devkit-p5m.8.2.2`; runtime sections remain outside the public declarative
-boundary. The patch does not claim complete component-model conformance.
+`wasm-devkit-p5m.8.2.2`; remaining runtime sections stay explicitly bounded by the public
+profile. The patch does not claim complete component-model conformance.
 
 `restricted_map_keys` defaults to the wasmparser 0.262 rule. The declarative
 WAC entry point disables that restriction to match its pinned wasmparser 0.258;
@@ -135,3 +135,14 @@ Runtime component instantiation remains excluded; the older reduced tables are
 not proof of these complete contracts. Component aliases extracted from instances
 still lack complete metadata and fail closed. A 6,000-scope whitebox test covers
 stack safety, deepest mismatch and cumulative work exhaustion.
+
+
+Synchronous canonical lift/lower uses an iterative, cached value-shape walk.
+It checks complete core signatures and memory/realloc/post-return contracts,
+including memory64 pointer widths. Core instance imports and aliases use full
+immutable contracts from the ordered scope pass. Core contract work and
+canonical shape work each share a 1,000,000-unit allowance across the component.
+The current flags profile permits at most 32 members, matching both pins.
+Async canonical operations and intrinsics remain unsupported. Concrete module
+bodies still undergo original-byte validation; no substituted body is accepted
+as proof of validity.

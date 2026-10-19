@@ -1,0 +1,86 @@
+[
+  {
+    "name": "empty",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "scalar",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "string",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "memory64-string",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "record-named",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "variant-wide-join",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "tuple-indirect",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "tuple-return",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "resource-own",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "resource-result-own",
+    "reference": 0,
+    "compose": 0,
+    "validation": 0,
+    "error": ""
+  },
+  {
+    "name": "wrong-realloc",
+    "reference": 1,
+    "compose": 1,
+    "validation": null,
+    "error": "failed to parse package `test:canonical`\n"
+  },
+  {
+    "name": "wrong-parameter",
+    "reference": 1,
+    "compose": 1,
+    "validation": null,
+    "error": "failed to parse package `test:canonical`\n"
+  }
+]

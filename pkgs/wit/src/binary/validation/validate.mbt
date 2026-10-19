@@ -128,6 +128,14 @@ fn validate_component_inner(
   if counts.core_contracts is Some(graph) && graph.scope(0) is None {
     raise SectionParseError(0, "core contract metadata has no root scope")
   }
+  let contract_scope = match counts.core_contracts {
+    Some(graph) => graph.scope(0)
+    None => None
+  }
+  let contract_work : CoreContractWork = { remaining: 1000000, }
+  let instance_contracts : Array[Map[String, @core_types.External]] = []
+  let external_contracts : Map[(Int32, Int32), @core_types.External] = Map([])
+  let canonical_budget : CanonicalBudget = { remaining: 1000000, }
   let type_table : Array[@component.TypeDef?] = []
   // Track which type indices correspond to resource types defined in the
   // current concrete component (as opposed to imported/aliased resource types).
@@ -273,6 +281,13 @@ fn validate_component_inner(
           e => raise SectionParseError(2, "\{e}")
         }
         for inst in core_instances {
+          if contract_scope is Some(scope) {
+            instance_contracts.push(
+              core_contract_instance(
+                inst, scope, instance_contracts, external_contracts, contract_work,
+              ),
+            )
+          }
           let mut export_map : Map[String, Int32]? = None
           let mut export_types : Map[String, CoreExternType]? = None
           match inst.expr {
@@ -311,127 +326,138 @@ fn validate_component_inner(
               } else {
                 None
               }
-              match mod_def {
-                Some(mod_) =>
-                  for imp in mod_.imports {
-                    match providers.get(imp.mod_name) {
-                      None =>
-                        raise CoreModuleError(
-                          "module import `\{imp.mod_name}::\{imp.name}` not defined",
-                        )
-                      Some(provider_idx) => {
-                        if provider_idx < 0 ||
-                          provider_idx >= core_instance_export_types.length() {
-                          raise InvalidCoreInstanceIndex(provider_idx)
-                        }
-                        let expected = core_import_type_of_module(
-                          mod_,
-                          imp.desc,
-                        )
-                        match expected {
-                          None => ()
-                          Some(exp_ty) => {
-                            let expected_kind = core_kind_of_extern_type(exp_ty)
-                            // Check presence/kind first (even if we don't have full type info).
-                            if provider_idx < 0 ||
-                              provider_idx >= core_instance_exports.length() {
-                              raise InvalidCoreInstanceIndex(provider_idx)
-                            }
-                            match core_instance_exports[provider_idx] {
-                              Some(kinds) =>
-                                match kinds.get(imp.name) {
-                                  None =>
-                                    raise CoreModuleError(
-                                      "module import `\{imp.mod_name}::\{imp.name}` not defined",
-                                    )
-                                  Some(actual_kind) =>
-                                    if actual_kind != expected_kind {
+              if contract_scope is None {
+                match mod_def {
+                  Some(mod_) =>
+                    for imp in mod_.imports {
+                      match providers.get(imp.mod_name) {
+                        None =>
+                          raise CoreModuleError(
+                            "module import `\{imp.mod_name}::\{imp.name}` not defined",
+                          )
+                        Some(provider_idx) => {
+                          if provider_idx < 0 ||
+                            provider_idx >= core_instance_export_types.length() {
+                            raise InvalidCoreInstanceIndex(provider_idx)
+                          }
+                          let expected = core_import_type_of_module(
+                            mod_,
+                            imp.desc,
+                          )
+                          match expected {
+                            None => ()
+                            Some(exp_ty) => {
+                              let expected_kind = core_kind_of_extern_type(
+                                exp_ty,
+                              )
+                              // Check presence/kind first (even if we don't have full type info).
+                              if provider_idx < 0 ||
+                                provider_idx >= core_instance_exports.length() {
+                                raise InvalidCoreInstanceIndex(provider_idx)
+                              }
+                              match core_instance_exports[provider_idx] {
+                                Some(kinds) =>
+                                  match kinds.get(imp.name) {
+                                    None =>
                                       raise CoreModuleError(
-                                        "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
+                                        "module import `\{imp.mod_name}::\{imp.name}` not defined",
                                       )
-                                    }
-                                }
-                              None => ()
-                            }
-                            // If we also know full types, enforce type compatibility.
-                            match core_instance_export_types[provider_idx] {
-                              Some(map) =>
-                                match map.get(imp.name) {
-                                  Some(prov_ty) =>
-                                    if !core_import_compatible(exp_ty, prov_ty) {
-                                      raise CoreModuleError(
-                                        "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
-                                      )
-                                    }
-                                  None => ()
-                                }
-                              None => ()
+                                    Some(actual_kind) =>
+                                      if actual_kind != expected_kind {
+                                        raise CoreModuleError(
+                                          "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
+                                        )
+                                      }
+                                  }
+                                None => ()
+                              }
+                              // If we also know full types, enforce type compatibility.
+                              match core_instance_export_types[provider_idx] {
+                                Some(map) =>
+                                  match map.get(imp.name) {
+                                    Some(prov_ty) =>
+                                      if !core_import_compatible(
+                                          exp_ty, prov_ty,
+                                        ) {
+                                        raise CoreModuleError(
+                                          "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
+                                        )
+                                      }
+                                    None => ()
+                                  }
+                                None => ()
+                              }
                             }
                           }
                         }
                       }
                     }
-                  }
-                None =>
-                  match
-                    (if module_idx >= 0 &&
-                      module_idx < core_module_type_imports.length() {
-                      core_module_type_imports[module_idx]
-                    } else {
-                      None
-                    }) {
-                    Some(sigs) =>
-                      for imp in sigs {
-                        match providers.get(imp.mod_name) {
-                          None =>
-                            raise CoreModuleError(
-                              "module import `\{imp.mod_name}::\{imp.name}` not defined",
-                            )
-                          Some(provider_idx) => {
-                            if provider_idx < 0 ||
-                              provider_idx >=
-                              core_instance_export_types.length() {
-                              raise InvalidCoreInstanceIndex(provider_idx)
-                            }
-                            let expected_kind = core_kind_of_extern_type(imp.ty)
-                            if provider_idx < 0 ||
-                              provider_idx >= core_instance_exports.length() {
-                              raise InvalidCoreInstanceIndex(provider_idx)
-                            }
-                            match core_instance_exports[provider_idx] {
-                              Some(kinds) =>
-                                match kinds.get(imp.name) {
-                                  None =>
-                                    raise CoreModuleError(
-                                      "module import `\{imp.mod_name}::\{imp.name}` not defined",
-                                    )
-                                  Some(actual_kind) =>
-                                    if actual_kind != expected_kind {
+                  None =>
+                    match
+                      (if module_idx >= 0 &&
+                        module_idx < core_module_type_imports.length() {
+                        core_module_type_imports[module_idx]
+                      } else {
+                        None
+                      }) {
+                      Some(sigs) =>
+                        for imp in sigs {
+                          match providers.get(imp.mod_name) {
+                            None =>
+                              raise CoreModuleError(
+                                "module import `\{imp.mod_name}::\{imp.name}` not defined",
+                              )
+                            Some(provider_idx) => {
+                              if provider_idx < 0 ||
+                                provider_idx >=
+                                core_instance_export_types.length() {
+                                raise InvalidCoreInstanceIndex(provider_idx)
+                              }
+                              let expected_kind = core_kind_of_extern_type(
+                                imp.ty,
+                              )
+                              if provider_idx < 0 ||
+                                provider_idx >= core_instance_exports.length() {
+                                raise InvalidCoreInstanceIndex(provider_idx)
+                              }
+                              match core_instance_exports[provider_idx] {
+                                Some(kinds) =>
+                                  match kinds.get(imp.name) {
+                                    None =>
                                       raise CoreModuleError(
-                                        "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
+                                        "module import `\{imp.mod_name}::\{imp.name}` not defined",
                                       )
-                                    }
-                                }
-                              None => ()
-                            }
-                            match core_instance_export_types[provider_idx] {
-                              Some(map) =>
-                                match map.get(imp.name) {
-                                  Some(prov_ty) =>
-                                    if !core_import_compatible(imp.ty, prov_ty) {
-                                      raise CoreModuleError(
-                                        "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
-                                      )
-                                    }
-                                  None => ()
-                                }
-                              None => ()
+                                    Some(actual_kind) =>
+                                      if actual_kind != expected_kind {
+                                        raise CoreModuleError(
+                                          "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
+                                        )
+                                      }
+                                  }
+                                None => ()
+                              }
+                              match core_instance_export_types[provider_idx] {
+                                Some(map) =>
+                                  match map.get(imp.name) {
+                                    Some(prov_ty) =>
+                                      if !core_import_compatible(
+                                          imp.ty,
+                                          prov_ty,
+                                        ) {
+                                        raise CoreModuleError(
+                                          "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
+                                        )
+                                      }
+                                    None => ()
+                                  }
+                                None => ()
+                              }
                             }
                           }
                         }
-                      }
-                    None => ()
-                  }
+                      None => ()
+                    }
+                }
               }
             }
             InlineExports(inline_exports) => {
@@ -783,7 +809,16 @@ fn validate_component_inner(
           func_sig_shapes,
           next_resource_id,
         )
-      6 =>
+      6 => {
+        if contract_scope is Some(_) {
+          core_contract_aliases(
+            s.payload,
+            counts,
+            instance_contracts,
+            external_contracts,
+            contract_work,
+          )
+        }
         validate_component_section_alias(
           s.payload,
           counts,
@@ -832,20 +867,30 @@ fn validate_component_inner(
           type_outers,
           component_size_outers,
         )
+      }
       8 => {
         let canons = @component.parse_canon_section(s.payload) catch {
           e => raise SectionParseError(8, "\{e}")
         }
         for c in canons {
-          validate_canon(
-            c,
-            type_table,
-            local_resource_types,
-            type_table.length(),
-            core_memory_types,
-            core_func_types,
-            func_types,
-          )
+          let complete_lower = if contract_scope is Some(_) {
+            check_canonical_contract(
+              c, type_table, func_types, func_sig_shapes, external_contracts, canonical_budget,
+              contract_work,
+            )
+          } else {
+            validate_canon(
+              c,
+              type_table,
+              local_resource_types,
+              type_table.length(),
+              core_memory_types,
+              core_func_types,
+              func_types,
+              budget=canonical_budget,
+            )
+            None
+          }
           count_canon(c, counts)
           match c {
             Lift(_, _, tyidx) =>
@@ -864,10 +909,21 @@ fn validate_component_inner(
             // All non-lift canonical items append a core function to the core-func
             // index space. Model known intrinsic signatures so core module
             // instantiation validates imports against canonical builtins.
-            _ =>
-              core_func_types.push(
-                core_functype_for_canon(c, type_table, core_memory_types),
-              )
+            _ => {
+              let signature = if contract_scope is Some(_) {
+                complete_lower
+              } else {
+                core_functype_for_canon(
+                  c, type_table, core_memory_types, func_types, canonical_budget,
+                )
+              }
+              if contract_scope is Some(_) && signature is Some(ft) {
+                external_contracts[(0, core_func_types.length())] = Func(
+                  canonical_contract_function(ft),
+                )
+              }
+              core_func_types.push(signature)
+            }
           }
         }
       }

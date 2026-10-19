@@ -1,0 +1,1 @@
+(component (core type $p (module (export "x" (global (shared i32))))) (core type $c (module (import "env" "x" (global (shared i32))))) (import "provider" (core module $p (type $p))) (import "consumer" (core module $c (type $c))) (core instance $p (instantiate $p)) (core instance (instantiate $c (with "env" (instance $p)))))

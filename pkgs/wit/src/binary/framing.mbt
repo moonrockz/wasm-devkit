@@ -443,6 +443,71 @@ fn preflight(
               error.message,
             )
         }
+      2 if declarations => {
+        let count = payload.count()
+        for _ in 0..<count {
+          let tag = payload.byte()
+          if tag == 0 {
+            ignore(payload.unsigned())
+          } else if tag != 1 {
+            raise Failure(
+              Some(payload.position - 1),
+              "WIT-B001",
+              "invalid core instance tag",
+            )
+          }
+          let members = payload.count()
+          for _ in 0..<members {
+            payload.string()
+            let kind = payload.byte()
+            if (tag == 0 && kind != 0x12) || (tag == 1 && kind > 4) {
+              raise Failure(
+                Some(payload.position - 1),
+                "WIT-B003",
+                "invalid core instance member sort",
+              )
+            }
+            ignore(payload.unsigned())
+          }
+        }
+      }
+      8 if declarations => {
+        let count = payload.count()
+        for _ in 0..<count {
+          let tag = payload.byte()
+          if tag != 0 && tag != 1 {
+            raise Failure(
+              Some(payload.position - 1),
+              "WIT-B002",
+              "canonical intrinsic is outside the synchronous lift/lower profile",
+            )
+          }
+          if payload.byte() != 0 {
+            raise Failure(
+              Some(payload.position - 1),
+              "WIT-B001",
+              "invalid canonical function tag",
+            )
+          }
+          ignore(payload.unsigned())
+          let options = payload.count()
+          for _ in 0..<options {
+            match payload.byte() {
+              0 | 1 | 2 => ()
+              3 | 4 | 5 => ignore(payload.unsigned())
+              _ =>
+                raise Failure(
+                  Some(payload.position - 1),
+                  "WIT-B002",
+                  "canonical option is outside the synchronous ABI profile",
+                )
+            }
+          }
+          if tag == 0 {
+            ignore(payload.unsigned())
+          }
+        }
+      }
       3 if declarations => {
         let count = payload.count()
         for _ in 0..<count {
@@ -456,7 +521,7 @@ fn preflight(
           let sort = payload.byte()
           if sort == 0 {
             let core_sort = payload.byte()
-            if core_sort != 0x10 && core_sort != 0x11 {
+            if core_sort > 4 && core_sort != 0x10 && core_sort != 0x11 {
               raise Failure(
                 Some(offset),
                 "WIT-B002",
@@ -471,7 +536,7 @@ fn preflight(
             )
           }
           match payload.byte() {
-            0 => {
+            0 | 1 => {
               ignore(payload.unsigned())
               payload.string()
             }

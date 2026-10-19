@@ -965,6 +965,30 @@ async fn main {
     )
     assert_true(diagnostic.contains("WAC-C005"))
   }
+  for extension in ["wasm", "wat"] {
+    for
+      (name, status) in [
+        ("scalar", 0),
+        ("string", 0),
+        ("resource-own", 0),
+        ("wrong-realloc", 1),
+      ] {
+      let root = "tests/semantic/wac-canonical-functions/composition/" + name
+      let (_, diagnostic) = run(
+        [
+          "verify",
+          root + "/input.wac",
+          "--dep",
+          "test:canonical=dep." + extension,
+        ],
+        status,
+        wit,
+      )
+      if status == 1 {
+        assert_true(diagnostic.contains("WAC-B003"))
+      }
+    }
+  }
   // Copyable reader-facing bundles run through every installed/source CLI path.
   let bundle = "examples/verification/"
   for

@@ -1,0 +1,1 @@
+(component (core type $p (module (export "x" (table i64 1 18446744073709551615 funcref)))) (core type $c (module (import "env" "x" (table i64 0 18446744073709551615 funcref)))) (import "provider" (core module $p (type $p))) (import "consumer" (core module $c (type $c))) (core instance $p (instantiate $p)) (core instance (instantiate $c (with "env" (instance $p)))))

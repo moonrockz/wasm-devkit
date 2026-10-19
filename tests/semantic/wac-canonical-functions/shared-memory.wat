@@ -1,0 +1,1 @@
+(component (core module $m (memory (export "memory") 1 1 shared) (func (export "f"))) (core instance $i (instantiate $m)) (alias core export $i "f" (core func $f)) (alias core export $i "memory" (core memory $memory)) (type $t (func)) (func $f (type $t) (canon lift (core func $f) (memory $memory))) (export "f" (func $f)))

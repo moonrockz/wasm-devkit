@@ -20,7 +20,7 @@ They are not ordinary acceptance-equivalence cases. The `padded-heap` binary
 uses a padded negative abstract heap code. Both references reject that encoding;
 its WAT file describes the canonical form before the deliberate byte mutation.
 
-`shared-global`, `structured`, `concrete-heap-index`, `canonical-lift` and
+`shared-global`, `structured`, `concrete-heap-index` and
 `nested-component` are
 reference-accepted boundaries that still return `WAC-B002`. Concrete and shared
 heap references, GC types and supertypes also remain outside this slice.
@@ -40,3 +40,6 @@ must not exceed 1,000,000 before retained validation starts.
 validator and compiler changes retain their original hashes and reconstructable
 patches in their respective package directories. Remaining runtime, canonical,
 value and ascription scope stays open on `.8.2.2` and `.8.2.4`.
+
+The `canonical-lift` case is now supported by the synchronous canonical-function
+profile, with full model coverage in `../wac-canonical-functions`.

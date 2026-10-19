@@ -1,0 +1,1 @@
+(component (core instance (instantiate 0)) (core module))

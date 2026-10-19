@@ -154,3 +154,31 @@ test "task return validates descriptor memory and result type" {
     )
   }
 }
+
+///|
+fn functype_needs_realloc_for_lift(
+  ft : @component.FuncType,
+  types : Array[@component.TypeDef?],
+) -> Bool raise ComponentValidationError {
+  let context : CanonicalContext = {
+    types,
+    pointer: @types.I32,
+    budget: { remaining: 1000000, },
+    cache: Map([]),
+  }
+  context.function(ft).lift_realloc
+}
+
+///|
+fn functype_needs_realloc_for_lower(
+  ft : @component.FuncType,
+  types : Array[@component.TypeDef?],
+) -> Bool raise ComponentValidationError {
+  let context : CanonicalContext = {
+    types,
+    pointer: @types.I32,
+    budget: { remaining: 1000000, },
+    cache: Map([]),
+  }
+  context.function(ft).lower_realloc
+}

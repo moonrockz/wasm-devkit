@@ -121,10 +121,7 @@ fn BinaryGraph::alias_entry(
       }
       kind
     }
-    CoreExport(_, _) =>
-      raise Unsupported(
-        "core export aliases are outside the declarative package profile",
-      )
+    CoreExport(_, _) => return
   }
   scope.bind(item)
 }
@@ -174,7 +171,11 @@ fn binary_root_declarations(
     let declarations = []
     for section in component.binary.sections {
       match section.id {
-        0 => ()
+        0 | 2 => ()
+        8 =>
+          for declaration in @component.parse_canon_section(section.payload) {
+            declarations.push(Canonical(declaration))
+          }
         1 => declarations.push(CoreModule(section.payload))
         3 => declarations.push(CoreDefine(section.payload, true))
         7 =>
@@ -274,6 +275,10 @@ fn binary_decode(
       CoreDefine(bytes, section) =>
         graph.core_definition(scope_id, bytes, section)
       Alias(alias_entry) => graph.alias_entry(scope_id, alias_entry)
+      Canonical(Lift(_, _, index)) =>
+        scope.bind(Function(graph.follow(binary_index(scope.types, index))))
+      Canonical(Lower(_, _)) => ()
+      Canonical(_) => raise Unsupported("unsupported canonical intrinsic")
       Describe(importing, name, attributes, desc) => {
         let kind = graph.describe(scope, importing, name, attributes, desc)
         let item : Extern = { name, kind, location: graph.location, }
