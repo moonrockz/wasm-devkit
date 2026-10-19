@@ -9,7 +9,7 @@ filesystem, network or subprocess I/O. `Parse::is_valid()` still checks syntax;
 Verification follows WAC 0.12.0 declaration order. It supports scalar and composite
 types, records, flags, enums, variants, function types, resources, local interfaces
 and worlds, `use` and delayed `include` declarations, typed imports, expression
-aliases and explicit exports. Async functions, future, stream and error-context
+aliases, instance member access and explicit exports. Async functions, future, stream and error-context
 types follow the pinned resolver. Functions cannot return borrowed resources,
 including borrows nested inside aliases or aggregates.
 
@@ -25,7 +25,7 @@ resource function names and import-only URL, integrity and dependency names.
 These names are checked as strings and never cause network access. Interface
 version suffixes are opaque during resolution, as in the pinned resolver.
 
-Component instantiation, instance access, export spreads,
+Component instantiation, export spreads,
 targets and parser-only named results fail with `WAC-S003`. These remaining
 composition operations are tracked under
 [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
@@ -60,6 +60,21 @@ test "verify syntax separately from semantics" {
   }
   assert_eq(errors[0].code, "WAC-S005")
   assert_eq(errors[0].primary.location.source, "api.wac")
+}
+```
+
+Instance access preserves the exported item's type and nominal resource identity.
+Dotted access first checks the exact export name, then a unique qualified interface
+suffix without its version. Quoted access always uses the exact string. An ambiguous
+suffix fails as a missing export. Groups and aliases preserve the same behavior.
+
+```mbt check
+///|
+test "access an imported instance" {
+  let source = "package example:app; interface api {run: func();} import service: api; let run = (service).run; export run;"
+  let model = @verifier.verify(@parser.parse(source), source~).unwrap()
+  assert_eq(model.exports().map(item => item.name), ["api", "run"])
+  assert_true(model.exports()[1].kind is Function(_))
 }
 ```
 
@@ -115,6 +130,8 @@ locations with the root source. The CLI adds 1-based UTF-16 line/column coordina
 Stable code families are `WAC-S001` for invalid ASTs, `WAC-S003` for unsupported
 semantics, `WAC-S004` for duplicate names and `WAC-S005` for unresolved or
 incorrectly typed references. `WAC-S006` reports borrowed resources in function results.
+`WAC-C001` reports access on a non-instance and `WAC-C002` reports a missing
+export, with related instance-type provenance.
 
 Value nesting and expression groups use explicit work stacks. Tests exercise
 3,000 nested composite types, 5,000 ordered aliases and 2,000 world includes on

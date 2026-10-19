@@ -247,21 +247,19 @@ fn Check::expression(
   let values : Map[Int32, LocalItem] = Map([])
   while pending.pop() is Some((node, finish)) {
     match self.tree.nodes[node].data {
-      Expression(primary~, postfix~) => {
-        guard postfix.is_empty() else {
-          raise Problem(
-            self.problem(
-              node, "WAC-S003", "instance access is not yet supported",
-            ),
-          )
-        }
+      Expression(primary~, postfix~) =>
         if finish {
-          values[node] = values[primary]
+          let mut item = values[primary]
+          let mut parent = primary
+          for access in postfix {
+            item = self.access(item, access, parent)
+            parent = access
+          }
+          values[node] = item
         } else {
           pending.push((node, true))
           pending.push((primary, false))
         }
-      }
       Group(expression~) =>
         if finish {
           values[node] = values[expression]

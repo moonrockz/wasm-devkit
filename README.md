@@ -75,7 +75,7 @@ semantic profiles. WIT source-package dependencies also work through
 packages have a strict v1/v2 type-wrapper profile through the same provider paths. Syntax
 acceptance remains available through `parse` and `check`.
 WAC verification covers ordered local types, interfaces, worlds, resources,
-uses/includes and typed imports/exports. Caller-supplied binary dependencies resolve
+uses/includes, typed imports/exports and instance member access. Caller-supplied binary dependencies resolve
 exact package keys and nested definition paths through immutable type graphs.
 The CLI loads binary and portable WAT dependencies from local paths. WIT dependency adapters,
 registry lookup and component instantiation remain under development.
