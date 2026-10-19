@@ -73,7 +73,7 @@ fn module_version(text : String) -> String? {
 
 ///|
 fn guides() -> Array[String] {
-  let result = ["README.md"]
+  let result = ["README.md", "pkgs/wit/src/binary/README.mbt.md"]
   for language in ["wit", "wac"] {
     result.push("pkgs/" + language + "/README.mbt.md")
     for
@@ -185,7 +185,7 @@ test "incomplete or ambiguous documentation setup fails verification" {
     )
     is Err(_),
   )
-  assert_eq(guides().length(), 23)
+  assert_eq(guides().length(), 24)
   assert_eq(
     module_version("name = \"example\"\nversion = \"1.2.3\"\n"),
     Some("1.2.3"),

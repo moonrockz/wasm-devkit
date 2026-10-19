@@ -150,7 +150,7 @@ mise run clean
 ## Documentation checks
 
 `mise run test` executes checked API comments and package README examples.
-`mise run test:docs` additionally compiles all 23 library guides using exactly their
+`mise run test:docs` additionally compiles all 24 library guides using exactly their
 documented imports, including the root and module READMEs outside package source directories.
 Both commands run on wasm, wasm-gc, js and native by default.
 
