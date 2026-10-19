@@ -8,8 +8,8 @@ A MoonBit monorepo for WebAssembly language tooling, created from the
 The modules work independently. Install both to run the two quickstarts below:
 
 ```shell
-moon add moonrockz/wit@0.1.1
-moon add moonrockz/wac@0.1.1
+moon add moonrockz/wit@0.2.0
+moon add moonrockz/wac@0.2.0
 ```
 
 The snippets below are executable MoonBit tests. In your MoonBit package, put these imports
@@ -105,7 +105,7 @@ WAC has a lossless scanner, typed immutable AST/CST and recovering parser, teste
 all 163 files in its pinned reference corpus. WAC immutable traversal, rewrites, canonical printing and comment-preserving formatting
 are implemented.
 The CLI under `cmd/wasm-devkit` supports both languages, files/stdin, inspection, printing
-and formatter check/write modes. The current release version is `0.1.1`.
+and formatter check/write modes. The current release version is `0.2.0`.
 
 | Module | Path | Intended capabilities |
 |--------|------|-----------------------|
@@ -211,7 +211,7 @@ The Smithy database and tasks are not reused.
 
 ## Releases
 
-The current release is `0.1.1`. All modules share the root version.
+The current release is `0.2.0`. All modules share the root version.
 Version `0.0.0` is reserved for unpublished development.
 
 Run `mise run release:prepare -- X.Y.Z` on clean main. This creates a local release branch,

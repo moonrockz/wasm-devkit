@@ -1,6 +1,6 @@
 name = "moonrockz/wasm-devkit"
 
-version = "0.1.1"
+version = "0.2.0"
 
 description = "WIT and WAC language tools for files and stdin"
 
@@ -13,8 +13,8 @@ readme = "README.md"
 preferred_target = "wasm"
 
 import {
-  "moonrockz/wit@0.1.1",
-  "moonrockz/wac@0.1.1",
+  "moonrockz/wit@0.2.0",
+  "moonrockz/wac@0.2.0",
   "moonbitlang/async@0.22.5",
   "moonbitlang/x@0.5.5",
 }

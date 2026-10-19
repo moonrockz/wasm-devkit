@@ -1,6 +1,6 @@
 name = "moonrockz/wit"
 
-version = "0.1.1"
+version = "0.2.0"
 
 description = "WIT syntax tooling for MoonBit"
 
