@@ -9,8 +9,10 @@ tests. One documented parser-depth extension is explicit in that corpus manifest
 including full models for all 67 accepted encoded WIT packages. Source and encoded
 corpora also exercise repeat/reorder laws; source formatting preserves full models.
 `wit-world-stability/` adds ten original reference cases for include metadata
-merging and implicit import/export stability. WAC full-corpus conformance and
-additional encoded/mixed-provider laws remain tracked under issue #5.
+merging and implicit import/export stability. The complete 128-group upstream
+WAC resolution corpus is retained in [wac-upstream](wac-upstream/README.md), with
+full models for all 14 accepted groups and original filesystem layouts. Remaining
+WAC binary/runtime boundaries stay tracked under issue #5.
 `wit-encoded-upstream/` retains four encoded WIT regression fixtures and two
 source inputs from the pinned wasm-tools revision, with upstream licenses and
 exact hashes. Their README records provenance.
@@ -67,9 +69,11 @@ mise run test:semantics -- .dev/reference-cli/bin/wasm-tools .dev/reference-cli/
 
 The WIT grammar fixture pin predates this semantic reference; these seed cases use
 syntax shared by both revisions. The WAC grammar and semantic revisions are identical.
-Further encoded/mixed-provider model coverage, semantic laws and WAC corpus
-coverage remain tracked in Beads
-`wasm-devkit-p5m.8.1.7` and `wasm-devkit-p5m.8.2.7`.
+WIT source and encoded conformance is complete for the documented profile. WAC
+source-corpus laws pass on all four targets; remaining binary/runtime conformance
+is tracked in `wasm-devkit-p5m.8.2.7`. Exact reference panics and accepted invalid
+outputs are recorded beside their retained witnesses. They are never counted as
+successful in-profile matches.
 
 WIT type cases establish the pinned resolver's aggregate constraints, map-key categories,
 fixed-list u32 bounds and lexical representation, forward references and recursive graphs.
@@ -386,3 +390,26 @@ and verify formatting preserves semantics. The host-reference gate compares
 actual filesystem-provider/CLI/API acceptance for all groups and validates all
 14 accepted composed components. It checks the complete resolver export-name map
 separately from the pinned encoder's last-name-per-node output.
+
+
+## Registry and installed CLI comparisons
+
+Registry selection uses a separate [controlled Warg suite](../registry/README.md),
+with exact Warg 0.9.0 and WAC 0.12.0 resolver pins. It checks selected byte digests,
+cold/warm/offline/refresh behavior, mixed local dependencies and failures. One
+retained upstream multi-version resolver defect is explicit. The language semantic
+contracts apply to identical resolved bytes, independently of network freshness.
+
+```shell
+mise run build:registry-reference
+mise run test:registry -- native
+mise run test:registry -- wasm
+mise run build:cli
+```
+
+`build:cli` checks the actual staged native CLI and bundled Warg helper against
+the controlled registry before creating an archive. Release installation checks
+repeat the same suite through the published moonx package and mise executables.
+The [verification bundles](../../examples/verification/README.md) run through
+source, archive and installed CLI smoke paths, including invalid provenance and
+stdin dependency bases. Verification never executes a component.

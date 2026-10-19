@@ -201,6 +201,11 @@ wasm-devkit verify api.wit --semantic-feature preview
 wasm-devkit verify ./wit --language wit --all-semantic-features
 ```
 
+The complete [verification bundles](../../examples/verification/README.md) include
+every dependency for WIT resources/use/include and WAC wiring/spreads/targets,
+with runnable valid and invalid cases. The CLI smoke suite checks these bundles
+on wasm, native and installed moonx/mise paths.
+
 ### Resolve a WIT package
 
 ```shell
@@ -227,8 +232,10 @@ does not fall back to a versioned package.
 inputs also work through `deps` discovery and `--dep` mappings. The current strict
 v1/v2 profile supports named value types, resources and their function/accessor
 contracts, freestanding functions and
-world function/instance imports and exports. Its [exact encoding limitations](../../pkgs/wit/src/verifier/README.mbt.md#current-profile)
-include world-owned resource members and foreign type aliases. Binary metadata
+world function/instance imports and exports, scoped aliases, inferred foreign
+interfaces and cross-package nominal identities. See the
+[encoded profile](../../pkgs/wit/src/verifier/README.mbt.md#current-profile) for
+exact wrapper and declaration rules. Binary metadata
 versions 0/1 retain stability and validate referenced items. Interface functions
 follow semantic feature selection; binary types, worlds and world items remain
 present under their own binary-loader rules. Use `--semantic-feature=VALUE` for
@@ -341,11 +348,13 @@ Missing or invalid explicit mappings and invalid local packages never fall back
 to a registry. Pure WIT/WAC APIs perform no network or cache I/O. WIT consumers
 can pass downloaded encoded package bytes through the WIT provider API directly.
 
-Build the optional transport from this repository with
-`mise run build:warg-provider`. This uses pinned Rust 1.94.1 and produces
-`.dev/warg-target/release/wasm-devkit-warg`, with `.exe` on Windows. Put it on PATH
-or use `--warg-provider PATH`. Local, warm-cache and offline runs do not need this
-executable. The transport is currently installed separately from the CLI archive.
+Native release archives include `wasm-devkit-warg` beside `wasm-devkit`; mise
+adds both to PATH. Moonx users can install the native archive for the helper, or
+build it from this repository with `mise run build:warg-provider`. A source build
+uses Rust 1.94.1 and writes `.dev/warg-target/release/wasm-devkit-warg`, with `.exe`
+on Windows. Put it on PATH or use `--warg-provider PATH`. Local, warm-cache and
+offline runs do not need this executable. Windows source builds use rustup to
+install the same pinned Rust toolchain.
 
 ```shell
 wasm-devkit verify app.wac --registry https://registry.example.org --lockfile app.lock.json

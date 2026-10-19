@@ -29,8 +29,30 @@ import {
   "moonrockz/wac/traversal",
   "moonrockz/wac/printer",
   "moonrockz/wac/formatter",
+  "moonrockz/wac/verifier",
 } for "test"
 ```
+
+### Distinguish syntax, structure and resolved semantics
+
+`Parse::is_valid()` reports syntax diagnostics. AST/CST `validate()` checks tree
+structure and spans. `verifier.verify()` resolves names and checks language
+contracts, returning an immutable model or diagnostics. The pure verifier does
+no I/O; callers supply dependency packages explicitly.
+
+```mbt check
+test "Guide: Syntax validity does not resolve WAC names" {
+  let source = "package example:app; let run = missing;"
+  let parsed = @parser.parse(source)
+  assert_true(parsed.is_valid())
+  assert_true(parsed.ast.validate() && parsed.cst.validate())
+  assert_true(@verifier.verify(parsed, source~) is Err(_))
+}
+```
+
+See the [verifier recipes](src/verifier/README.mbt.md) for resolved models,
+dependencies, nominal resources and the pinned semantic profile. Complete
+[CLI bundles](../../examples/verification/README.md) include their local inputs.
 
 ### Parse a composition document
 
@@ -239,7 +261,8 @@ Syntax parsing is separate from semantic resolution. The
 immutable resource, interface and world contracts. It resolves supplied declarative
 binary packages, named/inferred/spread/implicit instantiation arguments, instance member access,
 export spreads and target-world checks; the CLI loads binary and portable WAT
-dependencies and WIT source/encoded closures. Registry access remains under development.
+dependencies and WIT source/encoded closures. The CLI supports explicit Warg
+registries, checked caches and offline lockfiles outside the pure verifier.
 The syntax parser must not perform I/O.
 
 ## Packages
@@ -255,6 +278,7 @@ The syntax parser must not perform I/O.
 | [traversal](src/traversal/README.mbt.md) | Explicit-stack walks, folds, reductions, events, cursors and immutable rewrites |
 | [printer](src/printer/README.mbt.md) | Stack-safe canonical AST-to-source emission |
 | [formatter](src/formatter/README.mbt.md) | Stack-safe CST formatting that preserves comments and meaning |
+| [verifier](src/verifier/README.mbt.md) | Pure name/type/dependency resolution and immutable semantic models |
 
 ## Validation
 

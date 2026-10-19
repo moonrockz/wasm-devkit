@@ -80,7 +80,9 @@ instance member access, export spreads and target-world checks. Caller-supplied 
 exact package keys and nested definition paths through immutable type graphs.
 The CLI loads binary, portable WAT and WIT dependencies from local paths. Pure APIs accept WIT source/encoded closures.
 WAC registry lookup is opt-in through an optional authenticated Warg transport,
-with checked caches, offline verification and exact-version lockfiles. See the
+with checked caches, offline verification and exact-version lockfiles. Native
+archives include the helper. Complete [verification bundles](examples/verification/README.md)
+include local dependencies and deliberate failures. See the
 [CLI registry guide](cmd/wasm-devkit/README.md#registry-packages).
 See the [WIT verifier](pkgs/wit/src/verifier/README.mbt.md) and
 [WAC verifier](pkgs/wac/src/verifier/README.mbt.md) for checked examples and exact scope.

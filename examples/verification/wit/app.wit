@@ -1,0 +1,11 @@
+package example:app@1.0.0;
+
+interface service {
+  use example:files/files@1.0.0.{file};
+  open: func(path: string) -> file;
+}
+
+world app {
+  include example:files/host@1.0.0;
+  export service;
+}

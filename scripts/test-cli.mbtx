@@ -944,5 +944,56 @@ async fn main {
     )
     assert_true(diagnostic.contains("WAC-C005"))
   }
+  // Copyable reader-facing bundles run through every installed/source CLI path.
+  let bundle = "examples/verification/"
+  for
+    command in [
+      ["verify", bundle + "wit", "--language", "wit", "--world", "app"],
+      [
+        "verify",
+        bundle + "wit/app.wit",
+        "--dep",
+        "example:files@1.0.0=deps/files",
+      ],
+      ["verify", bundle + "wac/app.wac"],
+      [
+        "verify",
+        bundle + "wac/implicit.wac",
+        "--dep",
+        "example:relay=deps/example/relay.wat",
+      ],
+    ] {
+    run(command, 0, wit) |> ignore
+  }
+  for
+    (language, path, base) in [
+      ("wit", bundle + "wit/app.wit", bundle + "wit"),
+      ("wac", bundle + "wac/app.wac", bundle + "wac"),
+    ] {
+    let before = @fs.read_file(path).text()
+    run(["verify", "-", "--language", language, "--base", base], 0, path)
+    |> ignore
+    assert_eq(@fs.read_file(path).text(), before)
+  }
+  let (_, invalid_resource) = run(
+    ["verify", bundle + "invalid.wit", "--deps-dir", "wit/deps"],
+    1,
+    wit,
+  )
+  assert_true(invalid_resource.contains("invalid.wit:6:9: error WIT-S007"))
+  let (_, invalid_wiring) = run(["verify", bundle + "wac/invalid.wac"], 1, wit)
+  assert_true(invalid_wiring.contains("invalid.wac:4:33: error WAC-C005"))
+  assert_true(
+    invalid_wiring.contains(
+      "deps/example/relay.wat:[binary]: expected type declared here",
+    ),
+  )
+  let (_, invalid_target) = run(
+    ["verify", bundle + "wac/target-invalid.wac"],
+    1,
+    wit,
+  )
+  assert_true(invalid_target.contains("WAC-T002"))
+  assert_true(invalid_target.contains("deps/example/types/api.wit"))
   println("CLI smoke checks passed")
 }

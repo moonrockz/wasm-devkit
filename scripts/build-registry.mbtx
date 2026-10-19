@@ -22,14 +22,28 @@ async fn main {
   let version = @env.get_env_var("SEMANTIC_REFERENCE_RUST_VERSION").unwrap_or(
     "1.94.1",
   )
+  let windows = @env.get_env_var("OS") == Some("Windows_NT")
+  if windows {
+    let code = @process.run(
+      "rustup",
+      ["toolchain", "install", version, "--profile", "minimal"],
+      stdout=@stdio.stdout,
+      stderr=@stdio.stderr,
+    )
+    if code != 0 {
+      @sys.exit(if code > 0 { code } else { 1 })
+    }
+  }
+  let (program, prefix) = if windows {
+    ("rustup", ["run", version, "cargo"])
+  } else {
+    ("mise", ["exec", "rust@" + version, "--", "cargo"])
+  }
   for package_name in packages {
     let code = @process.run(
-      "mise",
+      program,
       [
-        "exec",
-        "rust@" + version,
-        "--",
-        "cargo",
+        ..prefix,
         "build",
         "--locked",
         "--release",

@@ -14,8 +14,9 @@ needed only to build this optional companion. Pure libraries, local packages and
 warm or offline cache verification do not launch it.
 
 The product version follows the root `moon.mod` through `scripts/versions.mbtx`.
-The tool is distributed as a repository-built companion; it is not a crates.io
-package. See the [CLI registry guide](../../cmd/wasm-devkit/README.md#registry-packages)
+Native release archives bundle the companion alongside the CLI. It is also
+buildable from source and is not a crates.io package. Windows source builds use
+rustup for the same pinned toolchain. See the [CLI registry guide](../../cmd/wasm-devkit/README.md#registry-packages)
 for cache and lockfile policy.
 
 ## Protocol 1

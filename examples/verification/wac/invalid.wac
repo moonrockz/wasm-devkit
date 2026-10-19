@@ -1,0 +1,5 @@
+package example:app;
+
+import run: func(value: u16) -> u32;
+let relay = new example:relay { run };
+export relay.run;

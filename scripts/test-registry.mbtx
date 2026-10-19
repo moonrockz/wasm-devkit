@@ -10,7 +10,8 @@ import {
 
 ///|
 priv struct Runner {
-  target : String
+  program : String
+  prefix : Array[String]
   root : String
   registry : String
 }
@@ -48,14 +49,9 @@ async fn Runner::verify(
   diagnostic~ : String = "",
 ) -> Unit {
   let (code, _, error) = @process.collect_output(
-    "moon",
+    self.program,
     [
-      "run",
-      "cmd/wasm-devkit",
-      "--target",
-      self.target,
-      "--quiet",
-      "--",
+      ..self.prefix,
       "verify",
       source,
       "--base",
@@ -120,22 +116,48 @@ async fn main {
   } else {
     ""
   }
-  let (target, provider, reference) = match @env.args()[1:] {
+  let default_provider = ".dev/warg-target/release/wasm-devkit-warg" + suffix
+  let default_reference = ".dev/warg-target/release/wasm-devkit-registry-reference" +
+    suffix
+  let (program, prefix, label, provider, reference) = match @env.args()[1:] {
     [] =>
       (
+        "moon",
+        ["run", "cmd/wasm-devkit", "--target", "native", "--quiet", "--"],
         "native",
-        ".dev/warg-target/release/wasm-devkit-warg" + suffix,
-        ".dev/warg-target/release/wasm-devkit-registry-reference" + suffix,
+        default_provider,
+        default_reference,
       )
     [target] if target == "native" || target == "wasm" =>
       (
+        "moon",
+        ["run", "cmd/wasm-devkit", "--target", target, "--quiet", "--"],
         target,
-        ".dev/warg-target/release/wasm-devkit-warg" + suffix,
-        ".dev/warg-target/release/wasm-devkit-registry-reference" + suffix,
+        default_provider,
+        default_reference,
       )
     [target, provider, reference] if target == "native" || target == "wasm" =>
-      (target, provider, reference)
-    _ => fail("Usage: test-registry.mbtx [native|wasm [PROVIDER REFERENCE]]")
+      (
+        "moon",
+        ["run", "cmd/wasm-devkit", "--target", target, "--quiet", "--"],
+        target,
+        provider,
+        reference,
+      )
+    ["--binary", binary, provider, reference] =>
+      (binary, [], binary, provider, reference)
+    ["--moonx", version, provider, reference] =>
+      (
+        "moonx",
+        ["moonrockz/wasm-devkit@" + version],
+        "moonx " + version,
+        provider,
+        reference,
+      )
+    _ =>
+      fail(
+        "Usage: test-registry.mbtx [native|wasm [PROVIDER REFERENCE]] | --binary PATH PROVIDER REFERENCE | --moonx VERSION PROVIDER REFERENCE",
+      )
   }
   let root = @fs.tmpdir(prefix="wasm-devkit-registry-test")
   defer @fs.rmdir(root, recursive=true)
@@ -166,7 +188,7 @@ async fn main {
     guard running is { "published": Array(published), .. } else {
       fail("missing publish records")
     }
-    let runner = { target, root, registry, }
+    let runner = { program, prefix, root, registry, }
     guard read_json("tests/registry/cases.json") is Array(cases) else {
       fail("invalid registry cases")
     }
@@ -406,7 +428,7 @@ async fn main {
       " pinned WAC comparisons (one retained upstream multi-version defect), " +
       accepted.to_string() +
       " cold/warm/offline/refresh successes, corruption/identity/lock/local/transport checks (" +
-      target +
+      label +
       ")",
     )
   })
