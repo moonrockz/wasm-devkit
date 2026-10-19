@@ -600,25 +600,30 @@ fn validate_component_inner(
           // Validate bounds/signature here where we have access to the current
           // core-func types.
           match d {
-            ResourceType(_, _rep, dtor_idx, _kind) =>
+            ResourceType(_, rep, dtor_idx, _kind) =>
               match dtor_idx {
                 Some(idx) =>
                   if idx < 0 || idx >= counts.core_func {
                     raise SectionParseError(7, "function index out of bounds")
                   } else {
-                    match core_func_types.get(idx) {
-                      Some(Some(ft)) => {
-                        let expected : @types.FuncType = {
-                          params: [I32],
-                          results: [],
-                        }
-                        if ft != expected {
-                          raise SectionParseError(
-                            7, "wrong signature for a destructor",
-                          )
-                        }
+                    let expected : @types.FuncType = {
+                      params: [if rep == 0x7e { I64 } else { I32 }],
+                      results: [],
+                    }
+                    if contract_scope is Some(_) {
+                      check_canonical_core_function(
+                        idx, expected, external_contracts, contract_work,
+                      )
+                    } else {
+                      match core_func_types.get(idx) {
+                        Some(Some(ft)) =>
+                          if ft != expected {
+                            raise SectionParseError(
+                              7, "wrong signature for a destructor",
+                            )
+                          }
+                        _ => ()
                       }
-                      _ => ()
                     }
                   }
                 None => ()
@@ -874,10 +879,19 @@ fn validate_component_inner(
         }
         for c in canons {
           let complete_lower = if contract_scope is Some(_) {
-            check_canonical_contract(
-              c, type_table, func_types, func_sig_shapes, external_contracts, canonical_budget,
-              contract_work,
-            )
+            match c {
+              ResourceNew(_) | ResourceDrop(_) | ResourceRep(_) =>
+                Some(
+                  canonical_resource_function(
+                    c, type_table, local_resource_types, resource_ids, contract_work,
+                  ),
+                )
+              _ =>
+                check_canonical_contract(
+                  c, type_table, func_types, func_sig_shapes, external_contracts,
+                  canonical_budget, contract_work,
+                )
+            }
           } else {
             validate_canon(
               c,

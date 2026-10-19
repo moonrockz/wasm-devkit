@@ -111,6 +111,10 @@ fn validate_component_section_import(
     // Import type references must be in-bounds at the point they appear.
     validate_externdesc(i.desc, type_table, counts.core_type)
     match i.desc {
+      Type(Eq(tyidx)) =>
+        if local_resource_types.get(tyidx) is Some(true) {
+          raise SectionParseError(10, "local resource type found in imports")
+        }
       FuncType(tyidx) =>
         match type_table[tyidx] {
           Some(FuncType(_)) => ()

@@ -475,6 +475,10 @@ fn preflight(
         let count = payload.count()
         for _ in 0..<count {
           let tag = payload.byte()
+          if tag >= 2 && tag <= 4 {
+            ignore(payload.unsigned())
+            continue
+          }
           if tag != 0 && tag != 1 {
             raise Failure(
               Some(payload.position - 1),

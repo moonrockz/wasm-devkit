@@ -1,0 +1,1 @@
+(component (type $r (resource (rep i32))) (import "r" (type $t (eq $r))) (core func (canon resource.rep $t)))

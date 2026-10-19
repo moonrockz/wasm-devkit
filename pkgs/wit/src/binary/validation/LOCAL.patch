@@ -311,10 +311,17 @@
 +      // wasmparser 0.258 permits any valid value type as a map key; 0.262
 +      // restricts keys to the component model's primitive keytype grammar.
 +      if cfg.restricted_map_keys && !is_map_key_type(key, type_table, Map([])) {
-@@ -1021 +1029 @@
+@@ -1013,2 +1021,4 @@
+-      if rep != 0x7f {
+-        raise SectionParseError(7, "resources can only be represented by `i32`")
++      if rep != 0x7f && rep != 0x7e {
++        raise SectionParseError(
++          7, "resources require an i32 or i64 representation",
++        )
+@@ -1021 +1031 @@
 -      let local_resource_ids : Array[Int?] = []
 +      let local_resource_ids : Array[Int32?] = []
-@@ -1025,6 +1033,9 @@
+@@ -1025,6 +1035,9 @@
 -      let local_named_types : Map[Int, Int] = Map([])
 -      let local_import_resource_names : Map[String, Int] = Map([])
 -      let local_export_resource_names : Map[String, Int] = Map([])
@@ -330,7 +337,7 @@
 +      let local_instance_imports : Array[Bool] = []
 +      let local_export_resource_type_idxs : Map[Int32, Int32] = Map([])
 +      let local_core_type_exports : Array[Map[String, Int32]?] = []
-@@ -1043,2 +1054,8 @@
+@@ -1043,2 +1056,8 @@
 -              let outer = outer_type_of_alias(type_outers, count, idx)
 -              if type_outer_depths[count - 1] < component_depth {
 +              // Count zero aliases an earlier type in the current lexical scope.
@@ -341,7 +348,7 @@
 +                outer_type_of_alias(type_outers, count, idx)
 +              }
 +              if count > 0 && type_outer_depths[count - 1] < component_depth {
-@@ -1058,0 +1076,7 @@
+@@ -1058,0 +1078,7 @@
 +              let rid = if count == 0 { local_resource_ids[idx] } else { None }
 +              if count == 0 && local_named_types.contains(idx) {
 +                local_named_types[local_type_table.length()] = 1
@@ -349,10 +356,10 @@
 +              if count == 0 && local_import_resource_type_idxs.contains(idx) {
 +                local_import_resource_type_idxs[local_type_table.length()] = 1
 +              }
-@@ -1060 +1084 @@
+@@ -1060 +1086 @@
 -              local_resource_ids.push(None)
 +              local_resource_ids.push(rid)
-@@ -1069 +1093,6 @@
+@@ -1069 +1095,6 @@
 -          AliasInstanceExport(kind, _instance_idx, _name) =>
 +          AliasInstanceExport(kind, instance_idx, _name) => {
 +            guard instance_idx >= 0 &&
@@ -360,54 +367,54 @@
 +              raise SectionParseError(7, "instance index out of bounds")
 +            }
 +            let imported = local_instance_imports[instance_idx]
-@@ -1070,0 +1100,4 @@
+@@ -1070,0 +1102,4 @@
 +              local_named_types[local_type_table.length()] = 1
 +              if imported {
 +                local_import_resource_type_idxs[local_type_table.length()] = 1
 +              }
-@@ -1073 +1106,3 @@
+@@ -1073 +1108,3 @@
 -            } else if kind != 0x05 {
 +            } else if kind == 0x05 {
 +              local_instance_imports.push(imported)
 +            } else {
-@@ -1077,0 +1113 @@
+@@ -1077,0 +1115 @@
 +          }
-@@ -1122,0 +1159,3 @@
+@@ -1122,0 +1161,3 @@
 +            if desc is InstanceType(_) {
 +              local_instance_imports.push(true)
 +            }
-@@ -1128,0 +1168,3 @@
+@@ -1128,0 +1170,3 @@
 +                      if local_import_resource_type_idxs.contains(tyidx) {
 +                        local_import_resource_type_idxs[new_idx] = 1
 +                      }
-@@ -1139 +1181 @@
+@@ -1139 +1183 @@
 -                    local_resource_ids.push(None)
 +                    local_resource_ids.push(Some(new_idx))
-@@ -1168,0 +1211,4 @@
+@@ -1168,0 +1213,4 @@
 +                      validate_accessor_pair(
 +                        7, name, ft, local_type_table, local_resource_ids, import_functions,
 +                      )
 +                      import_functions[name] = ft
-@@ -1221,0 +1268,3 @@
+@@ -1221,0 +1270,3 @@
 +            if desc is InstanceType(_) {
 +              local_instance_imports.push(false)
 +            }
-@@ -1238 +1287 @@
+@@ -1238 +1289 @@
 -                    local_resource_ids.push(None)
 +                    local_resource_ids.push(Some(new_idx))
-@@ -1267,0 +1317,4 @@
+@@ -1267,0 +1319,4 @@
 +                      validate_accessor_pair(
 +                        7, name, ft, local_type_table, local_resource_ids, export_functions,
 +                      )
 +                      export_functions[name] = ft
-@@ -1289,0 +1343,3 @@
+@@ -1289,0 +1345,3 @@
 +      let local_resource_ids : Array[Int32?] = []
 +      let resource_names : Map[String, Int32] = Map([])
 +      let export_functions : Map[String, @component.FuncType] = Map([])
-@@ -1292 +1348 @@
+@@ -1292 +1350 @@
 -      let local_core_type_exports : Array[Map[String, Int]?] = []
 +      let local_core_type_exports : Array[Map[String, Int32]?] = []
-@@ -1317,2 +1373,8 @@
+@@ -1317,2 +1375,8 @@
 -              let outer = outer_type_of_alias(type_outers, count, idx)
 -              if type_outer_depths[count - 1] < component_depth {
 +              // Count zero aliases an earlier type in the current lexical scope.
@@ -418,15 +425,15 @@
 +                outer_type_of_alias(type_outers, count, idx)
 +              }
 +              if count > 0 && type_outer_depths[count - 1] < component_depth {
-@@ -1332,0 +1395 @@
+@@ -1332,0 +1397 @@
 +              let rid = if count == 0 { local_resource_ids[idx] } else { None }
-@@ -1333,0 +1397 @@
+@@ -1333,0 +1399 @@
 +              local_resource_ids.push(rid)
-@@ -1344,0 +1409 @@
+@@ -1344,0 +1411 @@
 +              local_resource_ids.push(None)
-@@ -1360,0 +1426 @@
+@@ -1360,0 +1428 @@
 +            local_resource_ids.push(None)
-@@ -1394,4 +1460,31 @@
+@@ -1394,4 +1462,31 @@
 -            // Like the component export section, exporting a type introduces
 -            // a fresh type index in this instance type's local type space.
 -            if desc is Type(_) {
@@ -462,29 +469,29 @@
 +                  _ => ()
 +                }
 +              _ => ()
-@@ -1433 +1526 @@
+@@ -1433 +1528 @@
 -  core_type_bound : Int,
 +  core_type_bound : Int32,
-@@ -1578 +1671 @@
+@@ -1578 +1673 @@
 -fn canon_memory_idx(opts : Array[@component.CanonOpt]) -> Int? {
 +fn canon_memory_idx(opts : Array[@component.CanonOpt]) -> Int32? {
-@@ -1588 +1681 @@
+@@ -1588 +1683 @@
 -fn canon_realloc_idx(opts : Array[@component.CanonOpt]) -> Int? {
 +fn canon_realloc_idx(opts : Array[@component.CanonOpt]) -> Int32? {
-@@ -1598 +1691 @@
+@@ -1598 +1693 @@
 -fn canon_post_return_idx(opts : Array[@component.CanonOpt]) -> Int? {
 +fn canon_post_return_idx(opts : Array[@component.CanonOpt]) -> Int32? {
-@@ -1608 +1701 @@
+@@ -1608 +1703 @@
 -fn functype_needs_memory(
 +fn functype_params_need_memory(
-@@ -1611,5 +1704 @@
+@@ -1611,5 +1706 @@
 -) -> Bool {
 -  // Canonical ABI uses linear memory when:
 -  // - any param/result type itself needs memory (e.g. string/list), or
 -  // - the flattened parameter list is too large (>16), or
 -  // - the result can't be represented as a single core value.
 +) -> Bool raise ComponentValidationError {
-@@ -1628,27 +1716,0 @@
+@@ -1628,27 +1718,0 @@
 -  match ft.result {
 -    None => false
 -    Some(r) =>
@@ -512,10 +519,10 @@
 -      None => return true
 -    }
 -  }
-@@ -1662 +1724 @@
+@@ -1662 +1726 @@
 -) -> Bool {
 +) -> Bool raise ComponentValidationError {
-@@ -1675,136 +1736,0 @@
+@@ -1675,136 +1738,0 @@
 -
 -///|
 -fn valtype_contains_list_or_string(
@@ -2727,23 +2734,28 @@
 -        10, "root-level component imports are not supported",
 -      )
 -    }
-@@ -190 +188 @@
+@@ -115,0 +114,4 @@
++      Type(Eq(tyidx)) =>
++        if local_resource_types.get(tyidx) is Some(true) {
++          raise SectionParseError(10, "local resource type found in imports")
++        }
+@@ -190 +192 @@
 -        let mut resource_exports : Map[String, Int]? = None
 +        let mut resource_exports : Map[String, Int32]? = None
-@@ -202 +200,2 @@
+@@ -202 +204,2 @@
 -                let local_resource_ids : Array[Int?] = []
 +                let local_resource_ids : Array[Int32?] = []
 +                let local_origins : Map[Int32, Int32] = Map([])
-@@ -205 +204 @@
+@@ -205 +208 @@
 -                let res : Map[String, Int] = Map([])
 +                let res : Map[String, Int32] = Map([])
-@@ -209 +208 @@
+@@ -209 +212 @@
 -                let visiting : Map[Int, Int] = Map([])
 +                let visiting : Map[Int32, Int32] = Map([])
-@@ -221 +220 @@
+@@ -221 +224 @@
 -                    AliasOuter(kind, _count, _idx) =>
 +                    AliasOuter(kind, count, index) =>
-@@ -223 +222,14 @@
+@@ -223 +226,14 @@
 -                        record_type_slot()
 +                        let slot = local_types.length()
 +                        if count == 1 && type_table.get(index) is Some(Some(_)) {
@@ -2759,11 +2771,11 @@
 +                        } else {
 +                          record_type_slot()
 +                        }
-@@ -249,0 +262,3 @@
+@@ -249,0 +266,3 @@
 +                                if local_origins.get(idx) is Some(origin) {
 +                                  local_origins[new_idx] = origin
 +                                }
-@@ -267,2 +282,6 @@
+@@ -267,2 +286,6 @@
 -                          let sig = if ft_idx >= 0 &&
 -                            ft_idx < local_types.length() {
 +                          let sig = if local_origins.get(ft_idx) is Some(origin) &&
@@ -2772,18 +2784,18 @@
 +                              funcsig_of_functype(ft, type_table, resource_ids),
 +                            )
 +                          } else if ft_idx >= 0 && ft_idx < local_types.length() {
-@@ -273 +292,4 @@
+@@ -273 +296,4 @@
 -                                    ft, local_types, local_resource_ids, type_table,
 +                                    ft,
 +                                    local_types,
 +                                    local_resource_ids,
 +                                    type_table,
-@@ -274,0 +297,4 @@
+@@ -274,0 +301,4 @@
 +                                    local_origins~,
 +                                    global_function=local_origins.contains(
 +                                      ft_idx,
 +                                    ),
-@@ -334,0 +361,50 @@
+@@ -334,0 +365,50 @@
 +        if type_table[tyidx] is Some(td) {
 +          let (metadata, next, remaining) = imported_instance_metadata(
 +            td,
@@ -2834,11 +2846,11 @@
 +            )
 +          }
 +        }
-@@ -345 +421,2 @@
+@@ -345 +425,2 @@
 -        interface_instance_idxs.set(instance_sigs.length() - 1, 1)
 +        // Bit 1 names exported types; bit 2 also permits using them in imports.
 +        interface_instance_idxs.set(instance_sigs.length() - 1, 3)
-@@ -352,0 +430,29 @@
+@@ -352,0 +434,29 @@
 +      if type_table.get(tyidx) is Some(Some(td)) {
 +        let core_scope = match counts.core_contracts {
 +          Some(graph) =>
@@ -2868,7 +2880,7 @@
 +          counts.component_contracts[counts.component] = (metadata, 0)
 +        }
 +      }
-@@ -360 +466 @@
+@@ -360 +470 @@
 -      let mut import_core_module_exports : Map[String, Map[String, Int]]? = None
 +      let mut import_core_module_exports : Map[String, Map[String, Int32]]? = None
 --- a/section_instance.mbt
@@ -3299,7 +3311,41 @@
 @@ -428 +464 @@
 -              let map : Map[String, Int] = Map([])
 +              let map : Map[String, Int32] = Map([])
-@@ -776 +812,10 @@
+@@ -567 +603 @@
+-            ResourceType(_, _rep, dtor_idx, _kind) =>
++            ResourceType(_, rep, dtor_idx, _kind) =>
+@@ -573,11 +609,17 @@
+-                    match core_func_types.get(idx) {
+-                      Some(Some(ft)) => {
+-                        let expected : @types.FuncType = {
+-                          params: [I32],
+-                          results: [],
+-                        }
+-                        if ft != expected {
+-                          raise SectionParseError(
+-                            7, "wrong signature for a destructor",
+-                          )
+-                        }
++                    let expected : @types.FuncType = {
++                      params: [if rep == 0x7e { I64 } else { I32 }],
++                      results: [],
++                    }
++                    if contract_scope is Some(_) {
++                      check_canonical_core_function(
++                        idx, expected, external_contracts, contract_work,
++                      )
++                    } else {
++                      match core_func_types.get(idx) {
++                        Some(Some(ft)) =>
++                          if ft != expected {
++                            raise SectionParseError(
++                              7, "wrong signature for a destructor",
++                            )
++                          }
++                        _ => ()
+@@ -585 +626,0 @@
+-                      _ => ()
+@@ -776 +817,10 @@
 -      6 =>
 +      6 => {
 +        if contract_scope is Some(_) {
@@ -3311,11 +3357,11 @@
 +            contract_work,
 +          )
 +        }
-@@ -787,0 +833 @@
+@@ -787,0 +838 @@
 +          import_named_types,
-@@ -823,0 +870 @@
+@@ -823,0 +875 @@
 +      }
-@@ -829,9 +876,18 @@
+@@ -829,9 +881,27 @@
 -          validate_canon(
 -            c,
 -            type_table,
@@ -3326,10 +3372,19 @@
 -            func_types,
 -          )
 +          let complete_lower = if contract_scope is Some(_) {
-+            check_canonical_contract(
-+              c, type_table, func_types, func_sig_shapes, external_contracts, canonical_budget,
-+              contract_work,
-+            )
++            match c {
++              ResourceNew(_) | ResourceDrop(_) | ResourceRep(_) =>
++                Some(
++                  canonical_resource_function(
++                    c, type_table, local_resource_types, resource_ids, contract_work,
++                  ),
++                )
++              _ =>
++                check_canonical_contract(
++                  c, type_table, func_types, func_sig_shapes, external_contracts,
++                  canonical_budget, contract_work,
++                )
++            }
 +          } else {
 +            validate_canon(
 +              c,
@@ -3343,7 +3398,7 @@
 +            )
 +            None
 +          }
-@@ -856,4 +912,15 @@
+@@ -856,4 +926,15 @@
 -            _ =>
 -              core_func_types.push(
 -                core_functype_for_canon(c, type_table, core_memory_types),
@@ -3363,9 +3418,9 @@
 +              }
 +              core_func_types.push(signature)
 +            }
-@@ -913,0 +981 @@
+@@ -913,0 +995 @@
 +  core_contracts~ : @core_types.ContractGraph? = None,
-@@ -915 +983,12 @@
+@@ -915 +997,12 @@
 -  validate_component_inner(component, true, cfg, 0, [], [], [], []) |> ignore
 +  validate_component_inner(
 +    component,

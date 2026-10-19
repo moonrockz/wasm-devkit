@@ -1018,8 +1018,10 @@ fn validate_typedef(
           7, "resources can only be defined within a concrete component",
         )
       }
-      if rep != 0x7f {
-        raise SectionParseError(7, "resources can only be represented by `i32`")
+      if rep != 0x7f && rep != 0x7e {
+        raise SectionParseError(
+          7, "resources require an i32 or i64 representation",
+        )
       }
     }
     ComponentType(decls) => {

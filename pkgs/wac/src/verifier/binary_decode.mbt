@@ -277,7 +277,8 @@ fn binary_decode(
       Alias(alias_entry) => graph.alias_entry(scope_id, alias_entry)
       Canonical(Lift(_, _, index)) =>
         scope.bind(Function(graph.follow(binary_index(scope.types, index))))
-      Canonical(Lower(_, _)) => ()
+      Canonical(Lower(_, _) | ResourceNew(_) | ResourceDrop(_) | ResourceRep(_)) =>
+        ()
       Canonical(_) => raise Unsupported("unsupported canonical intrinsic")
       Describe(importing, name, attributes, desc) => {
         let kind = graph.describe(scope, importing, name, attributes, desc)

@@ -206,7 +206,7 @@ imports and re-exports. It follows WAC 0.12.0's wasmparser 0.258.0 map-key rules
 All diagnostic positions count bytes. Unknown offsets remain absent.
 
 Concrete nested components, component instantiation, async canonical
-functions and intrinsics, component start sections and component-value externs remain unsupported. Function export ascriptions validate parameter
+functions and other intrinsics, component start sections and component-value externs remain unsupported. Function export ascriptions validate parameter
 names, async mode, structural value types and nominal resource identities, and
 retain the ascribed function type. Type-equality export annotations compare
 complete value shapes and nominal resource identity, including imported aliases
@@ -533,7 +533,7 @@ wasm-tools subtype witnesses in `tests/semantic/wac-core-modules/fill`.
 
 Both binary and WAT inputs support these contracts and flat concrete core module
 bodies. Core instantiation and synchronous canonical lift/lower are supported.
-Component instantiation, async canonical functions and intrinsics, component starts, component
+Component instantiation, async canonical functions and other intrinsics, component starts, component
 values remain outside this profile.
 Concrete GC/reference types, supertypes and shared heap types remain
 unsupported. Nested component/instance core declarations with limits above u32
@@ -604,3 +604,12 @@ The 71 package probes and twelve composition cases in
 `tests/semantic/wac-canonical-functions` compare the pinned APIs and ordered
 models. Two package-loader flag mismatches are retained as explicit upstream
 false positives, with independent validator rejection.
+
+
+Canonical `resource.new`, `resource.drop` and `resource.rep` validate resource
+identity and retain complete core signatures. New/rep require local resources;
+drop also accepts imported resources. Representation types may be i32 or i64,
+while resource handles remain i32. Destructors must accept exactly the resource
+representation and return nothing. Export aliases preserve the original local
+identity. The 42 cases in `tests/semantic/wac-resource-intrinsics` compare both
+pinned validators and full binary/WAT models; four emitted compositions validate.

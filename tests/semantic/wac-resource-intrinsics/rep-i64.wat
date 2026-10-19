@@ -1,0 +1,1 @@
+(component (type $r (resource (rep i64))) (core func (canon resource.rep $r)))

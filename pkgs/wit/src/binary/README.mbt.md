@@ -63,7 +63,7 @@ bytes. It supports imported functions, instances and components, type aliases,
 and re-exports, plus declarative core module/function types and module externs.
 Core instances and synchronous canonical lift/lower validate full core contracts
 and canonical signatures. Nested concrete component definitions, component
-instantiation, async canonical functions and intrinsics, and
+instantiation, async canonical functions and other intrinsics, and
 component start sections remain unsupported and
 return `WIT-B002`. Physical type-scope nesting has the same 256 limit.
 Component-value externs return `WIT-B002` because the pinned parser's value-bound
@@ -140,3 +140,12 @@ captured resources and equality constraints remain nominal. Explicit work stacks
 and cumulative budgets cover extraction and comparison. Annotated re-exports
 retain their narrowed contract. Component aliases extracted from imported
 instances retain complete scoped metadata and captured resource identities.
+
+
+Canonical `resource.new`, `resource.drop` and `resource.rep` validate resource
+identity and retain complete core signatures. New/rep require local resources;
+drop also accepts imported resources. Representation types may be i32 or i64,
+while resource handles remain i32. Destructors must accept exactly the resource
+representation and return nothing. Export aliases preserve the original local
+identity. The 42 cases in `tests/semantic/wac-resource-intrinsics` compare both
+pinned validators and full binary/WAT models; four emitted compositions validate.

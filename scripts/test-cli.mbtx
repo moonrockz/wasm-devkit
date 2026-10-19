@@ -989,6 +989,29 @@ async fn main {
       }
     }
   }
+  for extension in ["wasm", "wat"] {
+    for
+      (name, status) in [
+        ("new-alias", 0),
+        ("destructor-i64-i64", 0),
+        ("destructor-i64-i32", 1),
+      ] {
+      let root = "tests/semantic/wac-resource-intrinsics/composition/" + name
+      let (_, diagnostic) = run(
+        [
+          "verify",
+          root + "/input.wac",
+          "--dep",
+          "test:resource=dep." + extension,
+        ],
+        status,
+        wit,
+      )
+      if status == 1 {
+        assert_true(diagnostic.contains("WAC-B003"))
+      }
+    }
+  }
   // Copyable reader-facing bundles run through every installed/source CLI path.
   let bundle = "examples/verification/"
   for

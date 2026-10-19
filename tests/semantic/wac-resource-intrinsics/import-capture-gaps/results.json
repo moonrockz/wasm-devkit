@@ -1,0 +1,58 @@
+[
+  {
+    "name": "instance-export-type",
+    "reference": 1,
+    "validator": 1,
+    "error": "local resource type found in imports (at offset 0x46)\n",
+    "validation": "error: local resource type found in imports (at offset 0x46)\n",
+    "product_binary": 0
+  },
+  {
+    "name": "instance-own",
+    "reference": 1,
+    "validator": 1,
+    "error": "local resource type found in imports (at offset 0x57)\n",
+    "validation": "error: local resource type found in imports (at offset 0x57)\n",
+    "product_binary": 0
+  },
+  {
+    "name": "instance-borrow",
+    "reference": 1,
+    "validator": 1,
+    "error": "local resource type found in imports (at offset 0x57)\n",
+    "validation": "error: local resource type found in imports (at offset 0x57)\n",
+    "product_binary": 0
+  },
+  {
+    "name": "component-import-type",
+    "reference": 1,
+    "validator": 1,
+    "error": "local resource type found in imports (at offset 0x46)\n",
+    "validation": "error: local resource type found in imports (at offset 0x46)\n",
+    "product_binary": 0
+  },
+  {
+    "name": "component-export-type",
+    "reference": 1,
+    "validator": 1,
+    "error": "local resource type found in imports (at offset 0x46)\n",
+    "validation": "error: local resource type found in imports (at offset 0x46)\n",
+    "product_binary": 0
+  },
+  {
+    "name": "component-own",
+    "reference": 1,
+    "validator": 1,
+    "error": "local resource type found in imports (at offset 0x57)\n",
+    "validation": "error: local resource type found in imports (at offset 0x57)\n",
+    "product_binary": 0
+  },
+  {
+    "name": "component-borrow",
+    "reference": 1,
+    "validator": 1,
+    "error": "local resource type found in imports (at offset 0x57)\n",
+    "validation": "error: local resource type found in imports (at offset 0x57)\n",
+    "product_binary": 0
+  }
+]

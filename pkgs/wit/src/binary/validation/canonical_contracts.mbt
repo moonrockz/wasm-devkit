@@ -141,3 +141,38 @@ fn check_canonical_contract(
     Some(shape.lowered)
   }
 }
+
+///|
+fn canonical_resource_function(
+  declaration : @component.Canon,
+  types : Array[@component.TypeDef?],
+  locals : Array[Bool],
+  identities : Array[Int32?],
+  work : CoreContractWork,
+) -> @types.FuncType raise ComponentValidationError {
+  work.charge(1)
+  let index = match declaration {
+    ResourceNew(index) | ResourceDrop(index) | ResourceRep(index) => index
+    _ => raise UnsupportedCanonical
+  }
+  guard identities.get(index) is Some(Some(_)) else {
+    raise SectionParseError(8, "canonical operation requires a resource type")
+  }
+  if declaration is ResourceDrop(_) {
+    return { params: [I32], results: [], }
+  }
+  guard locals.get(index) is Some(true) &&
+    types.get(index) is Some(Some(ResourceType(_, rep, _, _))) else {
+    raise SectionParseError(8, "canonical operation requires a local resource")
+  }
+  let representation : @types.ValueType = match rep {
+    0x7f => I32
+    0x7e => I64
+    _ => raise SectionParseError(8, "invalid resource representation")
+  }
+  match declaration {
+    ResourceNew(_) => { params: [representation], results: [I32], }
+    ResourceRep(_) => { params: [I32], results: [representation], }
+    _ => raise UnsupportedCanonical
+  }
+}

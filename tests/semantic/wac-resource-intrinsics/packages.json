@@ -1,0 +1,296 @@
+[
+  {
+    "name": "new-local",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "new-imported",
+    "reference": 1,
+    "validator": 1,
+    "error": "type 0 is not a local resource (at offset 0x13)\n",
+    "validation": "error: type 0 is not a local resource (at offset 0x13)\n"
+  },
+  {
+    "name": "new-alias",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "new-value",
+    "reference": 1,
+    "validator": 1,
+    "error": "type index 0 is not a resource type (at offset 0xf)\n",
+    "validation": "error: type index 0 is not a resource type (at offset 0xf)\n"
+  },
+  {
+    "name": "new-future",
+    "reference": 1,
+    "validator": 1,
+    "error": "unknown type 0: type index out of bounds (at offset 0xb)\n",
+    "validation": "error: unknown type 0: type index out of bounds (at offset 0xb)\n"
+  },
+  {
+    "name": "new-wrong-param",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x47)\n",
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x47)\n"
+  },
+  {
+    "name": "new-wrong-result",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i32) (result i64))\nfound:    (func (param i32) (result i32)) (at offset 0x47)\n",
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i32) (result i64))\nfound:    (func (param i32) (result i32)) (at offset 0x47)\n"
+  },
+  {
+    "name": "new-instance",
+    "reference": 1,
+    "validator": 1,
+    "error": "type 1 is not a local resource (at offset 0x28)\n",
+    "validation": "error: type 1 is not a local resource (at offset 0x28)\n"
+  },
+  {
+    "name": "drop-local",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "drop-imported",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "drop-alias",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "drop-value",
+    "reference": 1,
+    "validator": 1,
+    "error": "type index 0 is not a resource type (at offset 0xf)\n",
+    "validation": "error: type index 0 is not a resource type (at offset 0xf)\n"
+  },
+  {
+    "name": "drop-future",
+    "reference": 1,
+    "validator": 1,
+    "error": "unknown type 0: type index out of bounds (at offset 0xb)\n",
+    "validation": "error: unknown type 0: type index out of bounds (at offset 0xb)\n"
+  },
+  {
+    "name": "drop-wrong-param",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func (param i32)) (at offset 0x46)\n",
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func (param i32)) (at offset 0x46)\n"
+  },
+  {
+    "name": "drop-wrong-result",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i32) (result i32))\nfound:    (func (param i32)) (at offset 0x47)\n",
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i32) (result i32))\nfound:    (func (param i32)) (at offset 0x47)\n"
+  },
+  {
+    "name": "drop-instance",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "rep-local",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "rep-imported",
+    "reference": 1,
+    "validator": 1,
+    "error": "type 0 is not a local resource (at offset 0x13)\n",
+    "validation": "error: type 0 is not a local resource (at offset 0x13)\n"
+  },
+  {
+    "name": "rep-alias",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "rep-value",
+    "reference": 1,
+    "validator": 1,
+    "error": "type index 0 is not a resource type (at offset 0xf)\n",
+    "validation": "error: type index 0 is not a resource type (at offset 0xf)\n"
+  },
+  {
+    "name": "rep-future",
+    "reference": 1,
+    "validator": 1,
+    "error": "unknown type 0: type index out of bounds (at offset 0xb)\n",
+    "validation": "error: unknown type 0: type index out of bounds (at offset 0xb)\n"
+  },
+  {
+    "name": "rep-wrong-param",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x47)\n",
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x47)\n"
+  },
+  {
+    "name": "rep-wrong-result",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i32) (result i64))\nfound:    (func (param i32) (result i32)) (at offset 0x47)\n",
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i32) (result i64))\nfound:    (func (param i32) (result i32)) (at offset 0x47)\n"
+  },
+  {
+    "name": "rep-instance",
+    "reference": 1,
+    "validator": 1,
+    "error": "type 1 is not a local resource (at offset 0x28)\n",
+    "validation": "error: type 1 is not a local resource (at offset 0x28)\n"
+  },
+  {
+    "name": "rep-i64",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "drop-ordinary-type-import",
+    "reference": 1,
+    "validator": 1,
+    "error": "type index 1 is not a resource type (at offset 0x18)\n",
+    "validation": "error: type index 1 is not a resource type (at offset 0x18)\n"
+  },
+  {
+    "name": "drop-future-defined",
+    "reference": 1,
+    "validator": 1,
+    "error": "unknown type 0: type index out of bounds (at offset 0xb)\n",
+    "validation": "error: unknown type 0: type index out of bounds (at offset 0xb)\n"
+  },
+  {
+    "name": "new-i64",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "rep-i64-consumer",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "destructor-i32-i32",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "destructor-i32-i64",
+    "reference": 1,
+    "validator": 1,
+    "error": "core function 0 has wrong signature for a destructor (at offset 0x4d)\n",
+    "validation": "error: core function 0 has wrong signature for a destructor (at offset 0x4d)\n"
+  },
+  {
+    "name": "destructor-i64-i32",
+    "reference": 1,
+    "validator": 1,
+    "error": "core function 0 has wrong signature for a destructor (at offset 0x4d)\n",
+    "validation": "error: core function 0 has wrong signature for a destructor (at offset 0x4d)\n"
+  },
+  {
+    "name": "destructor-i64-i64",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "invalid-representation",
+    "reference": 1,
+    "validator": 1,
+    "error": "resources can only be represented by `i32` or `i64` (at offset 0xb)\n",
+    "validation": "error: resources can only be represented by `i32` or `i64` (at offset 0xb)\n"
+  },
+  {
+    "name": "destructor-result",
+    "reference": 1,
+    "validator": 1,
+    "error": "core function 0 has wrong signature for a destructor (at offset 0x50)\n",
+    "validation": "error: core function 0 has wrong signature for a destructor (at offset 0x50)\n"
+  },
+  {
+    "name": "destructor-future",
+    "reference": 1,
+    "validator": 1,
+    "error": "unknown core function 0: function index out of bounds (at offset 0xb)\n",
+    "validation": "error: unknown core function 0: function index out of bounds (at offset 0xb)\n"
+  },
+  {
+    "name": "new-outer-alias",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "new-import-eq",
+    "reference": 1,
+    "validator": 1,
+    "error": "local resource type found in imports (at offset 0x37)\n",
+    "validation": "error: local resource type found in imports (at offset 0x37)\n"
+  },
+  {
+    "name": "drop-outer-alias",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "drop-import-eq",
+    "reference": 1,
+    "validator": 1,
+    "error": "local resource type found in imports (at offset 0x37)\n",
+    "validation": "error: local resource type found in imports (at offset 0x37)\n"
+  },
+  {
+    "name": "rep-outer-alias",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "rep-import-eq",
+    "reference": 1,
+    "validator": 1,
+    "error": "local resource type found in imports (at offset 0x37)\n",
+    "validation": "error: local resource type found in imports (at offset 0x37)\n"
+  }
+]

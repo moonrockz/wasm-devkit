@@ -1,0 +1,1 @@
+(component (core func (canon resource.drop 0)) (type (resource (rep i32))))
