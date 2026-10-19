@@ -16,7 +16,6 @@ type indices; internal value definitions never enter the public binary index
 space. Separate contract tests traverse 6,000 scopes and 6,000 value definitions
 with explicit stacks and verify the metadata work limit.
 
-Core/runtime sections, component values and non-function root export ascriptions
-remain outside this declarative profile. These fixtures do not claim complete
-component-model validation or full runtime composition coverage. Tracking remains
-open on `wasm-devkit-p5m.8.2.2`.
+These fixtures cover hierarchical function ascriptions. Separate suites cover
+concrete runtime components, values and non-function export annotations. Together
+they test the documented profile, not universal component-model conformance.

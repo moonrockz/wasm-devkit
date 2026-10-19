@@ -11,8 +11,9 @@ corpora also exercise repeat/reorder laws; source formatting preserves full mode
 `wit-world-stability/` adds ten original reference cases for include metadata
 merging and implicit import/export stability. The complete 128-group upstream
 WAC resolution corpus is retained in [wac-upstream](wac-upstream/README.md), with
-full models for all 14 accepted groups and original filesystem layouts. Remaining
-WAC binary/runtime boundaries stay tracked under issue #5.
+full models for all 14 accepted groups and original filesystem layouts. Separate
+binary/runtime fixtures cover the documented v0.2.0 profile, including concrete
+modules, canonical functions, values and nested components.
 `wit-encoded-upstream/` retains four encoded WIT regression fixtures and two
 source inputs from the pinned wasm-tools revision, with upstream licenses and
 exact hashes. Their README records provenance.
@@ -69,11 +70,12 @@ mise run test:semantics -- .dev/reference-cli/bin/wasm-tools .dev/reference-cli/
 
 The WIT grammar fixture pin predates this semantic reference; these seed cases use
 syntax shared by both revisions. The WAC grammar and semantic revisions are identical.
-WIT source and encoded conformance is complete for the documented profile. WAC
-source-corpus laws pass on all four targets; remaining binary/runtime conformance
-is tracked in `wasm-devkit-p5m.8.2.7`. Exact reference panics and accepted invalid
-outputs are recorded beside their retained witnesses. They are never counted as
-successful in-profile matches.
+WIT source and encoded conformance and WAC source-corpus laws pass for the
+documented profile on all four targets. Separate binary/runtime suites retain
+pinned acceptance, model and composition comparisons. Exact reference panics and
+accepted invalid outputs are recorded beside their witnesses and never counted
+as successful matches. Optional binary proposal extensions outside this profile
+are tracked in `wasm-devkit-p5m.10`.
 
 WIT type cases establish the pinned resolver's aggregate constraints, map-key categories,
 fixed-list u32 bounds and lexical representation, forward references and recursive graphs.
@@ -126,8 +128,9 @@ fixed-list bounds and memory64 layout overflow including aggregate padding.
 Binary fixtures were generated from the original sources with the pinned
 `wasm-tools component wit --wasm` encoder. WAT cases include custom metadata and producers annotations.
 The runner passes `.wasm` and `.wat` inputs unchanged to both reference tools and
-the product CLI, and compares world/resource summaries. World-owned resource members and cross-package encoded aliases remain outside this initial
-profile; their implementation remains on `wasm-devkit-p5m.8.1.5`.
+the product CLI, and compares world/resource summaries. Library tests additionally
+cover world-owned resource members, cross-package encoded aliases and complete
+normalized models.
 
 Encoded resource-function fixtures compare default/fallible constructors,
 ordinary/static/async methods, implicit receivers, free/method/static accessors,
@@ -236,9 +239,10 @@ external-ID acceptance against the pinned tools. Verifier tests separately compa
 IDs projected from pinned Resolve models for types, functions, resource methods,
 renamed uses and world interface items. They check ignored container annotations,
 empty strings, Unicode escapes, duplicate rejection, wrapper attributes, caller-order
-merging and independently disabled members. These projections do not establish
-complete model parity; full inferred/supplied model conformance remains tracked on
-`wasm-devkit-p5m.8.1.5` and `.8.1.7`.
+merging and independently disabled members. These external-ID projections test
+specific metadata behavior. Full source and encoded corpus comparisons and
+separate mixed-input merge tests provide broader model coverage; they do not
+establish universal component-model parity.
 
 WAC instantiation probes in `pkgs/wac/src/verifier/instantiation_test.mbt` retain
 original WAT, exact compiled package bytes and source text beside their pinned

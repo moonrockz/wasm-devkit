@@ -26,16 +26,18 @@ these cases. Valid merged models compare exactly with the reference.
 
 `typed-ref.wat` validates with wasm-tools but makes the pinned WAC loader panic
 while converting a concrete heap type in `wac-types/src/core.rs`. The product
-returns `WAC-B002`. Concrete/shared heap references and recursive groups remain
-unsupported. Nested declarations with limits above u32 or custom memory pages
+returns `WAC-B002`. Concrete GC references and shared heap types remain unsupported.
+Concrete modules support function-only recursive groups without concrete references.
+Nested declarations with limits above u32 or custom memory pages
 are also explicitly unsupported because the pinned component parser cannot
 consume them. Root core-type sections retain these encodings without loss.
 
 The separate deep fixture traverses 41 component type scopes. Unit contracts
 also exercise 50,000 function parameters, truncated limits, overflowing u64 LEBs
 and immutable module graphs. `SHA256SUMS` covers all retained sources and tables.
-These exclusions and remaining runtime/core-body/value/ascription work stay
-tracked on `wasm-devkit-p5m.8.2.2` and `.8.2.7`.
+Separate suites cover runtime core bodies, values and export annotations. Optional
+proposal extensions outside the documented profile are tracked in
+`wasm-devkit-p5m.10`.
 
 Eight text-only cases reject duplicate type identifiers/aliases, invalid global
 syntax and malformed/overflowing limits against the pinned text parser.

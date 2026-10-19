@@ -26,9 +26,8 @@ resource function names and import-only URL, integrity and dependency names.
 These names are checked as strings and never cause network access. Interface
 version suffixes are opaque during resolution, as in the pinned resolver.
 
-Parser-only named results fail with `WAC-S003`. Remaining
-composition coverage is tracked under
-[issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
+Parser-only named results fail with `WAC-S003`. Composition verification covers
+the documented v0.2.0 profile.
 A successful result covers the entire supported input. An unsupported or unresolved
 construct never yields a `Verified` model.
 
@@ -545,8 +544,8 @@ or custom memory pages return `WAC-B002` before the pinned parser runs; root
 core-type sections support full UInt64 limits. The pinned WAC encoder panics
 when composing the accepted core-module instance-export cases, so independent
 validator witnesses establish their subtype behavior. No public API executes a
-module or component. Remaining binary/runtime scope stays tracked on
-`wasm-devkit-p5m.8.2.2`.
+module or component. Optional binary proposal extensions outside this profile
+are tracked in `wasm-devkit-p5m.10`.
 
 
 Concrete core modules retain ordered contracts and original bytes. Function

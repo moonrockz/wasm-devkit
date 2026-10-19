@@ -71,7 +71,8 @@ source-oriented and do not reproduce the reference arena's unused allocations.
 The merged graph is checked again for borrowed results, resource targets and value positions,
 constructor success types, method receivers and setter result shapes. Invalid
 resource/constructor/setter remapping is rejected even where the pinned merge
-currently accepts such named-type conflicts. Full model conformance remains tracked separately.
+currently accepts such named-type conflicts. Full normalized corpus models and
+mixed-input merge cases are tested separately.
 
 `SemanticFeatures::default()` enables no unstable features. Pass
 `semantic_features={ enabled: ["preview"], all_enabled: false, }` to `verify`,
@@ -186,7 +187,8 @@ those described above.
 The component validator is retained from `Milky2018/wasm_component@0.16.0`
 with a [licensed compatibility patch](../binary/validation/README.md) for modern
 accessor names and instance resource/signature validation.
-These limitations remain under [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
+The supported profile and explicit limits are documented above; the retained patch
+does not imply universal component-model conformance.
 Other unsupported source attributes still fail under `WIT-S003`.
 A successful result covers the entire supported input. An unsupported or unresolved
 construct never yields a `Verified` model.

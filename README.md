@@ -86,8 +86,9 @@ include local dependencies and deliberate failures. See the
 [CLI registry guide](cmd/wasm-devkit/README.md#registry-packages).
 See the [WIT verifier](pkgs/wit/src/verifier/README.mbt.md) and
 [WAC verifier](pkgs/wac/src/verifier/README.mbt.md) for checked examples and exact scope.
-Unsupported semantic constructs fail explicitly. Full dependency and component verification
-is being implemented under [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
+Dependency and component verification is implemented for the documented v0.2.0 profile.
+Unsupported constructs fail explicitly; optional binary proposal extensions are tracked
+in `wasm-devkit-p5m.10`.
 
 ## Status
 

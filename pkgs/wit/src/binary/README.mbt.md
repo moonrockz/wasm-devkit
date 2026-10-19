@@ -119,8 +119,9 @@ arguments retain declaration origins; private anonymous arguments remain valid,
 while escaping signatures require visible names.
 
 Core declarations have separate lexical index validation and retain complete
-unsigned signatures through `moonrockz/wit/core_types`. Concrete GC/shared heap
-references and recursive groups remain unsupported. Nested core declarations
+unsigned signatures through `moonrockz/wit/core_types`. Concrete GC references
+and shared heap types remain unsupported. Concrete modules support function-only
+recursive groups without concrete references. Nested core declarations
 with limits above u32 or custom memory pages return `WIT-B002` before the pinned
 parser runs; root core-type sections support those encodings.
 
