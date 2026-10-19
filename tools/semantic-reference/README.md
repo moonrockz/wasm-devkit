@@ -34,6 +34,15 @@ helper does not encode or run components. Full WAC type graph comparison remains
 part of the conformance task.
 Both executables are built by the command below.
 
+`wac-semantic-reference --target TARGET_BINARY WORLD_NAME COMPONENT_BINARY`
+loads both packages into one type arena and calls pinned
+`wac_types::validate_target`. The selected definition must be a world. This is a
+separate oracle from a WAC source directive: the standalone checker permits
+compatible semantic-version name matching, while `Document::resolve` checks
+target names exactly. Success prints the selected world IDs and ordered type
+arenas; failure prints the checker's report and exits nonzero. It does not emit
+or execute a component.
+
 This test-only executable calls `wit_parser::Resolve::push_path` on the exact file
 or directory supplied to the MoonBit verifier. It is outside `moon.work`, never
 published, and never called by product code. The semantic libraries remain pure.

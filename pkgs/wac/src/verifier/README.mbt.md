@@ -10,7 +10,7 @@ Verification follows WAC 0.12.0 declaration order. It supports scalar and compos
 types, records, flags, enums, variants, function types, resources, local interfaces
 and worlds, `use` and delayed `include` declarations, typed imports, expression
 aliases, named/inferred/spread component arguments, instance member access and
-explicit/spread exports. Async functions, future, stream and error-context
+explicit/spread exports and target-world checks. Async functions, future, stream and error-context
 types follow the pinned resolver. Functions cannot return borrowed resources,
 including borrows nested inside aliases or aggregates.
 
@@ -26,7 +26,7 @@ resource function names and import-only URL, integrity and dependency names.
 These names are checked as strings and never cause network access. Interface
 version suffixes are opaque during resolution, as in the pinned resolver.
 
-Implicit instantiation arguments, targets and
+Implicit instantiation arguments and
 parser-only named results fail with `WAC-S003`. These remaining
 composition operations are tracked under
 [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
@@ -147,7 +147,9 @@ export, with related instance-type provenance. `WAC-C003` reports duplicate or u
 arguments, `WAC-C004` missing arguments, `WAC-C005` incompatible argument types or
 resource identities, and `WAC-C006` a verification work-limit boundary. `WAC-C007`
 reports a spread on a non-instance or a spread that contributes no arguments. Type mismatch
-diagnostics retain both expected and provided type locations.
+diagnostics retain both expected and provided type locations. `WAC-T001` reports
+a wrong-kind target or an import absent from the target, `WAC-T002` a missing
+required export, and `WAC-T003` incompatible target types or resource identities.
 
 Value nesting and expression groups use explicit work stacks. Tests exercise
 3,000 nested composite types, 5,000 ordered aliases and 2,000 world includes on
@@ -364,3 +366,47 @@ All 49 retained WAC dependency sources now compile to the same ordered type,
 resource and use projections as their pinned binaries. The invalid named-result
 source remains rejected. Deep text and embedded-binary inputs, custom bytes,
 quoted names and deterministic diagnostic provenance have focused regression tests.
+
+## Target worlds
+
+A `targets` directive selects a local or dependency world after all source declarations
+have resolved. Local forward world declarations and aliases are accepted. Every
+composition import must be available from the target, and every target export must
+be supplied by the composition. Unused target imports and extra composition exports
+are allowed. Import compatibility is contravariant; export compatibility is covariant.
+Nested component imports reverse the subtype direction again.
+
+```mbt check
+///|
+test "check a selected target world" {
+  let source = "package example:app targets example:app/api; world api {import run: func();export out: func();} import run: func();export run as out;"
+  let model = @verifier.verify(@parser.parse(source), source~).unwrap()
+  assert_eq(model.imports().map(item => item.name), ["run"])
+  let source = "package example:app targets example:app/api; world api {export out: func();}"
+  assert_eq(
+    @verifier.verify(@parser.parse(source), source~).unwrap_err()[0].code,
+    "WAC-T002",
+  )
+}
+```
+
+Names match exactly, including versions and build metadata, as in the pinned
+`Document::resolve` source resolver. Its separate `wac_types::validate_target`
+binary checker uses semver-compatible name lookup; it is a separate comparison
+profile, not the policy for source directives.
+
+Target resource checking substitutes the target's imported identities into the
+composition's input parameters. Independent composition parameters may receive the
+same target resource. Captured resources retain that equality through exported
+functions, while exported instances introduce fresh resource binders. These checks
+never change the composition graph's own nominal identities. Diagnostics identify
+the composition item, target selection and target declaration, retaining binary
+locations for dependency worlds. Target comparisons share a one-million-step limit.
+
+Original probes retain local and binary target sources, ordered reference models,
+component variance, version-name behavior and resource relationships. One crossed
+resource export is rejected despite pinned source resolution accepting it. A
+component-model subtype witness independently rejects the same resource mismatch;
+the exact witness and control are recorded in the semantic fixture guide. Deep
+value types, 5,000 aliases, immutable results and deterministic provenance run on
+all four targets. WIT dependency adapters and implicit imports remain unfinished.

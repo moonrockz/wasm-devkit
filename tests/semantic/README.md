@@ -312,3 +312,35 @@ resource graphs, stability and both caller orders when an inferred dependency
 uses a suffix but the supplied source uses the full version. WAC's separate
 0.258 behavior is recorded under `pkgs/wit/src/binary/fixtures/version-suffix`.
 These cases do not establish complete mixed-model conformance.
+
+The 42 original `targets_test.mbt` probes compare target-world selection and
+acceptance with pinned WAC 0.12.0 `Document::resolve` and `wac resolve`. Accepted
+cases retain ordered source-model projections. Binary inputs retain original WAT
+and bytes. Coverage includes forward/aliased local worlds, dependency keys,
+import contravariance, export covariance, nested component variance, exact
+versioned names, unused target imports, export spreads and resource identities.
+Every source is also checked without its target constraint. The 26 local cases
+that agree with reference resolution also run unchanged through the hashed CLI
+fixture manifest under `wac-targets/`.
+
+The optional oracle's `--target PACKAGE WORLD COMPONENT` mode separately calls
+`wac_types::validate_target`. Its semver-compatible lookup accepts the tested
+same-major and build-only name differences that source target resolution rejects.
+These profiles are deliberately compared separately; source verification follows
+exact-name lookup. All 15 binary probes have valid unconstrained compositions.
+
+One source target case is an explicit nominal reference exclusion. Both source
+resolution and validating `wac compose` accept `resource-crossed-export`, but
+composition emission does not preserve the selected target constraint. The
+independent component subtype witness in
+[`wac-target-witnesses`](wac-target-witnesses/README.md) rejects the crossed
+resource relationship. Its matching-resource control validates. The product
+rejects the crossed case with `WAC-T003`, while accepting repeated instance
+binders and aliased target input resources. Exact witnesses and the contravariant
+alias control are retained beside that README.
+
+The accepted `resource-implicit-use` source panics in pinned `wac compose` at
+`wac-graph/src/encoding.rs:702`. Removing its target directive reproduces the
+same panic. Resolution acceptance remains the oracle for this encoder limitation;
+it is not excluded from target-resolution comparisons. These findings are tracked
+on Beads `wasm-devkit-p5m.8.2.6`.

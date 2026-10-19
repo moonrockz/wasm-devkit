@@ -161,6 +161,46 @@ async fn main {
   @fs.write_file(wiring, "package test:app; import f: func(); export f...;")
   let (_, wrong_export) = run(["verify", wiring], 1, wit)
   assert_true(wrong_export.contains("WAC-C007"))
+  let target_header = "package test:app targets test:app/w; world w {import f: func(x: u32) -> u32;export out: func(x: u32) -> u32;} "
+  @fs.write_file(
+    wiring,
+    target_header +
+    "import f: func(x: u32) -> u32;export new test:first {f}...;",
+  )
+  let _ = run(["verify", wiring], 0, wit)
+  @fs.write_file(wiring, target_header + "import f: func(x: u32) -> u32;")
+  let (_, missing_target_export) = run(["verify", wiring], 1, wit)
+  assert_true(missing_target_export.contains("WAC-T002"))
+  assert_true(missing_target_export.contains("target world declared here"))
+  let unconstrained = "package test:app; world w {} import f: func();export f;"
+  @fs.write_file(wiring, unconstrained)
+  let _ = run(["verify", wiring], 0, wit)
+  @fs.write_file(
+    wiring, "package test:app targets test:app/w; world w {} import f: func();export f;",
+  )
+  let (_, disallowed_target_import) = run(["verify", wiring], 1, wit)
+  assert_true(disallowed_target_import.contains("WAC-T001"))
+  @fs.write_file(
+    wiring,
+    target_header + "import f: func(x: u16) -> u32;export f as out;",
+  )
+  let (_, incompatible_target) = run(["verify", wiring], 1, wit)
+  assert_true(incompatible_target.contains("WAC-T003"))
+  assert_true(incompatible_target.contains("target selected here"))
+  @fs.write_file(
+    wiring_dir + "/deps/test/target.wat",
+    "(component (type $world (component (import \"f\" (func)) (export \"out\" (func)))) (type $wrapper (component (alias outer 1 $world (type $world)) (export \"test:target/w\" (component (type $world))))) (export \"w\" (type $wrapper)))",
+  )
+  @fs.write_file(
+    wiring, "package test:app targets test:target/w;import f: func();export f as out;",
+  )
+  let _ = run(["verify", wiring], 0, wit)
+  @fs.write_file(
+    wiring, "package test:app targets test:target/w;import f: func(x: u32);export f as out;",
+  )
+  let (_, binary_target) = run(["verify", wiring], 1, wit)
+  assert_true(binary_target.contains("WAC-T003"))
+  assert_true(binary_target.contains("target.wat:[binary]"))
   let package_dir = dir + "/wac-packages"
   @fs.mkdir(package_dir + "/deps/lookup/dep", recursive=true, allow_exist=true)
   let package_source = package_dir + "/root.wac"

@@ -1,0 +1,1 @@
+package test:app targets test:app/w; interface api {resource handle;} world w {use api.{handle};import f: func(h: handle);export out: func(h: handle);} import a as "test:app/api": api;let handle=a.handle;import f: func(h: handle);export f as out;

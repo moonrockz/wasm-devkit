@@ -1,0 +1,1 @@
+package test:app targets test:app/w; import f: func(); export f; world w {import f: func(); export f: func();}

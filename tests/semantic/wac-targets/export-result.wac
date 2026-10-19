@@ -1,0 +1,1 @@
+package test:app targets test:app/w; world w {import f: func() -> u16; export out: func() -> u32;} import f: func() -> u16; export f as out;

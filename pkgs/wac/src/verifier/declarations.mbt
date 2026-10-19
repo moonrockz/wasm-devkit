@@ -464,7 +464,7 @@ fn Check::file(self : Check, root : Int32) -> Unit raise SemanticFailure {
       ),
     )
   }
-  guard self.tree.nodes[directive].data is Package(path~, targets~) else {
+  guard self.tree.nodes[directive].data is Package(path~, ..) else {
     raise Problem(
       self.problem(directive, "WAC-S001", "expected a package directive"),
     )
@@ -483,13 +483,6 @@ fn Check::file(self : Check, root : Int32) -> Unit raise SemanticFailure {
   }
   self.package_name = namespaces.join(":") + ":" + segments[0]
   self.package_version = version
-  guard targets is None else {
-    raise Problem(
-      self.problem(
-        directive, "WAC-S003", "target resolution is not yet supported",
-      ),
-    )
-  }
   for node in statements {
     match self.tree.nodes[node].data {
       Interface(name~, ..) | World(name~, ..) => {

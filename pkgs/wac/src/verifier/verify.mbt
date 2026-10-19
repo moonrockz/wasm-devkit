@@ -420,6 +420,7 @@ pub fn verify_ast(
   try {
     check.register_packages(dependencies)
     check.file(tree.nodes.length() - 1)
+    check.verify_target()
     Ok({
       source_id,
       source_text: source,

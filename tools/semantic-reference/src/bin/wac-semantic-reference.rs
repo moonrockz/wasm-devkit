@@ -2,7 +2,9 @@
 use serde_json::{Value, json};
 use std::{env, fs};
 use wac_parser::Document;
-use wac_types::{BorrowedPackageKey, DefinedType, Package, SubtypeChecker, TypeAggregator, Types};
+use wac_types::{
+    BorrowedPackageKey, DefinedType, ItemKind, Package, SubtypeChecker, Type, TypeAggregator, Types,
+};
 
 fn types_json(types: &Types) -> Value {
     // JSON object keys cannot preserve core module import pairs. Ordered entry
@@ -50,6 +52,37 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let path = env::args().nth(1).ok_or("expected WAC source file")?;
     if path == "--version" {
         println!("wac-parser 0.12.0 5a7480c69ae7a4dc9eb161f485cbcb8c95e372c9");
+        return Ok(());
+    }
+    if path == "--target" {
+        let mut args = env::args().skip(2);
+        let target_path = args.next().ok_or("expected target package binary")?;
+        let world_name = args.next().ok_or("expected target world definition name")?;
+        let component_path = args.next().ok_or("expected component binary")?;
+        if args.next().is_some() {
+            return Err("usage: --target TARGET_BINARY WORLD_NAME COMPONENT_BINARY".into());
+        }
+        let mut types = Types::new();
+        let target =
+            Package::from_bytes("oracle:target", None, fs::read(target_path)?, &mut types)?;
+        let world = match target.definitions().get(&world_name) {
+            Some(ItemKind::Type(Type::World(world))) => *world,
+            Some(_) => {
+                return Err(format!("target definition `{world_name}` is not a world").into());
+            }
+            None => return Err(format!("missing target world definition `{world_name}`").into()),
+        };
+        let component = Package::from_bytes(
+            "oracle:component",
+            None,
+            fs::read(component_path)?,
+            &mut types,
+        )?;
+        wac_types::validate_target(&types, world, component.ty())?;
+        println!(
+            "{}",
+            json!({"target": world, "component": component.ty(), "types": types_json(&types)})
+        );
         return Ok(());
     }
     if path == "--package" {

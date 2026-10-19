@@ -1,4 +1,14 @@
 ///|
+// Private evidence from a successful structural comparison. Resource binders
+// are separate from handles so implicit imports cannot unify captured values.
+priv struct CompatibilityTrace {
+  types : Map[Int32, Int32]
+  binders : Array[(Int32, Int32)]
+  resource_pairs : Array[(Int32, Int32, Bool)]
+  mut steps : Int32
+}
+
+///|
 priv enum CompatibilityWork {
   CompareItem(ItemKind, ItemKind, Bool, String)
   CompareType(Int32, Int32, Bool, String)
@@ -95,25 +105,55 @@ fn compatibility_optional(
 }
 
 ///|
-fn compatibility_externs(
+fn Check::compatibility_externs(
+  self : Check,
+  node : Int32,
   work : Array[CompatibilityWork],
   actual : ReadOnlyArray[Extern],
   expected : ReadOnlyArray[Extern],
   reverse : Bool,
   importing : Bool,
-) -> String? {
+  trace : CompatibilityTrace?,
+) -> String? raise SemanticFailure {
   let flipped = reverse != importing
   let required = if flipped { actual } else { expected }
   let provided = if flipped { expected } else { actual }
-  let next : Array[CompatibilityWork] = []
-  for requirement in required {
-    let mut found : ItemKind? = None
-    for candidate in provided {
-      if candidate.name == requirement.name {
-        found = Some(candidate.kind)
-        break
+  if provided.length() > 1000000 || required.length() > 1000000 {
+    raise Problem(
+      self.problem(
+        node, "WAC-C006", "type compatibility exceeds the verification work limit",
+      ),
+    )
+  }
+  let indexed : Map[String, ItemKind] = Map([])
+  for candidate in provided {
+    if trace is Some(trace) {
+      trace.steps += 1
+      if trace.steps > 1000000 {
+        raise Problem(
+          self.problem(
+            node, "WAC-C006", "type compatibility exceeds the verification work limit",
+          ),
+        )
       }
     }
+    if !indexed.contains(candidate.name) {
+      indexed[candidate.name] = candidate.kind
+    }
+  }
+  let next : Array[CompatibilityWork] = []
+  for requirement in required {
+    if trace is Some(trace) {
+      trace.steps += 1
+      if trace.steps > 1000000 {
+        raise Problem(
+          self.problem(
+            node, "WAC-C006", "type compatibility exceeds the verification work limit",
+          ),
+        )
+      }
+    }
+    let found = indexed.get(requirement.name)
     guard found is Some(kind) else {
       return Some(
         "missing " +
@@ -156,16 +196,24 @@ fn Check::compatible(
   expected : ItemKind,
   bindings : Map[Int32, Int32],
   constraints : Array[ResourceConstraint],
+  reverse~ : Bool = false,
+  nominal~ : Bool = true,
+  resources~ : ReadOnlyArray[ResourceBinding]? = None,
+  trace~ : CompatibilityTrace? = None,
 ) -> Unit raise SemanticFailure {
-  let actual_resources : ReadOnlyArray[ResourceBinding] = match actual.value {
-    Some(value) => self.composition_nodes[value].resources
-    None => []
+  let actual_resources : ReadOnlyArray[ResourceBinding] = match resources {
+    Some(resources) => resources
+    None =>
+      match actual.value {
+        Some(value) => self.composition_nodes[value].resources
+        None => []
+      }
   }
   let work = [
     CompatibilityWork::CompareItem(
       actual.kind,
       expected,
-      false,
+      reverse,
       "instantiation argument",
     ),
   ]
@@ -173,7 +221,11 @@ fn Check::compatible(
   let mut remaining = 1000000
   while work.pop() is Some(current) {
     remaining -= 1
-    if remaining < 0 {
+    if trace is Some(trace) {
+      trace.steps += 1
+    }
+    if remaining < 0 ||
+      trace.map(trace => trace.steps > 1000000).unwrap_or(false) {
       raise Problem(
         self.problem(
           node, "WAC-C006", "type compatibility exceeds the verification work limit",
@@ -201,12 +253,22 @@ fn Check::compatible(
         if a is Type(_) &&
           self.resource_root(ai) is Some(ar) &&
           self.resource_root(bi) is Some(br) {
+          if trace is Some(trace) {
+            trace.types[bi] = ai
+            if self.types[ai].kind is Resource(None) &&
+              self.types[bi].kind is Resource(None) {
+              trace.binders.push((ai, bi))
+            }
+          }
           work.push(CompareResource(ar, br, true, context))
         } else {
           work.push(CompareType(ai, bi, reverse, context))
         }
       }
       CompareResource(a, b, bind, context) => {
+        if trace is Some(trace) {
+          trace.types[b] = a
+        }
         guard self.resource_root(a) is Some(a) &&
           self.resource_root(b) is Some(b) else {
           raise Problem(
@@ -221,6 +283,13 @@ fn Check::compatible(
               node, a, b, context, "resource names do not match",
             ),
           )
+        }
+        if trace is Some(trace) {
+          trace.types[b] = a
+          trace.resource_pairs.push((a, b, bind))
+        }
+        if !nominal {
+          continue
         }
         guard resource_binding(actual_resources, a) is Some(identity) else {
           raise Problem(
@@ -243,6 +312,9 @@ fn Check::compatible(
         }
       }
       CompareType(a, b, reverse, context) => {
+        if trace is Some(trace) {
+          trace.types[b] = a
+        }
         let a = self.unalias(a)
         let b = self.unalias(b)
         let key = (a, b, reverse)
@@ -366,11 +438,17 @@ fn Check::compatible(
             }
           }
           (Interface(_, _, a), Interface(_, _, b)) =>
-            mismatch = compatibility_externs(work, a, b, reverse, false)
+            mismatch = self.compatibility_externs(
+              node, work, a, b, reverse, false, trace,
+            )
           (World(_, _, ai, ae), World(_, _, bi, be)) => {
-            mismatch = compatibility_externs(work, ae, be, reverse, false)
+            mismatch = self.compatibility_externs(
+              node, work, ae, be, reverse, false, trace,
+            )
             if mismatch is None {
-              mismatch = compatibility_externs(work, ai, bi, reverse, true)
+              mismatch = self.compatibility_externs(
+                node, work, ai, bi, reverse, true, trace,
+              )
             }
           }
           _ =>

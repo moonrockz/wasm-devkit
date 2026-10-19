@@ -1,0 +1,1 @@
+package test:app targets test:app/w; interface api {resource handle;} world w {resource handle;type other=handle;} import handle as handle: test:app/api/handle;import other as other: test:app/api/handle;
