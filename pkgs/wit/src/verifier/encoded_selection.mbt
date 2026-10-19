@@ -214,6 +214,8 @@ fn encoded_select_closure(
   features : SemanticFeatures,
   metadata : Map[String, Map[Int32, Stability]],
   references : Map[String, Map[Int32, EncodedReference]],
+  input_ranks : Map[String, Int32],
+  external_id_overrides : Map[(String, String, String), String?],
 ) -> Result[Prepared, ReadOnlyArray[Diagnostic]] {
   let selected : Map[(String, Int32), Bool] = Map([])
   let budget : EncodedMergeBudget = { remaining: 1000000, }
@@ -269,6 +271,9 @@ fn encoded_select_closure(
         }
       }
     }
+    encoded_merge_external_ids(
+      prepared, selected, input_ranks, external_id_overrides, budget,
+    )
     encoded_selected_prepared(prepared, selected, binaries)
   } catch {
     Unsupported(message) | Invalid(message) =>

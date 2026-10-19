@@ -58,10 +58,22 @@ fn verify_prepared(
   binary_metadata~ : Map[Int32, Stability] = Map([]),
   binary_references~ : Map[Int32, EncodedReference] = Map([]),
   selection_output~ : Map[(String, Int32), Bool] = Map([]),
+  external_id_overrides~ : Map[(String, String, String), String?] = Map([]),
 ) -> Result[Resolution, ReadOnlyArray[Diagnostic]] {
   let tree = prepared.tree
   let errors : Array[Diagnostic] = []
   let stability_values = parse_stabilities(prepared, errors)
+  let external_id_values = parse_external_ids(prepared, errors)
+    .iter()
+    .to_array()
+  if !external_id_overrides.is_empty() {
+    for (key, id, _) in encoded_external_id_members(prepared) {
+      if external_id_overrides.get(key) is Some(value) {
+        external_id_values[id] = value
+      }
+    }
+  }
+  let external_ids = ReadOnlyArray::from_array(external_id_values)
   for (id, value) in binary_metadata {
     stability_values[id] = { value, origin: None, }
   }
@@ -230,6 +242,11 @@ fn verify_prepared(
         by_id,
         location: prepared.origins[node].location,
         stability: stabilities[node].value,
+        external_id: if kind is Interface(_) {
+          external_ids[node]
+        } else {
+          None
+        },
       },
       node,
       false,
@@ -920,6 +937,7 @@ fn verify_prepared(
     resources,
     stabilities,
     interface_edges,
+    external_ids,
     binary_sources~,
   )
   verify_interface_accessors(arena, errors)

@@ -1,0 +1,1 @@
+package test:ids;interface api{resource r;type t=u32;} world base{@external-id("alias") use api.{r,t}; @external-id("owned") resource local{@external-id("ctor") constructor();@external-id("method") f:func();}}world app{include base;}

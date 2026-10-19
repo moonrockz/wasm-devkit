@@ -625,6 +625,7 @@ pub(all) enum WorldItemKind {
 
 ///|
 pub(all) struct WorldItem {
+  external_id : String?
   name : String
   by_id : Bool
   kind : WorldItemKind

@@ -1,0 +1,43 @@
+(component
+  (type (;0;)
+    (component
+      (type (;0;)
+        (instance
+          (export (;0;) "r" (type (sub resource)))
+          (type (;1;) u32)
+          (export (;2;) "t" (type (eq 1)))
+        )
+      )
+      (export (;0;) "test:ids/a" (instance (type 0)))
+    )
+  )
+  (export (;1;) "a" (type 0))
+  (type (;2;)
+    (component
+      (type (;0;)
+        (instance
+          (export (;0;) "r" (type (sub resource)))
+          (type (;1;) u32)
+          (export (;2;) "t" (type (eq 1)))
+        )
+      )
+      (import "test:ids/a" (instance (;0;) (type 0)))
+      (alias export 0 "r" (type (;1;)))
+      (alias export 0 "t" (type (;2;)))
+      (type (;3;)
+        (instance
+          (alias outer 1 1 (type (;0;)))
+          (export (;1;) "r" (external-id "urn:a") (type (eq 0)))
+          (alias outer 1 2 (type (;2;)))
+          (export (;3;) "t" (external-id "urn:a") (type (eq 2)))
+        )
+      )
+      (export (;1;) "test:ids/b" (instance (type 3)))
+    )
+  )
+  (export (;3;) "b" (type 2))
+  (@custom "package-docs" "\01{}")
+  (@producers
+    (processed-by "wit-component" "0.262.0")
+  )
+)

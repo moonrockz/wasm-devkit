@@ -160,6 +160,7 @@ pub(all) struct ResolvedFunction {
   asynchronous : Bool
   location : Location
   stability : Stability
+  external_id : String?
 } derive(Eq, @debug.Debug)
 pub fn ResolvedFunction::equal(Self, Self) -> Bool
 pub fn ResolvedFunction::not_equal(Self, Self) -> Bool
@@ -185,6 +186,7 @@ pub(all) struct ResolvedType {
   kind : TypeKind
   location : Location
   stability : Stability
+  external_id : String?
 } derive(Eq, @debug.Debug)
 pub fn ResolvedType::equal(Self, Self) -> Bool
 pub fn ResolvedType::not_equal(Self, Self) -> Bool
@@ -291,6 +293,7 @@ pub fn Verified::world_summary(Self) -> Json
 pub fn Verified::worlds(Self) -> ReadOnlyArray[ResolvedWorld]
 
 pub(all) struct WorldItem {
+  external_id : String?
   name : String
   by_id : Bool
   kind : WorldItemKind

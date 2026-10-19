@@ -205,9 +205,16 @@ pub fn resolve_packages(
 ) -> Result[Resolution, ReadOnlyArray[Diagnostic]] {
   let binaries : Map[String, Bool] = Map([])
   let encoded_inputs = []
+  let input_ranks : Map[String, Int32] = Map([])
+  let external_id_overrides : Map[(String, String, String), String?] = Map([])
+  let mut input_rank = 0
   let input_metadata : Map[String, Map[Int32, Stability]] = Map([])
   let input_references : Map[String, Map[Int32, EncodedReference]] = Map([])
   for input in [root].iter().concat(dependencies.iter()) {
+    for document in input.lowered().documents {
+      input_ranks[document.id] = input_rank
+    }
+    input_rank += 1
     if input is Encoded(encoded) {
       binaries[encoded.source_id] = true
       encoded_inputs.push(encoded)
@@ -231,7 +238,7 @@ pub fn resolve_packages(
       if encoded_overlapping_packages(prepared, binaries) {
         encoded_select_closure(
           prepared, encoded_inputs, binaries, semantic_features, input_metadata,
-          input_references,
+          input_references, input_ranks, external_id_overrides,
         )
       } else {
         encoded_selected_prepared(prepared, Map([]), binaries)
@@ -259,6 +266,7 @@ pub fn resolve_packages(
         binary_sources=binaries,
         binary_metadata=metadata,
         binary_references=encoded_reference_nodes(prepared, input_references),
+        external_id_overrides~,
       )
     }
   }

@@ -1,0 +1,1 @@
+package test:ids;world app{@external-id("a") @external-id("b") import f:func();}

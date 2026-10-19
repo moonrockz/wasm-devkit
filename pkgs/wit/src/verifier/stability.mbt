@@ -43,7 +43,8 @@ fn semantic_attributes(
 ) -> Bool {
   attributes.all(id => {
     match tree.nodes[id].data {
-      Attribute(name="since" | "deprecated" | "unstable", ..) => true
+      Attribute(name="since" | "deprecated" | "unstable" | "external-id", ..) =>
+        true
       _ => false
     }
   })

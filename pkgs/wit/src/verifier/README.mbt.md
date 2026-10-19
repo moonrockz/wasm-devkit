@@ -49,6 +49,22 @@ types with the same shape and referenced type identities share the first allocat
 stability within a package. Declared types allocate before function signatures;
 dependencies allocate before their users, with source order breaking ties.
 
+`@external-id("...")` retains an opaque UTF-8 string on `ResolvedType` and
+`ResolvedFunction`. Interface imports and exports retain it on `WorldItem`;
+function and type world items keep their IDs on the referenced declaration.
+Renamed uses retain their own ID. Interface/world declarations and includes ignore
+this annotation, matching the pinned resolver. Duplicate IDs on retained declaration
+roles are errors. Empty strings and escaped Unicode remain exact, and equal IDs do
+not merge resource identities. Binary and WAT `external-id` name attributes follow
+the same rules; package wrapper exports have no corresponding declaration.
+
+When inferred and supplied interfaces overlap, external IDs come from the first
+selected caller input, including an absent ID. Supplied source definitions and
+original locations remain intact. Full merge-model equivalence is still open:
+stability on an overlapping member currently follows the supplied source definition,
+while pinned `Resolve::merge` retains first-input stability. Independent feature
+selection occurs before this merge.
+
 `SemanticFeatures::default()` enables no unstable features. Pass
 `semantic_features={ enabled: ["preview"], all_enabled: false, }` to `verify`,
 `verify_ast` or `resolve` to enable named features, or use `SemanticFeatures::all()`.
@@ -108,7 +124,7 @@ Worlds support owned resources, resource aliases, imported constructors/methods,
 static functions and accessors. Resource metadata retains world type/function
 stability under the binary selection rules.
 The profile rejects forward local interface inference, resource functions attached
-to resource aliases, anonymous structural types, name attributes other than `implements`, and export ascriptions.
+to resource aliases, anonymous structural types, name attributes other than `implements` and `external-id`, and export ascriptions.
 The tested forward-local projections panic in the pinned decoder; product
 regressions require a diagnostic.
 Overlapping inferred packages validate each encoded input against its own inferred

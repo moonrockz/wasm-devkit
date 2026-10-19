@@ -1,0 +1,1 @@
+package test:ids;interface api{@external-id("") type t=u32;@external-id("") f:func();}

@@ -1,0 +1,1 @@
+package test:ids; interface api{} @external-id("urn:a") use api as other; world app{import other;}

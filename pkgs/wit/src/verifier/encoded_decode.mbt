@@ -317,7 +317,7 @@ fn encoded_function(
 ///|
 priv enum EncodedInterfaceItem {
   ItemText(String)
-  Resource(String)
+  Resource(String, String)
 }
 
 ///|
@@ -410,9 +410,17 @@ fn lower_encoded(
           _ => raise Invalid("invalid component export section")
         }
         for item in exports {
-          guard item.attributes.is_empty() &&
-            item.desc is None &&
-            item.sortidx.sort == Type else {
+          let mut external_id = false
+          for attribute in item.attributes {
+            match attribute {
+              ExternalId(bytes) if !external_id => {
+                ignore(wat_text(bytes))
+                external_id = true
+              }
+              _ => raise Unsupported("package export attributes")
+            }
+          }
+          guard item.desc is None && item.sortidx.sort == Type else {
             raise Unsupported(
               "package export attributes, ascription or non-type sort",
             )
@@ -441,7 +449,7 @@ fn lower_encoded(
   let wrappers : Map[Int32, Int32] = Map([])
   let member_order : Map[Int32, Int32] = Map([])
   for i, root in roots {
-    guard root is TypeItem(name, id, false) else {
+    guard root is TypeItem(name, id, false, _) else {
       raise Invalid("invalid package root export")
     }
     if i == 0 {
@@ -471,7 +479,7 @@ fn lower_encoded(
     let mut exported = 0
     for item in graph.scopes[wrapper].items {
       match item {
-        InstanceItem(full, scope, false, None) | WorldItem(full, scope) => {
+        InstanceItem(full, scope, false, None, _) | WorldItem(full, scope) => {
           exported += 1
           guard v1 || exported == 1 else {
             raise Unsupported("v2 wrapper must export exactly one member")
@@ -491,7 +499,7 @@ fn lower_encoded(
           member_order[scope] = members.length()
           members.push((member_name, full, scope, item is WorldItem(_, _)))
         }
-        InstanceItem(_, _, true, None) => ()
+        InstanceItem(_, _, true, None, _) => ()
         _ => raise Unsupported("non-interface wrapper import or export")
       }
     }
@@ -515,7 +523,7 @@ fn lower_encoded(
       interfaces[full] = scope
       interface_names[full] = name
       for item in graph.scopes[scope].items {
-        if item is TypeItem(member_name, id, _) {
+        if item is TypeItem(member_name, id, _, _) {
           owners[id] = (name, member_name)
         }
       }
@@ -529,7 +537,7 @@ fn lower_encoded(
     let path = if owner == identity { name } else { full }
     interface_names[full] = path
     for item in graph.scopes[scope].items {
-      if item is TypeItem(member_name, id, _) {
+      if item is TypeItem(member_name, id, _, _) {
         owners[id] = (path, member_name)
       }
     }
@@ -537,7 +545,7 @@ fn lower_encoded(
   for scope in graph.scopes {
     for item in scope.items {
       encoded_graph_step(graph)
-      if item is TypeItem(name, _, _) {
+      if item is TypeItem(name, _, _, _) {
         graph.reserved_names[name] = true
       }
     }
@@ -658,4 +666,22 @@ fn encoded_package_path(owner : PackageIdentity) -> String raise EncodedFailure 
     Some(version) => "@" + version
     None => ""
   })
+}
+
+///|
+fn encoded_external_id(value : String?) -> String {
+  guard value is Some(value) else { return "" }
+  let out = StringBuilder()
+  out.write_string("@external-id(\"")
+  let digits : ReadOnlyArray[Char] = [
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
+  ]
+  for byte in @utf8.encode(value) {
+    let code = byte.to_int()
+    out.write_string("\\")
+    out.write_char(digits[code >> 4])
+    out.write_char(digits[code & 15])
+  }
+  out.write_string("\")")
+  out.to_string()
 }

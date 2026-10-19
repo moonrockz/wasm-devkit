@@ -339,6 +339,7 @@ fn expand_worlds(
 fn implicit_interface(prepared : Prepared, id : Int32, at : Int32) -> WorldItem {
   {
     stability: Unknown,
+    external_id: None,
     name: prepared.interface_name(id),
     kind: Interface(id),
     by_id: true,

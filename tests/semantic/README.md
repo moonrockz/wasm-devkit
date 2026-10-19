@@ -214,3 +214,12 @@ negative signs, uppercase radix prefixes, misplaced separators and overflow.
 The syntactically valid but out-of-bounds `0x80000000` case is rejected by Resolve;
 the retained compiler rejects indices beyond its signed 32-bit storage range.
 Accepted spellings compile to the same bytes and resolved model as decimal zero.
+
+The original Apache-2.0 `wit-external-id-*` cases compare source, binary and WAT
+external-ID acceptance against the pinned tools. Verifier tests separately compare
+IDs projected from pinned Resolve models for types, functions, resource methods,
+renamed uses and world interface items. They check ignored container annotations,
+empty strings, Unicode escapes, duplicate rejection, wrapper attributes, caller-order
+merging and independently disabled members. These projections do not establish
+complete model parity; overlapping inferred/supplied stability remains tracked on
+`wasm-devkit-p5m.8.1.5` and `.8.1.7`.

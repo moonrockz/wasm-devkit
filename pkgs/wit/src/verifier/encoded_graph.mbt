@@ -10,9 +10,9 @@ priv enum EncodedNode {
 
 ///|
 priv enum EncodedItem {
-  TypeItem(String, Int32, Bool)
-  FunctionItem(String, Int32, Bool)
-  InstanceItem(String, Int32, Bool, String?)
+  TypeItem(String, Int32, Bool, String?)
+  FunctionItem(String, Int32, Bool, String?)
+  InstanceItem(String, Int32, Bool, String?, String?)
   WorldItem(String, Int32)
 }
 
@@ -211,10 +211,13 @@ fn encoded_graph(
       }
       Import(name, attributes, desc) | Export(name, attributes, desc) => {
         let mut implements : String? = None
+        let mut external_id : String? = None
         for attribute in attributes {
           match attribute {
             Implements(bytes) if implements is None && desc is InstanceType(_) =>
               implements = Some(wat_text(bytes))
+            ExternalId(bytes) if external_id is None =>
+              external_id = Some(wat_text(bytes))
             _ => raise Unsupported("encoded name attributes")
           }
         }
@@ -223,14 +226,14 @@ fn encoded_graph(
           Type(Eq(index)) => {
             let target = encoded_graph_index(graph, scope, index)
             let id = encoded_graph_node(graph, scope, Link(target))
-            current.items.push(TypeItem(name, id, imported))
+            current.items.push(TypeItem(name, id, imported, external_id))
             if !imported {
               current.exported_types[name] = id
             }
           }
           Type(SubResource) => {
             let id = encoded_graph_node(graph, scope, Resource)
-            current.items.push(TypeItem(name, id, imported))
+            current.items.push(TypeItem(name, id, imported, external_id))
             if !imported {
               current.exported_types[name] = id
             }
@@ -241,6 +244,7 @@ fn encoded_graph(
                 name,
                 encoded_graph_index(graph, scope, index),
                 imported,
+                external_id,
               ),
             )
             if !imported {
@@ -251,7 +255,9 @@ fn encoded_graph(
             let template = encoded_graph_scope_type(graph, scope, index)
             let child = encoded_graph_instance(graph, template)
             current.instances.push(child)
-            current.items.push(InstanceItem(name, child, imported, implements))
+            current.items.push(
+              InstanceItem(name, child, imported, implements, external_id),
+            )
           }
           ComponentType(index) => {
             guard !imported else {
@@ -434,7 +440,7 @@ fn encoded_graph_imports(
     for item in graph.scopes[scope].items {
       encoded_graph_step(graph)
       match item {
-        InstanceItem(_, child, _, _) | WorldItem(_, child) =>
+        InstanceItem(_, child, _, _, _) | WorldItem(_, child) =>
           work.push((child, order))
         _ => ()
       }
@@ -445,7 +451,7 @@ fn encoded_graph_imports(
   for _, scope in interfaces {
     for item in graph.scopes[scope].items {
       encoded_graph_step(graph)
-      if item is TypeItem(_, id, _) {
+      if item is TypeItem(_, id, _, _) {
         named_nodes[id] = true
       }
     }
@@ -463,7 +469,7 @@ fn encoded_graph_imports(
     guard active.get(scope_id) is Some(order) else { continue }
     for item in scope.items {
       encoded_graph_step(graph)
-      if item is InstanceItem(item_name, projected, imported, implements) {
+      if item is InstanceItem(item_name, projected, imported, implements, _) {
         let name = implements.unwrap_or(item_name)
         guard name.contains("/") else { continue }
         let authoritative = match interfaces.get(name) {
@@ -475,7 +481,7 @@ fn encoded_graph_imports(
             inferred.push((name, projected))
             for item in graph.scopes[projected].items {
               encoded_graph_step(graph)
-              if item is TypeItem(_, id, _) {
+              if item is TypeItem(_, id, _, _) {
                 named_nodes[id] = true
               }
             }
@@ -505,7 +511,7 @@ fn encoded_graph_imports(
         for item in graph.scopes[projected].items {
           encoded_graph_step(graph)
           match item {
-            TypeItem(name, id, _) => {
+            TypeItem(name, id, _, _) => {
               guard types.get(name) is Some(target) else {
                 guard foreign.contains(name_of_interface) else {
                   raise Invalid(
@@ -527,7 +533,7 @@ fn encoded_graph_imports(
                 graph.bindings[id] = target
               }
             }
-            FunctionItem(name, _, _) => {
+            FunctionItem(name, _, _, _) => {
               guard functions.contains(name) else {
                 guard foreign.contains(name_of_interface) else {
                   raise Invalid(
@@ -557,7 +563,7 @@ fn encoded_graph_slots(
 ) -> Array[EncodedSlot] raise EncodedFailure {
   let names : Map[Int32, String] = Map([])
   for item in graph.scopes[scope].items {
-    if item is TypeItem(name, id, _) {
+    if item is TypeItem(name, id, _, _) {
       names[id] = name
     }
   }
@@ -637,25 +643,31 @@ fn encoded_graph_interface(
   let resources : Map[String, Array[String]] = Map([])
   for item in graph.scopes[scope].items {
     match item {
-      TypeItem(name, id, false) =>
+      TypeItem(name, id, false, external_id) =>
         match graph.nodes[id] {
           Resource => {
             resources[name] = []
-            items.push(Resource(name))
+            items.push(Resource(name, encoded_external_id(external_id)))
           }
           Link(target) =>
-            items.push(ItemText(encoded_type(slots, name, target)))
+            items.push(
+              ItemText(
+                encoded_external_id(external_id) +
+                encoded_type(slots, name, target),
+              ),
+            )
           _ => raise Invalid("invalid named interface type")
         }
-      FunctionItem(name, id, false) => {
+      FunctionItem(name, id, false, external_id) => {
         let (resource, text) = encoded_function(slots, name, id)
+        let annotation = encoded_external_id(external_id)
         match resource {
-          None => items.push(ItemText(text))
+          None => items.push(ItemText(annotation + text))
           Some(resource) => {
             guard resources.get(resource) is Some(methods) else {
               raise Invalid("resource function names an unknown resource")
             }
-            methods.push(text)
+            methods.push(annotation + text)
           }
         }
       }
@@ -674,8 +686,8 @@ fn encoded_render_items(
   for item in items {
     match item {
       ItemText(text) => out.write_string(text)
-      Resource(name) => {
-        out.write_string("resource " + encoded_name(name) + "{")
+      Resource(name, annotation) => {
+        out.write_string(annotation + "resource " + encoded_name(name) + "{")
         for text in resources[name] {
           out.write_string(text)
         }
@@ -699,18 +711,24 @@ fn encoded_graph_world(
   for item in graph.scopes[scope].items {
     encoded_graph_step(graph)
     match item {
-      TypeItem(name, id, true) =>
+      TypeItem(name, id, true, external_id) =>
         match graph.nodes[id] {
           Resource => {
             resources[name] = []
-            items.push(Resource(name))
+            items.push(Resource(name, encoded_external_id(external_id)))
           }
           Link(target) =>
-            items.push(ItemText(encoded_type(slots, name, target)))
+            items.push(
+              ItemText(
+                encoded_external_id(external_id) +
+                encoded_type(slots, name, target),
+              ),
+            )
           _ => raise Invalid("invalid named world type")
         }
-      FunctionItem(name, id, imported) => {
+      FunctionItem(name, id, imported, external_id) => {
         let (resource, text) = encoded_function(slots, name, id)
+        let annotation = encoded_external_id(external_id)
         match resource {
           Some(resource) => {
             guard imported else {
@@ -719,16 +737,21 @@ fn encoded_graph_world(
             guard resources.get(resource) is Some(methods) else {
               raise Unsupported("world function attached to a resource alias")
             }
-            methods.push(text)
+            methods.push(annotation + text)
           }
           None =>
             items.push(
-              ItemText((if imported { "import " } else { "export " }) + text),
+              ItemText(
+                annotation +
+                (if imported { "import " } else { "export " }) +
+                text,
+              ),
             )
         }
       }
-      InstanceItem(name, child, imported, implements) => {
-        let prefix = if imported { "import " } else { "export " }
+      InstanceItem(name, child, imported, implements, external_id) => {
+        let prefix = encoded_external_id(external_id) +
+          (if imported { "import " } else { "export " })
         let reference = implements.unwrap_or(name)
         if reference.contains("/") {
           guard interface_names.get(reference) is Some(local_name) else {
@@ -803,15 +826,15 @@ fn encoded_graph_instance(
   for item in original.items {
     encoded_graph_step(graph)
     match item {
-      TypeItem(name, id, imported) => {
+      TypeItem(name, id, imported, external_id) => {
         let id = remap(id)
-        items.push(TypeItem(name, id, imported))
+        items.push(TypeItem(name, id, imported, external_id))
         if !imported {
           exported_types[name] = id
         }
       }
-      FunctionItem(name, id, imported) => {
-        items.push(FunctionItem(name, remap(id), imported))
+      FunctionItem(name, id, imported, external_id) => {
+        items.push(FunctionItem(name, remap(id), imported, external_id))
         if !imported {
           exported_functions[name] = true
         }

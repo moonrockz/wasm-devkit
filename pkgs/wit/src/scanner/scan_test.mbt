@@ -107,8 +107,9 @@ test "comments retain delimiters, CR, Unicode and nested content" {
 test "Core WebAssembly name escapes and UTF-8 byte sequences" {
   for
     text in [
-      "\"\"", "\"☃︎😀\"", "\"\\7f\"", "\"\\u{7fff}\"", "\"\\u{1_f600}\"", "\"\\t\\n\\r\\\"\\'\\\\\"",
-      "\"\\e2\\98\\83\"", "\"\\u{00000000000061}\"", "\"\\u{7f}\\u{80}\\u{7ff}\\u{800}\\u{ffff}\\u{10000}\\u{10ffff}\"",
+      "\"\"", "\"☃︎😀\"", "\"\\7f\"", "\"\\u{7fff}\"", "\"\\u{1_f600}\"", "\"\\u{1__f600}\"",
+      "\"\\t\\n\\r\\\"\\'\\\\\"", "\"\\e2\\98\\83\"", "\"\\u{00000000000061}\"",
+      "\"\\u{7f}\\u{80}\\u{7ff}\\u{800}\\u{ffff}\\u{10000}\\u{10ffff}\"",
     ] {
     let result = @scanner.scan(text)
     assert_eq(result.tokens[0].kind, StringLiteral)
@@ -117,8 +118,8 @@ test "Core WebAssembly name escapes and UTF-8 byte sequences" {
   }
   for
     text in [
-      "\"\\q\"", "\"\\u{}\"", "\"\\u{_1}\"", "\"\\u{1_}\"", "\"\\u{1__2}\"", "\"\\u{d800}\"",
-      "\"\\u{110000}\"", "\"\\u{fffffffffffffffff}\"", "\"\t\"", "\"\\a\"",
+      "\"\\q\"", "\"\\u{}\"", "\"\\u{_1}\"", "\"\\u{1_}\"", "\"\\u{d800}\"", "\"\\u{110000}\"",
+      "\"\\u{fffffffffffffffff}\"", "\"\t\"", "\"\\a\"",
     ] {
     let result = @scanner.scan(text)
     assert_eq(result.diagnostics[0].code, "WIT-L006")

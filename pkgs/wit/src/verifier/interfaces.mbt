@@ -24,6 +24,7 @@ pub(all) struct ResolvedFunction {
   asynchronous : Bool
   location : Location
   stability : Stability
+  external_id : String?
 } derive(Eq, Debug)
 
 ///|
@@ -76,6 +77,7 @@ fn model_functions(
   origins : Array[Origin],
   stabilities : ReadOnlyArray[StabilityInfo],
   type_stabilities : ReadOnlyArray[Stability],
+  external_ids : ReadOnlyArray[String?],
 ) -> ReadOnlyArray[ResolvedFunction] {
   let result : Array[ResolvedFunction] = []
   let resource_members = resource_members(prepared.tree)
@@ -86,6 +88,7 @@ fn model_functions(
       id,
       scope: scopes[at],
       name: None,
+      external_id: None,
       stability,
       kind,
       location: prepared.origins[at].location,
@@ -140,6 +143,7 @@ fn model_functions(
       }
       result.push({
         stability: stabilities[signature].value,
+        external_id: external_ids[id],
         id: signature,
         name,
         kind,
@@ -171,6 +175,7 @@ fn model_functions(
         name: resource_function_name(prepared.tree, resource, id).unwrap(),
         stability: stabilities[id].value,
         kind: Constructor(resource),
+        external_id: external_ids[id],
         flavor: Plain,
         params: ReadOnlyArray::from_array(parameters),
         result: match output {

@@ -1,0 +1,1 @@
+package test:ids;world app{@external-id("inline") import api:interface{@external-id("type") type t=u32;@external-id("fn") f:func(x:t);}}

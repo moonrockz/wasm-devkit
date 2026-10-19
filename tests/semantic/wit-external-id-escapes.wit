@@ -1,0 +1,1 @@
+package test:ids; interface api{@external-id("a\n\t\r\"\27\\\u{1f600}\c3\a9") type t=u32;}
