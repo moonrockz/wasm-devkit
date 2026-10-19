@@ -163,7 +163,7 @@ test "component text parser: import and export attributes" {
       #|(component
       #|  (import "store" (implements "w:kv/s") (external-id "primary")
       #|    (instance $store))
-      #|  (import "wasi:http/types@0.2" (versionsuffix ".6") (instance))
+      #|  (import "wasi:http/types@0.2" (version-suffix ".6") (instance))
       #|  (export "store" (implements "w:kv/s") (external-id "public")
       #|    (instance $store)))
       #|
@@ -185,7 +185,7 @@ test "component text parser: import and export attributes" {
     component_validation_error(
       (
         #|(component
-        #|  (import "wasi:http/types@0.2.6" (versionsuffix "") (instance)))
+        #|  (import "wasi:http/types@0.2.6" (version-suffix "") (instance)))
         #|
       ),
     ),

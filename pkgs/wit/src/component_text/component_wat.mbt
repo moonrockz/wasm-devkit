@@ -736,21 +736,34 @@ fn parse_name_attributes(
       break
     }
     let kind = if items[0] is Atom(kind) { kind } else { break }
-    if kind != "implements" && kind != "versionsuffix" && kind != "external-id" {
+    if kind != "implements" && kind != "version-suffix" && kind != "external-id" {
       break
     }
     if items.length() != 2 {
       raise Unsupported("name attribute must contain exactly one value")
     }
+    guard items[1] is Str(value) else {
+      raise Unsupported("name attribute value must be a string")
+    }
     if kind == "implements" {
+      if has_version || has_external_id {
+        raise Unsupported(
+          "name attributes must be ordered implements, version-suffix, external-id",
+        )
+      }
       if has_implements {
         raise Unsupported("duplicate `implements` attribute")
       }
       has_implements = true
       attributes.push_u8(0x00)
-    } else if kind == "versionsuffix" {
+    } else if kind == "version-suffix" {
+      if has_external_id {
+        raise Unsupported(
+          "name attributes must be ordered implements, version-suffix, external-id",
+        )
+      }
       if has_version {
-        raise Unsupported("duplicate `versionsuffix` attribute")
+        raise Unsupported("duplicate `version-suffix` attribute")
       }
       has_version = true
       attributes.push_u8(0x01)
@@ -761,9 +774,7 @@ fn parse_name_attributes(
       has_external_id = true
       attributes.push_u8(0x02)
     }
-    attributes.push_utf8_name(
-      parse_name_text(items[1], "\{kind} attribute value"),
-    )
+    attributes.push_utf8_name(value)
     count += 1
     cursor += 1
   }

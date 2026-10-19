@@ -78,6 +78,7 @@ pub impl Show for ComponentValidationError with fn output(self, logger) {
 pub struct ComponentValidationConfig {
   wit_names : Bool
   component_implements : Bool
+  canonical_version_suffix : Bool
   restricted_map_keys : Bool
 }
 
@@ -85,9 +86,15 @@ pub struct ComponentValidationConfig {
 pub fn ComponentValidationConfig::ComponentValidationConfig(
   wit_names : Bool,
   component_implements~ : Bool = true,
+  canonical_version_suffix~ : Bool = true,
   restricted_map_keys~ : Bool = true,
 ) -> ComponentValidationConfig {
-  { wit_names, component_implements, restricted_map_keys, }
+  {
+    wit_names,
+    component_implements,
+    canonical_version_suffix,
+    restricted_map_keys,
+  }
 }
 
 ///|
@@ -848,125 +855,60 @@ fn is_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
 }
 
 ///|
-fn is_canonversion_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-  if start < 0 || end_ <= start || end_ > name.length() {
-    return false
-  }
-  let mut i = start
-  if name[i].to_int() >= 0x31 && name[i].to_int() <= 0x39 {
-    i += 1
-    while i < end_ && is_ascii_digit(name[i]) {
-      i += 1
-    }
-    return i == end_
-  }
-  if name[i].to_int() != 0x30 || i + 1 >= end_ {
-    return false
-  }
-  i += 1
-  if name[i].to_int() != 0x2E || i + 1 >= end_ {
-    return false
-  }
-  i += 1
-  if name[i].to_int() >= 0x31 && name[i].to_int() <= 0x39 {
-    i += 1
-    while i < end_ && is_ascii_digit(name[i]) {
-      i += 1
-    }
-    return i == end_
-  }
-  if name[i].to_int() != 0x30 || i + 1 >= end_ {
-    return false
-  }
-  i += 1
-  if name[i].to_int() != 0x2E || i + 1 >= end_ {
-    return false
-  }
-  i += 1
-  if name[i].to_int() == 0x30 {
-    return i + 1 == end_
-  }
-  if name[i].to_int() < 0x31 || name[i].to_int() > 0x39 {
-    return false
-  }
-  i += 1
-  while i < end_ && is_ascii_digit(name[i]) {
-    i += 1
-  }
-  i == end_
-}
-
-///|
 fn is_semver_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-  // Minimal SemVer parser (enough to match wasm-tools component-spec tests).
-  // Accepts: MAJOR.MINOR.PATCH[-prerelease][+build]
-  if start < 0 || end_ < 0 || start >= end_ || end_ > name.length() {
+  if start < 0 || start >= end_ || end_ > name.length() {
     return false
   }
   let mut i = start
-  let mut saw = false
-  while i < end_ && is_ascii_digit(name[i]) {
-    saw = true
-    i += 1
-  }
-  if !saw {
-    return false
-  }
-  if i >= end_ || name[i].to_int() != 0x2E {
-    return false
-  } // '.'
-  i += 1
-  saw = false
-  while i < end_ && is_ascii_digit(name[i]) {
-    saw = true
-    i += 1
-  }
-  if !saw {
-    return false
-  }
-  if i >= end_ || name[i].to_int() != 0x2E {
-    return false
-  } // '.'
-  i += 1
-  saw = false
-  while i < end_ && is_ascii_digit(name[i]) {
-    saw = true
-    i += 1
-  }
-  if !saw {
-    return false
-  }
-
-  // Optional prerelease
-  if i < end_ && name[i].to_int() == 0x2D { // '-'
-    i += 1
-    if i >= end_ {
+  for component in 0..<3 {
+    let begin = i
+    while i < end_ && is_ascii_digit(name[i]) {
+      i += 1
+    }
+    let count = i - begin
+    if count == 0 || (count > 1 && name[begin] == 0x30) || count > 20 {
       return false
     }
-    let mut need_id = true
-    while i < end_ && name[i].to_int() != 0x2B { // '+'
-      let b = name[i]
-      if need_id {
-        if b.to_int() == 0x2E || !is_semver_ident_char(b) { // '.' or invalid
+    // SemVer's numeric components are u64. Compare equal-length decimal
+    // spellings without overflowing the host's signed integer representation.
+    if count == 20 {
+      let maximum = b"18446744073709551615"
+      for digit in 0..<20 {
+        if name[begin + digit] > maximum[digit] {
           return false
         }
-        need_id = false
-        i += 1
-        continue
+        if name[begin + digit] < maximum[digit] {
+          break
+        }
       }
-      if b.to_int() == 0x2E {
-        need_id = true
-        i += 1
-        continue
-      }
-      if is_semver_ident_char(b) {
-        i += 1
-        continue
-      }
-      return false
     }
-    if need_id {
-      return false
+    if component < 2 {
+      if i >= end_ || name[i] != 0x2e {
+        return false
+      }
+      i += 1
+    }
+  }
+
+  // Numeric prerelease identifiers cannot contain leading zeroes.
+  if i < end_ && name[i] == 0x2d {
+    i += 1
+    while true {
+      let begin = i
+      let mut numeric = true
+      while i < end_ && is_semver_ident_char(name[i]) {
+        if !is_ascii_digit(name[i]) {
+          numeric = false
+        }
+        i += 1
+      }
+      if i == begin || (numeric && i - begin > 1 && name[begin] == 0x30) {
+        return false
+      }
+      if i >= end_ || name[i] != 0x2e {
+        break
+      }
+      i += 1
     }
   }
 
@@ -1021,10 +963,8 @@ fn is_package_name(name : Bytes) -> Bool {
       colon = i
     }
     if name[i].to_int() == 0x40 { // '@'
-      if at != -1 {
-        return false
-      }
       at = i
+      break
     }
   }
   if colon <= 0 || colon >= name.length() - 1 {
@@ -1033,15 +973,7 @@ fn is_package_name(name : Bytes) -> Bool {
   if at != -1 && at <= colon + 1 {
     return false
   }
-  if at != -1 {
-    if at >= name.length() - 1 {
-      return false
-    }
-    if !is_semver_range(name, at + 1, name.length()) &&
-      !is_canonversion_range(name, at + 1, name.length()) {
-      return false
-    }
-  }
+  // Version syntax is checked with the separately encoded suffix.
   let base_end = if at == -1 { name.length() } else { at }
   if !is_lower_kebab_case_range(name, 0, colon) {
     return false

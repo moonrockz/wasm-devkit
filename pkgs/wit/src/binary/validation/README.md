@@ -60,3 +60,11 @@ Component-type function imports retain resource visibility through imported type
 equality aliases, current-scope outer aliases and aliases from imported instances.
 Aliases created by exports remain unavailable to imports. Resource visibility
 checks use an explicit work stack, including map and fixed-length-list children.
+
+`canonical_version_suffix` defaults to wasmparser 0.262 validation: instance-only
+suffixes must be nonempty and split the full SemVer at its canonical track.
+Version components use strict u64 SemVer rules. WAC's 0.258 profile accepts any
+concatenation yielding a valid version, ignores suffixes on unversioned names,
+and leaves `implements` versions unchecked. Both profiles reject malformed UTF-8
+attributes, duplicates and suffixes on other sorts. The exact differing cases are
+recorded in `../fixtures/version-suffix/`; this is intentional pinned behavior.

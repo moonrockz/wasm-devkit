@@ -320,11 +320,18 @@ fn validate_name_attributes(
   cfg : ComponentValidationConfig,
 ) -> Unit raise ComponentValidationError {
   let mut has_implements = false
-  let mut has_version = false
+  let mut suffix : Bytes? = None
+  let mut interface_name = name
   let mut has_external_id = false
   for attribute in attributes {
+    let bytes = match attribute {
+      Implements(bytes) | VersionSuffix(bytes) | ExternalId(bytes) => bytes
+    }
+    (@utf8.decode(bytes, ignore_bom=false) |> ignore) catch {
+      _ => raise SectionParseError(section, "name attribute is not UTF-8")
+    }
     match attribute {
-      Implements(interface_name) => {
+      Implements(implemented) => {
         if !cfg.component_implements {
           raise SectionParseError(
             section, "the `cm-implements` feature is not active",
@@ -344,6 +351,7 @@ fn validate_name_attributes(
             section, "name is not valid with `implements`",
           )
         }
+        interface_name = implemented
         if interface_name.length() == 0 {
           raise SectionParseError(section, "not a valid name")
         }
@@ -354,33 +362,17 @@ fn validate_name_attributes(
         }
       }
       VersionSuffix(version) => {
-        if has_version {
+        if suffix is Some(_) {
           raise SectionParseError(
-            section, "duplicate `versionsuffix` attribute",
+            section, "duplicate `version-suffix` attribute",
           )
         }
-        has_version = true
-        let mut at = -1
-        for i in 0..<name.length() {
-          if name[i].to_int() == 0x40 {
-            at = i
-          }
+        if !(sort is Instance) {
+          raise SectionParseError(
+            section, "only instances can have a `version-suffix`",
+          )
         }
-        let merged : Array[Byte] = []
-        if at >= 0 {
-          for i in (at + 1)..<name.length() {
-            merged.push(name[i])
-          }
-        }
-        for byte in version {
-          merged.push(byte)
-        }
-        let full_version = Bytes::from_array(merged)
-        if at < 0 ||
-          !is_canonversion_range(name, at + 1, name.length()) ||
-          !is_semver_range(full_version, 0, full_version.length()) {
-          raise SectionParseError(section, "invalid version suffix")
-        }
+        suffix = Some(version)
       }
       ExternalId(_) => {
         if has_external_id {
@@ -388,6 +380,77 @@ fn validate_name_attributes(
         }
         has_external_id = true
       }
+    }
+  }
+  if !cfg.canonical_version_suffix && has_implements {
+    return
+  }
+  let is_interface = is_package_name(interface_name)
+  if cfg.canonical_version_suffix && suffix is Some(_) && !is_interface {
+    raise SectionParseError(section, "invalid version suffix")
+  }
+  if !is_interface {
+    return
+  }
+  let mut at = -1
+  for i in 0..<interface_name.length() {
+    if interface_name[i] == 0x40 {
+      at = i
+      break
+    }
+  }
+  if at < 0 {
+    if cfg.canonical_version_suffix && suffix is Some(_) {
+      raise SectionParseError(section, "invalid version suffix")
+    }
+    return
+  }
+  let merged : Array[Byte] = []
+  for i in (at + 1)..<interface_name.length() {
+    merged.push(interface_name[i])
+  }
+  let prefix_length = merged.length()
+  if suffix is Some(bytes) {
+    for byte in bytes {
+      merged.push(byte)
+    }
+  }
+  let full = Bytes::from_array(merged)
+  if !is_semver_range(full, 0, full.length()) {
+    raise SectionParseError(section, "invalid interface version")
+  }
+  if cfg.canonical_version_suffix && suffix is Some(bytes) {
+    if bytes.length() == 0 {
+      raise SectionParseError(section, "invalid version suffix")
+    }
+    let mut first_dot = -1
+    let mut second_dot = -1
+    let mut build = full.length()
+    let mut prerelease = false
+    for i in 0..<full.length() {
+      if full[i] == 0x2b {
+        build = i
+        break
+      }
+      if full[i] == 0x2d {
+        prerelease = true
+      }
+      if full[i] == 0x2e && first_dot < 0 {
+        first_dot = i
+      } else if full[i] == 0x2e && second_dot < 0 {
+        second_dot = i
+      }
+    }
+    let canonical = if !prerelease && !(first_dot == 1 && full[0] == 0x30) {
+      first_dot
+    } else if !prerelease &&
+      !(second_dot - first_dot == 2 && full[first_dot + 1] == 0x30) {
+      second_dot
+    } else {
+      build
+    }
+    if prefix_length != canonical {
+      raise SectionParseError(section, "invalid version suffix")
     }
   }
 }

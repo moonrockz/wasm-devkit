@@ -1,0 +1,1 @@
+(component (type (component (type (component (type (instance)) (import "local" (implements "test:dep/base@1.2.3") (version-suffix "") (instance (type 0))))) (export "test:root/app" (component (type 0))))) (export "app" (type 0)))

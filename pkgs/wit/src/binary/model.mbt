@@ -83,7 +83,11 @@ pub fn validate_declarative_component(
     }
     @validation.validate_component_with_config(
       component,
-      @validation.ComponentValidationConfig(true, restricted_map_keys=false),
+      @validation.ComponentValidationConfig(
+        true,
+        restricted_map_keys=false,
+        canonical_version_suffix=false,
+      ),
     ) catch {
       error => raise Failure(None, "WIT-B003", error.to_string())
     }

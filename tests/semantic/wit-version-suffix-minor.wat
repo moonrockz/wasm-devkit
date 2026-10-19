@@ -1,0 +1,1 @@
+(component (type (component (type (component (type (instance)) (import "test:dep/base@0.2" (version-suffix ".1") (instance (type 0))))) (export "test:root/app" (component (type 0))))) (export "app" (type 0)))

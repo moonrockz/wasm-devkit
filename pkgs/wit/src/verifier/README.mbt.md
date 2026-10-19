@@ -571,3 +571,9 @@ recursive descent.
 and the older nested-namespace extension. Named paths in this profile are independent
 of whitespace. The older `Features::default()` and `Features::all()` profiles retain
 their pinned specification behavior, including the package-import example in that corpus.
+
+Encoded instance names accept canonical `version-suffix` attributes. WIT expands
+the suffix before binding package/interface identities, including `implements`
+names and supplied source dependencies. Resource identities, metadata and caller
+provenance survive this expansion. The shared WAC binary loader retains raw IDs
+to match its older pinned Package API.

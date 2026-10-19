@@ -1,0 +1,1 @@
+(component (import "local" (implements "test:dep/base@α") (version-suffix "β") (instance)))

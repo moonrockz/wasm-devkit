@@ -14,7 +14,8 @@ explicit stack and rejects nesting above 256 before compilation. Existing compil
 helpers operate on that bounded syntax. This is the WIT decoder's compatibility
 frontend; it does not establish complete component text conformance.
 
-Original white-box tests remain unchanged. Additional tests cover signed-LEB
+The retained attribute test now uses the standard `version-suffix` spelling.
+The compiler enforces quoted attribute values and their grammar order. Additional tests cover signed-LEB
 boundaries, nested map syntax and deep-input rejection. WIT verifier and CLI tests
 compare encoded maps and wasi-http against wasm-tools 1.262.0 and wit-parser
 0.262.0. This patch is tracked by `wasm-devkit-p5m.8.1.5`.

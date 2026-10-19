@@ -1,0 +1,1 @@
+(component (type (instance)) (import "test:dep/base@1" (version-suffix ".0.0-rc") (instance (type 0))))

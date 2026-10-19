@@ -1,4 +1,5 @@
 import {
+  "moonbitlang/core/encoding/utf8",
   "Milky2018/wasm_component" @component,
   "Milky2018/wasm_core/parser",
   "Milky2018/wasm_core/types",

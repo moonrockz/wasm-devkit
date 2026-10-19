@@ -634,6 +634,28 @@ async fn main {
     assert_eq(source_model, binary_model)
     assert_eq(binary_model, wat_model)
   }
+  for name in ["model", "foreign"] {
+    let path = "tests/semantic/wit-version-suffix-" + name
+    let (source_model, _) = run(["verify", path + ".wit", "--json"], 0, wit)
+    let (binary_model, _) = run(["verify", path + ".wasm", "--json"], 0, wit)
+    let (wat_model, _) = run(["verify", path + ".wat", "--json"], 0, wit)
+    assert_eq(source_model, binary_model)
+    assert_eq(binary_model, wat_model)
+  }
+  for extension in ["wasm", "wat"] {
+    let _ = run(
+      [
+        "verify",
+        "tests/semantic/wit-version-suffix-foreign." + extension,
+        "--base",
+        ".",
+        "--dep",
+        "test:dep@1.0.0=tests/semantic/wit-version-suffix-supplied.wit",
+      ],
+      0,
+      wit,
+    )
+  }
   let stability_path = "tests/semantic/wit-merge-stability-rich"
   let stability_dep = "test:dep@1.0.0=tests/semantic/wit-merge-stability-rich-source.wit"
   let (stability_binary, _) = run(

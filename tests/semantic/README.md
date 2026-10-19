@@ -303,3 +303,12 @@ spread with explicit exports of `handle`, `[constructor]handle`,
 `[method]handle.take` and `handles` reproduces the same failure. This is an encoder
 limitation, not a spread-resolution exclusion. The exact case remains accepted by
 the verifier. Tracking: Beads `wasm-devkit-p5m.8.2.6`.
+
+The original Apache-2.0 `wit-version-suffix-*` cases compare canonical major,
+minor, patch and prerelease/build splits with wit-parser 0.262.0 at wasm-tools
+revision `e22db44da4eaf17a0e46ec55b911c7539589a3cc`. Invalid splits, partial versions,
+leading zeroes and u64 overflow remain rejected. Library tests also compare
+resource graphs, stability and both caller orders when an inferred dependency
+uses a suffix but the supplied source uses the full version. WAC's separate
+0.258 behavior is recorded under `pkgs/wit/src/binary/fixtures/version-suffix`.
+These cases do not establish complete mixed-model conformance.

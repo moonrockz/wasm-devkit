@@ -211,11 +211,14 @@ fn encoded_graph(
       }
       Import(name, attributes, desc) | Export(name, attributes, desc) => {
         let mut implements : String? = None
+        let mut suffix : String? = None
         let mut external_id : String? = None
         for attribute in attributes {
           match attribute {
             Implements(bytes) if implements is None && desc is InstanceType(_) =>
               implements = Some(wat_text(bytes))
+            VersionSuffix(bytes) if suffix is None && desc is InstanceType(_) =>
+              suffix = Some(wat_text(bytes))
             ExternalId(bytes) if external_id is None =>
               external_id = Some(wat_text(bytes))
             _ => raise Unsupported("encoded name attributes")
@@ -252,6 +255,14 @@ fn encoded_graph(
             }
           }
           InstanceType(index) => {
+            let name = match (implements, suffix) {
+              (Some(interface_name), Some(suffix)) => {
+                implements = Some(interface_name + suffix)
+                name
+              }
+              (None, Some(suffix)) => name + suffix
+              _ => name
+            }
             let template = encoded_graph_scope_type(graph, scope, index)
             let child = encoded_graph_instance(graph, template)
             current.instances.push(child)
