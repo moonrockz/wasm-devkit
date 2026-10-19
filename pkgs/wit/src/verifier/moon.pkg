@@ -4,6 +4,7 @@ import {
   "moonrockz/wit/span",
   "moonrockz/wit/diagnostic",
   "moonbitlang/core/debug",
+  "moonbitlang/core/priority_queue",
 }
 
 import {

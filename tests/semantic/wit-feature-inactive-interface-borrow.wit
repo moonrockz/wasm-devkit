@@ -1,0 +1,1 @@
+package example:app;@unstable(feature=foo)interface api{@unstable(feature=foo)resource r;f:func()->borrow<r>;}

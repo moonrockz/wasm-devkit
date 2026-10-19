@@ -108,6 +108,7 @@ fn collect_file_aliases(
   scopes : Array[Map[String, Int32]],
   bindings : Array[Binding],
   package_edges : Array[(Int32, Int32, Int32)],
+  foreign_kinds : Map[String, (String, Int32)],
   errors : Array[Diagnostic],
 ) -> Map[String, Map[String, Int32]] {
   let aliases : Map[String, Map[String, Int32]] = Map([])
@@ -179,7 +180,12 @@ fn collect_file_aliases(
         seen[introduced] = item
       }
       // Top-level aliases refer to direct declarations, never another alias.
-      match prepared.find_item(scopes, path, "item") {
+      let expected = match prepared.foreign_key(path) {
+        Some(key) =>
+          foreign_kinds.get(key).map(entry => entry.0).unwrap_or("item")
+        None => "item"
+      }
+      match prepared.find_item(scopes, path, expected) {
         Err(d) => errors.push(d)
         Ok((target, external)) => {
           names[introduced] = target

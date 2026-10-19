@@ -1,0 +1,1 @@
+package example:app;@unstable(feature=foo)interface api{use example:missing/api.{t};}

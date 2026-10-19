@@ -1,0 +1,1 @@
+package example:app;world app{@unstable(feature=foo)type t=u8;import f:func(x:t);}

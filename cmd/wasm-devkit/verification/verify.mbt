@@ -192,6 +192,10 @@ async fn wit(options : @cli.Options) -> @cli.Output {
     @verifier.resolve(
       root,
       dependencies=ReadOnlyArray::from_array(dependencies),
+      semantic_features={
+        enabled: options.semantic_features,
+        all_enabled: options.all_semantic_features,
+      },
     ) {
     Ok(model) => {
       if options.world is Some(_) {

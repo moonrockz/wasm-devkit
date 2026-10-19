@@ -75,6 +75,7 @@ fn model_functions(
   types : Array[ResolvedType],
   origins : Array[Origin],
   stabilities : ReadOnlyArray[StabilityInfo],
+  type_stabilities : ReadOnlyArray[Stability],
 ) -> ReadOnlyArray[ResolvedFunction] {
   let result : Array[ResolvedFunction] = []
   let resource_members = resource_members(prepared.tree)
@@ -110,7 +111,7 @@ fn model_functions(
             let ty = handle(
               Borrow(resource),
               signature,
-              stabilities[resource].value,
+              type_stabilities[signature],
             )
             members.push({
               name: "self",

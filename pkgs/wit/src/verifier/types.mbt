@@ -203,7 +203,10 @@ fn resolved_types(
         id,
         stability: stabilities[id],
         scope: scopes[id],
-        name: declaration(node.data),
+        name: match node.data {
+          Rename(name~, renamed~) => Some(renamed.unwrap_or(name))
+          _ => declaration(node.data)
+        },
         kind,
         location: locations[id],
       })

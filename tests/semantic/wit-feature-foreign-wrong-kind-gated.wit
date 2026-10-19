@@ -1,0 +1,1 @@
+package example:app;world app{include example:dep/app;}package example:dep{world app{@unstable(feature=foo)import example:other/world;}}package example:other{@unstable(feature=foo)world world{}}

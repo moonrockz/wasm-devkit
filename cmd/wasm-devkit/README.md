@@ -187,6 +187,18 @@ or unsupported constructs, and 2 for invalid arguments or I/O errors.
 not modify source files or execute components. See the library verifier guides for
 the current profile. Dependency resolution and remaining semantics are tracked in issue #5.
 
+WIT semantic features use `--semantic-feature NAME`, repeated for multiple names,
+or `--all-semantic-features`. Disabled `@unstable` declarations are omitted; active
+references to excluded declarations fail with `WIT-S013`. Names match exactly.
+`--all-features` continues to control grammar extensions. Package versions come
+from package headers and exact dependency paths. `@since` requires a package version
+at least as new as its annotation; `@deprecated` preserves the declaration.
+
+```shell
+wasm-devkit verify api.wit --semantic-feature preview
+wasm-devkit verify ./wit --language wit --all-semantic-features
+```
+
 ### Resolve a WIT package
 
 ```shell

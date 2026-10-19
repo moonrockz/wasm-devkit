@@ -63,6 +63,8 @@ pub(all) struct Options {
   language : Language
   path : String
   all_features : Bool
+  semantic_features : ReadOnlyArray[String]
+  all_semantic_features : Bool
   indent_width : Int
   check : Bool
   write : Bool

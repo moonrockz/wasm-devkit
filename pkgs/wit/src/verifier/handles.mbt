@@ -4,6 +4,7 @@
 fn resource_roots(
   tree : @ast.Tree,
   references : Map[Int32, Int32],
+  excluded : Map[Int32, Bool],
 ) -> ReadOnlyArray[Int32] {
   let roots = Array::make(tree.nodes.length(), -2)
   for seed in 0..<tree.nodes.length() {
@@ -16,6 +17,12 @@ fn resource_roots(
         break
       }
       path.push(id)
+      // A foreign resource constraint is deferred while its selector is gated.
+      // Selection removes this identity, and rejects every active reference.
+      if excluded.contains(id) {
+        root = id
+        break
+      }
       match tree.nodes[id].data {
         Resource(..) => {
           root = id
@@ -38,9 +45,8 @@ fn resource_roots(
 }
 
 ///|
-fn verify_handles(
+fn verify_handle_targets(
   prepared : Prepared,
-  references : Map[Int32, Int32],
   resources : ReadOnlyArray[Int32],
   errors : Array[Diagnostic],
 ) -> Unit {
@@ -58,6 +64,16 @@ fn verify_handles(
       _ => ()
     }
   }
+}
+
+///|
+fn verify_handles(
+  prepared : Prepared,
+  references : Map[Int32, Int32],
+  active_functions : ReadOnlyArray[Bool],
+  errors : Array[Diagnostic],
+) -> Unit {
+  let tree = prepared.tree
   // Cache the first borrowed handle reachable from every type. This also
   // bounds the cost of shared DAGs and long chains reused by many functions.
   let borrowed = Array::make(tree.nodes.length(), -2)
@@ -106,7 +122,7 @@ fn verify_handles(
       Signature(result~, ..) | Constructor(result~, ..) => result
       _ => None
     }
-    if result is Some(result) && borrowed[result] >= 0 {
+    if active_functions[id] && result is Some(result) && borrowed[result] >= 0 {
       let d = prepared_error(
         prepared, id, "WIT-S007", "a function result cannot contain a borrowed handle",
       )

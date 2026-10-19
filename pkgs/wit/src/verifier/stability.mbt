@@ -37,13 +37,13 @@ fn item_attributes(data : @ast.Data) -> ReadOnlyArray[Int32] {
 }
 
 ///|
-fn stable_attributes(
+fn semantic_attributes(
   tree : @ast.Tree,
   attributes : ReadOnlyArray[Int32],
 ) -> Bool {
   attributes.all(id => {
     match tree.nodes[id].data {
-      Attribute(name="since" | "deprecated", ..) => true
+      Attribute(name="since" | "deprecated" | "unstable", ..) => true
       _ => false
     }
   })
@@ -277,6 +277,7 @@ fn version_compare(a : String, b : String) -> Int32 {
 fn verify_stable_versions(
   prepared : Prepared,
   infos : ReadOnlyArray[StabilityInfo],
+  relevant : ReadOnlyArray[Bool],
   errors : Array[Diagnostic],
 ) -> Unit {
   let headers : Map[Int32, Location] = Map([])
@@ -296,7 +297,9 @@ fn verify_stable_versions(
   // gates cannot be newer than this package's already-checked explicit gate.
   let checked : Map[Int32, Bool] = Map([])
   for id, info in infos {
-    guard info.value is Stable(since, _) && info.origin is Some(attribute) else {
+    guard relevant[id] &&
+      info.value is Stable(since, _) &&
+      info.origin is Some(attribute) else {
       continue
     }
     if checked.contains(attribute) || !semantic_version(since) {
@@ -340,11 +343,13 @@ pub extend Stability with @debug.Debug::{to_repr}
 /// the declaration's context, or the first directly referenced known stability.
 /// A named alias with unknown stability deliberately stops that propagation.
 fn type_stabilities(
-  tree : @ast.Tree,
+  prepared : Prepared,
   references : Map[Int32, Int32],
   resources : ReadOnlyArray[Int32],
   infos : ReadOnlyArray[StabilityInfo],
+  interface_edges : Array[(Int32, Int32, Int32)],
 ) -> ReadOnlyArray[Stability] {
+  let tree = prepared.tree
   let values = infos.map(info => info.value).iter().to_array()
   let named_roots = Array::make(tree.nodes.length(), false)
   for id, node in tree.nodes {
@@ -362,49 +367,68 @@ fn type_stabilities(
       }
     }
   }
+  let canonical = Array::make(tree.nodes.length(), "")
+  for id in 0..<tree.nodes.length() {
+    canonical[id] = "t" + id.to_string()
+  }
+  let interned : Map[String, (String, Stability)] = Map([])
+  let intern = fn(key : String, stability : Stability) {
+    match interned.get(key) {
+      Some(entry) => entry
+      None => {
+        let entry = ("a" + interned.length().to_string(), stability)
+        interned[key] = entry
+        entry
+      }
+    }
+  }
   let done = Array::make(tree.nodes.length(), false)
-  for start in 0..<tree.nodes.length() {
+  for action in allocation_order(prepared, references, interface_edges) {
+    let start = match action {
+      Receiver(signature, resource) => {
+        let key = prepared.node_packages[signature].to_string() +
+          ":borrow:t" +
+          resource.to_string()
+        let (_, stability) = intern(key, infos[resource].value)
+        values[signature] = stability
+        continue
+      }
+      Type(start) => start
+      Scope(_) => continue
+    }
     let pending = [(start, false)]
-    while !pending.is_empty() {
-      let (id, leaving) = pending.pop().unwrap()
+    while pending.pop() is Some((id, leaving)) {
       if done[id] {
         continue
       }
       let data = tree.nodes[id].data
       if !leaving {
         pending.push((id, true))
-        for child in type_edges(data) {
-          pending.push((child, false))
-        }
-        if data is NamedType(..) && references.get(id) is Some(target) {
-          pending.push((target, false))
+        let children = type_edges(data)
+        for i = children.length() - 1; i >= 0; i = i - 1 {
+          pending.push((children[i], false))
         }
         continue
       }
       done[id] = true
       match data {
         NamedType(..) =>
-          values[id] = references
-            .get(id)
-            .map(target => values[target])
-            .unwrap_or(Unknown)
-        PrimitiveType(..) => values[id] = Unknown
-        OwnType(resource~) =>
-          values[id] = references
-            .get(resource)
-            .map(target => values[target])
-            .unwrap_or(Unknown)
-        BorrowType(resource~) =>
-          // Borrow metadata comes from the named target, before conversion to
-          // the canonical resource identity used by the public handle graph.
-          if values[id] == Unknown && references.get(resource) is Some(target) {
+          if references.get(id) is Some(target) {
             values[id] = values[target]
+            canonical[id] = "t" + target.to_string()
           }
+        PrimitiveType(name~) => {
+          values[id] = Unknown
+          canonical[id] = "b" + name
+        }
+        OwnType(resource~) => {
+          values[id] = values[resource]
+          canonical[id] = canonical[resource]
+        }
         _ =>
           if values[id] == Unknown &&
             !type_declaration(data) &&
-            !named_roots[id] &&
-            !(data is Rename(..)) {
+            !named_roots[id] {
             for child in type_edges(data) {
               if values[child] != Unknown {
                 values[id] = values[child]
@@ -412,6 +436,12 @@ fn type_stabilities(
               }
             }
           }
+      }
+      if !named_roots[id] && anonymous_key(data, canonical) is Some(key) {
+        let key = prepared.node_packages[id].to_string() + ":" + key
+        let (identity, stability) = intern(key, values[id])
+        canonical[id] = identity
+        values[id] = stability
       }
     }
   }

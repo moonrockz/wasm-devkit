@@ -37,8 +37,29 @@ async fn main {
       continue
     }
     let fields = line.split("\t").map(StringView::to_owned).to_array()
-    guard fields.length() == 3 else {
+    guard fields.length() == 3 || fields.length() == 4 else {
       fail("invalid semantic fixture manifest row")
+    }
+    let profile = if fields.length() == 4 { fields[3] } else { "default" }
+    let reference_features : Array[String] = []
+    let verifier_features : Array[String] = []
+    if profile == "all" {
+      reference_features.push("--all-features")
+      verifier_features.push("--all-semantic-features")
+    } else if profile.has_prefix("feature=") {
+      let names = profile[8:].to_owned()
+      if names.is_empty() {
+        fail("empty semantic feature profile")
+      }
+      reference_features.append(["--features", names])
+      for name in names.split(",") {
+        if name.is_empty() {
+          fail("empty semantic feature name")
+        }
+        verifier_features.append(["--semantic-feature", name.to_owned()])
+      }
+    } else if profile != "default" {
+      fail("unknown semantic feature profile")
     }
     let path = "tests/semantic/" + fields[0]
     let expected = match fields[1] {
@@ -57,8 +78,11 @@ async fn main {
       fail(path + ": fixture hash mismatch " + hash_error.text())
     }
     let (tool, args) = if path.has_suffix(".wit") {
-      (wasm_tools, ["component", "wit", "--json", path])
+      (wasm_tools, ["component", "wit", "--json", path, ..reference_features])
     } else {
+      if profile != "default" {
+        fail("WAC feature profiles are not defined")
+      }
       (wac, ["resolve", "--deps-dir", "tests/semantic/deps", path])
     }
     let (code, _, error) = @process.collect_output(tool, args)
@@ -77,6 +101,7 @@ async fn main {
         "verify",
         path,
         "--all-features",
+        ..verifier_features,
         ..if expected == 0 && path.has_suffix(".wit") {
           ["--json"]
         } else {
@@ -90,7 +115,7 @@ async fn main {
     if path.has_suffix(".wit") {
       let (oracle_code, reference, oracle_error) = @process.collect_output(
         oracle,
-        [path],
+        [path, ..reference_features],
       )
       if oracle_code != expected {
         fail(path + ": API oracle acceptance mismatch: " + oracle_error.text())

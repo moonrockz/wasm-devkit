@@ -169,6 +169,38 @@ test "dependency arguments require verify and stdin supplies a resolution base" 
 }
 
 ///|
+test "WIT semantic feature flags are explicit and independent from grammar switches" {
+  let source = "package example:app;interface api{@unstable(feature=foo)resource r;f:func(x:r);}"
+  for args in [["verify", "a.wit"], ["verify", "a.wit", "--all-features"]] {
+    let output = @cli.execute(options(args[:]), source)
+    assert_eq(output.exit_code, 1)
+    assert_true(output.stderr.contains("WIT-S013"))
+  }
+  for
+    args in [
+      ["verify", "a.wit", "--semantic-feature", "foo"],
+      [
+        "verify", "a.wit", "--semantic-feature", "bar", "--semantic-feature", "foo",
+      ],
+      ["verify", "a.wit", "--all-semantic-features"],
+    ] {
+    let output = @cli.execute(options(args[:]), source)
+    assert_eq(output.exit_code, 0)
+    assert_true(output.write_text is None)
+  }
+  for
+    args in [
+      ["verify", "a.wit", "--semantic-feature"],
+      ["verify", "a.wit", "--semantic-feature", ""],
+      ["verify", "a.wit", "--semantic-feature", "--json"],
+      ["verify", "a.wac", "--semantic-feature", "foo"],
+      ["parse", "a.wit", "--all-semantic-features"],
+    ] {
+    assert_true(@cli.arguments(args[:]) is Err(_))
+  }
+}
+
+///|
 test "world selection is explicit and summaries contain no arena indices" {
   let source = "package example:app; interface api {} world first {import api;} world second {}"
   let selected = @cli.execute(

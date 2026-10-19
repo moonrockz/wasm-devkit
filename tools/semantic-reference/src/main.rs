@@ -17,6 +17,17 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
     let mut resolve = Resolve::default();
+    let mut args = env::args().skip(2);
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--features" => {
+                let names = args.next().ok_or("--features requires names")?;
+                resolve.features.extend(names.split(',').map(str::to_owned));
+            }
+            "--all-features" => resolve.all_features = true,
+            _ => return Err(format!("unknown option: {arg}").into()),
+        }
+    }
     resolve.push_path(path)?;
     let mut value = serde_json::to_value(&resolve)?;
     // Resolve's JSON map keys cannot distinguish a user name `interface-0`

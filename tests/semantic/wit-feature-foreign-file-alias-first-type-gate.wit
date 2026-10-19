@@ -1,0 +1,1 @@
+package example:app;use example:dep/api as other;interface api{@unstable(feature=foo)use other.{t as first};use example:dep/api.{t as second};}package example:dep{interface api{type t=u8;}}

@@ -10,11 +10,11 @@ import {
 }
 
 // Values
-pub fn resolve(SourcePackage, dependencies? : ReadOnlyArray[SourcePackage]) -> Result[Resolution, ReadOnlyArray[Diagnostic]]
+pub fn resolve(SourcePackage, dependencies? : ReadOnlyArray[SourcePackage], semantic_features? : SemanticFeatures) -> Result[Resolution, ReadOnlyArray[Diagnostic]]
 
-pub fn verify(@parser.Parse, source_id? : String, source~ : String) -> Result[Verified, ReadOnlyArray[Diagnostic]]
+pub fn verify(@parser.Parse, source_id? : String, source~ : String, semantic_features? : SemanticFeatures) -> Result[Verified, ReadOnlyArray[Diagnostic]]
 
-pub fn verify_ast(@ast.Tree, source_id? : String, source~ : String) -> Result[Verified, ReadOnlyArray[Diagnostic]]
+pub fn verify_ast(@ast.Tree, source_id? : String, source~ : String, semantic_features? : SemanticFeatures) -> Result[Verified, ReadOnlyArray[Diagnostic]]
 
 // Errors
 
@@ -168,6 +168,16 @@ pub(all) struct ResolvedWorld {
 pub fn ResolvedWorld::equal(Self, Self) -> Bool
 pub fn ResolvedWorld::not_equal(Self, Self) -> Bool
 pub fn ResolvedWorld::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SemanticFeatures {
+  enabled : ReadOnlyArray[String]
+  all_enabled : Bool
+} derive(Eq, @debug.Debug)
+pub fn SemanticFeatures::all() -> Self
+pub fn SemanticFeatures::default() -> Self
+pub fn SemanticFeatures::equal(Self, Self) -> Bool
+pub fn SemanticFeatures::not_equal(Self, Self) -> Bool
+pub fn SemanticFeatures::to_repr(Self) -> @debug.Repr
 
 pub(all) struct SourcePackage {
   documents : ReadOnlyArray[Document]

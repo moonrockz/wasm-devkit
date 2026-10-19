@@ -423,10 +423,11 @@ fn prepare(
 pub fn resolve(
   root : SourcePackage,
   dependencies~ : ReadOnlyArray[SourcePackage] = [],
+  semantic_features~ : SemanticFeatures = SemanticFeatures::default(),
 ) -> Result[Resolution, ReadOnlyArray[Diagnostic]] {
   match prepare(root, dependencies) {
     Err(errors) => Err(errors)
-    Ok(prepared) => verify_prepared(prepared)
+    Ok(prepared) => verify_prepared(prepared, semantic_features)
   }
 }
 
@@ -557,6 +558,23 @@ fn Prepared::find_item(
       }
     }
   }
+}
+
+///|
+/// Foreign feature gates defer member lookup, but never package lookup or path
+/// validation. Local names continue through ordinary lexical validation.
+fn Prepared::foreign_package(self : Prepared, path : Int32) -> Int32? {
+  guard self.tree.nodes[path].data is Path(namespaces~, segments~, version~) &&
+    namespaces.length() == 1 &&
+    segments.length() == 2 &&
+    identifier(segments[1]) else {
+    return None
+  }
+  let key = namespaces[0] +
+    ":" +
+    segments[0] +
+    version.map(v => "@" + v).unwrap_or("")
+  self.by_identity.get(key)
 }
 
 ///|

@@ -101,6 +101,21 @@ async fn main {
   assert_true(accessor_error.contains("WIT-S007"))
   assert_true(accessor_error.contains(invalid_accessor + ":1:"))
   assert_eq(@fs.read_file(invalid_accessor).text(), invalid_accessor_source)
+  let gated = dir + "/gated.wit"
+  let gated_source = "package example:features;interface api{@unstable(feature=foo)resource r;f:func(x:r);}"
+  @fs.write_file(gated, gated_source)
+  let _ = run(["check", gated], 0, wit)
+  let (_, gated_error) = run(["verify", gated, "--all-features"], 1, wit)
+  assert_true(gated_error.contains("WIT-S013"))
+  let _ = run(["verify", gated, "--semantic-feature", "foo"], 0, wit)
+  let _ = run(
+    ["verify", "--language", "wit", "--base", dir, "--all-semantic-features"],
+    0,
+    gated,
+  )
+  let _ = run(["verify", gated, "--semantic-feature", "other"], 1, wit)
+  let _ = run(["verify", gated, "--semantic-feature"], 2, wit)
+  assert_eq(@fs.read_file(gated).text(), gated_source)
   let package_blocks = dir + "/package-blocks.wit"
   let package_blocks_source = "package example:app;world app{include example:dep/base;}package example:dep{world base{import host:interface{resource item;load:func()->item;}}}"
   @fs.write_file(package_blocks, package_blocks_source)

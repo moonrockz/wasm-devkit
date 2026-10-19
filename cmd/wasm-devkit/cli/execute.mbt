@@ -89,7 +89,11 @@ fn wit_execute(options : Options, source : String, label : String) -> Output {
   let code = if valid { 0 } else { 1 }
   match options.command {
     Verify =>
-      match @wit_verifier.verify(parsed, source_id=label, source~) {
+      match
+        @wit_verifier.verify(parsed, source_id=label, source~, semantic_features={
+          enabled: options.semantic_features,
+          all_enabled: options.all_semantic_features,
+        }) {
         Ok(model) => {
           if options.world is Some(_) {
             if model.select_world(name=options.world) is Err(diagnostics) {

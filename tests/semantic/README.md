@@ -11,7 +11,13 @@ is passed unchanged to the reference semantic resolver and the wasm-devkit CLI.
 Directory fixtures include complete multi-file and dependency bundles. There are no
 registry lookups in this suite. The wasm-devkit CLI
 uses `--all-features` to admit the fixed-list grammar. The reference resolvers use
-their default semantic feature sets.
+the semantic profile recorded in each manifest row.
+
+The optional fourth manifest column is `default`, `feature=NAME` or `all`.
+Comma-separated names in a `feature=` profile enable multiple named features.
+The runner passes matching `--features`/`--all-features` arguments to both WIT
+reference tools and `--semantic-feature`/`--all-semantic-features` to wasm-devkit.
+Three-column rows retain the default semantic profile. WAC rows use only `default`.
 
 | Language | Reference | Revision | Semantic operation |
 | --- | --- | --- | --- |
@@ -19,8 +25,8 @@ their default semantic feature sets.
 | WAC | wac-cli 0.12.0 | `5a7480c69ae7a4dc9eb161f485cbcb8c95e372c9` | `wac resolve --deps-dir tests/semantic/deps FILE` calls `Document::resolve` |
 
 Use the official release executables or build those exact revisions with their default
-release feature sets. The runner checks executable version output. No feature switches
-are passed. In-profile acceptance differences fail the runner.
+release build features. The runner checks executable version output. In-profile
+acceptance differences fail the runner.
 
 ```shell
 mise run build:semantic-reference
@@ -72,4 +78,6 @@ forbidden blocks inside blocks.
 Stability cases compare `since` and `deprecated` annotation combinations, owning
 package versions, prerelease and build ordering, source dependency annotations,
 and annotated resource functions, world items, use selectors and includes.
-Semantic feature selection remains outside the implemented profile.
+Feature profiles exercise inactive declarations, surviving references and owners,
+borrowed results, accessor validation order, use/include/package boundaries,
+anonymous interning and dependency/source allocation order.

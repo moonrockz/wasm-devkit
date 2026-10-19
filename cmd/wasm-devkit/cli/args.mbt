@@ -21,6 +21,8 @@ pub let help : String =
   #|  --deps-dir PATH      Dependency directory relative to the resolution base
   #|  --dep PKG=PATH       Map a package to a file/directory, relative to the base
   #|  --all-features       Enable documented grammar extensions
+  #|  --semantic-feature NAME  Enable a named WIT semantic feature (repeatable)
+  #|  --all-semantic-features   Enable all WIT semantic features
   #|  --indent 0..8        Spaces per indentation level (default: 2)
   #|  --check              Fail if formatting would change input (format only)
   #|  --write              Update a named file after successful formatting
@@ -62,6 +64,8 @@ pub(all) struct Options {
   language : Language
   path : String
   all_features : Bool
+  semantic_features : ReadOnlyArray[String]
+  all_semantic_features : Bool
   indent_width : Int32
   check : Bool
   write : Bool
@@ -101,6 +105,8 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
   let mut language = None
   let mut indent_width = 2
   let mut all_features = false
+  let semantic_features : Array[String] = []
+  let mut all_semantic_features = false
   let mut check = false
   let mut write = false
   let mut base = None
@@ -179,6 +185,14 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
       world = Some(args[at])
     } else if !literal && arg == "--json" {
       json = true
+    } else if !literal && arg == "--semantic-feature" {
+      at += 1
+      if at == args.length() || args[at].is_empty() || args[at].has_prefix("-") {
+        return Err("--semantic-feature requires a feature name")
+      }
+      semantic_features.push(args[at])
+    } else if !literal && arg == "--all-semantic-features" {
+      all_semantic_features = true
     } else if !literal && arg == "--all-features" {
       all_features = true
     } else if !literal && arg == "--check" {
@@ -216,6 +230,10 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
   if (world is Some(_) || json) && (command != Verify || language != Wit) {
     return Err("--world and --json require verify --language wit")
   }
+  if (all_semantic_features || !semantic_features.is_empty()) &&
+    (command != Verify || language != Wit) {
+    return Err("semantic feature options require verify --language wit")
+  }
   if command == Verify && path == "-" && base is None {
     return Err("verify on stdin requires --base PATH")
   }
@@ -234,6 +252,8 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
       language,
       path,
       all_features,
+      semantic_features: ReadOnlyArray::from_array(semantic_features),
+      all_semantic_features,
       indent_width,
       check,
       write,

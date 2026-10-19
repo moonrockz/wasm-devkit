@@ -1,0 +1,1 @@
+package example:app;interface api{@unstable(feature=foo)p:get()->u8;p:set(x:u8);}

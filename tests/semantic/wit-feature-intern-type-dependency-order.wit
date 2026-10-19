@@ -1,0 +1,1 @@
+package example:app;interface api{@unstable(feature=foo)record a{x:list<u8>,y:b}record b{x:list<u8>}}

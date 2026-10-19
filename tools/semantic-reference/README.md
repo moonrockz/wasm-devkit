@@ -7,7 +7,10 @@ published, and never called by product code. The semantic libraries remain pure.
 The dependency is `wit-parser = 0.262.0` from wasm-tools v1.262.0. Its published
 `.cargo_vcs_info.json` records commit `e22db44da4eaf17a0e46ec55b911c7539589a3cc`.
 `Cargo.lock` records every dependency checksum. Build features are the crate's default
-`std`, `serde`, `decoding`, plus `wat`. No optional semantic features are selected.
+`std`, `serde`, `decoding`, plus `wat`. Semantic selection defaults to no unstable
+features. After the input path, pass `--features NAME[,NAME]` or `--all-features`
+to configure `Resolve::features` or `Resolve::all_features`. The runner matches these
+settings to the selected wasm-devkit semantic profile.
 Rust 1.94.1 is pinned through `SEMANTIC_REFERENCE_RUST_VERSION` in mise configuration.
 
 ```shell

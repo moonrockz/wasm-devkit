@@ -36,6 +36,7 @@ pub fn verify_ast(
   tree : @ast.Tree,
   source_id~ : String = "<input>",
   source~ : String,
+  semantic_features~ : SemanticFeatures = SemanticFeatures::default(),
 ) -> Result[Verified, ReadOnlyArray[Diagnostic]] {
   let document : Document = {
     id: source_id,
@@ -43,7 +44,7 @@ pub fn verify_ast(
     ast: tree,
     diagnostics: [],
   }
-  match resolve({ documents: [document], }) {
+  match resolve({ documents: [document], }, semantic_features~) {
     Ok(result) => Ok(result.model)
     Err(errors) => Err(errors)
   }
@@ -52,6 +53,7 @@ pub fn verify_ast(
 ///|
 fn verify_prepared(
   prepared : Prepared,
+  semantic_features : SemanticFeatures,
 ) -> Result[Resolution, ReadOnlyArray[Diagnostic]] {
   let tree = prepared.tree
   let errors : Array[Diagnostic] = []
@@ -73,6 +75,8 @@ fn verify_prepared(
   }
   let references : Array[(Int32, Int32)] = []
   let aliases : Array[Int32] = []
+  let excluded_selectors : Map[Int32, Bool] = Map([])
+  let ignored_world_paths : Map[String, Int32] = Map([])
   let owner_scopes : Map[Int32, Int32] = Map([])
   let scope_owners : Map[Int32, Int32] = Map([])
   let interface_edges : Array[(Int32, Int32, Int32)] = []
@@ -167,8 +171,12 @@ fn verify_prepared(
       }
     }
   }
+  let foreign_kinds = foreign_kinds(prepared, errors)
   let file_aliases = collect_file_aliases(
-    prepared, scopes, bindings, package_edges, errors,
+    prepared, scopes, bindings, package_edges, foreign_kinds, errors,
+  )
+  let foreign = foreign_gates(
+    prepared, scopes, file_aliases, stabilities, semantic_features,
   )
   let record_path = fn(
     owner : Int32,
@@ -181,6 +189,15 @@ fn verify_prepared(
       package_edges.push(
         (prepared.node_packages[path], prepared.node_packages[target], path),
       )
+    }
+  }
+  let disabled_foreign = fn(at : Int32, path : Int32) {
+    if !semantic_features.includes(stabilities[at].value) &&
+      prepared.foreign_package(path) is Some(package_index) {
+      package_edges.push((prepared.node_packages[at], package_index, path))
+      true
+    } else {
+      false
     }
   }
   let world_entry = fn(
@@ -287,7 +304,7 @@ fn verify_prepared(
       (Inline, Interface(items~, attributes~, ..))
       | (Top, Interface(items~, attributes~, ..))
       | (Top, World(items~, attributes~, ..)) => {
-        if !stable_attributes(tree, attributes) {
+        if !semantic_attributes(tree, attributes) {
           bad(id, "WIT-S003", "attributes are not yet supported")
         }
         guard owner_scopes.get(id) is Some(scope_id) else {
@@ -304,13 +321,60 @@ fn verify_prepared(
         }
       }
       (Member, Use(path~, names~, renamed~, attributes~)) => {
-        if renamed is Some(_) || !stable_attributes(tree, attributes) {
+        if renamed is Some(_) || !semantic_attributes(tree, attributes) {
           bad(
             id, "WIT-S003", "interface alias and use attributes are not yet supported",
           )
         }
         if names.is_empty() {
           bad(id, "WIT-S001", "use requires selected type names")
+        }
+        if foreign.paths.contains(id) &&
+          (
+            !semantic_features.includes(stabilities[id].value) ||
+            names.any(selector => foreign.excluded.contains(selector))
+          ) {
+          ignore(disabled_foreign(id, path))
+          for selector in names {
+            guard tree.nodes[selector].data is Rename(name~, renamed~) else {
+              bad(selector, "WIT-S001", "invalid use selector role")
+              continue
+            }
+            let introduced = renamed.unwrap_or(name)
+            if !identifier(name) || !identifier(introduced) {
+              bad(selector, "WIT-S001", "invalid decoded use name")
+            }
+            // No public type is constructed for an excluded foreign selector.
+            // References to it are availability failures before model creation.
+            excluded_selectors[selector] = true
+            if semantic_features.includes(stabilities[selector].value) &&
+              foreign.excluded.get(selector) is Some(first) {
+              let diagnostic = prepared_error(
+                prepared, selector, "WIT-S013", "foreign type excluded by its first semantic feature gate",
+              )
+              errors.push({
+                ..diagnostic,
+                related: [
+                  {
+                    location: prepared.origins[first].location,
+                    message: "first foreign type gate",
+                  },
+                ],
+              })
+            }
+            let owner = scope_owners[scope]
+            if tree.nodes[owner].data is World(..) {
+              world_entry(
+                owner,
+                true,
+                introduced,
+                Type(selector),
+                selector,
+                false,
+              )
+            }
+          }
+          continue
         }
         match prepared.find_item(scopes, path, "interface", file_aliases~) {
           Err(d) => errors.push(d)
@@ -383,7 +447,7 @@ fn verify_prepared(
           bad(id, "WIT-S001", "imports and exports require a world")
           continue
         }
-        if !stable_attributes(tree, attributes) {
+        if !semantic_attributes(tree, attributes) {
           bad(id, "WIT-S003", "world item attributes are not yet supported")
         }
         let imported = data is Import(..)
@@ -391,7 +455,33 @@ fn verify_prepared(
           Path(..) =>
             match
               prepared.find_item(scopes, target, "interface", file_aliases~) {
-              Err(d) => errors.push(d)
+              Err(d) =>
+                if (d.code == "WIT-S005" || d.code == "WIT-S008") &&
+                  disabled_foreign(id, target) {
+                  let key = owner.to_string() +
+                    ":" +
+                    imported.to_string() +
+                    ":" +
+                    @debug.to_string(tree.nodes[target].data)
+                  if ignored_world_paths.get(key) is Some(first) {
+                    let diagnostic = prepared_error(
+                      prepared, id, "WIT-S004", "duplicate gated foreign world item",
+                    )
+                    errors.push({
+                      ..diagnostic,
+                      related: [
+                        {
+                          location: prepared.origins[first].location,
+                          message: "first declared here",
+                        },
+                      ],
+                    })
+                  } else {
+                    ignored_world_paths[key] = id
+                  }
+                } else {
+                  errors.push(d)
+                }
               Ok((interface_id, external)) => {
                 record_path(owner, target, interface_id, external)
                 let canonical = prepared.interface_name(interface_id)
@@ -443,11 +533,24 @@ fn verify_prepared(
           bad(id, "WIT-S001", "include requires a world")
           continue
         }
-        if !stable_attributes(tree, attributes) {
+        if !semantic_attributes(tree, attributes) {
           bad(id, "WIT-S003", "include attributes are not yet supported")
         }
+        for selector in renames {
+          guard tree.nodes[selector].data
+            is Rename(name~, renamed=Some(replacement)) &&
+            identifier(name) &&
+            identifier(replacement) else {
+            bad(selector, "WIT-S001", "invalid include rename AST")
+            continue
+          }
+        }
         match prepared.find_item(scopes, path, "world", file_aliases~) {
-          Err(d) => errors.push(d)
+          Err(d) =>
+            if !((d.code == "WIT-S005" || d.code == "WIT-S008") &&
+              disabled_foreign(id, path)) {
+              errors.push(d)
+            }
           Ok((target, external)) => {
             record_path(owner, path, target, external)
             includes.push((owner, target, id, renames))
@@ -455,7 +558,7 @@ fn verify_prepared(
         }
       }
       (Member, Resource(methods~, attributes~, ..)) => {
-        if !stable_attributes(tree, attributes) {
+        if !semantic_attributes(tree, attributes) {
           bad(id, "WIT-S003", "resource attributes are not yet supported")
         }
         aliases.push(id)
@@ -482,14 +585,14 @@ fn verify_prepared(
         }
       }
       (Member, Alias(ty~, attributes~, ..)) => {
-        if !stable_attributes(tree, attributes) {
+        if !semantic_attributes(tree, attributes) {
           bad(id, "WIT-S003", "attributes are not yet supported")
         }
         aliases.push(id)
         pending.push((ty, Type, scope))
       }
       (Member, Record(fields~, attributes~, ..)) => {
-        if !stable_attributes(tree, attributes) {
+        if !semantic_attributes(tree, attributes) {
           bad(id, "WIT-S003", "attributes are not yet supported")
         }
         if fields.is_empty() {
@@ -504,7 +607,7 @@ fn verify_prepared(
       (Member, Flags(cases~, attributes~, ..))
       | (Member, Enum(cases~, attributes~, ..))
       | (Member, Variant(cases~, attributes~, ..)) => {
-        if !stable_attributes(tree, attributes) {
+        if !semantic_attributes(tree, attributes) {
           bad(id, "WIT-S003", "attributes are not yet supported")
         }
         if cases.is_empty() {
@@ -552,7 +655,7 @@ fn verify_prepared(
         if is_static && role is Member {
           bad(id, "WIT-S001", "static functions require a resource")
         }
-        if !stable_attributes(tree, attributes) {
+        if !semantic_attributes(tree, attributes) {
           bad(id, "WIT-S003", "function attributes are not yet supported")
         }
         if role is ResourceMember &&
@@ -579,7 +682,7 @@ fn verify_prepared(
         pending.push((signature, Signature, scope))
       }
       (ResourceMember, Constructor(params~, result~, attributes~)) => {
-        if !stable_attributes(tree, attributes) {
+        if !semantic_attributes(tree, attributes) {
           bad(id, "WIT-S003", "constructor attributes are not yet supported")
         }
         duplicates(params, "parameter")
@@ -762,19 +865,42 @@ fn verify_prepared(
   if !errors.is_empty() {
     return Err(dependency_chains(prepared, package_edges, errors))
   }
-  let resources = resource_roots(tree, edges)
-  verify_handles(prepared, edges, resources, errors)
+  let resources = resource_roots(tree, edges, excluded_selectors)
+  verify_handle_targets(prepared, resources, errors)
   verify_constructors(prepared, edges, errors)
   verify_setter_results(prepared, edges, errors)
   if !errors.is_empty() {
     return Err(dependency_chains(prepared, package_edges, errors))
   }
-  verify_stable_versions(prepared, stabilities, errors)
+  let arena = SemanticArena::new(
+    prepared, edges, resources, stabilities, interface_edges,
+  )
+  verify_interface_accessors(arena, errors)
   if !errors.is_empty() {
     return Err(dependency_chains(prepared, package_edges, errors))
   }
-  let arena = SemanticArena::new(prepared, edges, resources, stabilities)
-  verify_interface_accessors(arena, errors)
+  let selection = select_features(
+    prepared,
+    arena,
+    stabilities,
+    edges,
+    semantic_features,
+    foreign.versions,
+    errors,
+  )
+  verify_handles(prepared, edges, selection.functions, errors)
+  for (owner, target, at, _) in includes {
+    if selection.nodes[owner] && selection.nodes[at] && !selection.nodes[target] {
+      errors.push(unavailable(prepared, arena, at, target))
+    }
+  }
+  let includes = includes.filter(entry => {
+    selection.nodes[entry.0] && selection.nodes[entry.2]
+  })
+  let interface_edges = interface_edges.filter(entry => {
+    selection.nodes[entry.0] && selection.nodes[entry.2]
+  })
+  filter_world_items(prepared, arena, tables, selection, errors)
   if !errors.is_empty() {
     return Err(dependency_chains(prepared, package_edges, errors))
   }
@@ -782,7 +908,9 @@ fn verify_prepared(
   verify_accessor_pairs(arena, tables, errors)
   let worlds : Array[ResolvedWorld] = []
   for id, node in tree.nodes {
-    if node.data is World(name~, ..) && tables.imports.get(id) is Some(imports) {
+    if selection.nodes[id] &&
+      node.data is World(name~, ..) &&
+      tables.imports.get(id) is Some(imports) {
       worlds.push({
         id,
         name,
@@ -806,7 +934,11 @@ fn verify_prepared(
       source_id: first.id,
       source_text: first.text,
       tree: first.ast,
-      bindings: ReadOnlyArray::from_array(bindings),
+      bindings: ReadOnlyArray::from_array(
+        bindings.filter(b => {
+          selection.nodes[b.node] && selection.nodes[b.target]
+        }),
+      ),
       resolved_types: ReadOnlyArray::from_array(
         arena.type_order.map(id => arena.types[id]),
       ),

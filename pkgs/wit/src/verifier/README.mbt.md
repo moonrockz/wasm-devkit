@@ -44,9 +44,28 @@ metadata. Deprecation requires `since` or `unstable`; its version does not remov
 item or impose a package-version bound. Duplicate annotations and conflicting
 `since`/`unstable` annotations are errors. Anonymous composites inherit their
 declaration's stability, or the first directly referenced type with known stability.
-Named aliases retain their own annotations and can stop that inheritance.
+Named aliases retain their own annotations and can stop that inheritance. Anonymous
+types with the same shape and referenced type identities share the first allocation's
+stability within a package. Declared types allocate before function signatures;
+dependencies allocate before their users, with source order breaking ties.
 
-Encoded packages, semantic feature selection and other attributes still fail explicitly
+`SemanticFeatures::default()` enables no unstable features. Pass
+`semantic_features={ enabled: ["preview"], all_enabled: false, }` to `verify`,
+`verify_ast` or `resolve` to enable named features, or use `SemanticFeatures::all()`.
+Names match exactly. `@unstable(feature=preview)` declarations disappear when disabled.
+An active declaration cannot refer to an excluded declaration or lose its named
+type owner. Name resolution, cycles and declaration contracts still validate before
+selection. Borrowed function results validate only for active functions. Interface
+accessors pair before selection; world accessors pair after selection and includes.
+The immutable original syntax always retains disabled declarations.
+
+Foreign packages must exist even for disabled paths. Their member and type lookups
+can be deferred by gates. At the reference pin, a foreign member combines its path
+gates, while a foreign imported type retains its first selector's annotation.
+Foreign interface/world kind checks occur before selection. Source order can
+therefore affect which foreign gates and anonymous type annotations take precedence.
+
+Encoded packages and other attributes still fail explicitly
 under `WIT-S003`. Their implementation
 continues under [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
 A successful result covers the entire supported input. An unsupported or unresolved
@@ -103,7 +122,8 @@ Stable code families are `WIT-S001` for invalid ASTs, `WIT-S002` for missing pac
 semantics, `WIT-S004` for duplicate names and `WIT-S005` for unresolved or
 incorrectly typed references. `WIT-S006` reports type cycles, `WIT-S007` reports invalid aggregate/composite, handle and function contracts, and `WIT-S008` distinguishes a non-type declaration used as a type.
 `WIT-S013` reports invalid stability annotations and unreleased or unversioned
-`since` gates, with the original annotation and package locations.
+`since` gates, with the original annotation and package locations. It also reports
+active references to excluded declarations, with their source locations.
 
 ```mbt check
 ///|
@@ -115,6 +135,22 @@ test "inspect semantic release annotations" {
   assert_true(
     @verifier.verify(@parser.parse(unversioned), source=unversioned) is Err(_),
   )
+}
+```
+
+```mbt check
+///|
+test "select semantic features independently of grammar" {
+  let source = "package example:app;interface api{@unstable(feature=preview)resource r;open:func()->r;}"
+  let parsed = @parser.parse(source)
+  assert_true(@verifier.verify(parsed, source~) is Err(_))
+  let profile : @verifier.SemanticFeatures = {
+    enabled: ["preview"],
+    all_enabled: false,
+  }
+  let model = @verifier.verify(parsed, source~, semantic_features=profile).unwrap()
+  assert_eq(model.functions()[0].name, "open")
+  assert_eq(model.ast(), parsed.ast)
 }
 ```
 
