@@ -68,7 +68,8 @@ pub fn ValidatedDeclarativeComponent::bytes(
 ///|
 /// Validate declarative component metadata against the WAC 0.12.0 encoding
 /// profile without executing or resolving it. This profile does not apply the
-/// newer wasmparser 0.262.0 memory64 layout bound used by type-only WIT inputs.
+/// newer wasmparser 0.262.0 memory64 layout bound or map-key restrictions used
+/// by type-only WIT inputs.
 /// Physical type scopes are limited to 256, as in validate_type_component.
 /// Package reconstruction and dependency resolution are separate operations.
 pub fn validate_declarative_component(
@@ -80,7 +81,10 @@ pub fn validate_declarative_component(
     let component = @component.parse_component(bytes) catch {
       error => raise Failure(None, "WIT-B001", error.to_string())
     }
-    @validation.validate_component(component) catch {
+    @validation.validate_component_with_config(
+      component,
+      @validation.ComponentValidationConfig(true, restricted_map_keys=false),
+    ) catch {
       error => raise Failure(None, "WIT-B003", error.to_string())
     }
     Ok({ bytes, })

@@ -161,10 +161,15 @@
 @@ -856 +862 @@
 -  let outer_core_type_bounds : Array[Int] = []
 +  let outer_core_type_bounds : Array[Int32] = []
-@@ -1021 +1027 @@
+@@ -872 +878,3 @@
+-      if !is_map_key_type(key, type_table, Map([])) {
++      // wasmparser 0.258 permits any valid value type as a map key; 0.262
++      // restricts keys to the component model's primitive keytype grammar.
++      if cfg.restricted_map_keys && !is_map_key_type(key, type_table, Map([])) {
+@@ -1021 +1029 @@
 -      let local_resource_ids : Array[Int?] = []
 +      let local_resource_ids : Array[Int32?] = []
-@@ -1025,6 +1031,8 @@
+@@ -1025,6 +1033,8 @@
 -      let local_named_types : Map[Int, Int] = Map([])
 -      let local_import_resource_names : Map[String, Int] = Map([])
 -      let local_export_resource_names : Map[String, Int] = Map([])
@@ -179,7 +184,7 @@
 +      let local_import_resource_type_idxs : Map[Int32, Int32] = Map([])
 +      let local_export_resource_type_idxs : Map[Int32, Int32] = Map([])
 +      let local_core_type_exports : Array[Map[String, Int32]?] = []
-@@ -1043,2 +1051,8 @@
+@@ -1043,2 +1053,8 @@
 -              let outer = outer_type_of_alias(type_outers, count, idx)
 -              if type_outer_depths[count - 1] < component_depth {
 +              // Count zero aliases an earlier type in the current lexical scope.
@@ -190,35 +195,35 @@
 +                outer_type_of_alias(type_outers, count, idx)
 +              }
 +              if count > 0 && type_outer_depths[count - 1] < component_depth {
-@@ -1058,0 +1073 @@
+@@ -1058,0 +1075 @@
 +              let rid = if count == 0 { local_resource_ids[idx] } else { None }
-@@ -1060 +1075 @@
+@@ -1060 +1077 @@
 -              local_resource_ids.push(None)
 +              local_resource_ids.push(rid)
-@@ -1139 +1154 @@
+@@ -1139 +1156 @@
 -                    local_resource_ids.push(None)
 +                    local_resource_ids.push(Some(new_idx))
-@@ -1168,0 +1184,4 @@
+@@ -1168,0 +1186,4 @@
 +                      validate_accessor_pair(
 +                        7, name, ft, local_type_table, local_resource_ids, import_functions,
 +                      )
 +                      import_functions[name] = ft
-@@ -1238 +1257 @@
+@@ -1238 +1259 @@
 -                    local_resource_ids.push(None)
 +                    local_resource_ids.push(Some(new_idx))
-@@ -1267,0 +1287,4 @@
+@@ -1267,0 +1289,4 @@
 +                      validate_accessor_pair(
 +                        7, name, ft, local_type_table, local_resource_ids, export_functions,
 +                      )
 +                      export_functions[name] = ft
-@@ -1289,0 +1313,3 @@
+@@ -1289,0 +1315,3 @@
 +      let local_resource_ids : Array[Int32?] = []
 +      let resource_names : Map[String, Int32] = Map([])
 +      let export_functions : Map[String, @component.FuncType] = Map([])
-@@ -1292 +1318 @@
+@@ -1292 +1320 @@
 -      let local_core_type_exports : Array[Map[String, Int]?] = []
 +      let local_core_type_exports : Array[Map[String, Int32]?] = []
-@@ -1317,2 +1343,8 @@
+@@ -1317,2 +1345,8 @@
 -              let outer = outer_type_of_alias(type_outers, count, idx)
 -              if type_outer_depths[count - 1] < component_depth {
 +              // Count zero aliases an earlier type in the current lexical scope.
@@ -229,15 +234,15 @@
 +                outer_type_of_alias(type_outers, count, idx)
 +              }
 +              if count > 0 && type_outer_depths[count - 1] < component_depth {
-@@ -1332,0 +1365 @@
+@@ -1332,0 +1367 @@
 +              let rid = if count == 0 { local_resource_ids[idx] } else { None }
-@@ -1333,0 +1367 @@
+@@ -1333,0 +1369 @@
 +              local_resource_ids.push(rid)
-@@ -1344,0 +1379 @@
+@@ -1344,0 +1381 @@
 +              local_resource_ids.push(None)
-@@ -1360,0 +1396 @@
+@@ -1360,0 +1398 @@
 +            local_resource_ids.push(None)
-@@ -1394,4 +1430,31 @@
+@@ -1394,4 +1432,31 @@
 -            // Like the component export section, exporting a type introduces
 -            // a fresh type index in this instance type's local type space.
 -            if desc is Type(_) {
@@ -273,19 +278,19 @@
 +                  _ => ()
 +                }
 +              _ => ()
-@@ -1433 +1496 @@
+@@ -1433 +1498 @@
 -  core_type_bound : Int,
 +  core_type_bound : Int32,
-@@ -1578 +1641 @@
+@@ -1578 +1643 @@
 -fn canon_memory_idx(opts : Array[@component.CanonOpt]) -> Int? {
 +fn canon_memory_idx(opts : Array[@component.CanonOpt]) -> Int32? {
-@@ -1588 +1651 @@
+@@ -1588 +1653 @@
 -fn canon_realloc_idx(opts : Array[@component.CanonOpt]) -> Int? {
 +fn canon_realloc_idx(opts : Array[@component.CanonOpt]) -> Int32? {
-@@ -1598 +1661 @@
+@@ -1598 +1663 @@
 -fn canon_post_return_idx(opts : Array[@component.CanonOpt]) -> Int? {
 +fn canon_post_return_idx(opts : Array[@component.CanonOpt]) -> Int32? {
-@@ -1680 +1743 @@
+@@ -1680 +1745 @@
 -  visiting : Map[Int, Unit],
 +  visiting : Map[Int32, Unit],
 --- a/core_type.mbt
@@ -590,7 +595,7 @@
 -  nested : Bool,
 +  named_types : Map[Int32, Int32],
 +  type_external : Bool,
-@@ -1495,125 +1398,66 @@
+@@ -1495,125 +1398,63 @@
 -  match ty {
 -    Prim(_) => true
 -    TypeIdx(idx) =>
@@ -728,9 +733,6 @@
 +    }
 +    seen[(index, top_external)] = true
 +    guard type_table[index] is Some(definition) else { continue }
-+    if top_external && (definition is Own(_) || definition is Borrow(_)) {
-+      return false
-+    }
 +    if typedef_requires_name_for_interface(definition) &&
 +      named_types.get(index) is None {
 +      return false
@@ -782,47 +784,47 @@
 +    }
 +  }
 +  true
-@@ -1626,2 +1470,2 @@
+@@ -1626,2 +1467,2 @@
 -  resource_ids : Array[Int?],
 -  named_types : Map[Int, Int],
 +  resource_ids : Array[Int32?],
 +  named_types : Map[Int32, Int32],
-@@ -1629 +1473 @@
+@@ -1629 +1470 @@
 -  let visiting : Map[Int, Int] = Map([])
 +  let visiting : Map[Int32, Int32] = Map([])
-@@ -1654 +1498 @@
+@@ -1654 +1495 @@
 -  visiting_global : Map[Int, Int],
 +  visiting_global : Map[Int32, Int32],
-@@ -1666,3 +1510,3 @@
+@@ -1666,3 +1507,3 @@
 -  tyidx : Int,
 -  type_table : Array[@component.TypeDef?],
 -  visiting_global : Map[Int, Int],
 +  tyidx : Int32,
 +  type_table : Array[@component.TypeDef?],
 +  visiting_global : Map[Int32, Int32],
-@@ -1687 +1531 @@
+@@ -1687 +1528 @@
 -  tyidx : Int,
 +  tyidx : Int32,
-@@ -1690,2 +1534,2 @@
+@@ -1690,2 +1531,2 @@
 -  visiting_local : Map[Int, Int],
 -  visiting_global : Map[Int, Int],
 +  visiting_local : Map[Int32, Int32],
 +  visiting_global : Map[Int32, Int32],
-@@ -1717 +1561 @@
+@@ -1717 +1558 @@
 -  visiting_global : Map[Int, Int],
 +  visiting_global : Map[Int32, Int32],
-@@ -1724 +1568 @@
+@@ -1724 +1565 @@
 -  let visiting_local : Map[Int, Int] = Map([])
 +  let visiting_local : Map[Int32, Int32] = Map([])
-@@ -1749 +1593 @@
+@@ -1749 +1590 @@
 -  tyidx : Int,
 +  tyidx : Int32,
-@@ -1760,2 +1604,2 @@
+@@ -1760,2 +1601,2 @@
 -      let local_resource_ids : Array[Int?] = []
 -      let local_named_types : Map[Int, Int] = Map([])
 +      let local_resource_ids : Array[Int32?] = []
 +      let local_named_types : Map[Int32, Int32] = Map([])
-@@ -1779,2 +1623,11 @@
+@@ -1779,2 +1620,11 @@
 -              let td = outer_type_of_alias(type_outers, count, idx) catch {
 -                _ => None
 +              let td = if count == 0 {
@@ -836,21 +838,21 @@
 +                local_resource_ids.get(idx).unwrap_or(None)
 +              } else {
 +                None
-@@ -1782,0 +1636,3 @@
+@@ -1782,0 +1633,3 @@
 +              if count == 0 {
 +                local_resource_ids[local_resource_ids.length() - 1] = rid
 +              }
-@@ -1853,2 +1709,2 @@
+@@ -1853,2 +1706,2 @@
 -  let visiting_local : Map[Int, Int] = Map([])
 -  let visiting_global : Map[Int, Int] = Map([])
 +  let visiting_local : Map[Int32, Int32] = Map([])
 +  let visiting_global : Map[Int32, Int32] = Map([])
-@@ -1935,2 +1791,2 @@
+@@ -1935,2 +1788,2 @@
 -  actual : Map[String, Int]?,
 -  expected : Map[String, Int],
 +  actual : Map[String, Int32]?,
 +  expected : Map[String, Int32],
-@@ -1950,0 +1807,85 @@
+@@ -1950,0 +1804,85 @@
 +
 +///|
 +fn validate_accessor_function(
@@ -1006,10 +1008,16 @@
 @@ -55 +58 @@
 -  SectionParseError(Int, String)
 +  SectionParseError(Int32, String)
-@@ -83 +86 @@
+@@ -77,0 +81 @@
++  restricted_map_keys : Bool
+@@ -83 +87,2 @@
 -  component_implements? : Bool = true,
 +  component_implements~ : Bool = true,
-@@ -114,12 +117,12 @@
++  restricted_map_keys~ : Bool = true,
+@@ -85 +90 @@
+-  { wit_names, component_implements, }
++  { wit_names, component_implements, restricted_map_keys, }
+@@ -114,12 +119,12 @@
 -  mut func : Int
 -  mut value : Int
 -  mut component : Int
@@ -1034,84 +1042,84 @@
 +  mut core_memory : Int32
 +  mut core_global : Int32
 +  mut core_tag : Int32
-@@ -165,2 +168,2 @@
+@@ -165,2 +170,2 @@
 -  Existing(Int)
 -  Resource(Int)
 +  Existing(Int32)
 +  Resource(Int32)
-@@ -182,3 +185,3 @@
+@@ -182,3 +187,3 @@
 -  Resource(Int)
 -  Own(Int)
 -  Borrow(Int)
 +  Resource(Int32)
 +  Own(Int32)
 +  Borrow(Int32)
-@@ -204,2 +207,2 @@
+@@ -204,2 +209,2 @@
 -  resource_ids : Array[Int?],
 -) -> Int? {
 +  resource_ids : Array[Int32?],
 +) -> Int32? {
-@@ -218,3 +221,3 @@
+@@ -218,3 +223,3 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 -) -> Int? {
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
 +) -> Int32? {
-@@ -238,2 +241,2 @@
+@@ -238,2 +243,2 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
-@@ -258,2 +261,2 @@
+@@ -258,2 +263,2 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
-@@ -460 +463,4 @@
+@@ -460 +465,4 @@
 -fn core_func_type_of_idx(m : @types.Module, func_idx : Int) -> @types.FuncType? {
 +fn core_func_type_of_idx(
 +  m : @types.Module,
 +  func_idx : Int32,
 +) -> @types.FuncType? {
-@@ -485 +491 @@
+@@ -485 +493 @@
 -  table_idx : Int,
 +  table_idx : Int32,
-@@ -506 +512 @@
+@@ -506 +514 @@
 -  mem_idx : Int,
 +  mem_idx : Int32,
-@@ -527 +533 @@
+@@ -527 +535 @@
 -  global_idx : Int,
 +  global_idx : Int32,
-@@ -546 +552 @@
+@@ -546 +554 @@
 -fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int) -> @types.FuncType? {
 +fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int32) -> @types.FuncType? {
-@@ -642 +648 @@
+@@ -642 +650 @@
 -fn core_kind_of_extern_type(ty : CoreExternType) -> Int {
 +fn core_kind_of_extern_type(ty : CoreExternType) -> Int32 {
-@@ -679 +685 @@
+@@ -679 +687 @@
 -  idx : Int,
 +  idx : Int32,
-@@ -763 +769 @@
+@@ -763 +771 @@
 -fn is_lower_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_lower_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -793 +799 @@
+@@ -793 +801 @@
 -fn is_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -843 +849 @@
+@@ -843 +851 @@
 -fn is_canonversion_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_canonversion_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -892 +898 @@
+@@ -892 +900 @@
 -fn is_semver_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_semver_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -1185 +1191 @@
+@@ -1185 +1193 @@
 -fn is_integrity_value(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_integrity_value(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -1453,0 +1460,3 @@
+@@ -1453,0 +1462,3 @@
 +  if prefix_eq("get") || prefix_eq("set") {
 +    return is_kebab_case_range(name, close + 1, name.length())
 +  }
-@@ -1460 +1469,9 @@
+@@ -1460 +1471,9 @@
 -  // method/static: require exactly one '.' and kebab-case around it.
 +  // Method/static names can have one accessor annotation before the resource.
 +  let mut start = close + 1
@@ -1122,10 +1130,10 @@
 +    ) {
 +    start += 5
 +  }
-@@ -1462 +1479 @@
+@@ -1462 +1481 @@
 -  for k in (close + 1)..<name.length() {
 +  for k in start..<name.length() {
-@@ -1470,4 +1487,4 @@
+@@ -1470,4 +1489,4 @@
 -  if dot < 0 || dot == close + 1 || dot == name.length() - 1 {
 -    return false
 -  }
@@ -1134,40 +1142,40 @@
 +    return false
 +  }
 +  is_kebab_case_range(name, start, dot) &&
-@@ -1506 +1523 @@
+@@ -1506 +1525 @@
 -  mut pos : Int
 +  mut pos : Int32
-@@ -1522 +1539 @@
+@@ -1522 +1541 @@
 -) -> Int raise ComponentValidationError {
 +) -> Int32 raise ComponentValidationError {
-@@ -1534 +1551 @@
+@@ -1534 +1553 @@
 -) -> Int raise ComponentValidationError {
 +) -> Int32 raise ComponentValidationError {
-@@ -1554 +1571 @@
+@@ -1554 +1573 @@
 -  n : Int,
 +  n : Int32,
-@@ -1627,2 +1644,2 @@
+@@ -1627,2 +1646,2 @@
 -  kind : Int,
 -  func_type_bound : Int,
 +  kind : Int32,
 +  func_type_bound : Int32,
-@@ -1679 +1696 @@
+@@ -1679 +1698 @@
 -    heap : Int,
 +    heap : Int32,
-@@ -1748 +1765 @@
+@@ -1748 +1767 @@
 -  kind : Int,
 +  kind : Int32,
-@@ -1750 +1767 @@
+@@ -1750 +1769 @@
 -  func_type_bound : Int,
 +  func_type_bound : Int32,
-@@ -1859,3 +1876,3 @@
+@@ -1859,3 +1878,3 @@
 -  max_outer_depth : Int,
 -  current_core_type_bound : Int,
 -  outer_core_type_bounds : Array[Int],
 +  max_outer_depth : Int32,
 +  current_core_type_bound : Int32,
 +  outer_core_type_bounds : Array[Int32],
-@@ -1864 +1881 @@
+@@ -1864 +1883 @@
 -  let seen_imports : Map[String, Int] = Map([])
 +  let seen_imports : Map[String, Int32] = Map([])
 --- a/prelude_wbtest.mbt

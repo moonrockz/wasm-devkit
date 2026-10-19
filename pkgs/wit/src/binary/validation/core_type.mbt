@@ -1407,9 +1407,6 @@ fn interface_value_work(
     }
     seen[(index, top_external)] = true
     guard type_table[index] is Some(definition) else { continue }
-    if top_external && (definition is Own(_) || definition is Borrow(_)) {
-      return false
-    }
     if typedef_requires_name_for_interface(definition) &&
       named_types.get(index) is None {
       return false

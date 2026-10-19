@@ -73,8 +73,9 @@ pub impl Show for ComponentValidationError
 pub struct ComponentValidationConfig {
   wit_names : Bool
   component_implements : Bool
+  restricted_map_keys : Bool
 }
-pub fn ComponentValidationConfig::ComponentValidationConfig(Bool, component_implements? : Bool) -> Self
+pub fn ComponentValidationConfig::ComponentValidationConfig(Bool, component_implements? : Bool, restricted_map_keys? : Bool) -> Self
 pub fn ComponentValidationConfig::default() -> Self
 
 type ValidatedComponent

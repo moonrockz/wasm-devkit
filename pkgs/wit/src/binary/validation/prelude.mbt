@@ -78,14 +78,16 @@ pub impl Show for ComponentValidationError with fn output(self, logger) {
 pub struct ComponentValidationConfig {
   wit_names : Bool
   component_implements : Bool
+  restricted_map_keys : Bool
 }
 
 ///|
 pub fn ComponentValidationConfig::ComponentValidationConfig(
   wit_names : Bool,
   component_implements~ : Bool = true,
+  restricted_map_keys~ : Bool = true,
 ) -> ComponentValidationConfig {
-  { wit_names, component_implements, }
+  { wit_names, component_implements, restricted_map_keys, }
 }
 
 ///|

@@ -38,3 +38,10 @@ operations. `section_import.mbt` and `section_export.mbt` contain those changes.
 including fixed lists and map keys/values. These additions are tracked under
 `wasm-devkit-p5m.8.2.2`; runtime sections remain outside the public declarative
 boundary. The patch does not claim complete component-model conformance.
+
+`restricted_map_keys` defaults to the wasmparser 0.262 rule. The declarative
+WAC entry point disables that restriction to match its pinned wasmparser 0.258;
+value-type validation still applies to both key and value. Own and borrow types
+may be imported or exported when their resource is named, matching both pins.
+The original probes in `version_profile_test.mbt` cover these differences and
+preserve rejection of missing type indices and unnamed resources.

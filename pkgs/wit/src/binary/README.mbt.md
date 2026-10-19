@@ -64,9 +64,13 @@ instantiation, canonical functions and start sections remain unsupported and
 return `WIT-B002`. Physical type-scope nesting has the same 256 limit.
 
 This entry point follows WAC 0.12.0's wasmparser 0.258.0 metadata profile. It does
-not impose the newer memory64 layout bound used by the WIT type-only entry point.
+not impose the newer memory64 layout bound or primitive-only map-key rule used
+by the WIT type-only entry point. Map keys still require valid value types.
 Both profiles check fixed-list counts and aggregate field/case limits. Package
 identity, type graph reconstruction and dependency lookup remain separate work.
+
+Both profiles permit importing and exporting own/borrow handle types when their
+resource is named. An unnamed resource still makes such a type invalid.
 
 ```mbt check
 ///|

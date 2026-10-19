@@ -875,7 +875,9 @@ fn validate_typedef(
     MapType(key, value) => {
       validate_valtype(key, type_table)
       validate_valtype(value, type_table)
-      if !is_map_key_type(key, type_table, Map([])) {
+      // wasmparser 0.258 permits any valid value type as a map key; 0.262
+      // restricts keys to the component model's primitive keytype grammar.
+      if cfg.restricted_map_keys && !is_map_key_type(key, type_table, Map([])) {
         raise SectionParseError(7, "invalid map key type")
       }
     }
