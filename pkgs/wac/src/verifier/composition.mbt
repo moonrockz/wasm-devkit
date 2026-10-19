@@ -5,6 +5,7 @@ pub(all) enum CompositionOperation {
   Definition
   Import(String)
   Access(Int32, String)
+  Instantiate(String, String?, ReadOnlyArray[InstantiationArgument])
 } derive(Eq, Debug)
 
 ///|
@@ -12,6 +13,7 @@ pub(all) struct CompositionNode {
   id : Int32
   operation : CompositionOperation
   kind : ItemKind
+  resources : ReadOnlyArray[ResourceBinding]
   location : Location
 } derive(Eq, Debug)
 
@@ -40,12 +42,29 @@ fn Check::composition_node(
   node : Int32,
   operation : CompositionOperation,
   kind : ItemKind,
-) -> Int32 {
+  resources~ : ReadOnlyArray[ResourceBinding]? = None,
+) -> Int32 raise SemanticFailure {
   let id = self.composition_nodes.length()
+  let resources : ReadOnlyArray[ResourceBinding] = match resources {
+    Some(resources) => resources
+    None =>
+      match operation {
+        Definition => []
+        Import(_) => self.import_resource_context(node, kind)
+        Access(instance, _) => self.composition_nodes[instance].resources
+        Instantiate(_, _, _) =>
+          raise Problem(
+            self.problem(
+              node, "WAC-S001", "missing instantiation resource context",
+            ),
+          )
+      }
+  }
   self.composition_nodes.push({
     id,
     operation,
     kind,
+    resources,
     location: self.location(node),
   })
   id

@@ -16,6 +16,8 @@ pub extend PackageSource with @debug.Debug::{to_repr}
 
 ///|
 priv struct LoadedPackage {
+  world : Int32
+  instance : Int32
   definitions : ReadOnlyArray[Extern]
 }
 
@@ -111,6 +113,8 @@ fn Check::append_package(self : Check, model : BinaryPackage) -> LoadedPackage {
     }
   }
   {
+    world: base + model.world_type,
+    instance: base + model.instance_type,
     definitions: model.defined_items.map(item => {
       ..item,
       kind: binary_kind_with_id(item.kind, base + binary_kind_id(item.kind)),

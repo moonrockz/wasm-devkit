@@ -103,6 +103,38 @@ async fn main {
   )
   let (_, invalid_access) = run(["verify", access_wac], 1, wit)
   assert_true(invalid_access.contains("WAC-C001"))
+  // Two original declarative components re-export a checked function argument.
+  // Both local WAT loading and the composition graph run inside the CLI.
+  let wiring_dir = dir + "/wiring"
+  @fs.mkdir(wiring_dir + "/deps/test", recursive=true, allow_exist=true)
+  let wiring = wiring_dir + "/root.wac"
+  let relay = "(component (type (func (param \"x\" u32) (result u32))) (import \"f\" (func (type 0))) (export \"out\" (func 0)))"
+  @fs.write_file(wiring_dir + "/deps/test/first.wat", relay)
+  @fs.write_file(wiring_dir + "/deps/test/second.wat", relay)
+  let wired = "package test:app; import f: func(x: u32) -> u32; let first = new test:first {f}; let second = new test:second {f: first.out}; export second.out;"
+  @fs.write_file(wiring, wired)
+  let _ = run(["verify", wiring], 0, wit)
+  let _ = run(
+    ["verify", "-", "--language", "wac", "--base", wiring_dir],
+    0,
+    wiring,
+  )
+  assert_eq(@fs.read_file(wiring).text(), wired)
+  @fs.write_file(
+    wiring, "package test:app; import f: func(x: u16) -> u32; let i = new test:first {f};",
+  )
+  let (_, signature_error) = run(["verify", wiring], 1, wit)
+  assert_true(signature_error.contains("WAC-C005"))
+  assert_true(signature_error.contains("first.wat:[binary]"))
+  assert_true(signature_error.contains("expected type declared here"))
+  @fs.write_file(
+    wiring, "package test:app; import f: func(x: u32) -> u32; let i = new test:first {f}; export i.missing;",
+  )
+  let (_, output_error) = run(["verify", wiring], 1, wit)
+  assert_true(output_error.contains("WAC-C002"))
+  @fs.write_file(wiring, "package test:app; let i = new test:first {};")
+  let (_, missing_argument) = run(["verify", wiring], 1, wit)
+  assert_true(missing_argument.contains("WAC-C004"))
   let package_dir = dir + "/wac-packages"
   @fs.mkdir(package_dir + "/deps/lookup/dep", recursive=true, allow_exist=true)
   let package_source = package_dir + "/root.wac"

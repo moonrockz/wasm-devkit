@@ -9,7 +9,7 @@ filesystem, network or subprocess I/O. `Parse::is_valid()` still checks syntax;
 Verification follows WAC 0.12.0 declaration order. It supports scalar and composite
 types, records, flags, enums, variants, function types, resources, local interfaces
 and worlds, `use` and delayed `include` declarations, typed imports, expression
-aliases, instance member access and explicit exports. Async functions, future, stream and error-context
+aliases, named/inferred component arguments, instance member access and explicit exports. Async functions, future, stream and error-context
 types follow the pinned resolver. Functions cannot return borrowed resources,
 including borrows nested inside aliases or aggregates.
 
@@ -25,8 +25,8 @@ resource function names and import-only URL, integrity and dependency names.
 These names are checked as strings and never cause network access. Interface
 version suffixes are opaque during resolution, as in the pinned resolver.
 
-Component instantiation, export spreads,
-targets and parser-only named results fail with `WAC-S003`. These remaining
+Instantiation spreads and implicit arguments, export spreads, targets and
+parser-only named results fail with `WAC-S003`. These remaining
 composition operations are tracked under
 [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
 A successful result covers the entire supported input. An unsupported or unresolved
@@ -117,12 +117,17 @@ before using them. Neither operation formats or reparses the supplied AST.
 `types()` returns an arena of `ResolvedType` values. All type references are indices
 in that arena, independent of AST node IDs. `items()` records declared names and
 their resolved item kinds; `declarations()` retains declaration/reference bindings.
-`composition()` retains immutable definition, import and member-access nodes.
-Each node has its resolved item kind and source location. Repeated access to the
+`composition()` retains immutable definition, import, instantiation and member-access
+nodes. Instantiations record the exact package key and ordered argument edges.
+Each node has its resolved item kind, source location and resource bindings. Repeated access to the
 same export of the same instance reuses its node; aliases and groups preserve that
 identity. `composition_exports()` records ordered root export names and their node
 IDs, including several names for one value. Node IDs are separate from type and AST
-IDs. Access edges point to earlier nodes, so the current profile is acyclic.
+IDs. Access and argument edges point to earlier nodes, so the graph is acyclic.
+Resource bindings map static type IDs to runtime nominal identities. Separate imports
+and instantiations freshen owned resources; aliases and captured resources retain
+their identities. These graph identities are separate from `resource_identity()`,
+which follows aliases in the static type arena.
 `imports()` and `exports()` describe root items, including automatically exported
 type declarations. Interface and world types contain their own ordered externs
 and `use` metadata. `resource_identity()` follows nominal aliases with a bounded
@@ -137,7 +142,10 @@ Stable code families are `WAC-S001` for invalid ASTs, `WAC-S003` for unsupported
 semantics, `WAC-S004` for duplicate names and `WAC-S005` for unresolved or
 incorrectly typed references. `WAC-S006` reports borrowed resources in function results.
 `WAC-C001` reports access on a non-instance and `WAC-C002` reports a missing
-export, with related instance-type provenance.
+export, with related instance-type provenance. `WAC-C003` reports duplicate or unknown
+arguments, `WAC-C004` missing arguments, `WAC-C005` incompatible argument types or
+resource identities, and `WAC-C006` a verification work-limit boundary. Type mismatch
+diagnostics retain both expected and provided type locations.
 
 Value nesting and expression groups use explicit work stacks. Tests exercise
 3,000 nested composite types, 5,000 ordered aliases and 2,000 world includes on
@@ -197,8 +205,7 @@ functions, start sections, component-value externs and root export ascriptions
 remain unsupported. The pinned external parser uses obsolete value-bound
 encoding, and the retained validator does not yet check all export ascriptions.
 Both valid and invalid examples of those forms fail explicitly rather than
-producing a package model. This API does not yet connect binary dependencies to
-source `verify` or CLI lookup.
+producing a package model. Source `verify` and CLI lookup use this same declarative boundary.
 
 Physical type scopes are limited to 256 before the external parser runs. Graph
 construction and expansion use explicit stacks with a shared one-million-step
@@ -233,7 +240,7 @@ missing packages, `WAC-P004` missing definitions or nested exports, and `WAC-P00
 self instantiation. Binary decode failures retain their `WAC-B` code and byte
 location, with a related label on the requesting WAC path. This API does no file,
 registry or network lookup. The CLI loads the supported binary profile from local
-paths; WIT dependency adapters and component instantiation remain unfinished.
+paths; WIT dependency adapters remain unfinished.
 
 Twenty-two original dependency probes compare acceptance and ordered source models
 with pinned `Document::resolve`, covering version matching, lookup/embedded identity
@@ -257,6 +264,50 @@ test "collect exact dependency keys before I/O" {
   assert_eq(requests[0].version, Some("1.2.3"))
 }
 ```
+
+
+## Checked instantiation
+
+Named arguments use exact external names or unique qualified interface suffixes.
+Quoted names are exact. Inferred arguments try the instance identity, its import or
+alias name, then a unique interface suffix and the local binding name. Every required
+import must receive one argument. Duplicate and unknown arguments fail.
+
+Function parameters, names, result types and async markers must agree. Aggregate
+fields/cases retain their order. Instance arguments may provide extra exports;
+component arguments may require fewer imports and provide extra exports. Nested
+component imports reverse that relation. Resource equations are solved after all
+arguments have been checked, so argument order does not change nominal compatibility.
+
+```mbt check
+///|
+test "wire two component instances" {
+  // (component (import "f" (func)) (export "f" (func 0)))
+  let bytes = b"\x00asm\x0d\x00\x01\x00\x07\x05\x01\x40\x00\x01\x00\x0a\x06\x01\x00\x01f\x01\x00\x0b\x07\x01\x00\x01f\x01\x00\x00"
+  let source = "package example:app; import f: func(); let first = new deps:relay {f}; let second = new deps:relay {f: first.f}; export second.f;"
+  let model = @verifier.verify(@parser.parse(source), source~, dependencies=[
+    { name: "deps:relay", version: None, source: "relay.wasm", bytes, },
+  ]).unwrap()
+  assert_eq(model.composition().length(), 5)
+  guard model.composition()[3].operation
+    is Instantiate("deps:relay", None, [argument]) else {
+    fail("missing second instantiation")
+  }
+  assert_eq(argument.name, "f")
+  assert_eq(argument.value, 2)
+  assert_eq(model.composition_exports()[0].value, 4)
+}
+```
+
+Original probes compare acceptance, ordered types and composition edges with pinned
+WAC 0.12.0 `Document::resolve`. Two crossed-resource cases expose a resolver gap:
+it accepts the arguments by resource name, but validating `wac compose` rejects
+both because their nominal resource identities differ. This verifier rejects both.
+The exact sources and package bytes remain in `instantiation_test.mbt`; the semantic
+fixture guide records the exclusion. Contract tests cover 2,000 nested instantiations,
+5,000 type aliases, immutable graph collections, fresh runtime identities and
+source/binary diagnostic provenance on all four targets. The binary validator's
+100-level type-depth limit still applies to loaded packages.
 
 ## Portable WAT packages
 

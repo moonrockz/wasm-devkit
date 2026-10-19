@@ -56,6 +56,7 @@ pub(all) struct CompositionNode {
   id : Int
   operation : CompositionOperation
   kind : ItemKind
+  resources : ReadOnlyArray[ResourceBinding]
   location : Location
 } derive(Eq, @debug.Debug)
 pub fn CompositionNode::equal(Self, Self) -> Bool
@@ -66,6 +67,7 @@ pub(all) enum CompositionOperation {
   Definition
   Import(String)
   Access(Int, String)
+  Instantiate(String, String?, ReadOnlyArray[InstantiationArgument])
 } derive(Eq, @debug.Debug)
 pub fn CompositionOperation::equal(Self, Self) -> Bool
 pub fn CompositionOperation::not_equal(Self, Self) -> Bool
@@ -90,6 +92,15 @@ pub(all) struct Extern {
 pub fn Extern::equal(Self, Self) -> Bool
 pub fn Extern::not_equal(Self, Self) -> Bool
 pub fn Extern::to_repr(Self) -> @debug.Repr
+
+pub(all) struct InstantiationArgument {
+  name : String
+  value : Int
+  location : Location
+} derive(Eq, @debug.Debug)
+pub fn InstantiationArgument::equal(Self, Self) -> Bool
+pub fn InstantiationArgument::not_equal(Self, Self) -> Bool
+pub fn InstantiationArgument::to_repr(Self) -> @debug.Repr
 
 pub(all) enum ItemKind {
   Type(Int)
@@ -167,6 +178,14 @@ pub(all) struct ResolvedType {
 pub fn ResolvedType::equal(Self, Self) -> Bool
 pub fn ResolvedType::not_equal(Self, Self) -> Bool
 pub fn ResolvedType::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ResourceBinding {
+  ty : Int
+  identity : Int
+} derive(Eq, @debug.Debug)
+pub fn ResourceBinding::equal(Self, Self) -> Bool
+pub fn ResourceBinding::not_equal(Self, Self) -> Bool
+pub fn ResourceBinding::to_repr(Self) -> @debug.Repr
 
 pub(all) struct TypeCase {
   name : String

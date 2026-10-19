@@ -8,6 +8,8 @@ fn composition_projection(model : @verifier.Verified) -> Array[String] raise {
     let name = match node.operation {
       Definition => "definition"
       Import(name) => "import:" + name
+      Instantiate(name, version, _) =>
+        "instance:" + name + version.map(value => "@" + value).unwrap_or("")
       Access(instance, name) => {
         assert_true(instance < i)
         "alias:" + instance.to_string() + ":" + name
@@ -41,4 +43,37 @@ test "composition aliases are cached and exports retain ordered graph edges" {
   let changed = model.composition().map(node => { ..node, id: -1, })
   assert_eq(changed[0].id, -1)
   assert_eq(model.composition()[0].id, 0)
+}
+
+///|
+fn composition_edges(model : @verifier.Verified) -> Array[String] {
+  let edges : Array[String] = []
+  for node in model.composition() {
+    match node.operation {
+      Access(source, name) => {
+        edges.push(node.id.to_string())
+        edges.push("alias")
+        edges.push(source.to_string())
+        edges.push(name)
+      }
+      Instantiate(_, _, arguments) => {
+        let names : Array[String] = []
+        for argument in arguments {
+          names.push(argument.name)
+        }
+        names.sort_by((a, b) => a.lexical_compare(b))
+        for name in names {
+          for argument in arguments {
+            if argument.name == name {
+              edges.push(node.id.to_string())
+              edges.push(name)
+              edges.push(argument.value.to_string())
+            }
+          }
+        }
+      }
+      _ => ()
+    }
+  }
+  edges
 }

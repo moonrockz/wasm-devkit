@@ -46,6 +46,8 @@ priv struct Check {
   composition_nodes : Array[CompositionNode]
   composition_outputs : Array[CompositionExport]
   composition_aliases : Map[(Int32, String), Int32]
+  root_resources : Map[Int32, Int32]
+  mut next_resource_identity : Int32
   mut package_name : String
   mut package_version : String?
   dependencies : Map[String, PackageSource]
@@ -157,6 +159,13 @@ fn Check::bind(
     Some(self.composition_node(node, operation, item.kind))
   } else {
     item.value
+  }
+  if scope == 0 && item.kind is Type(ty) && value is Some(value) {
+    if self.resource_root(ty) is Some(resource) &&
+      resource_binding(self.composition_nodes[value].resources, resource)
+      is Some(identity) {
+      self.root_resources[resource] = identity
+    }
   }
   self.scopes[scope].names[name] = { ..item, node, value, }
   self.bindings.push({ name, scope, node, target: node, })
@@ -282,9 +291,22 @@ fn Check::expression(
   self : Check,
   root : Int32,
 ) -> LocalItem raise SemanticFailure {
-  let pending = [(root, false)]
+  let pending = [(root, false, false)]
   let values : Map[Int32, LocalItem] = Map([])
-  while pending.pop() is Some((node, finish)) {
+  let packages : Map[Int32, InstantiationPackage] = Map([])
+  while pending.pop() is Some((node, finish, argument)) {
+    let is_argument = match self.tree.nodes[node].data {
+      NamedArgument(..)
+      | InferredArgument(..)
+      | SpreadArgument(..)
+      | FillArgument => true
+      _ => false
+    }
+    if is_argument != argument {
+      raise Problem(
+        self.problem(node, "WAC-S001", "invalid expression or argument role"),
+      )
+    }
     match self.tree.nodes[node].data {
       Expression(primary~, postfix~) =>
         if finish {
@@ -296,33 +318,47 @@ fn Check::expression(
           }
           values[node] = item
         } else {
-          pending.push((node, true))
-          pending.push((primary, false))
+          pending.push((node, true, argument))
+          pending.push((primary, false, false))
         }
       Group(expression~) =>
         if finish {
           values[node] = values[expression]
         } else {
-          pending.push((node, true))
-          pending.push((expression, false))
+          pending.push((node, true, argument))
+          pending.push((expression, false, false))
         }
       Reference(name~) => values[node] = self.lookup(0, node, name)
-      New(component~, ..) => {
-        if self.tree.nodes[component].data is Path(namespaces~, segments~, ..) &&
-          !segments.is_empty() &&
-          namespaces.join(":") + ":" + segments[0] == self.package_name {
-          raise Problem(
-            self.problem(
-              component, "WAC-P005", "cannot instantiate the package being defined",
-            ),
+      New(component~, arguments~) =>
+        if finish {
+          values[node] = self.instantiate(
+            node,
+            component,
+            packages[node],
+            arguments,
+            values,
           )
+        } else {
+          packages[node] = self.instantiation_package(component)
+          pending.push((node, true, argument))
+          for i = arguments.length() - 1; i >= 0; i = i - 1 {
+            pending.push((arguments[i], false, true))
+          }
         }
+      NamedArgument(value~, ..) =>
+        if finish {
+          values[node] = values[value]
+        } else {
+          pending.push((node, true, argument))
+          pending.push((value, false, false))
+        }
+      InferredArgument(name~) => values[node] = self.lookup(0, node, name)
+      SpreadArgument(_) | FillArgument =>
         raise Problem(
           self.problem(
-            node, "WAC-S003", "component instantiation is not yet supported",
+            node, "WAC-S003", "spread and implicit instantiation arguments are not yet supported",
           ),
         )
-      }
       _ =>
         raise Problem(self.problem(node, "WAC-S001", "invalid expression role"))
     }
@@ -373,6 +409,8 @@ pub fn verify_ast(
     composition_nodes: [],
     composition_outputs: [],
     composition_aliases: Map([]),
+    root_resources: Map([]),
+    next_resource_identity: 0,
     package_name: "",
     package_version: None,
     dependencies: Map([]),

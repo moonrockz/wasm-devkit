@@ -223,3 +223,25 @@ empty strings, Unicode escapes, duplicate rejection, wrapper attributes, caller-
 merging and independently disabled members. These projections do not establish
 complete model parity; overlapping inferred/supplied stability remains tracked on
 `wasm-devkit-p5m.8.1.5` and `.8.1.7`.
+
+WAC instantiation probes in `pkgs/wac/src/verifier/instantiation_test.mbt` retain
+original WAT, exact compiled package bytes and source text beside their pinned
+ordered-model expectations. Two original cases are intentionally excluded from
+`Document::resolve` acceptance parity: `resource-crossed` and
+`same-interface-crossed`. Both supply `handle` from instance `a` and `take` from
+instance `b`, where each instance declares its own `handle` resource and `take`
+accepts that resource. The first uses distinct interface declarations; the second
+imports the same interface twice. WAC 0.12.0 resolution accepts both, but its
+validating `wac compose` rejects them with `resource types are not the same` at
+byte offsets `0x156` and `0xec` respectively. The matching `a.handle` / `a.take`
+controls compose successfully. Product tests require `WAC-C005` for both crossed
+cases, preserving nominal identities independently of equal resource names.
+Tracking: `wasm-devkit-p5m.8.2.4` and `wasm-devkit-p5m.8.2.7`.
+
+The same 66 instantiation inputs also agree with `wac resolve`. A separate compose
+sweep exposes five encoder failures already present when the `new` expression is
+removed: `resource-type-alias` panics at `wac-graph/src/encoding.rs:702`, and the
+matching record/variant/flags/enum cases fail because their root function import
+uses a root-defined named value type. These are encoder limitations, not argument
+compatibility exclusions. Their source-resolution tests retain the pinned
+`Document::resolve` result; this verifier does not promise component emission.
