@@ -174,5 +174,8 @@ inferred package are an explicit oracle exclusion: wit-parser 0.262.0 panics at
 resolve/mod.rs:3521, attempting to re-add the package. Direct mixed-input behavior
 is checked with the test oracle's `--merge PATH` mode instead. The directory panic
 is tracked under `wasm-devkit-p5m.8.1.5` and `.8.1.7`, outside the normal manifest.
-Feature-disabled overlapping views currently fail closed in product regressions;
-per-input selection before merging remains on the encoded dependency task.
+Feature-selected function and resource-method overlaps have directory fixtures
+for default, explicit and all-feature profiles. Their binary inputs were encoded
+with all features enabled so selection occurs during loading. Library tests also
+cover mixed source/binary/WAT inputs, original provenance, disabled source
+reference errors and deep source types before selection and compaction.

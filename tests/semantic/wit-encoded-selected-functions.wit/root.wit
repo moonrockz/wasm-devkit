@@ -1,0 +1,1 @@
+package example:consumer;world app{import example:dep/base@2.0.0;}

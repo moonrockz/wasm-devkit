@@ -24,16 +24,12 @@ fn encoded_merge_sections(
   packages : Map[Int32, Int32],
   partial : Map[Int32, Bool],
   errors : Array[Diagnostic],
-  binary_sources : Map[String, Bool],
-  features : SemanticFeatures,
-  metadata : Map[String, Map[Int32, Stability]],
 ) -> Unit raise EncodedFailure {
   if partial.is_empty() {
     return
   }
   let budget : EncodedMergeBudget = { remaining: 1000000, }
   encoded_merge_charge(budget, nodes.length())
-  let checked : Map[Int32, Bool] = Map([])
   let interfaces : Map[(Int32, String), Int32] = Map([])
   let inferred : Map[(Int32, String), Bool] = Map([])
   let order : Array[Int32] = []
@@ -60,13 +56,6 @@ fn encoded_merge_sections(
       match interfaces.get(key) {
         Some(previous) =>
           if partial.contains(root) || inferred.contains(key) {
-            encoded_merge_check_active(
-              nodes, origins, previous, binary_sources, features, metadata, budget,
-              checked,
-            )
-            encoded_merge_check_active(
-              nodes, origins, id, binary_sources, features, metadata, budget, checked,
-            )
             encoded_merge_interface(
               nodes, origins, previous, id, errors, budget,
             )
@@ -366,50 +355,4 @@ fn encoded_compact_closure(
   origins.append(retained_origins)
   packages.clear()
   packages.append(retained_packages)
-}
-
-///|
-// Resolve selects each input before merging. Until independently selected
-// overlapping views are supported, reject disabled declarations rather than
-// dropping source errors or giving a hidden definition precedence.
-fn encoded_merge_check_active(
-  nodes : Array[@ast.Node],
-  origins : Array[Origin],
-  root : Int32,
-  binary_sources : Map[String, Bool],
-  features : SemanticFeatures,
-  metadata : Map[String, Map[Int32, Stability]],
-  budget : EncodedMergeBudget,
-  checked : Map[Int32, Bool],
-) -> Unit raise EncodedFailure {
-  let work = [root]
-  while work.pop() is Some(id) {
-    encoded_merge_charge(budget, 1)
-    if checked.contains(id) {
-      continue
-    }
-    checked[id] = true
-    let origin = origins[id]
-    if binary_sources.contains(origin.location.source) {
-      if nodes[id].data is Function(..) || nodes[id].data is Constructor(..) {
-        if metadata.get(origin.location.source) is Some(values) &&
-          origin.node is Some(original) &&
-          values.get(original) is Some(stability) &&
-          !features.includes(stability) {
-          raise Unsupported("feature-selected overlapping encoded interfaces")
-        }
-      }
-    } else {
-      for attribute in item_attributes(nodes[id].data) {
-        encoded_merge_charge(budget, 1)
-        if nodes[attribute].data is Attribute(name="unstable", value~, ..) &&
-          !features.includes(Unstable(value, None)) {
-          raise Unsupported("feature-selected overlapping source interfaces")
-        }
-      }
-    }
-    for child in nodes[id].data.children() {
-      work.push(child)
-    }
-  }
 }

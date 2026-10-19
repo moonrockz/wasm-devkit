@@ -101,9 +101,13 @@ this merge. This differs from aggregate checks within one encoded input.
 
 The profile rejects forward local interface inference, world-owned resource
 members, anonymous structural types, name attributes and export ascriptions.
-Overlapping interface views containing feature-disabled source declarations or
-encoded functions currently return `WIT-B002`; selecting those features enables
-the merge. Independent per-input selection before merging remains unfinished.
+Overlapping inferred packages validate each encoded input against its own inferred
+closure, and source inputs against their reachable dependencies before inferred
+additions to source-owned packages. Selection then precedes member merging. A
+disabled declaration cannot hide an invalid source reference or win a name
+collision. Original source documents and binary provenance are retained.
+Independent validation and selection share a one-million-node budget across
+input views and dependency scans.
 Private scope/type graphs use explicit stacks and a one-million-step work budget.
 Scope scans, alias links, projection matching and per-interface type-slot tables
 consume that budget. Large collections of otherwise unrelated interfaces can reach

@@ -263,29 +263,57 @@ test "foreign projections retain pinned structural and function checks" {
 }
 
 ///|
-test "disabled overlapping source views fail closed before merge" {
+test "overlapping source views select independently before merge" {
   let input = @verifier.decode_wat_package(encoded_foreign_wat()).unwrap()
   for
-    text in [
-      "package example:dep@2.0.0; @unstable(feature=hidden) interface base { resource r; }",
-      "package example:dep@2.0.0; interface base { @unstable(feature=hidden) resource r; }",
-      "package example:dep@2.0.0; interface base { @unstable(feature=hidden) extra:func()->string; }",
+    (text, valid) in [
+      (
+        "package example:dep@2.0.0; @unstable(feature=hidden) interface base { resource r; }",
+        false,
+      ),
+      (
+        "package example:dep@2.0.0; interface base { @unstable(feature=hidden) resource r; }",
+        true,
+      ),
+      (
+        "package example:dep@2.0.0; interface base { @unstable(feature=hidden) extra:func()->string; }",
+        true,
+      ),
+      (
+        "package example:dep@2.0.0; interface base { @unstable(feature=hidden) resource r; f:func(x:borrow<r>); }",
+        false,
+      ),
     ] {
-    let supplied : @verifier.PackageInput = Source({
-      documents: [section_document("supplied.wit", text)],
-    })
-    let errors = @verifier.resolve_packages(Encoded(input), dependencies=[
-      supplied,
-    ]).unwrap_err()
-    assert_eq(errors[0].code, "WIT-B002")
-    assert_true(
-      @verifier.resolve_packages(
-        Encoded(input),
-        dependencies=[supplied],
-        semantic_features=@verifier.SemanticFeatures::all(),
+    let document = section_document("supplied.wit", text)
+    let supplied : @verifier.PackageInput = Source({ documents: [document], })
+    for
+      (root, dependency) in [
+        (@verifier.PackageInput::Encoded(input), supplied),
+        (supplied, Encoded(input)),
+      ] {
+      let result = @verifier.resolve_packages(root, dependencies=[dependency])
+      if valid {
+        let model = result.unwrap()
+        assert_eq(model.sources().length(), 1)
+        assert_eq(model.sources()[0].text, document.text)
+        let base = model.interfaces().filter(i => i.name == Some("base"))[0]
+        assert_true(base.types.any(t => t.name == "r"))
+      } else {
+        let errors = result.unwrap_err()
+        assert_true(errors.any(d => d.code == "WIT-S013"))
+        assert_true(
+          errors.any(d => d.primary.location.source == "supplied.wit"),
+        )
+      }
+      assert_true(
+        @verifier.resolve_packages(
+          root,
+          dependencies=[dependency],
+          semantic_features=@verifier.SemanticFeatures::all(),
+        )
+        is Ok(_),
       )
-      is Ok(_),
-    )
+    }
   }
 }
 
@@ -331,5 +359,211 @@ test "supplied resource methods merge in either caller order" {
         core.id,
       )
     }
+  }
+}
+
+///|
+test "source and encoded functions select before overlap comparison" {
+  let source = "package example:dep@2.0.0; interface base { resource r; type id=u32; @unstable(feature=hidden) extra:func()->u32; }"
+  let supplied = section_document("selected.wit", source)
+  let other = @verifier.decode_wat_package(
+    encoded_foreign_wat(),
+    source_id="foreign.wat",
+  ).unwrap()
+  let wat = "(component\n  (type (;0;)\n    (component\n      (type (;0;)\n        (instance\n          (export (;0;) \"r\" (type (sub resource)))\n          (type (;1;) u32)\n          (export (;2;) \"id\" (type (eq 1)))\n          (type (;3;) (func (result u32)))\n          (export (;0;) \"extra\" (func (type 3)))\n        )\n      )\n      (export (;0;) \"example:dep/base@2.0.0\" (instance (type 0)))\n    )\n  )\n  (export (;1;) \"base\" (type 0))\n  (@custom \"package-docs\" \"\\01{\\22interfaces\\22:{\\22base\\22:{\\22funcs\\22:{\\22extra\\22:{\\22stability\\22:{\\22unstable\\22:{\\22feature\\22:\\22hidden\\22}}}}}}}\")\n  (@producers\n    (processed-by \"wit-component\" \"0.262.0\")\n  )\n)\n"
+  let bytes = b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x07\x40\x01\x41\x02\x01\x42\x05\x04\x00\x01\x72\x03\x01\x01\x79\x04\x00\x02\x69\x64\x03\x00\x01\x01\x40\x00\x00\x79\x04\x00\x05\x65\x78\x74\x72\x61\x01\x03\x04\x00\x16\x65\x78\x61\x6d\x70\x6c\x65\x3a\x64\x65\x70\x2f\x62\x61\x73\x65\x40\x32\x2e\x30\x2e\x30\x05\x00\x0b\x0a\x01\x00\x04\x62\x61\x73\x65\x03\x00\x00\x00\x69\x0c\x70\x61\x63\x6b\x61\x67\x65\x2d\x64\x6f\x63\x73\x01\x7b\x22\x69\x6e\x74\x65\x72\x66\x61\x63\x65\x73\x22\x3a\x7b\x22\x62\x61\x73\x65\x22\x3a\x7b\x22\x66\x75\x6e\x63\x73\x22\x3a\x7b\x22\x65\x78\x74\x72\x61\x22\x3a\x7b\x22\x73\x74\x61\x62\x69\x6c\x69\x74\x79\x22\x3a\x7b\x22\x75\x6e\x73\x74\x61\x62\x6c\x65\x22\x3a\x7b\x22\x66\x65\x61\x74\x75\x72\x65\x22\x3a\x22\x68\x69\x64\x64\x65\x6e\x22\x7d\x7d\x7d\x7d\x7d\x7d\x7d\x00\x2f\x09\x70\x72\x6f\x64\x75\x63\x65\x72\x73\x01\x0c\x70\x72\x6f\x63\x65\x73\x73\x65\x64\x2d\x62\x79\x01\x0d\x77\x69\x74\x2d\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x07\x30\x2e\x32\x36\x32\x2e\x30"
+  let inputs : Array[@verifier.PackageInput] = [
+    Source({ documents: [supplied], }),
+    Encoded(@verifier.decode_package(bytes, source_id="selected.wasm").unwrap()),
+    Encoded(
+      @verifier.decode_wat_package(wat, source_id="selected.wat").unwrap(),
+    ),
+  ]
+  let mut expected : Map[String, String]? = None
+  for input in inputs {
+    for
+      (root, dependency) in [
+        (input, @verifier.PackageInput::Encoded(other)),
+        (Encoded(other), input),
+      ] {
+      let model = @verifier.resolve_packages(root, dependencies=[dependency]).unwrap()
+      let summary = encoded_alias_model(model, reachable_only=true)
+      match expected {
+        Some(previous) => assert_eq(summary, previous)
+        None => expected = Some(summary)
+      }
+      let base = model.interfaces().filter(i => i.name == Some("base"))[0]
+      let extra = base.functions.filter(f => f.name == "extra")[0]
+      assert_eq(extra.location.source, "foreign.wat")
+      assert_eq(extra.location.position, BinaryOffset(None))
+      assert_eq(model.origin(extra.id).unwrap().node, None)
+      assert_eq(
+        model.types().filter(t => t.id == extra.result.unwrap())[0].kind,
+        Scalar("string"),
+      )
+      for
+        features in [
+          @verifier.SemanticFeatures::all(),
+          { enabled: ["hidden"], all_enabled: false, },
+        ] {
+        let errors = @verifier.resolve_packages(
+          root,
+          dependencies=[dependency],
+          semantic_features=features,
+        ).unwrap_err()
+        assert_true(errors.any(d => d.code == "WIT-B004"))
+      }
+    }
+  }
+}
+
+///|
+test "selection preserves errors in disabled overlapping source declarations" {
+  let input = @verifier.decode_wat_package(encoded_foreign_wat()).unwrap()
+  for
+    (body, code) in [
+      ("@unstable(feature=hidden) extra:func(x:missing);", "WIT-S005"),
+      ("@unstable(feature=hidden) extra:func(); extra:func();", "WIT-S004"),
+      ("@unstable(feature=hidden) use absent:pkg/api.{t};", "WIT-S009"),
+    ] {
+    let supplied : @verifier.PackageInput = Source({
+      documents: [
+        section_document(
+          "invalid.wit",
+          "package example:dep@2.0.0;interface base{" + body + "}",
+        ),
+      ],
+    })
+    let errors = @verifier.resolve_packages(Encoded(input), dependencies=[
+      supplied,
+    ]).unwrap_err()
+    assert_true(errors.any(d => d.code == code))
+    assert_true(errors.any(d => d.primary.location.source == "invalid.wit"))
+  }
+}
+
+///|
+test "disabled source interfaces can be supplied by an independently selected binary" {
+  let input = @verifier.decode_wat_package(
+    encoded_foreign_wat(),
+    source_id="foreign.wat",
+  ).unwrap()
+  let document = section_document(
+    "hidden.wit", "package example:dep@2.0.0;@unstable(feature=hidden) interface base{@unstable(feature=hidden) resource r;}",
+  )
+  let model = @verifier.resolve_packages(Encoded(input), dependencies=[
+    Source({ documents: [document], }),
+  ]).unwrap()
+  let base = model.interfaces().filter(i => i.name == Some("base"))[0]
+  assert_eq(base.location.source, "foreign.wat")
+  assert_eq(base.location.position, BinaryOffset(None))
+  assert_eq(model.sources()[0].text, document.text)
+  assert_eq(model.sources()[0].ast, document.ast)
+}
+
+///|
+test "selected source uses retain dependency validation before merge" {
+  let input = @verifier.decode_wat_package(
+    encoded_foreign_wat(),
+    source_id="foreign.wat",
+  ).unwrap()
+  let text = "package example:dep@2.0.0;interface base{@unstable(feature=hidden) use dep:external/core.{r}; @unstable(feature=hidden) extra:func(x:borrow<r>);} package dep:external{interface core{resource r;}}"
+  let source : @verifier.PackageInput = Source({
+    documents: [section_document("source.wit", text)],
+  })
+  let model = @verifier.resolve_packages(source, dependencies=[Encoded(input)]).unwrap()
+  let base = model.interfaces().filter(i => i.name == Some("base"))[0]
+  assert_eq(
+    base.functions.filter(f => f.name == "extra")[0].location.source,
+    "foreign.wat",
+  )
+  assert_true(
+    model
+    .identities()
+    .any(p => p.namespace_name == "dep" && p.name == "external"),
+  )
+}
+
+///|
+test "constructor and method overlaps use independently selected views" {
+  let consumer = @verifier.decode_wat_package(
+    "(component\n  (type (;0;)\n    (component\n      (type (;0;)\n        (component\n          (type (;0;)\n            (instance\n              (export (;0;) \"r\" (type (sub resource)))\n              (type (;1;) (own 0))\n              (type (;2;) (func (result 1)))\n              (export (;0;) \"[constructor]r\" (func (type 2)))\n              (type (;3;) (borrow 0))\n              (type (;4;) (func (param \"self\" 3) (param \"x\" u32) (result string)))\n              (export (;1;) \"[method]r.f\" (func (type 4)))\n            )\n          )\n          (import \"dep:base/core\" (instance (;0;) (type 0)))\n        )\n      )\n      (export (;0;) \"example:methods/app\" (component (type 0)))\n    )\n  )\n  (export (;1;) \"app\" (type 0))\n  (@custom \"package-docs\" \"\\01{}\")\n  (@producers\n    (processed-by \"wit-component\" \"0.262.0\")\n  )\n)\n",
+    source_id="consumer.wat",
+  ).unwrap()
+  let input = @verifier.decode_wat_package(
+    "(component\n  (type (;0;)\n    (component\n      (type (;0;)\n        (instance\n          (export (;0;) \"r\" (type (sub resource)))\n          (type (;1;) (own 0))\n          (type (;2;) (func (param \"x\" u32) (result 1)))\n          (export (;0;) \"[constructor]r\" (func (type 2)))\n          (type (;3;) (borrow 0))\n          (type (;4;) (func (param \"self\" 3) (param \"x\" string) (result u32)))\n          (export (;1;) \"[method]r.f\" (func (type 4)))\n        )\n      )\n      (export (;0;) \"dep:base/core\" (instance (type 0)))\n    )\n  )\n  (export (;1;) \"core\" (type 0))\n  (@custom \"package-docs\" \"\\01{\\22interfaces\\22:{\\22core\\22:{\\22funcs\\22:{\\22[constructor]r\\22:{\\22stability\\22:{\\22unstable\\22:{\\22feature\\22:\\22hidden\\22}}},\\22[method]r.f\\22:{\\22stability\\22:{\\22unstable\\22:{\\22feature\\22:\\22hidden\\22}}}}}}}\")\n  (@producers\n    (processed-by \"wit-component\" \"0.262.0\")\n  )\n)\n",
+    source_id="base.wat",
+  ).unwrap()
+  let source : @verifier.PackageInput = Source({
+    documents: [
+      section_document(
+        "base.wit", "package dep:base; interface core { resource r { @unstable(feature=hidden) constructor(x:u32); @unstable(feature=hidden) f:func(x:string)->u32; } }",
+      ),
+    ],
+  })
+  for supplied in [source, @verifier.PackageInput::Encoded(input)] {
+    let model = @verifier.resolve_packages(supplied, dependencies=[
+      Encoded(consumer),
+    ]).unwrap()
+    let core = model.interfaces().filter(i => i.name == Some("core"))[0]
+    assert_eq(core.functions.length(), 2)
+    assert_true(core.functions.all(f => f.location.source == "consumer.wat"))
+    assert_true(core.functions.any(f => f.kind is Constructor(_)))
+    assert_true(core.functions.any(f => f.kind is Method(_)))
+    let errors = @verifier.resolve_packages(
+      supplied,
+      dependencies=[Encoded(consumer)],
+      semantic_features=@verifier.SemanticFeatures::all(),
+    ).unwrap_err()
+    assert_true(errors.any(d => d.code == "WIT-B004"))
+  }
+}
+
+///|
+test "independent selection and compaction use stacks for deep source types" {
+  let text = StringBuilder()
+  text.write_string("package example:dep@2.0.0;interface base{type deep=")
+  for _ in 0..<1600 {
+    text.write_string("list<")
+  }
+  text.write_string("u8")
+  for _ in 0..<1600 {
+    text.write_string(">")
+  }
+  text.write_string(";@unstable(feature=hidden) extra:func()->u32;}")
+  let source : @verifier.PackageInput = Source({
+    documents: [section_document("deep.wit", text.to_string())],
+  })
+  let input = @verifier.decode_wat_package(encoded_foreign_wat()).unwrap()
+  let model = @verifier.resolve_packages(source, dependencies=[Encoded(input)]).unwrap()
+  assert_true(model.types().length() > 1600)
+  assert_eq(model.sources()[0].text, text.to_string())
+}
+
+///|
+test "inferred additions never repair an invalid supplied package" {
+  let input = @verifier.decode_wat_package(encoded_foreign_wat()).unwrap()
+  let supplied : @verifier.PackageInput = Source({
+    documents: [
+      section_document(
+        "invalid.wit", "package example:dep@2.0.0;interface base{f:func(x:borrow<r>);}",
+      ),
+    ],
+  })
+  for
+    features in [
+      @verifier.SemanticFeatures::default(),
+      @verifier.SemanticFeatures::all(),
+    ] {
+    let errors = @verifier.resolve_packages(
+      supplied,
+      dependencies=[Encoded(input)],
+      semantic_features=features,
+    ).unwrap_err()
+    assert_true(
+      errors.any(d => {
+        d.code == "WIT-S005" && d.primary.location.source == "invalid.wit"
+      }),
+    )
   }
 }

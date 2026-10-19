@@ -177,8 +177,7 @@ fn prepare(
   root : SourcePackage,
   dependencies : ReadOnlyArray[SourcePackage],
   binary_sources~ : Map[String, Bool] = Map([]),
-  semantic_features~ : SemanticFeatures = SemanticFeatures::default(),
-  input_metadata~ : Map[String, Map[Int32, Stability]] = Map([]),
+  merge_encoded~ : Bool = true,
 ) -> Result[Prepared, ReadOnlyArray[Diagnostic]] {
   let inputs = [root]
   inputs.append(dependencies.iter().to_array())
@@ -430,19 +429,20 @@ fn prepare(
       }
     }
   }
-  encoded_merge_sections(
-    nodes, origins, roots, root_owners, partial_roots, errors, binary_sources, semantic_features,
-    input_metadata,
-  ) catch {
-    Unsupported(message) | Invalid(message) => {
-      let location = origins[roots[0]].location
-      errors.push(error_at(location, "WIT-B002", message))
+  if merge_encoded {
+    encoded_merge_sections(
+      nodes, origins, roots, root_owners, partial_roots, errors,
+    ) catch {
+      Unsupported(message) | Invalid(message) => {
+        let location = origins[roots[0]].location
+        errors.push(error_at(location, "WIT-B002", message))
+      }
     }
   }
   if !errors.is_empty() {
     return Err(ordered_diagnostics(errors))
   }
-  if !partial_roots.is_empty() {
+  if merge_encoded && !partial_roots.is_empty() {
     encoded_compact_closure(nodes, origins, roots, node_packages)
   }
   Ok({

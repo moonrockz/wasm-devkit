@@ -56,6 +56,7 @@ fn verify_prepared(
   semantic_features : SemanticFeatures,
   binary_sources~ : Map[String, Bool] = Map([]),
   binary_metadata~ : Map[Int32, Stability] = Map([]),
+  selection_output~ : Map[(String, Int32), Bool] = Map([]),
 ) -> Result[Resolution, ReadOnlyArray[Diagnostic]] {
   let tree = prepared.tree
   let errors : Array[Diagnostic] = []
@@ -939,6 +940,11 @@ fn verify_prepared(
     }
   }
   if errors.is_empty() {
+    for id, origin in prepared.origins {
+      if origin.node is Some(original) {
+        selection_output[(origin.location.source, original)] = selection.nodes[id]
+      }
+    }
     let first = prepared.documents[0]
     let functions = ReadOnlyArray::from_array(
       arena.function_order.map(id => arena.functions[id]),

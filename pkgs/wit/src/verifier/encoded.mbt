@@ -199,14 +199,29 @@ pub fn resolve_packages(
       input_metadata[encoded.source_id] = encoded.metadata
     }
   }
-  let result = match
-    prepare(
-      root.lowered(),
-      dependencies.map(PackageInput::lowered),
-      binary_sources=binaries,
-      semantic_features~,
-      input_metadata~,
-    ) {
+  let inferred_closure = encoded_inputs.any(input => {
+    input.lowered.documents.any(document => {
+      document.ast.nodes.any(node => node.data is Package(nested=true, ..))
+    })
+  })
+  let prepared = prepare(
+    root.lowered(),
+    dependencies.map(PackageInput::lowered),
+    binary_sources=binaries,
+    merge_encoded=!inferred_closure,
+  )
+  let prepared = match prepared {
+    Ok(prepared) if inferred_closure =>
+      if encoded_overlapping_packages(prepared, binaries) {
+        encoded_select_closure(
+          prepared, encoded_inputs, binaries, semantic_features, input_metadata,
+        )
+      } else {
+        encoded_selected_prepared(prepared, Map([]), binaries)
+      }
+    other => other
+  }
+  let result = match prepared {
     Err(errors) => Err(errors)
     Ok(prepared) => {
       let metadata : Map[Int32, Stability] = Map([])
