@@ -117,6 +117,12 @@ before using them. Neither operation formats or reparses the supplied AST.
 `types()` returns an arena of `ResolvedType` values. All type references are indices
 in that arena, independent of AST node IDs. `items()` records declared names and
 their resolved item kinds; `declarations()` retains declaration/reference bindings.
+`composition()` retains immutable definition, import and member-access nodes.
+Each node has its resolved item kind and source location. Repeated access to the
+same export of the same instance reuses its node; aliases and groups preserve that
+identity. `composition_exports()` records ordered root export names and their node
+IDs, including several names for one value. Node IDs are separate from type and AST
+IDs. Access edges point to earlier nodes, so the current profile is acyclic.
 `imports()` and `exports()` describe root items, including automatically exported
 type declarations. Interface and world types contain their own ordered externs
 and `use` metadata. `resource_identity()` follows nominal aliases with a bounded

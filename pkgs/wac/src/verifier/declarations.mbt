@@ -22,6 +22,7 @@ fn Check::declare_type(
         kind: Type(resource),
         node,
         external_name: None,
+        value: None,
       })
       self.extern_item(scope, node, name, Type(resource), importing)
       let seen : Map[String, Int32] = Map([])
@@ -88,7 +89,12 @@ fn Check::declare_type(
         ),
       )
   }
-  self.bind(scope, node, name, { kind: Type(ty), node, external_name: None, })
+  self.bind(scope, node, name, {
+    kind: Type(ty),
+    node,
+    external_name: None,
+    value: None,
+  })
   self.extern_item(scope, node, name, Type(ty), importing)
 }
 
@@ -181,6 +187,7 @@ fn Check::use_types(
       kind: Type(ty),
       node: selector,
       external_name: None,
+      value: None,
     })
     self.scopes[scope].uses.push({
       name: local_name,
@@ -491,7 +498,12 @@ fn Check::file(self : Check, root : Int32) -> Unit raise SemanticFailure {
         } else {
           self.world_type(node)
         }
-        self.bind(0, node, name, { kind: Type(ty), node, external_name: None, })
+        self.bind(0, node, name, {
+          kind: Type(ty),
+          node,
+          external_name: None,
+          value: None,
+        })
         self.extern_item(0, node, name, Type(ty), false)
       }
       Alias(..) | Record(..) | Flags(..) | Enum(..) | Variant(..) =>
@@ -526,7 +538,12 @@ fn Check::file(self : Check, root : Int32) -> Unit raise SemanticFailure {
         }
         let kind = self.promote(kind)
         self.extern_item(0, node, name, kind, true)
-        self.bind(0, node, binding, { kind, node, external_name: Some(name), })
+        self.bind(0, node, binding, {
+          kind,
+          node,
+          external_name: Some(name),
+          value: None,
+        })
       }
       Let(name~, expression~) => {
         let item = self.expression(expression)
@@ -562,7 +579,7 @@ fn Check::file(self : Check, root : Int32) -> Unit raise SemanticFailure {
                 )
             }
         }
-        self.extern_item(0, node, name, item.kind, false)
+        self.extern_item(0, node, name, item.kind, false, value=item.value)
       }
       _ =>
         raise Problem(

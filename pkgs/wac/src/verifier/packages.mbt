@@ -229,5 +229,5 @@ fn Check::package_path(
   for i in 2..<segments.length() {
     kind = self.path_export(node, kind, segments[i])
   }
-  { kind, node, external_name: None, }
+  { kind, node, external_name: None, value: None, }
 }

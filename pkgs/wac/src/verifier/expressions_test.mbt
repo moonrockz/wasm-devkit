@@ -43,6 +43,15 @@ test "pinned instance access function" {
     "0", "some", "scalar", "u32", "take", "func", "function", "false", "1", "h",
     "borrow", "0", "some", "scalar", "u32",
   ])
+  assert_eq(composition_projection(result.unwrap()), [
+    "3", "definition", "type", "interface", "test:app/api", "0", "3", "handle", "type",
+    "resource", "0", "number", "type", "scalar", "u32", "take", "func", "function",
+    "false", "1", "h", "borrow", "0", "some", "scalar", "u32", "import:i", "instance",
+    "interface", "test:app/api", "0", "3", "handle", "type", "resource", "0", "number",
+    "type", "scalar", "u32", "take", "func", "function", "false", "1", "h", "borrow",
+    "0", "some", "scalar", "u32", "alias:1:take", "func", "function", "false", "1",
+    "h", "borrow", "0", "some", "scalar", "u32", "0",
+  ])
 }
 
 ///|
@@ -65,6 +74,14 @@ test "pinned instance access resource" {
     "interface", "test:app/api", "0", "3", "handle", "type", "resource", "0", "number",
     "type", "scalar", "u32", "take", "func", "function", "false", "1", "h", "borrow",
     "0", "some", "scalar", "u32", "handle", "type", "resource", "0",
+  ])
+  assert_eq(composition_projection(result.unwrap()), [
+    "3", "definition", "type", "interface", "test:app/api", "0", "3", "handle", "type",
+    "resource", "0", "number", "type", "scalar", "u32", "take", "func", "function",
+    "false", "1", "h", "borrow", "0", "some", "scalar", "u32", "import:i", "instance",
+    "interface", "test:app/api", "0", "3", "handle", "type", "resource", "0", "number",
+    "type", "scalar", "u32", "take", "func", "function", "false", "1", "h", "borrow",
+    "0", "some", "scalar", "u32", "alias:1:handle", "type", "resource", "0", "0",
   ])
 }
 
@@ -89,6 +106,14 @@ test "pinned instance access type" {
     "type", "scalar", "u32", "take", "func", "function", "false", "1", "h", "borrow",
     "0", "some", "scalar", "u32", "number", "type", "scalar", "u32",
   ])
+  assert_eq(composition_projection(result.unwrap()), [
+    "3", "definition", "type", "interface", "test:app/api", "0", "3", "handle", "type",
+    "resource", "0", "number", "type", "scalar", "u32", "take", "func", "function",
+    "false", "1", "h", "borrow", "0", "some", "scalar", "u32", "import:i", "instance",
+    "interface", "test:app/api", "0", "3", "handle", "type", "resource", "0", "number",
+    "type", "scalar", "u32", "take", "func", "function", "false", "1", "h", "borrow",
+    "0", "some", "scalar", "u32", "alias:1:number", "type", "scalar", "u32", "0",
+  ])
 }
 
 ///|
@@ -112,6 +137,15 @@ test "pinned instance access group-alias" {
     "type", "scalar", "u32", "take", "func", "function", "false", "1", "h", "borrow",
     "0", "some", "scalar", "u32", "take", "func", "function", "false", "1", "h",
     "borrow", "0", "some", "scalar", "u32",
+  ])
+  assert_eq(composition_projection(result.unwrap()), [
+    "3", "definition", "type", "interface", "test:app/api", "0", "3", "handle", "type",
+    "resource", "0", "number", "type", "scalar", "u32", "take", "func", "function",
+    "false", "1", "h", "borrow", "0", "some", "scalar", "u32", "import:i", "instance",
+    "interface", "test:app/api", "0", "3", "handle", "type", "resource", "0", "number",
+    "type", "scalar", "u32", "take", "func", "function", "false", "1", "h", "borrow",
+    "0", "some", "scalar", "u32", "alias:1:take", "func", "function", "false", "1",
+    "h", "borrow", "0", "some", "scalar", "u32", "0",
   ])
 }
 
@@ -181,6 +215,15 @@ test "pinned instance access quoted" {
     "type", "scalar", "u32", "take", "func", "function", "false", "1", "h", "borrow",
     "0", "some", "scalar", "u32", "take", "func", "function", "false", "1", "h",
     "borrow", "0", "some", "scalar", "u32",
+  ])
+  assert_eq(composition_projection(result.unwrap()), [
+    "3", "definition", "type", "interface", "test:app/api", "0", "3", "handle", "type",
+    "resource", "0", "number", "type", "scalar", "u32", "take", "func", "function",
+    "false", "1", "h", "borrow", "0", "some", "scalar", "u32", "import:i", "instance",
+    "interface", "test:app/api", "0", "3", "handle", "type", "resource", "0", "number",
+    "type", "scalar", "u32", "take", "func", "function", "false", "1", "h", "borrow",
+    "0", "some", "scalar", "u32", "alias:1:take", "func", "function", "false", "1",
+    "h", "borrow", "0", "some", "scalar", "u32", "0",
   ])
 }
 
@@ -252,6 +295,17 @@ test "pinned instance access exact-wins" {
     "none", "only", "func", "function", "false", "0", "none", "1", "only", "func",
     "function", "false", "0", "none",
   ])
+  assert_eq(composition_projection(result.unwrap()), [
+    "2", "import:lookup:nested/container", "instance", "interface", "test:nested/container",
+    "0", "5", "a:one/api@1.0.0", "instance", "interface", "a:one/api@1.0.0", "0",
+    "1", "f", "func", "function", "false", "0", "none", "b:two/api@2.0.0", "instance",
+    "interface", "a:one/api@1.0.0", "0", "1", "f", "func", "function", "false", "0",
+    "none", "a:one/only@1.2.0", "instance", "interface", "a:one/api@1.0.0", "0",
+    "1", "f", "func", "function", "false", "0", "none", "a:one/other@1.0.0", "instance",
+    "interface", "a:one/api@1.0.0", "0", "1", "f", "func", "function", "false", "0",
+    "none", "only", "func", "function", "false", "0", "none", "alias:0:only", "func",
+    "function", "false", "0", "none", "0",
+  ])
 }
 
 ///|
@@ -284,6 +338,19 @@ test "pinned instance access quoted-qualified" {
     "interface", "a:one/api@1.0.0", "0", "1", "f", "func", "function", "false", "0",
     "none", "only", "func", "function", "false", "0", "none", "1", "f", "func", "function",
     "false", "0", "none",
+  ])
+  assert_eq(composition_projection(result.unwrap()), [
+    "3", "import:lookup:nested/container", "instance", "interface", "test:nested/container",
+    "0", "5", "a:one/api@1.0.0", "instance", "interface", "a:one/api@1.0.0", "0",
+    "1", "f", "func", "function", "false", "0", "none", "b:two/api@2.0.0", "instance",
+    "interface", "a:one/api@1.0.0", "0", "1", "f", "func", "function", "false", "0",
+    "none", "a:one/only@1.2.0", "instance", "interface", "a:one/api@1.0.0", "0",
+    "1", "f", "func", "function", "false", "0", "none", "a:one/other@1.0.0", "instance",
+    "interface", "a:one/api@1.0.0", "0", "1", "f", "func", "function", "false", "0",
+    "none", "only", "func", "function", "false", "0", "none", "alias:0:a:one/api@1.0.0",
+    "instance", "interface", "a:one/api@1.0.0", "0", "1", "f", "func", "function",
+    "false", "0", "none", "alias:1:f", "func", "function", "false", "0", "none",
+    "0",
   ])
 }
 
@@ -361,5 +428,18 @@ test "pinned instance access inferred-unique" {
     "interface", "a:one/api@1.0.0", "0", "1", "f", "func", "function", "false", "0",
     "none", "only", "func", "function", "false", "0", "none", "1", "f", "func", "function",
     "false", "0", "none",
+  ])
+  assert_eq(composition_projection(result.unwrap()), [
+    "3", "import:lookup:nested/container", "instance", "interface", "test:nested/container",
+    "0", "5", "a:one/api@1.0.0", "instance", "interface", "a:one/api@1.0.0", "0",
+    "1", "f", "func", "function", "false", "0", "none", "b:two/api@2.0.0", "instance",
+    "interface", "a:one/api@1.0.0", "0", "1", "f", "func", "function", "false", "0",
+    "none", "a:one/only@1.2.0", "instance", "interface", "a:one/api@1.0.0", "0",
+    "1", "f", "func", "function", "false", "0", "none", "a:one/other@1.0.0", "instance",
+    "interface", "a:one/api@1.0.0", "0", "1", "f", "func", "function", "false", "0",
+    "none", "only", "func", "function", "false", "0", "none", "alias:0:a:one/other@1.0.0",
+    "instance", "interface", "a:one/api@1.0.0", "0", "1", "f", "func", "function",
+    "false", "0", "none", "alias:1:f", "func", "function", "false", "0", "none",
+    "0",
   ])
 }

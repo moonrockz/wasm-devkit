@@ -8,6 +8,7 @@ priv struct LocalItem {
   kind : ItemKind
   node : Int32
   external_name : String?
+  value : Int32?
 }
 
 ///|
@@ -42,6 +43,9 @@ priv struct Check {
   scopes : Array[Scope]
   bindings : Array[Binding]
   declarations : Array[ResolvedDeclaration]
+  composition_nodes : Array[CompositionNode]
+  composition_outputs : Array[CompositionExport]
+  composition_aliases : Map[(Int32, String), Int32]
   mut package_name : String
   mut package_version : String?
   dependencies : Map[String, PackageSource]
@@ -145,7 +149,16 @@ fn Check::bind(
       ),
     )
   }
-  self.scopes[scope].names[name] = { ..item, node, }
+  let value = if scope == 0 && item.value is None {
+    let operation = match item.external_name {
+      Some(name) => CompositionOperation::Import(name)
+      None => Definition
+    }
+    Some(self.composition_node(node, operation, item.kind))
+  } else {
+    item.value
+  }
+  self.scopes[scope].names[name] = { ..item, node, value, }
   self.bindings.push({ name, scope, node, target: node, })
   self.declarations.push({ name, scope, node, kind: item.kind, })
 }
@@ -158,6 +171,7 @@ fn Check::extern_item(
   name : String,
   kind : ItemKind,
   importing : Bool,
+  value~ : Int32? = None,
 ) -> Unit raise SemanticFailure {
   if scope == 0 && !valid_external_name(name, importing) {
     raise Problem(
@@ -183,6 +197,31 @@ fn Check::extern_item(
   seen[name] = node
   let items = if importing { target.imports } else { target.exports }
   items.push({ name, kind, location: self.location(node), })
+  if scope == 0 && !importing {
+    let value = match value {
+      Some(value) => value
+      None =>
+        match target.names.get(name) {
+          Some(item) =>
+            match item.value {
+              Some(value) => value
+              None =>
+                raise Problem(
+                  self.problem(node, "WAC-S001", "missing composition value"),
+                )
+            }
+          None =>
+            raise Problem(
+              self.problem(node, "WAC-S001", "missing composition value"),
+            )
+        }
+    }
+    self.composition_outputs.push({
+      name,
+      value,
+      location: self.location(node),
+    })
+  }
 }
 
 ///|
@@ -331,6 +370,9 @@ pub fn verify_ast(
     scopes: [Scope::new()],
     bindings: [],
     declarations: [],
+    composition_nodes: [],
+    composition_outputs: [],
+    composition_aliases: Map([]),
     package_name: "",
     package_version: None,
     dependencies: Map([]),
@@ -342,6 +384,8 @@ pub fn verify_ast(
     Ok({
       source_id,
       source_text: source,
+      composition_nodes: ReadOnlyArray::from_array(check.composition_nodes),
+      composition_outputs: ReadOnlyArray::from_array(check.composition_outputs),
       tree,
       bindings: ReadOnlyArray::from_array(check.bindings),
       resolved_types: ReadOnlyArray::from_array(check.types),

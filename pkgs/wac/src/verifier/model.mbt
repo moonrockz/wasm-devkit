@@ -70,6 +70,8 @@ pub(all) struct Binding {
 pub struct Verified {
   priv source_id : String
   priv source_text : String
+  priv composition_nodes : ReadOnlyArray[CompositionNode]
+  priv composition_outputs : ReadOnlyArray[CompositionExport]
   priv tree : @ast.Tree
   priv bindings : ReadOnlyArray[Binding]
   priv resolved_types : ReadOnlyArray[ResolvedType]

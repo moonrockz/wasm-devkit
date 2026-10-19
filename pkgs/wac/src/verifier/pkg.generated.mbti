@@ -43,6 +43,34 @@ pub fn Binding::equal(Self, Self) -> Bool
 pub fn Binding::not_equal(Self, Self) -> Bool
 pub fn Binding::to_repr(Self) -> @debug.Repr
 
+pub(all) struct CompositionExport {
+  name : String
+  value : Int
+  location : Location
+} derive(Eq, @debug.Debug)
+pub fn CompositionExport::equal(Self, Self) -> Bool
+pub fn CompositionExport::not_equal(Self, Self) -> Bool
+pub fn CompositionExport::to_repr(Self) -> @debug.Repr
+
+pub(all) struct CompositionNode {
+  id : Int
+  operation : CompositionOperation
+  kind : ItemKind
+  location : Location
+} derive(Eq, @debug.Debug)
+pub fn CompositionNode::equal(Self, Self) -> Bool
+pub fn CompositionNode::not_equal(Self, Self) -> Bool
+pub fn CompositionNode::to_repr(Self) -> @debug.Repr
+
+pub(all) enum CompositionOperation {
+  Definition
+  Import(String)
+  Access(Int, String)
+} derive(Eq, @debug.Debug)
+pub fn CompositionOperation::equal(Self, Self) -> Bool
+pub fn CompositionOperation::not_equal(Self, Self) -> Bool
+pub fn CompositionOperation::to_repr(Self) -> @debug.Repr
+
 pub(all) struct Diagnostic {
   code : String
   message : String
@@ -199,6 +227,8 @@ pub struct Verified {
   // private fields
 }
 pub fn Verified::ast(Self) -> @ast.Tree
+pub fn Verified::composition(Self) -> ReadOnlyArray[CompositionNode]
+pub fn Verified::composition_exports(Self) -> ReadOnlyArray[CompositionExport]
 pub fn Verified::declarations(Self) -> ReadOnlyArray[Binding]
 pub fn Verified::exports(Self) -> ReadOnlyArray[Extern]
 pub fn Verified::imports(Self) -> ReadOnlyArray[Extern]

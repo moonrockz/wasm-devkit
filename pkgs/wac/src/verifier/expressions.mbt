@@ -54,7 +54,30 @@ fn Check::access(
   let name = if quoted { name } else { matching_external_name(name, exports) }
   for exported in exports {
     if exported.name == name {
-      return { kind: exported.kind, node, external_name: Some(name), }
+      guard item.value is Some(instance) else {
+        raise Problem(
+          self.problem(parent, "WAC-S001", "instance has no composition value"),
+        )
+      }
+      let key = (instance, name)
+      let value = match self.composition_aliases.get(key) {
+        Some(value) => value
+        None => {
+          let value = self.composition_node(
+            node,
+            Access(instance, name),
+            exported.kind,
+          )
+          self.composition_aliases[key] = value
+          value
+        }
+      }
+      return {
+        kind: exported.kind,
+        node,
+        external_name: Some(name),
+        value: Some(value),
+      }
     }
   }
   let diagnostic = self.problem(
