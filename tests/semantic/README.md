@@ -245,3 +245,12 @@ matching record/variant/flags/enum cases fail because their root function import
 uses a root-defined named value type. These are encoder limitations, not argument
 compatibility exclusions. Their source-resolution tests retain the pinned
 `Document::resolve` result; this verifier does not promise component emission.
+
+The 32 original `spreads_test.mbt` probes retain package WAT/bytes and compare
+acceptance, ordered source types, composition nodes and argument edges with both
+pinned resolution entry points. Coverage includes explicit-first precedence,
+ordered partial spreads, exact-name precedence, symmetric semver tracks,
+prereleases, build metadata, zero-major versions, no-effect errors and type
+compatibility. Its crossed-resource case is the same nominal exception as the
+explicit-argument cases: resolution accepts it but validating composition rejects
+it. The product rejects it with `WAC-C005`.

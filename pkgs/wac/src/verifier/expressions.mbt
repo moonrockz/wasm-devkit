@@ -52,6 +52,19 @@ fn Check::access(
     )
   }
   let name = if quoted { name } else { matching_external_name(name, exports) }
+  self.alias_export(item, node, parent, ty, name, exports)
+}
+
+///|
+fn Check::alias_export(
+  self : Check,
+  item : LocalItem,
+  node : Int32,
+  parent : Int32,
+  ty : Int32,
+  name : String,
+  exports : ReadOnlyArray[Extern],
+) -> LocalItem raise SemanticFailure {
   for exported in exports {
     if exported.name == name {
       guard item.value is Some(instance) else {

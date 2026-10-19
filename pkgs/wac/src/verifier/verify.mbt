@@ -353,10 +353,11 @@ fn Check::expression(
           pending.push((value, false, false))
         }
       InferredArgument(name~) => values[node] = self.lookup(0, node, name)
-      SpreadArgument(_) | FillArgument =>
+      SpreadArgument(_) => ()
+      FillArgument =>
         raise Problem(
           self.problem(
-            node, "WAC-S003", "spread and implicit instantiation arguments are not yet supported",
+            node, "WAC-S003", "implicit instantiation arguments are not yet supported",
           ),
         )
       _ =>

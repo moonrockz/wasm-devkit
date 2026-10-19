@@ -103,6 +103,9 @@ fn Check::instantiate(
   let named : Array[(String, Int32, LocalItem)] = []
   let seen : Map[String, Int32] = Map([])
   for argument in arguments {
+    if self.tree.nodes[argument].data is SpreadArgument(_) {
+      continue
+    }
     let item = values[argument]
     let name = self.argument_name(argument, item, imports)
     if seen.get(name) is Some(first) {
@@ -117,6 +120,11 @@ fn Check::instantiate(
     }
     seen[name] = argument
     named.push((name, argument, item))
+  }
+  for argument in arguments {
+    if self.tree.nodes[argument].data is SpreadArgument(name~) {
+      self.spread_argument(argument, name, imports, seen, named)
+    }
   }
   let bindings : Map[Int32, Int32] = Map([])
   let constraints : Array[ResourceConstraint] = []

@@ -25,7 +25,7 @@ resource function names and import-only URL, integrity and dependency names.
 These names are checked as strings and never cause network access. Interface
 version suffixes are opaque during resolution, as in the pinned resolver.
 
-Instantiation spreads and implicit arguments, export spreads, targets and
+Implicit instantiation arguments, export spreads, targets and
 parser-only named results fail with `WAC-S003`. These remaining
 composition operations are tracked under
 [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
@@ -144,7 +144,8 @@ incorrectly typed references. `WAC-S006` reports borrowed resources in function 
 `WAC-C001` reports access on a non-instance and `WAC-C002` reports a missing
 export, with related instance-type provenance. `WAC-C003` reports duplicate or unknown
 arguments, `WAC-C004` missing arguments, `WAC-C005` incompatible argument types or
-resource identities, and `WAC-C006` a verification work-limit boundary. Type mismatch
+resource identities, and `WAC-C006` a verification work-limit boundary. `WAC-C007`
+reports a spread on a non-instance or a spread that contributes no arguments. Type mismatch
 diagnostics retain both expected and provided type locations.
 
 Value nesting and expression groups use explicit work stacks. Tests exercise
@@ -273,6 +274,16 @@ Quoted names are exact. Inferred arguments try the instance identity, its import
 alias name, then a unique interface suffix and the local binding name. Every required
 import must receive one argument. Duplicate and unknown arguments fail.
 
+Spread arguments run after every named/inferred argument, then in their written
+order. Each contributes matching exports to still-unsatisfied imports. Exact names
+win; otherwise the first export on a compatible semantic-version track wins. A
+nonzero major matches that major, and `0.minor.patch` matches that nonzero minor.
+Prereleases and `0.0.patch` names require exact equality. Build metadata does not
+change a nonzero major/minor track. Versions may be newer or older; structural
+compatibility is still required. A spread that contributes nothing is an error,
+including a second spread whose exports were all supplied earlier. Fill `...`
+without an instance remains unsupported.
+
 Function parameters, names, result types and async markers must agree. Aggregate
 fields/cases retain their order. Instance arguments may provide extra exports;
 component arguments may require fewer imports and provide extra exports. Nested
@@ -296,6 +307,13 @@ test "wire two component instances" {
   assert_eq(argument.name, "f")
   assert_eq(argument.value, 2)
   assert_eq(model.composition_exports()[0].value, 4)
+  let source = "package example:app; interface api {f: func();} import runtime: api; let output = new deps:relay {...runtime}; export output.f;"
+  let model = @verifier.verify(@parser.parse(source), source~, dependencies=[
+    { name: "deps:relay", version: None, source: "relay.wasm", bytes, },
+  ]).unwrap()
+  assert_true(
+    model.composition()[3].operation is Instantiate("deps:relay", None, [_]),
+  )
 }
 ```
 
@@ -307,7 +325,9 @@ The exact sources and package bytes remain in `instantiation_test.mbt`; the sema
 fixture guide records the exclusion. Contract tests cover 2,000 nested instantiations,
 5,000 type aliases, immutable graph collections, fresh runtime identities and
 source/binary diagnostic provenance on all four targets. The binary validator's
-100-level type-depth limit still applies to loaded packages.
+100-level type-depth limit still applies to loaded packages. Thirty-two additional
+spread probes compare the pinned resolver's argument and alias edges, version
+tracks, precedence, no-effect errors and crossed nominal resources.
 
 ## Portable WAT packages
 
