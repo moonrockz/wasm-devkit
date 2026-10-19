@@ -58,3 +58,11 @@ on success. Signature widths and all map/traversal steps consume that allowance.
 `CompatibilityError::Mismatch` carries the incompatible contract context;
 `WorkLimit` distinguishes exhausted work from a type mismatch. WAC compatibility
 and binary/runtime consumers use this same contract comparison.
+
+`ContractGraph` and `ContractScope` retain immutable core metadata from an ordered
+component scope pass. Module bindings retain complete contracts; scope bindings
+refer to a flat table. Definition, indexed-binding and named-export lookups do
+not follow scope links. Callers remain responsible for declaration ordering,
+index validity and component semantics: constructing this metadata is not a
+validation proof. Constructors take readonly snapshots, and internal lookup maps
+are private.

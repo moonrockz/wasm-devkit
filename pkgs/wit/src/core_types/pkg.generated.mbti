@@ -31,6 +31,30 @@ pub fn CompatibilityError::equal(Self, Self) -> Bool
 pub fn CompatibilityError::not_equal(Self, Self) -> Bool
 pub fn CompatibilityError::to_repr(Self) -> @debug.Repr
 
+pub(all) enum ContractBinding {
+  Scope(Int)
+  Module(Module)
+  Other
+} derive(Eq, @debug.Debug)
+pub fn ContractBinding::equal(Self, Self) -> Bool
+pub fn ContractBinding::not_equal(Self, Self) -> Bool
+pub fn ContractBinding::to_repr(Self) -> @debug.Repr
+
+pub struct ContractGraph {
+  // private fields
+}
+pub fn ContractGraph::length(Self) -> Int
+pub fn ContractGraph::new(ReadOnlyArray[ContractScope]) -> Self
+pub fn ContractGraph::scope(Self, Int) -> ContractScope?
+
+pub struct ContractScope {
+  // private fields
+}
+pub fn ContractScope::binding(Self, Int, Int) -> ContractBinding?
+pub fn ContractScope::definition(Self, Int) -> Definition?
+pub fn ContractScope::exported(Self, String) -> ContractBinding?
+pub fn ContractScope::new(ReadOnlyArray[Definition], ReadOnlyArray[(Int, ReadOnlyArray[ContractBinding])], ReadOnlyArray[(String, ContractBinding)]) -> Self
+
 pub(all) enum Definition {
   Function(Function)
   Module(Module)
