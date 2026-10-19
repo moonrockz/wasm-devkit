@@ -206,3 +206,11 @@ WIT, check that no extra aliases or world type imports appear, and exercise
 supplied dependency provenance, caller order, metadata and feature selection.
 The source equivalents require explicit use aliases; their extra declarations
 are not claimed to be identical to the encoded model.
+
+The original Apache-2.0 `wit-encoded-index-*` WAT fixtures compare unsigned
+index spellings against wasm-tools 1.262.0 and wit-parser 0.262.0. Accepted forms
+include leading plus, hexadecimal and digit separators. Negative cases cover
+negative signs, uppercase radix prefixes, misplaced separators and overflow.
+The syntactically valid but out-of-bounds `0x80000000` case is rejected by Resolve;
+the retained compiler rejects indices beyond its signed 32-bit storage range.
+Accepted spellings compile to the same bytes and resolved model as decimal zero.

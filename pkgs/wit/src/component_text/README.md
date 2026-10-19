@@ -7,8 +7,9 @@ byte. `UPSTREAM.sha256` records their hashes, and `LOCAL.patch` reconstructs the
 local changes. The upstream Apache-2.0 license and third-party notices are retained.
 
 The patch encodes component value-type indices with signed LEB and supports map
-types in declarations and inline value types. Decimal indices reject values above
-the compiler's signed 32-bit index range instead of wrapping. The S-expression reader uses an
+types in declarations and inline value types. Indices accept decimal and hexadecimal
+unsigned literals, an optional leading plus and single underscores between digits.
+Values above the compiler's signed 32-bit index range are rejected instead of wrapping. The S-expression reader uses an
 explicit stack and rejects nesting above 256 before compilation. Existing compiler
 helpers operate on that bounded syntax. This is the WIT decoder's compatibility
 frontend; it does not establish complete component text conformance.

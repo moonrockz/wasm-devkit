@@ -571,22 +571,46 @@ fn expr_head_atom(expr : SExpr) -> String? {
 }
 
 ///|
-fn parse_decimal_index(atom : String) -> Int32? {
-  if atom.length() == 0 {
-    return None
+fn parse_index_literal(atom : String) -> Int32? {
+  let mut start = if atom.has_prefix("+") { 1 } else { 0 }
+  let mut radix = 10
+  if start + 1 < atom.length() &&
+    atom.code_unit_at(start) == 48 &&
+    atom.code_unit_at(start + 1) == 120 {
+    radix = 16
+    start += 2
   }
   let mut value = 0
-  for ch in atom {
-    if ch < '0' || ch > '9' {
+  let mut previous_digit = false
+  for index in start..<atom.length() {
+    let code = atom.code_unit_at(index).to_int()
+    if code == 95 {
+      if !previous_digit {
+        return None
+      }
+      previous_digit = false
+      continue
+    }
+    let digit = if code >= 48 && code <= 57 {
+      code - 48
+    } else if code >= 65 && code <= 70 {
+      code - 65 + 10
+    } else if code >= 97 && code <= 102 {
+      code - 97 + 10
+    } else {
       return None
     }
-    let digit = ch.to_int() - '0'.to_int()
-    if value > (2147483647 - digit) / 10 {
+    if digit >= radix || value > (2147483647 - digit) / radix {
       return None
     }
-    value = value * 10 + digit
+    value = value * radix + digit
+    previous_digit = true
   }
-  Some(value)
+  if previous_digit {
+    Some(value)
+  } else {
+    None
+  }
 }
 
 ///|
@@ -793,7 +817,7 @@ fn resolve_reference(
       }
       raise Unsupported("unknown \{context} reference '\{text}'")
     }
-    if parse_decimal_index(text) is Some(idx) {
+    if parse_index_literal(text) is Some(idx) {
       return idx
     }
     raise Unsupported("unsupported \{context} reference '\{text}'")
@@ -1003,7 +1027,7 @@ fn parse_valtype(
     if prim_type_opcode(name) is Some(opcode) {
       return Prim(opcode)
     }
-    if name.has_prefix("$") || parse_decimal_index(name) is Some(_) {
+    if name.has_prefix("$") || parse_index_literal(name) is Some(_) {
       let idx = resolve_type_reference(expr, state)
       return TypeIdx(idx)
     }
@@ -1401,7 +1425,7 @@ fn parse_inline_valtype_encoding(
     if prim_type_opcode(name) is Some(opcode) {
       return (Prim(opcode), local_type_count, 0)
     }
-    if name.has_prefix("$") || parse_decimal_index(name) is Some(_) {
+    if name.has_prefix("$") || parse_index_literal(name) is Some(_) {
       return (
         TypeIdx(resolve_inline_type_ref(expr, state, local_type_names)),
         local_type_count,
@@ -2426,7 +2450,7 @@ fn parse_inline_alias_decl(
       None
     }
     let count = if field[2] is Atom(count_atom) {
-      if parse_decimal_index(count_atom) is Some(count) {
+      if parse_index_literal(count_atom) is Some(count) {
         count
       } else if count_atom.has_prefix("$") {
         match inferred_outer_count {
@@ -3405,7 +3429,7 @@ fn resolve_variant_case_ref(
       }
       raise Unsupported("unknown variant case '\{text}'")
     }
-    if parse_decimal_index(text) is Some(idx) {
+    if parse_index_literal(text) is Some(idx) {
       return idx
     }
   }
@@ -5515,7 +5539,7 @@ fn parse_core_heap_type_sleb(
       }
       raise Unsupported("unknown core type reference '\{name}'")
     }
-    if parse_decimal_index(name) is Some(idx) {
+    if parse_index_literal(name) is Some(idx) {
       return idx
     }
     match name {
@@ -5646,7 +5670,7 @@ fn parse_u32_literal(
   context : String,
 ) -> Int32 raise ComponentTextError {
   if expr is Atom(text) {
-    if parse_decimal_index(text) is Some(value) {
+    if parse_index_literal(text) is Some(value) {
       return value
     }
   }
@@ -5916,7 +5940,7 @@ fn parse_core_module_type_bytes(
           None
         }
         let count = if field[2] is Atom(count_atom) {
-          if parse_decimal_index(count_atom) is Some(count) {
+          if parse_index_literal(count_atom) is Some(count) {
             count
           } else if count_atom.has_prefix("$") {
             match inferred_outer_count {
@@ -6998,7 +7022,7 @@ fn resolve_alias_sort_index(
   core_kind : Int32?,
 ) -> Int32 raise ComponentTextError {
   if expr is Atom(atom) {
-    if parse_decimal_index(atom) is Some(idx) {
+    if parse_index_literal(atom) is Some(idx) {
       return idx
     }
   }
@@ -7123,7 +7147,7 @@ fn parse_alias_field(
       None
     }
     let count = if field[2] is Atom(count_atom) {
-      if parse_decimal_index(count_atom) is Some(count) {
+      if parse_index_literal(count_atom) is Some(count) {
         count
       } else if count_atom.has_prefix("$") {
         match inferred_outer_count {

@@ -61,9 +61,9 @@ test "component text reader bounds nesting without recursive parsing" {
 ///|
 test "component indices reject decimal overflow" {
   ignore(parse_component_wat("(component(type u32)(export \"x\" (type 0)))"))
-  assert_eq(parse_decimal_index("2147483647"), Some(2147483647))
+  assert_eq(parse_index_literal("2147483647"), Some(2147483647))
   for value in ["2147483648", "4294967296", "18446744073709551616"] {
-    assert_eq(parse_decimal_index(value), None)
+    assert_eq(parse_index_literal(value), None)
     let rejected = try {
       ignore(
         parse_component_wat(
@@ -88,4 +88,32 @@ test "binary text compilation leaves byte validation to the caller" {
     _ => true
   }
   assert_true(rejected)
+}
+
+///|
+test "component indices accept WAT radix sign and digit separators" {
+  for
+    text in [
+      "15", "+15", "1_5", "+1_5", "0xf", "0xF", "+0xf", "0x0_f", "+0x0_F",
+    ] {
+    assert_eq(parse_index_literal(text), Some(15))
+    let declarations = "(type u32)".repeat(16)
+    let expected = parse_component_wat(
+      "(component" + declarations + "(type(func(param \"x\" 15))))",
+    )
+    assert_eq(
+      parse_component_wat(
+        "(component" + declarations + "(type(func(param \"x\" " + text + "))))",
+      ),
+      expected,
+    )
+  }
+  for
+    text in [
+      "", "+", "-0", "-0x0", "0X0", "_0", "0_", "0__0", "+_0", "0x", "0x_0", "0x0_",
+      "0x0__0", "0xg", "0x80000000", "0x100000000", "+4294967296", "4_294_967_296",
+    ] {
+    assert_eq(parse_index_literal(text), None)
+  }
+  assert_eq(parse_index_literal("+0x7fff_ffff"), Some(2147483647))
 }
