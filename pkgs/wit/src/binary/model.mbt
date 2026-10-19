@@ -51,9 +51,10 @@ pub extend Diagnostic with Eq::{equal, not_equal}
 pub extend Diagnostic with @debug.Debug::{to_repr}
 
 ///|
-/// A component containing types, imports, aliases, exports and flat core module
-/// bodies. Nested component definitions, instantiation and canonical functions remain
-/// outside this boundary. The immutable bytes are the validated snapshot.
+/// A component containing types, imports, aliases, exports, flat core modules,
+/// core instances and supported synchronous canonical operations. Nested component
+/// definitions and component instantiation remain outside this boundary.
+/// The immutable bytes are the validated snapshot.
 pub struct ValidatedDeclarativeComponent {
   bytes : Bytes
 }

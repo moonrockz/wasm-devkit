@@ -23,6 +23,6 @@ The verifier never executes a resource operation or destructor.
 intrinsics and remaining runtime component sections stay open on
 `wasm-devkit-p5m.8.2.2` and `wasm-devkit-p5m.8.2.4`.
 
-`import-capture-gaps` separately retains seven known product false positives for
-the remaining scoped local-resource import audit. They are not included in the
-42 operation cases or the passing acceptance/model claims above.
+`import-capture-gaps` retains 39 additional import-resource cases, including
+seven former product false positives now rejected. Binary/WAT acceptance agrees
+with both pins, and accepted cases compare complete ordered public models.

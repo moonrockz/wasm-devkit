@@ -73,6 +73,12 @@ fn validate_component_section_import(
 ) -> (Int32, Int32) raise ComponentValidationError {
   let mut next_resource_id = next_resource_id
   let mut imported_funcs = imported_funcs
+  let (import_locals, remaining) = import_local_resources(
+    local_resource_types,
+    resource_ids,
+    counts.metadata_remaining,
+  )
+  counts.metadata_remaining = remaining
   let imports = @component.parse_import_section(payload) catch {
     e => raise SectionParseError(10, "\{e}")
   }
@@ -412,6 +418,13 @@ fn validate_component_section_import(
             )
           }
         }
+        counts.metadata_remaining = check_import_resources(
+          counts.instance_contracts
+          .get(instance_sigs.length() - 1)
+          .map(pair => pair.0),
+          import_locals,
+          counts.metadata_remaining,
+        )
         instance_export_type_idxs.push(None)
         instance_export_func_idxs.push(None)
         instance_export_type_map.push(type_map)
@@ -460,6 +473,11 @@ fn validate_component_section_import(
           counts.component_contracts[counts.component] = (metadata, 0)
         }
       }
+      counts.metadata_remaining = check_import_resources(
+        counts.component_contracts.get(counts.component).map(pair => pair.0),
+        import_locals,
+        counts.metadata_remaining,
+      )
       let mut import_sorts : Map[String, @component.Sort]? = None
       let mut import_instance_sigs : Map[String, InstanceSig]? = None
       let mut import_func_sigs : Map[String, FuncSigShape]? = None

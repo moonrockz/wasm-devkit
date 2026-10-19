@@ -667,6 +667,14 @@ fn collect_dollar_atom_names(expr : SExpr, names : Array[String]) -> Unit {
     return
   }
   if expr is List(items) {
+    // Explicit aliases resolve in their stated outer scope. Treating their
+    // target as an implicit reference inserts another alias and shifts numeric
+    // type references in the source.
+    if items.length() >= 2 &&
+      items[0] is Atom("alias") &&
+      items[1] is Atom("outer") {
+      return
+    }
     for item in items {
       collect_dollar_atom_names(item, names)
     }
@@ -679,10 +687,33 @@ fn collect_inline_ref_names(
   start : Int32,
 ) -> Array[String] {
   let names : Array[String] = []
+  let bindings : Array[String] = []
   for i in start..<desc.length() {
+    if desc[i] is List(field) && field.length() > 0 {
+      let declaration = if field[0] is Atom("type") {
+        Some(field)
+      } else if field.length() == 5 &&
+        field[0] is Atom("alias") &&
+        field[4] is List(sort) {
+        Some(sort)
+      } else if field.length() >= 3 &&
+        (field[0] is Atom("import") || field[0] is Atom("export")) &&
+        field[field.length() - 1] is List(sort) {
+        Some(sort)
+      } else {
+        None
+      }
+      if declaration is Some(items) &&
+        items.length() >= 2 &&
+        items[0] is Atom("type") &&
+        items[1] is Atom(name) &&
+        name.has_prefix("$") {
+        add_unique_ref_name(bindings, name)
+      }
+    }
     collect_dollar_atom_names(desc[i], names)
   }
-  names
+  names.filter(name => !contains_ref_name(bindings, name))
 }
 
 ///|

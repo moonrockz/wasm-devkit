@@ -2728,34 +2728,41 @@
 +  next_resource_id : Int32,
 +  imported_funcs : Int32,
 +) -> (Int32, Int32) raise ComponentValidationError {
-@@ -85,5 +87,0 @@
+@@ -72,0 +76,6 @@
++  let (import_locals, remaining) = import_local_resources(
++    local_resource_types,
++    resource_ids,
++    counts.metadata_remaining,
++  )
++  counts.metadata_remaining = remaining
+@@ -85,5 +93,0 @@
 -    if is_root && i.desc is ComponentType(_) {
 -      raise SectionParseError(
 -        10, "root-level component imports are not supported",
 -      )
 -    }
-@@ -115,0 +114,4 @@
+@@ -115,0 +120,4 @@
 +      Type(Eq(tyidx)) =>
 +        if local_resource_types.get(tyidx) is Some(true) {
 +          raise SectionParseError(10, "local resource type found in imports")
 +        }
-@@ -190 +192 @@
+@@ -190 +198 @@
 -        let mut resource_exports : Map[String, Int]? = None
 +        let mut resource_exports : Map[String, Int32]? = None
-@@ -202 +204,2 @@
+@@ -202 +210,2 @@
 -                let local_resource_ids : Array[Int?] = []
 +                let local_resource_ids : Array[Int32?] = []
 +                let local_origins : Map[Int32, Int32] = Map([])
-@@ -205 +208 @@
+@@ -205 +214 @@
 -                let res : Map[String, Int] = Map([])
 +                let res : Map[String, Int32] = Map([])
-@@ -209 +212 @@
+@@ -209 +218 @@
 -                let visiting : Map[Int, Int] = Map([])
 +                let visiting : Map[Int32, Int32] = Map([])
-@@ -221 +224 @@
+@@ -221 +230 @@
 -                    AliasOuter(kind, _count, _idx) =>
 +                    AliasOuter(kind, count, index) =>
-@@ -223 +226,14 @@
+@@ -223 +232,14 @@
 -                        record_type_slot()
 +                        let slot = local_types.length()
 +                        if count == 1 && type_table.get(index) is Some(Some(_)) {
@@ -2771,11 +2778,11 @@
 +                        } else {
 +                          record_type_slot()
 +                        }
-@@ -249,0 +266,3 @@
+@@ -249,0 +272,3 @@
 +                                if local_origins.get(idx) is Some(origin) {
 +                                  local_origins[new_idx] = origin
 +                                }
-@@ -267,2 +286,6 @@
+@@ -267,2 +292,6 @@
 -                          let sig = if ft_idx >= 0 &&
 -                            ft_idx < local_types.length() {
 +                          let sig = if local_origins.get(ft_idx) is Some(origin) &&
@@ -2784,18 +2791,18 @@
 +                              funcsig_of_functype(ft, type_table, resource_ids),
 +                            )
 +                          } else if ft_idx >= 0 && ft_idx < local_types.length() {
-@@ -273 +296,4 @@
+@@ -273 +302,4 @@
 -                                    ft, local_types, local_resource_ids, type_table,
 +                                    ft,
 +                                    local_types,
 +                                    local_resource_ids,
 +                                    type_table,
-@@ -274,0 +301,4 @@
+@@ -274,0 +307,4 @@
 +                                    local_origins~,
 +                                    global_function=local_origins.contains(
 +                                      ft_idx,
 +                                    ),
-@@ -334,0 +365,50 @@
+@@ -334,0 +371,57 @@
 +        if type_table[tyidx] is Some(td) {
 +          let (metadata, next, remaining) = imported_instance_metadata(
 +            td,
@@ -2846,11 +2853,18 @@
 +            )
 +          }
 +        }
-@@ -345 +425,2 @@
++        counts.metadata_remaining = check_import_resources(
++          counts.instance_contracts
++          .get(instance_sigs.length() - 1)
++          .map(pair => pair.0),
++          import_locals,
++          counts.metadata_remaining,
++        )
+@@ -345 +438,2 @@
 -        interface_instance_idxs.set(instance_sigs.length() - 1, 1)
 +        // Bit 1 names exported types; bit 2 also permits using them in imports.
 +        interface_instance_idxs.set(instance_sigs.length() - 1, 3)
-@@ -352,0 +434,29 @@
+@@ -352,0 +447,34 @@
 +      if type_table.get(tyidx) is Some(Some(td)) {
 +        let core_scope = match counts.core_contracts {
 +          Some(graph) =>
@@ -2880,7 +2894,12 @@
 +          counts.component_contracts[counts.component] = (metadata, 0)
 +        }
 +      }
-@@ -360 +470 @@
++      counts.metadata_remaining = check_import_resources(
++        counts.component_contracts.get(counts.component).map(pair => pair.0),
++        import_locals,
++        counts.metadata_remaining,
++      )
+@@ -360 +488 @@
 -      let mut import_core_module_exports : Map[String, Map[String, Int]]? = None
 +      let mut import_core_module_exports : Map[String, Map[String, Int32]]? = None
 --- a/section_instance.mbt

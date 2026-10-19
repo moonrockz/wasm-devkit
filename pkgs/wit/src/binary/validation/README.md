@@ -154,3 +154,9 @@ its core signature. Local i32/i64 representations determine new/rep and destruct
 signatures; imported resources permit drop only. Complete core metadata validates
 destructors, including i64 representations and result arity. These checks retain
 original module bytes and perform no resource operations.
+
+Imported instance and component contracts reject reachable captures of resources
+defined by the importing component. The audit follows complete function and
+value graphs with explicit stacks and the shared metadata budget; unused outer
+definitions and fresh abstract binders remain valid. Missing contract metadata
+fails closed when local resources need auditing.

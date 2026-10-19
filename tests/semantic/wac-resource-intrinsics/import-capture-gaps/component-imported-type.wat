@@ -1,0 +1,1 @@
+(component (type $local (resource (rep i32))) (import "r" (type $imported (sub resource))) (type $i (component (alias outer 1 $imported (type $r)) (export "r" (type (eq $r))))) (import "allowed" (component (type $i))))

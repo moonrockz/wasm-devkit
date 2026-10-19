@@ -5,7 +5,8 @@
     "validator": 1,
     "error": "local resource type found in imports (at offset 0x46)\n",
     "validation": "error: local resource type found in imports (at offset 0x46)\n",
-    "product_binary": 0
+    "product_binary": 1,
+    "product_binary_before_audit": 0
   },
   {
     "name": "instance-own",
@@ -13,7 +14,8 @@
     "validator": 1,
     "error": "local resource type found in imports (at offset 0x57)\n",
     "validation": "error: local resource type found in imports (at offset 0x57)\n",
-    "product_binary": 0
+    "product_binary": 1,
+    "product_binary_before_audit": 0
   },
   {
     "name": "instance-borrow",
@@ -21,7 +23,8 @@
     "validator": 1,
     "error": "local resource type found in imports (at offset 0x57)\n",
     "validation": "error: local resource type found in imports (at offset 0x57)\n",
-    "product_binary": 0
+    "product_binary": 1,
+    "product_binary_before_audit": 0
   },
   {
     "name": "component-import-type",
@@ -29,7 +32,8 @@
     "validator": 1,
     "error": "local resource type found in imports (at offset 0x46)\n",
     "validation": "error: local resource type found in imports (at offset 0x46)\n",
-    "product_binary": 0
+    "product_binary": 1,
+    "product_binary_before_audit": 0
   },
   {
     "name": "component-export-type",
@@ -37,7 +41,8 @@
     "validator": 1,
     "error": "local resource type found in imports (at offset 0x46)\n",
     "validation": "error: local resource type found in imports (at offset 0x46)\n",
-    "product_binary": 0
+    "product_binary": 1,
+    "product_binary_before_audit": 0
   },
   {
     "name": "component-own",
@@ -45,7 +50,8 @@
     "validator": 1,
     "error": "local resource type found in imports (at offset 0x57)\n",
     "validation": "error: local resource type found in imports (at offset 0x57)\n",
-    "product_binary": 0
+    "product_binary": 1,
+    "product_binary_before_audit": 0
   },
   {
     "name": "component-borrow",
@@ -53,6 +59,7 @@
     "validator": 1,
     "error": "local resource type found in imports (at offset 0x57)\n",
     "validation": "error: local resource type found in imports (at offset 0x57)\n",
-    "product_binary": 0
+    "product_binary": 1,
+    "product_binary_before_audit": 0
   }
 ]

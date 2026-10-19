@@ -56,3 +56,8 @@ module bodies compile normally and then validate as their original bytes.
 
 Core module export annotations encode explicit type uses and inline module
 contracts using the same core type index space as module imports.
+
+Implicit reference collection excludes explicit outer alias targets and local
+type bindings. Those declarations retain their source numeric slots even when
+names shadow outer resource types. Import-resource controls compare the resulting
+binary and WAT public models against both pinned validators.
