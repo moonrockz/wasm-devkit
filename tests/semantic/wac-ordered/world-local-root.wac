@@ -1,0 +1,1 @@
+package example:app;type f=func();interface api{f: func();}world app{import x: f;export api;}

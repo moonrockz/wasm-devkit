@@ -1,0 +1,1 @@
+package example:app;type t=u8;import f: func();export f as "t";

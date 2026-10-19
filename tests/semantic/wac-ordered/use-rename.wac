@@ -1,0 +1,1 @@
+package example:app;interface a{resource r;type id=u32;}interface b{use a.{r as handle,id as number};f: func(x: handle)->number;}

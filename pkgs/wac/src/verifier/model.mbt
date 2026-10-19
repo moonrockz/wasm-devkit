@@ -34,10 +34,14 @@ pub(all) struct Binding {
 /// Construction is private. A value exists only after the entire supported
 /// model passes verification. Retained syntax and binding tables are immutable.
 pub struct Verified {
-  source_id : String
-  source_text : String
-  tree : @ast.Tree
-  bindings : ReadOnlyArray[Binding]
+  priv source_id : String
+  priv source_text : String
+  priv tree : @ast.Tree
+  priv bindings : ReadOnlyArray[Binding]
+  priv resolved_types : ReadOnlyArray[ResolvedType]
+  priv resolved_declarations : ReadOnlyArray[ResolvedDeclaration]
+  priv resolved_imports : ReadOnlyArray[Extern]
+  priv resolved_exports : ReadOnlyArray[Extern]
 }
 
 ///|

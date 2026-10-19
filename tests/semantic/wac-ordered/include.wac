@@ -1,0 +1,1 @@
+package example:app;world a{import f: func();export g: func();}world b{include a with{f as ff,g as gg};}

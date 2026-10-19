@@ -1,0 +1,1 @@
+package example:app; type lower = u8; type LOWER = u32;

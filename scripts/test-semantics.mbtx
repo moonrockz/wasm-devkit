@@ -30,6 +30,11 @@ async fn main {
   if !@fs.exists(oracle) {
     fail("Run mise run build:semantic-reference first")
   }
+  let wac_oracle = ".dev/reference-target/release/wac-semantic-reference" +
+    (if @env.get_env_var("OS") == Some("Windows_NT") { ".exe" } else { "" })
+  if !@fs.exists(wac_oracle) {
+    fail("Run mise run build:semantic-reference first")
+  }
   let mut count = 0
   let mut models = 0
   for line in @fs.read_file("tests/semantic/manifest.tsv").text().split("\n") {
@@ -114,6 +119,16 @@ async fn main {
     )
     if code != expected {
       fail(path + ": verifier acceptance mismatch: " + error.text())
+    }
+    if !is_wit {
+      let (oracle_code, _, oracle_error) = @process.collect_output(wac_oracle, [
+        path,
+      ])
+      if oracle_code != expected {
+        fail(
+          path + ": WAC API oracle acceptance mismatch: " + oracle_error.text(),
+        )
+      }
     }
     if is_wit {
       let (oracle_code, reference, oracle_error) = @process.collect_output(

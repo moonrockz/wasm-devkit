@@ -73,6 +73,46 @@ async fn main {
   @fs.write_file(semantic_bad, "interface api { type t = missing; }")
   let _ = run(["verify", wit], 0, wit)
   let _ = run(["verify", semantic_wac], 0, wit)
+  let ordered_wac = dir + "/ordered.wac"
+  let ordered_source = "package example:app; interface api { resource r { constructor(); get: func() -> r; } type id = u32; } world base { use api.{r, id}; export run: func(x: r) -> id; } world app { include base; } import component: app;"
+  @fs.write_file(ordered_wac, ordered_source)
+  let _ = run(["verify", ordered_wac], 0, wit)
+  let _ = run(
+    ["verify", "-", "--language", "wac", "--base", dir],
+    0,
+    ordered_wac,
+  )
+  assert_eq(@fs.read_file(ordered_wac).text(), ordered_source)
+  let invalid_wac = dir + "/ordered-invalid.wac"
+  for
+    (source, code, related) in [
+      (
+        "package example:app; type first = later; type later = u8;", "WAC-S005",
+        false,
+      ),
+      (
+        "package example:app; interface api {} import f: func(x: api);", "WAC-S005",
+        true,
+      ),
+      (
+        "package example:app; interface api { resource r; f: func() -> borrow<r>; }",
+        "WAC-S006", false,
+      ),
+      (
+        "package example:app; interface api { resource r { f: func(self: u8); } }",
+        "WAC-S004", true,
+      ),
+    ] {
+    @fs.write_file(invalid_wac, source)
+    let _ = run(["check", invalid_wac], 0, wit)
+    let (_, diagnostic) = run(["verify", invalid_wac], 1, wit)
+    assert_true(diagnostic.contains(code))
+    assert_true(diagnostic.contains(invalid_wac + ":1:"))
+    if related {
+      assert_true(diagnostic.contains("first declared here"))
+    }
+    assert_eq(@fs.read_file(invalid_wac).text(), source)
+  }
   let _ = run(["verify", "--language", "wit", "--base", "."], 0, wit)
   let _ = run(["verify", semantic_bad], 1, wit)
   let _ = run(["check", semantic_bad], 0, wit)

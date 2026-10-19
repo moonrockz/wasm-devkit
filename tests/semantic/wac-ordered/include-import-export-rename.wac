@@ -1,0 +1,1 @@
+package example:app; world base { import same: func(); export same: func(); } world app { include base with {same as changed}; export own: func(); }

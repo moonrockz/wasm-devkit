@@ -1,5 +1,15 @@
 # Pinned semantic API oracle
 
+The companion `wac-semantic-reference` executable calls
+`wac_parser::Document::parse` and `Document::resolve` with an empty dependency map.
+Its dependency is pinned to WAC revision
+`5a7480c69ae7a4dc9eb161f485cbcb8c95e372c9`, version 0.12.0. The lockfile retains
+wasmparser, wasm-encoder and wasm-metadata 0.258.0 from that revision's lockfile.
+It checks dependency-free WAC acceptance independently of the `wac resolve` CLI
+and emits the resolver's debug graph for inspection. It does not encode or run
+components. Full WAC type graph comparison remains part of the conformance task.
+Both executables are built by the command below.
+
 This test-only executable calls `wit_parser::Resolve::push_path` on the exact file
 or directory supplied to the MoonBit verifier. It is outside `moon.work`, never
 published, and never called by product code. The semantic libraries remain pure.

@@ -4,6 +4,25 @@ These are original Apache-2.0 fixtures for the initial verifier API path.
 They are a seed suite, not the complete upstream conformance gate required by issue #5.
 No upstream fixture sources are copied here yet.
 
+`wac-ordered/` adds 107 original cases covering ordered scopes, aggregate and
+function contracts, nominal resources, uses, world includes, typed imports and
+external names. Each is checked against both `wac resolve` and the pinned
+`Document::resolve` API. WAC resource and world graph assertions also run as
+MoonBit library tests on all four targets.
+
+Two WAC 0.12.0 resolver panics are excluded from differential acceptance and
+covered by ordinary product rejection tests. These exact sources are recorded
+on `wasm-devkit-p5m.8.2.1` and `wasm-devkit-p5m.8.2.7`:
+
+```wac
+package example:app;world app{import t: func();type t=u8;}
+package example:app;interface api{f: func();type f=u8;}
+```
+
+Each is a separate input. The reference exits 101 at the duplicate extern
+assertion in `item_type_decl`; wasm-devkit returns `WAC-S004`. Neither case is
+treated as a successful reference resolution.
+
 `manifest.tsv` records acceptance and SHA-256 over the exact input bytes. For a
 directory bundle, the digest covers each sorted relative file name, a NUL separator
 and its bytes, including files intentionally ignored by source discovery. Each file

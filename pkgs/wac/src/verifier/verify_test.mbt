@@ -30,7 +30,6 @@ test "duplicates types parameters and export names are checked" {
     source in [
       "package example:app; type t = missing;", "package example:app; type t = u8; type t = u16;",
       "package example:app; import f: func(a: u8, a: u8);", "package example:app; import f: func(); export f as \"x\"; export f as \"x\";",
-      "package example:app; type t = u8; let x = t;", "package example:app; import f: func(); type t = f;",
     ] {
     assert_true(@parser.parse(source).is_valid())
     assert_true(verify(source) is Err(_))
@@ -54,9 +53,7 @@ test "source qualified deterministic diagnostics retain related labels" {
 ///|
 test "unsupported input recovery and malformed caller trees cannot yield models" {
   for
-    source in [
-      "package a:b; let x = new a:b {...};", "package a:b; type a = list<u8>;", "package a:b; let x = ;",
-    ] {
+    source in ["package a:b; let x = new a:b {...};", "package a:b; let x = ;"] {
     assert_true(verify(source) is Err(_))
   }
   let span : @span.Span = { start: 0, end: 0, }

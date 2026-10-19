@@ -1,0 +1,1 @@
+package example:app;interface api{resource r{constructor();m: func(x: borrow<r>)->r;s: static func()->r;}type alias=r;f: func(x: borrow<alias>)->alias;}

@@ -1,0 +1,1 @@
+package example:app; world app { type t = u8; import api: interface { f: func(x: t); } }

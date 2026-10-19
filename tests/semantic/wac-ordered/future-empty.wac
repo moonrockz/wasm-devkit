@@ -1,0 +1,1 @@
+package example:app; type a = future; type b = stream; type c = result; import f: func(x: a, y: b) -> c;

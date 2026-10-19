@@ -1,269 +1,340 @@
 ///|
-priv enum Role {
-  Root
-  Top
-  Directive
-  PackagePath
-  Type
-  Signature
-  Parameter
-  Expression
-  Bind
-  ExportName
-  Export
-  Resolve
-  ImportType
+priv suberror SemanticFailure {
+  Problem(Diagnostic)
 }
 
 ///|
-/// WAC declarations enter scope after their initializer/type is checked.
-/// Every operation uses an explicit work stack rather than recursive descent.
+priv struct LocalItem {
+  kind : ItemKind
+  node : Int32
+  external_name : String?
+}
+
+///|
+priv struct Scope {
+  names : Map[String, LocalItem]
+  imports : Array[Extern]
+  exports : Array[Extern]
+  import_nodes : Map[String, Int32]
+  export_nodes : Map[String, Int32]
+  uses : Array[UsedType]
+}
+
+///|
+fn Scope::new() -> Scope {
+  {
+    names: Map([]),
+    imports: [],
+    exports: [],
+    import_nodes: Map([]),
+    export_nodes: Map([]),
+    uses: [],
+  }
+}
+
+///|
+priv struct Check {
+  tree : @ast.Tree
+  source_id : String
+  types : Array[ResolvedType]
+  borrowed : Array[Bool]
+  values : Array[Int32]
+  scopes : Array[Scope]
+  bindings : Array[Binding]
+  declarations : Array[ResolvedDeclaration]
+  mut package_name : String
+  mut package_version : String?
+}
+
+///|
+fn Check::location(self : Check, node : Int32) -> Location {
+  { source: self.source_id, span: self.tree.nodes[node].span, }
+}
+
+///|
+fn Check::problem(
+  self : Check,
+  node : Int32,
+  code : String,
+  message : String,
+  first~ : Int32? = None,
+) -> Diagnostic {
+  let diagnostic = error(
+    self.source_id,
+    self.tree.nodes[node].span,
+    code,
+    message,
+  )
+  match first {
+    None => diagnostic
+    Some(first) =>
+      {
+        ..diagnostic,
+        related: [
+          { location: self.location(first), message: "first declared here", },
+        ],
+      }
+  }
+}
+
+///|
+fn Check::name(
+  self : Check,
+  node : Int32,
+  name : String,
+) -> Unit raise SemanticFailure {
+  guard identifier(name) else {
+    raise Problem(
+      self.problem(
+        node,
+        "WAC-S001",
+        "invalid decoded identifier `" + name + "`",
+      ),
+    )
+  }
+}
+
+///|
+fn Check::lookup(
+  self : Check,
+  scope : Int32,
+  node : Int32,
+  name : String,
+  root_fallback~ : Bool = false,
+) -> LocalItem raise SemanticFailure {
+  self.name(node, name)
+  let item = match self.scopes[scope].names.get(name) {
+    Some(item) => item
+    None =>
+      if root_fallback && self.scopes[0].names.get(name) is Some(item) {
+        item
+      } else {
+        raise Problem(
+          self.problem(
+            node,
+            "WAC-S005",
+            "unresolved name `" +
+            name +
+            "`; declarations are visible only after their definition",
+          ),
+        )
+      }
+  }
+  self.bindings.push({ name, scope, node, target: item.node, })
+  item
+}
+
+///|
+fn Check::bind(
+  self : Check,
+  scope : Int32,
+  node : Int32,
+  name : String,
+  item : LocalItem,
+) -> Unit raise SemanticFailure {
+  self.name(node, name)
+  if self.scopes[scope].names.get(name) is Some(first) {
+    raise Problem(
+      self.problem(
+        node,
+        "WAC-S004",
+        "duplicate declaration `" + name + "`",
+        first=Some(first.node),
+      ),
+    )
+  }
+  self.scopes[scope].names[name] = { ..item, node, }
+  self.bindings.push({ name, scope, node, target: node, })
+  self.declarations.push({ name, scope, node, kind: item.kind, })
+}
+
+///|
+fn Check::extern_item(
+  self : Check,
+  scope : Int32,
+  node : Int32,
+  name : String,
+  kind : ItemKind,
+  importing : Bool,
+) -> Unit raise SemanticFailure {
+  if scope == 0 && !valid_external_name(name, importing) {
+    raise Problem(
+      self.problem(node, "WAC-S005", "invalid external name `" + name + "`"),
+    )
+  }
+  let target = self.scopes[scope]
+  let seen = if importing { target.import_nodes } else { target.export_nodes }
+  if seen.get(name) is Some(first) {
+    raise Problem(
+      self.problem(
+        node,
+        "WAC-S004",
+        "duplicate " +
+        (if importing { "import" } else { "export" }) +
+        " `" +
+        name +
+        "`",
+        first=Some(first),
+      ),
+    )
+  }
+  seen[name] = node
+  let items = if importing { target.imports } else { target.exports }
+  items.push({ name, kind, location: self.location(node), })
+}
+
+///|
+fn Check::add_type(
+  self : Check,
+  node : Int32,
+  kind : TypeKind,
+  name~ : String? = None,
+) -> Int32 {
+  let contains_borrow = match kind {
+    Borrow(_) => true
+    Alias(id) | List(id) | Option(id) => self.borrowed[id]
+    Tuple(ids) => ids.any(id => self.borrowed[id])
+    Result(ok, error) =>
+      ok.map(id => self.borrowed[id]).unwrap_or(false) ||
+      error.map(id => self.borrowed[id]).unwrap_or(false)
+    Future(payload) | Stream(payload) =>
+      payload.map(id => self.borrowed[id]).unwrap_or(false)
+    Record(fields) => fields.any(field => self.borrowed[field.ty])
+    Variant(cases) =>
+      cases.any(case => {
+        case.payload.map(id => self.borrowed[id]).unwrap_or(false)
+      })
+    _ => false
+  }
+  let id = self.types.length()
+  self.types.push({ id, name, kind, location: self.location(node), })
+  self.borrowed.push(contains_borrow)
+  id
+}
+
+///|
+fn value_kind(kind : TypeKind) -> Bool {
+  match kind {
+    Resource(_) | Function(_, _, _) | Interface(_, _, _) | World(_, _, _, _) =>
+      false
+    _ => true
+  }
+}
+
+///|
+fn Check::promote(self : Check, kind : ItemKind) -> ItemKind {
+  match kind {
+    Type(id) =>
+      match self.types[id].kind {
+        Function(_, _, _) => Function(id)
+        Interface(_, _, _) => Instance(id)
+        World(_, _, _, _) => Component(id)
+        _ => kind
+      }
+    _ => kind
+  }
+}
+
+///|
+fn Check::expression(
+  self : Check,
+  root : Int32,
+) -> LocalItem raise SemanticFailure {
+  let pending = [(root, false)]
+  let values : Map[Int32, LocalItem] = Map([])
+  while pending.pop() is Some((node, finish)) {
+    match self.tree.nodes[node].data {
+      Expression(primary~, postfix~) => {
+        guard postfix.is_empty() else {
+          raise Problem(
+            self.problem(
+              node, "WAC-S003", "instance access is not yet supported",
+            ),
+          )
+        }
+        if finish {
+          values[node] = values[primary]
+        } else {
+          pending.push((node, true))
+          pending.push((primary, false))
+        }
+      }
+      Group(expression~) =>
+        if finish {
+          values[node] = values[expression]
+        } else {
+          pending.push((node, true))
+          pending.push((expression, false))
+        }
+      Reference(name~) => values[node] = self.lookup(0, node, name)
+      New(..) =>
+        raise Problem(
+          self.problem(
+            node, "WAC-S003", "component instantiation is not yet supported",
+          ),
+        )
+      _ =>
+        raise Problem(self.problem(node, "WAC-S001", "invalid expression role"))
+    }
+  }
+  values[root]
+}
+
+///|
+/// WAC names resolve in declaration order. Each returned graph is immutable and
+/// contains no unresolved names. Nested values and expressions use work stacks.
 pub fn verify_ast(
   tree : @ast.Tree,
   source_id~ : String = "<input>",
   source~ : String,
 ) -> Result[Verified, ReadOnlyArray[Diagnostic]] {
-  let errors : Array[Diagnostic] = []
-  let bad = fn(id : Int32, code : String, message : String) {
-    let span = if id >= 0 && id < tree.nodes.length() {
-      tree.nodes[id].span
-    } else {
-      { start: 0, end: 0, }
-    }
-    errors.push(error(source_id, span, code, message))
-  }
   guard tree.validate() && !tree.nodes.is_empty() else {
-    bad(-1, "WAC-S001", "invalid AST structure")
-    return Err(ReadOnlyArray::from_array(errors))
+    return Err([
+      error(
+        source_id,
+        { start: 0, end: 0, },
+        "WAC-S001",
+        "invalid AST structure",
+      ),
+    ])
   }
-  for i, node in tree.nodes {
-    if node.span.start < 0 || node.span.end > source.length() {
-      bad(i, "WAC-S001", "AST location is outside its source")
+  for node in tree.nodes {
+    guard node.span.start >= 0 && node.span.end <= source.length() else {
+      return Err([
+        error(
+          source_id,
+          node.span,
+          "WAC-S001",
+          "AST location is outside its source",
+        ),
+      ])
     }
   }
-  if !errors.is_empty() {
-    return Err(ReadOnlyArray::from_array(errors))
+  let check : Check = {
+    tree,
+    source_id,
+    types: [],
+    borrowed: [],
+    values: Array::make(tree.nodes.length(), -1),
+    scopes: [Scope::new()],
+    bindings: [],
+    declarations: [],
+    package_name: "",
+    package_version: None,
   }
-  let names : Map[String, Int32] = Map([])
-  let exports : Map[String, Int32] = Map([])
-  let bindings : Array[Binding] = []
-  let values = Array::make(tree.nodes.length(), -1)
-  let pending : Array[(Int32, Role)] = [(tree.nodes.length() - 1, Root)]
-  while pending.pop() is Some((id, role)) {
-    let data = tree.nodes[id].data
-    let decoded_name = match data {
-      Alias(name~, ..)
-      | Import(binding=name, ..)
-      | Let(name~, ..)
-      | Parameter(name~, ..)
-      | NamedType(name~)
-      | Reference(name~) => Some(name)
-      _ => None
-    }
-    if decoded_name is Some(name) && !identifier(name) {
-      bad(id, "WAC-S001", "invalid decoded identifier")
-    }
-
-    match (role, data) {
-      (Root, File(directive~, statements~)) => {
-        for i = statements.length() - 1; i >= 0; i = i - 1 {
-          pending.push((statements[i], Top))
-        }
-        match directive {
-          Some(directive) => pending.push((directive, Directive))
-          None => bad(id, "WAC-S001", "missing package directive")
-        }
-      }
-      (Directive, Package(path~, targets~)) => {
-        pending.push((path, PackagePath))
-        if targets is Some(_) {
-          bad(id, "WAC-S003", "target resolution is not yet supported")
-        }
-      }
-      (PackagePath, Path(namespaces~, segments~, version~)) => {
-        if namespaces.length() != 1 ||
-          segments.length() != 1 ||
-          !identifier(namespaces[0]) ||
-          !identifier(segments[0]) {
-          bad(id, "WAC-S001", "invalid package identity")
-        }
-        if version is Some(_) {
-          bad(id, "WAC-S003", "version semantics are not yet supported")
-        }
-      }
-      (Top, Alias(ty~, ..)) => {
-        pending.push((id, Bind))
-        pending.push((ty, Type))
-      }
-      (Top, Import(ty~, renamed~, ..)) => {
-        if renamed is Some(_) {
-          bad(id, "WAC-S003", "import name annotations are not yet supported")
-        }
-        pending.push((id, Bind))
-        pending.push((ty, ImportType))
-      }
-      (Top, Let(expression~, ..)) => {
-        pending.push((id, Bind))
-        pending.push((expression, Expression))
-      }
-      (Bind, Alias(name~, ..))
-      | (Bind, Import(binding=name, ..))
-      | (Bind, Let(name~, ..)) =>
-        if names.get(name) is Some(first) {
-          let d = error(
-            source_id,
-            tree.nodes[id].span,
-            "WAC-S004",
-            "duplicate declaration `" + name + "`",
-          )
-          errors.push({
-            ..d,
-            related: [
-              {
-                location: { source: source_id, span: tree.nodes[first].span, },
-                message: "first declared here",
-              },
-            ],
-          })
-        } else {
-          names[name] = id
-          match data {
-            Import(..) => values[id] = id
-            Let(expression~, ..) => values[id] = values[expression]
-            _ => ()
-          }
-          bindings.push({ name, scope: 0, node: id, target: id, })
-        }
-      (Top, Export(expression~, ..)) => {
-        pending.push((id, Export))
-        pending.push((expression, Expression))
-      }
-      (Export, Export(expression~, renamed~, spread~)) => {
-        if spread {
-          bad(id, "WAC-S003", "export spreads are not yet supported")
-        }
-        let export_name = match renamed {
-          Some(node) => {
-            pending.push((node, ExportName))
-            match tree.nodes[node].data {
-              Name(value~, ..) => Some(value)
-              _ => None
-            }
-          }
-          None => {
-            let target = values[expression]
-            if target >= 0 {
-              match tree.nodes[target].data {
-                Import(binding~, ..) => Some(binding)
-                _ => None
-              }
-            } else {
-              None
-            }
-          }
-        }
-        match export_name {
-          Some(name) =>
-            if exports.contains(name) {
-              bad(id, "WAC-S004", "duplicate export `" + name + "`")
-            } else {
-              exports[name] = id
-            }
-          None =>
-            bad(
-              id, "WAC-S003", "export name inference is not supported for this expression",
-            )
-        }
-      }
-      (ExportName, Name(value~, ..)) =>
-        if value.is_empty() {
-          bad(id, "WAC-S001", "empty export name")
-        }
-      (Expression, Expression(primary~, postfix~)) => {
-        if !postfix.is_empty() {
-          bad(id, "WAC-S003", "instance access is not yet supported")
-        }
-        pending.push((id, Resolve))
-        pending.push((primary, Expression))
-      }
-      (Expression, Group(expression~)) => {
-        pending.push((id, Resolve))
-        pending.push((expression, Expression))
-      }
-      (Resolve, Expression(primary~, ..)) => values[id] = values[primary]
-      (Resolve, Group(expression~)) => values[id] = values[expression]
-      (Expression, Reference(name~)) =>
-        match names.get(name) {
-          Some(target) => {
-            if tree.nodes[target].data is Alias(..) {
-              bad(id, "WAC-S003", "type expressions are not yet supported")
-            }
-            values[id] = values[target]
-            bindings.push({ name, scope: 0, node: id, target, })
-          }
-          None =>
-            bad(
-              id,
-              "WAC-S005",
-              "unresolved value `" +
-              name +
-              "`; declarations are visible only after their definition",
-            )
-        }
-      (ImportType, Signature(..)) => pending.push((id, Signature))
-      (ImportType, NamedType(..)) => pending.push((id, Type))
-      (Type, NamedType(name~)) =>
-        match names.get(name) {
-          Some(target) =>
-            if tree.nodes[target].data is Alias(..) {
-              bindings.push({ name, scope: 0, node: id, target, })
-            } else {
-              bad(
-                id, "WAC-S003", "aliases of function values are not yet supported",
-              )
-            }
-          None => bad(id, "WAC-S005", "unresolved type `" + name + "`")
-        }
-      (Type, PrimitiveType(name~)) =>
-        if ![
-            "bool", "u8", "u16", "u32", "u64", "s8", "s16", "s32", "s64", "f32",
-            "f64", "char", "string",
-          ].contains(name) {
-          bad(id, "WAC-S001", "unknown primitive type `" + name + "`")
-        }
-      (Signature, Signature(params~, result~, asynchronous~)) => {
-        if asynchronous {
-          bad(id, "WAC-S003", "async functions are not yet supported")
-        }
-        let params_seen : Map[String, Int32] = Map([])
-        for param in params {
-          if tree.nodes[param].data is Parameter(name~, ..) {
-            if params_seen.contains(name) {
-              bad(param, "WAC-S004", "duplicate parameter `" + name + "`")
-            } else {
-              params_seen[name] = param
-            }
-          }
-        }
-        if result is Some(result) {
-          pending.push((result, Type))
-        }
-        for i = params.length() - 1; i >= 0; i = i - 1 {
-          pending.push((params[i], Parameter))
-        }
-      }
-      (Parameter, Parameter(ty~, ..)) => pending.push((ty, Type))
-      _ => bad(id, "WAC-S003", "unsupported construct or invalid AST role")
-    }
-  }
-  if errors.is_empty() {
+  try {
+    check.file(tree.nodes.length() - 1)
     Ok({
       source_id,
       source_text: source,
       tree,
-      bindings: ReadOnlyArray::from_array(bindings),
+      bindings: ReadOnlyArray::from_array(check.bindings),
+      resolved_types: ReadOnlyArray::from_array(check.types),
+      resolved_declarations: ReadOnlyArray::from_array(check.declarations),
+      resolved_imports: ReadOnlyArray::from_array(check.scopes[0].imports),
+      resolved_exports: ReadOnlyArray::from_array(check.scopes[0].exports),
     })
-  } else {
-    Err(ReadOnlyArray::from_array(errors))
+  } catch {
+    Problem(diagnostic) => Err([diagnostic])
   }
 }

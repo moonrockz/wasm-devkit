@@ -1,0 +1,1 @@
+package example:app;interface a{type f=func();}interface b{use a.{f};}

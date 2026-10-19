@@ -1,0 +1,1 @@
+package example:app; world base { import a: func(); import b: func(); } world app { include base with {a as x,b as x}; }

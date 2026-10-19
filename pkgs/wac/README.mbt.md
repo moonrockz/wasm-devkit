@@ -234,8 +234,10 @@ README recipes with exactly the imports shown, on wasm, wasm-gc, js and native.
 
 Package/targets directives, WIT-style definitions supported by the WAC reference, imports, let bindings, instantiations, access expressions, spread arguments and exports.
 
-Syntax parsing is separate from semantic resolution. Cross-file/package loading, name resolution,
-registry access and composition evaluation belong in later semantic tooling.
+Syntax parsing is separate from semantic resolution. The
+[verifier](src/verifier/README.mbt.md) checks ordered local declarations and returns
+immutable resource, interface and world contracts. Cross-file/package loading,
+registry access and component instantiation remain under development.
 The syntax parser must not perform I/O.
 
 ## Packages
