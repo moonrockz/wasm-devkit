@@ -41,6 +41,37 @@ async fn checked(
 }
 
 ///|
+async fn cleanup_fixture(root : String) -> Unit {
+  // Warg's nested digest directories exceed legacy Windows path limits.
+  checked(
+    "node",
+    [
+      "--input-type=module", "-e", "import {rmSync} from 'node:fs'; import {toNamespacedPath} from 'node:path'; rmSync(toNamespacedPath(process.argv[1]), {recursive:true, force:true, maxRetries:3, retryDelay:100});",
+      root,
+    ],
+    0,
+  )
+  |> ignore
+}
+
+///|
+async test "registry fixture cleanup handles long paths and is idempotent" {
+  let root = @fs.tmpdir(prefix="wasm-devkit-cleanup-test")
+  defer cleanup_fixture(root)
+  checked(
+    "node",
+    [
+      "--input-type=module", "-e", "import {mkdirSync,writeFileSync} from 'node:fs'; import {join,toNamespacedPath} from 'node:path'; const p=toNamespacedPath(join(process.argv[1], 'a'.repeat(180), 'b'.repeat(180))); mkdirSync(p,{recursive:true}); writeFileSync(join(p,'artifact'),'fixture');",
+      root,
+    ],
+    0,
+  )
+  |> ignore
+  cleanup_fixture(root)
+  assert_false(@fs.exists(root))
+}
+
+///|
 async fn Runner::verify(
   self : Runner,
   source : String,
@@ -160,7 +191,7 @@ async fn main {
       )
   }
   let root = @fs.tmpdir(prefix="wasm-devkit-registry-test")
-  defer @fs.rmdir(root, recursive=true)
+  defer cleanup_fixture(root)
   @async.with_task_group(async fn(group) {
     let log = @process.redirect_to_file(root + "/server.log")
     defer log.close()
