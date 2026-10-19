@@ -1,0 +1,20 @@
+package example:methods@1.0.0;
+interface files {
+  resource file {
+    constructor(path: string) -> result<file, string>;
+    read: async func(n: u32) -> list<u8>;
+    close: func();
+    open: static func(path: string) -> file;
+    position: get() -> u64;
+    position: set(value: u64);
+    shared: static get() -> u64;
+    shared: static set(value: u64);
+  }
+  resource %stream { constructor(); }
+  ready: get() -> bool;
+  ready: set(value: bool);
+}
+world app {
+  import files;
+  export files;
+}

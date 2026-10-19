@@ -70,19 +70,31 @@ Encoded package loading has an initial, strict v2 type-wrapper profile. Use
 `PackageInput::Encoded` to `resolve_packages`. Source packages use
 `PackageInput::Source`. These operations perform no I/O. Supported encoded
 interfaces contain exported named scalar/composite types, records, flags, enums,
-variants, bare resources and freestanding functions. Worlds contain function or
+variants, resources, constructors, ordinary/static/async methods, getters/setters
+and freestanding functions. Worlds contain function or
 instance imports/exports; qualified instances must match a supplied interface in
 the same encoded package. An instance with an ordinary name becomes an inline
 interface. Component type indices include aliases introduced by type exports.
 
 The initial profile rejects v1 packages, outer/instance aliases, wrapper imports,
-foreign or structurally different world instances, resource methods/accessors,
+foreign or structurally different world instances, world-owned resource members,
 anonymous structural types, name attributes and export ascriptions. Missing or
 empty version-1 `package-docs` metadata is accepted. Nonempty metadata is rejected
 until its distinct binary stability rules are implemented. WAT uses the portable
 frontend from `Milky2018/wasm_component@0.16.0`; its unsupported `@custom` and
 `@producers` forms return errors. Physical WAT nesting is limited to 256 before
 that frontend runs. Expanded value types have a one-million-step decoding limit.
+Binary resource signatures retain their encoded nominal identities and implicit
+receivers. Constructors return an owned handle or a result containing that handle;
+aliases are transparent to the binary constructor and setter result contracts.
+Source declarations retain their own alias restrictions. Encoded setters require
+a preceding getter with an exactly matching property type; a getter's result
+success type is its property type. Source setter ordering and type rules remain
+those described above.
+
+The component validator is retained from `Milky2018/wasm_component@0.16.0`
+with a [licensed compatibility patch](../binary/validation/README.md) for modern
+accessor names and instance resource/signature validation.
 These limitations remain under [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
 Other unsupported source attributes still fail under `WIT-S003`.
 A successful result covers the entire supported input. An unsupported or unresolved

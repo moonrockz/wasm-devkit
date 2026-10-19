@@ -54,6 +54,7 @@ pub fn verify_ast(
 fn verify_prepared(
   prepared : Prepared,
   semantic_features : SemanticFeatures,
+  binary_sources~ : Map[String, Bool] = Map([]),
 ) -> Result[Resolution, ReadOnlyArray[Diagnostic]] {
   let tree = prepared.tree
   let errors : Array[Diagnostic] = []
@@ -867,8 +868,8 @@ fn verify_prepared(
   }
   let resources = resource_roots(tree, edges, excluded_selectors)
   verify_handle_targets(prepared, resources, errors)
-  verify_constructors(prepared, edges, errors)
-  verify_setter_results(prepared, edges, errors)
+  verify_constructors(prepared, edges, errors, binary_sources~)
+  verify_setter_results(prepared, edges, errors, binary_sources~)
   if !errors.is_empty() {
     return Err(dependency_chains(prepared, package_edges, errors))
   }

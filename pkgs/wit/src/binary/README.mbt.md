@@ -13,7 +13,8 @@ imports and exports are framed with explicit work stacks. Physical type-scope
 nesting is limited to 256 before the dependency parser runs. Core declarations,
 core module descriptions and other root sections return an unsupported-encoding
 diagnostic. Type indices and component type semantics then validate through
-`Milky2018/wasm_component/validator` pinned at `0.16.0`. A further explicit-stack
+the validator retained from `Milky2018/wasm_component@0.16.0` with a
+[licensed accessor and instance-signature compatibility patch](validation/README.md). A further explicit-stack
 pass enforces the pinned wasmparser memory64 value-layout limit, below 2^28 bytes,
 including record/variant padding, fixed lists and aliases across scopes. Fixed
 lists contain 1 through 1,073,741,824 elements and must also fit that byte limit.

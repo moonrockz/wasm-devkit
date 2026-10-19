@@ -192,12 +192,13 @@ pub fn resolve_packages(
       encoded_inputs.push(encoded)
     }
   }
-  match
-    resolve(
-      root.lowered(),
-      dependencies=dependencies.map(PackageInput::lowered),
-      semantic_features~,
-    ) {
+  let result = match
+    prepare(root.lowered(), dependencies.map(PackageInput::lowered)) {
+    Err(errors) => Err(errors)
+    Ok(prepared) =>
+      verify_prepared(prepared, semantic_features, binary_sources=binaries)
+  }
+  match result {
     Err(errors) =>
       Err(errors.map(diagnostic => encoded_diagnostic(diagnostic, binaries)))
     Ok(resolution) =>

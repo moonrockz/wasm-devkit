@@ -225,9 +225,10 @@ does not fall back to a versioned package.
 
 `verify package.wasm` and `verify package.wat` select WIT automatically. Encoded
 inputs also work through `deps` discovery and `--dep` mappings. The current strict
-v2 profile supports named value types, bare resources, freestanding functions and
+v2 profile supports named value types, resources and their function/accessor
+contracts, freestanding functions and
 world function/instance imports and exports. Its [exact encoding limitations](../../pkgs/wit/src/verifier/README.mbt.md#current-profile)
-include nonempty package metadata, resource methods and foreign type aliases.
+include nonempty package metadata, world-owned resource members and foreign type aliases.
 The portable WAT frontend does not accept `@custom` or `@producers` syntax.
 Unsupported forms return a diagnostic and exit 1. Missing files and provider I/O
 failures return exit 2. WAC dependency providers remain unfinished under issue #5.

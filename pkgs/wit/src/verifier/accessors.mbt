@@ -21,14 +21,17 @@ fn verify_setter_results(
   prepared : Prepared,
   references : Map[Int32, Int32],
   errors : Array[Diagnostic],
+  binary_sources~ : Map[String, Bool] = Map([]),
 ) -> Unit {
   let tree = prepared.tree
-  for node in tree.nodes {
+  for id, node in tree.nodes {
     guard node.data is Signature(flavor=Set, result=Some(output), ..) else {
       continue
     }
     let mut result = output
-    if tree.nodes[result].data is NamedType(..) &&
+    if binary_sources.contains(prepared.origins[id].location.source) {
+      result = binary_type_root(tree, references, output).unwrap_or(output)
+    } else if tree.nodes[result].data is NamedType(..) &&
       references.get(result) is Some(target) &&
       tree.nodes[target].data is Alias(ty~, ..) {
       result = ty

@@ -1,0 +1,7 @@
+package example:world-accessors;
+world app {
+  import size: get() -> u32;
+  import size: set(value: u32);
+  export ready: get() -> bool;
+  export ready: set(value: bool);
+}

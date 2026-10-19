@@ -206,22 +206,76 @@ fn encoded_type(
 }
 
 ///|
-fn encoded_signature(
+fn encoded_function(
   slots : Array[EncodedSlot],
+  name : String,
   index : Int32,
-) -> String raise EncodedFailure {
+) -> (String?, String) raise EncodedFailure {
   guard encoded_slot(slots, index) is Definition(FuncType(function)) else {
     raise Invalid("WIT function export does not reference a function type")
   }
-  let out = StringBuilder()
-  if function.is_async {
-    out.write_string("async ")
+  let is_constructor = name.has_prefix("[constructor]")
+  let is_method = name.has_prefix("[method]")
+  let is_static = name.has_prefix("[static]")
+  let rest = if is_constructor {
+    name[13:].to_owned()
+  } else if is_method || is_static {
+    name[8:].to_owned()
+  } else {
+    name
   }
-  out.write_string("func(")
-  for i, parameter in function.params {
-    if i > 0 {
+  let getter = rest.has_prefix("[get]")
+  let setter = rest.has_prefix("[set]")
+  let rest = if getter || setter { rest[5:].to_owned() } else { rest }
+  let (resource, local_name) : (String?, String) = if is_constructor {
+    (Some(rest), "")
+  } else if is_method || is_static {
+    let parts = rest.split(".").to_array()
+    guard parts.length() == 2 else {
+      raise Invalid("invalid resource function name")
+    }
+    (Some(parts[0].to_owned()), parts[1].to_owned())
+  } else {
+    (None, rest)
+  }
+  if resource is Some(name) {
+    ignore(encoded_name(name))
+  }
+  let out = StringBuilder()
+  if is_constructor {
+    guard !function.is_async && !getter && !setter else {
+      raise Invalid("invalid constructor flavor")
+    }
+    out.write_string("constructor")
+  } else {
+    out.write_string(encoded_name(local_name) + ":")
+    if is_static {
+      out.write_string("static ")
+    }
+    if function.is_async {
+      out.write_string("async ")
+    }
+    out.write_string(
+      if getter {
+        "get"
+      } else if setter {
+        "set"
+      } else {
+        "func"
+      },
+    )
+  }
+  out.write_string("(")
+  let first = if is_method { 1 } else { 0 }
+  if is_method &&
+    (function.params.is_empty() || function.params[0].label != "self") {
+    raise Invalid("resource method is missing its self parameter")
+  }
+  for i in first..<function.params.length() {
+    if i > first {
       out.write_string(",")
     }
+    let parameter = function.params[i]
     out.write_string(
       encoded_name(parameter.label) +
       ":" +
@@ -233,7 +287,13 @@ fn encoded_signature(
     out.write_string("->" + encoded_expression(slots, result))
   }
   out.write_string(";")
-  out.to_string()
+  (resource, out.to_string())
+}
+
+///|
+priv enum EncodedInterfaceItem {
+  ItemText(String)
+  Resource(String)
 }
 
 ///|
@@ -246,7 +306,8 @@ fn encoded_interface(
     _ => raise Invalid("WIT interface is not an instance type")
   }
   let slots : Array[EncodedSlot] = []
-  let out = StringBuilder()
+  let items : Array[EncodedInterfaceItem] = []
+  let resources : Map[String, Array[String]] = Map([])
   for declaration in declarations {
     match declaration {
       Type(definition) => slots.push(Definition(definition))
@@ -256,21 +317,46 @@ fn encoded_interface(
         }
         match description {
           Type(Eq(index)) => {
-            out.write_string(encoded_type(slots, name, index))
+            items.push(ItemText(encoded_type(slots, name, index)))
             slots.push(Named(name))
           }
           Type(SubResource) => {
-            out.write_string("resource " + encoded_name(name) + ";")
+            guard !resources.contains(name) else {
+              raise Invalid("duplicate resource name")
+            }
+            resources[name] = []
+            items.push(Resource(name))
             slots.push(Named(name))
           }
-          FuncType(index) =>
-            out.write_string(
-              encoded_name(name) + ":" + encoded_signature(slots, index),
-            )
+          FuncType(index) => {
+            let (resource, text) = encoded_function(slots, name, index)
+            match resource {
+              None => items.push(ItemText(text))
+              Some(resource) =>
+                match resources.get(resource) {
+                  Some(methods) => methods.push(text)
+                  None =>
+                    raise Invalid("resource function names an unknown resource")
+                }
+            }
+          }
           _ => raise Unsupported("non-WIT interface export")
         }
       }
       _ => raise Unsupported("interface type aliases or core declarations")
+    }
+  }
+  let out = StringBuilder()
+  for item in items {
+    match item {
+      ItemText(text) => out.write_string(text)
+      Resource(name) => {
+        out.write_string("resource " + encoded_name(name) + "{")
+        for text in resources[name] {
+          out.write_string(text)
+        }
+        out.write_string("}")
+      }
     }
   }
   out.to_string()
@@ -368,9 +454,11 @@ fn encoded_world(
             let type_slots = slots.map(definition => {
               EncodedSlot::Definition(definition)
             })
-            out.write_string(
-              encoded_name(name) + ":" + encoded_signature(type_slots, index),
-            )
+            let (resource, text) = encoded_function(type_slots, name, index)
+            guard resource is None else {
+              raise Unsupported("world-owned resource functions")
+            }
+            out.write_string(text)
           }
           _ => raise Unsupported("world item other than a function or instance")
         }

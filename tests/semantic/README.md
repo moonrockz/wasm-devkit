@@ -91,5 +91,13 @@ Binary fixtures were generated from the original sources with the pinned
 sections without custom metadata, within the portable frontend's current profile.
 The runner passes `.wasm` and `.wat` inputs unchanged to both reference tools and
 the product CLI, and compares world/resource summaries. Nonempty binary metadata,
-resource methods and cross-package encoded aliases remain outside this initial
+world-owned resource members and cross-package encoded aliases remain outside this initial
 profile; their implementation remains on `wasm-devkit-p5m.8.1.5`.
+
+Encoded resource-function fixtures compare default/fallible constructors,
+ordinary/static/async methods, implicit receivers, free/method/static accessors,
+transparent constructor/setter result aliases, and their invalid signatures.
+Binary setters require preceding matching getters; binary getter and setter
+property types must agree even where source resolution alone accepts a mismatch.
+These cases retain exact bytes and use the same pinned binary validator and
+Resolve API operation as the corresponding positive packages.

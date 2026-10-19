@@ -67,12 +67,33 @@ fn verify_constructors(
   prepared : Prepared,
   references : Map[Int32, Int32],
   errors : Array[Diagnostic],
+  binary_sources~ : Map[String, Bool] = Map([]),
 ) -> Unit {
   let tree = prepared.tree
   let members = resource_members(tree)
   for id, node in tree.nodes {
     guard node.data is Constructor(result=Some(output), ..) &&
       members.get(id) is Some(resource) else {
+      continue
+    }
+    if binary_sources.contains(prepared.origins[id].location.source) {
+      let valid = match binary_type_root(tree, references, output) {
+        Some(result) =>
+          match tree.nodes[result].data {
+            ResultType(ok=Some(ok), ..) =>
+              binary_owned_resource(tree, references, ok) == Some(resource)
+            _ =>
+              binary_owned_resource(tree, references, result) == Some(resource)
+          }
+        None => false
+      }
+      if !valid {
+        errors.push(
+          prepared_error(
+            prepared, output, "WIT-S007", "encoded constructor must construct its own resource",
+          ),
+        )
+      }
       continue
     }
     // A named result may denote one declaration whose kind is directly Result.
@@ -154,5 +175,44 @@ fn remap_function_name(
       "." +
       parts[parts.length() - 1].to_owned()
     }
+  }
+}
+
+///|
+// Component type aliases are transparent to the binary constructor/accessor
+// contracts. Source declarations retain the pinned source alias boundaries.
+fn binary_type_root(
+  tree : @ast.Tree,
+  references : Map[Int32, Int32],
+  start : Int32,
+) -> Int32? {
+  let mut current = start
+  for _ in 0..<tree.nodes.length() {
+    match tree.nodes[current].data {
+      Alias(ty~, ..) => current = ty
+      NamedType(..) | Rename(..) =>
+        match references.get(current) {
+          Some(target) => current = target
+          None => return None
+        }
+      _ => return Some(current)
+    }
+  }
+  None
+}
+
+///|
+fn binary_owned_resource(
+  tree : @ast.Tree,
+  references : Map[Int32, Int32],
+  start : Int32,
+) -> Int32? {
+  guard binary_type_root(tree, references, start) is Some(root) else {
+    return None
+  }
+  match tree.nodes[root].data {
+    OwnType(resource~) => binary_type_root(tree, references, resource)
+    Resource(..) => Some(root)
+    _ => None
   }
 }

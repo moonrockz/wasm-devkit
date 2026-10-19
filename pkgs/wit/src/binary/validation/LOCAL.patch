@@ -1,0 +1,1126 @@
+--- a/canon_abi.mbt
++++ b/canon_abi.mbt
+@@ -0,0 +1,2 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++
+@@ -105 +107 @@
+-  type_bound : Int,
++  type_bound : Int32,
+@@ -367 +369 @@
+-  visiting : Map[Int, Int],
++  visiting : Map[Int32, Int32],
+@@ -392 +394 @@
+-  visiting : Map[Int, Int],
++  visiting : Map[Int32, Int32],
+@@ -495 +497 @@
+-  visiting : Map[Int, Int],
++  visiting : Map[Int32, Int32],
+@@ -626 +628 @@
+-fn clamp_type_size(size : Int) -> Int {
++fn clamp_type_size(size : Int32) -> Int32 {
+@@ -635 +637 @@
+-fn add_type_size(acc : Int, delta : Int) -> Int {
++fn add_type_size(acc : Int32, delta : Int32) -> Int32 {
+@@ -645 +647 @@
+-fn local_type_size_of(idx : Int, local_sizes : Array[Int]) -> Int {
++fn local_type_size_of(idx : Int32, local_sizes : Array[Int32]) -> Int32 {
+@@ -655,2 +657,2 @@
+-  local_sizes : Array[Int],
+-) -> Int {
++  local_sizes : Array[Int32],
++) -> Int32 {
+@@ -670,3 +672,3 @@
+-  outer_sizes : Array[Int],
+-) -> Int {
+-  fn valtype_size(ty : @component.ValType) -> Int {
++  outer_sizes : Array[Int32],
++) -> Int32 {
++  fn valtype_size(ty : @component.ValType) -> Int32 {
+@@ -681 +683 @@
+-      let local_sizes : Array[Int] = []
++      let local_sizes : Array[Int32] = []
+@@ -722 +724 @@
+-      let local_sizes : Array[Int] = []
++      let local_sizes : Array[Int32] = []
+--- a/canon_abi_wbtest.mbt
++++ b/canon_abi_wbtest.mbt
+@@ -0,0 +1,2 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++
+--- a/component_type_sig.mbt
++++ b/component_type_sig.mbt
+@@ -0,0 +1,3 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++// Modified by wasm-devkit: retain instance type aliases and validate accessor/resource contracts.
++
+@@ -5 +8 @@
+-  global_resource_ids : Array[Int?],
++  global_resource_ids : Array[Int32?],
+@@ -9 +12 @@
+-  let local_resource_ids : Array[Int?] = []
++  let local_resource_ids : Array[Int32?] = []
+@@ -102 +105 @@
+-  global_resource_ids : Array[Int?],
++  global_resource_ids : Array[Int32?],
+@@ -106 +109 @@
+-  let local_resource_ids : Array[Int?] = []
++  let local_resource_ids : Array[Int32?] = []
+@@ -114 +117 @@
+-  fn record_type_slot(as_resource : Bool) -> Int {
++  fn record_type_slot(as_resource : Bool) -> Int32 {
+@@ -215 +218 @@
+-  global_resource_ids : Array[Int?],
++  global_resource_ids : Array[Int32?],
+@@ -219 +222 @@
+-  let local_resource_ids : Array[Int?] = []
++  let local_resource_ids : Array[Int32?] = []
+@@ -232 +235 @@
+-  fn push_resource() -> Int {
++  fn push_resource() -> Int32 {
+@@ -240 +243 @@
+-  fn push_eq(idx : Int) -> Unit {
++  fn push_eq(idx : Int32) -> Unit {
+@@ -312 +315 @@
+-  global_resource_ids : Array[Int?],
++  global_resource_ids : Array[Int32?],
+@@ -316 +319 @@
+-  let local_resource_ids : Array[Int?] = []
++  let local_resource_ids : Array[Int32?] = []
+@@ -409,2 +412,2 @@
+-) -> Map[String, Map[String, Int]] raise ComponentValidationError {
+-  let core_type_exports : Array[Map[String, Int]?] = []
++) -> Map[String, Map[String, Int32]] raise ComponentValidationError {
++  let core_type_exports : Array[Map[String, Int32]?] = []
+@@ -417 +420 @@
+-  let result : Map[String, Map[String, Int]] = Map([])
++  let result : Map[String, Map[String, Int32]] = Map([])
+@@ -468 +471 @@
+-) -> (Map[String, Map[String, CoreExternType]], Map[String, Map[String, Int]]) raise ComponentValidationError {
++) -> (Map[String, Map[String, CoreExternType]], Map[String, Map[String, Int32]]) raise ComponentValidationError {
+@@ -470 +473 @@
+-  let local_core_export_kinds : Array[Map[String, Int]?] = []
++  let local_core_export_kinds : Array[Map[String, Int32]?] = []
+@@ -488 +491 @@
+-          let exp_kinds : Map[String, Int] = Map([])
++          let exp_kinds : Map[String, Int32] = Map([])
+@@ -524 +527 @@
+-  let export_kinds : Map[String, Map[String, Int]] = Map([])
++  let export_kinds : Map[String, Map[String, Int32]] = Map([])
+@@ -542 +545,4 @@
+-fn check_typeidx(idx : Int, bound : Int) -> Unit raise ComponentValidationError {
++fn check_typeidx(
++  idx : Int32,
++  bound : Int32,
++) -> Unit raise ComponentValidationError {
+@@ -552 +558 @@
+-  type_bound : Int,
++  type_bound : Int32,
+@@ -687,2 +693,2 @@
+-  idx : Int,
+-  bound : Int,
++  idx : Int32,
++  bound : Int32,
+@@ -698,2 +704,2 @@
+-  count : Int,
+-  idx : Int,
++  count : Int32,
++  idx : Int32,
+@@ -711,4 +717,4 @@
+-  core_type_outers : Array[Array[Map[String, Int]?]],
+-  count : Int,
+-  idx : Int,
+-) -> Map[String, Int]? raise ComponentValidationError {
++  core_type_outers : Array[Array[Map[String, Int32]?]],
++  count : Int32,
++  idx : Int32,
++) -> Map[String, Int32]? raise ComponentValidationError {
+@@ -727 +733 @@
+-  visiting : Map[Int, Int],
++  visiting : Map[Int32, Int32],
+@@ -808 +814 @@
+-  visiting : Map[Int, Int],
++  visiting : Map[Int32, Int32],
+@@ -843,3 +849,3 @@
+-  type_outer_depths : Array[Int],
+-  component_depth : Int,
+-  core_type_outers : Array[Array[Map[String, Int]?]],
++  type_outer_depths : Array[Int32],
++  component_depth : Int32,
++  core_type_outers : Array[Array[Map[String, Int32]?]],
+@@ -856 +862 @@
+-  let outer_core_type_bounds : Array[Int] = []
++  let outer_core_type_bounds : Array[Int32] = []
+@@ -1021 +1027 @@
+-      let local_resource_ids : Array[Int?] = []
++      let local_resource_ids : Array[Int32?] = []
+@@ -1025,6 +1031,8 @@
+-      let local_named_types : Map[Int, Int] = Map([])
+-      let local_import_resource_names : Map[String, Int] = Map([])
+-      let local_export_resource_names : Map[String, Int] = Map([])
+-      let local_import_resource_type_idxs : Map[Int, Int] = Map([])
+-      let local_export_resource_type_idxs : Map[Int, Int] = Map([])
+-      let local_core_type_exports : Array[Map[String, Int]?] = []
++      let import_functions : Map[String, @component.FuncType] = Map([])
++      let export_functions : Map[String, @component.FuncType] = Map([])
++      let local_named_types : Map[Int32, Int32] = Map([])
++      let local_import_resource_names : Map[String, Int32] = Map([])
++      let local_export_resource_names : Map[String, Int32] = Map([])
++      let local_import_resource_type_idxs : Map[Int32, Int32] = Map([])
++      let local_export_resource_type_idxs : Map[Int32, Int32] = Map([])
++      let local_core_type_exports : Array[Map[String, Int32]?] = []
+@@ -1139 +1147 @@
+-                    local_resource_ids.push(None)
++                    local_resource_ids.push(Some(new_idx))
+@@ -1168,0 +1177,4 @@
++                      validate_accessor_pair(
++                        7, name, ft, local_type_table, local_resource_ids, import_functions,
++                      )
++                      import_functions[name] = ft
+@@ -1238 +1250 @@
+-                    local_resource_ids.push(None)
++                    local_resource_ids.push(Some(new_idx))
+@@ -1267,0 +1280,4 @@
++                      validate_accessor_pair(
++                        7, name, ft, local_type_table, local_resource_ids, export_functions,
++                      )
++                      export_functions[name] = ft
+@@ -1289,0 +1306,3 @@
++      let local_resource_ids : Array[Int32?] = []
++      let resource_names : Map[String, Int32] = Map([])
++      let export_functions : Map[String, @component.FuncType] = Map([])
+@@ -1292 +1311 @@
+-      let local_core_type_exports : Array[Map[String, Int]?] = []
++      let local_core_type_exports : Array[Map[String, Int32]?] = []
+@@ -1333,0 +1353 @@
++              local_resource_ids.push(None)
+@@ -1344,0 +1365 @@
++              local_resource_ids.push(None)
+@@ -1360,0 +1382 @@
++            local_resource_ids.push(None)
+@@ -1394,4 +1416,31 @@
+-            // Like the component export section, exporting a type introduces
+-            // a fresh type index in this instance type's local type space.
+-            if desc is Type(_) {
+-              local_type_table.push(None)
++            match desc {
++              Type(bound) => {
++                let new_index = local_type_table.length()
++                match bound {
++                  Eq(index) => {
++                    local_type_table.push(local_type_table[index])
++                    local_resource_ids.push(local_resource_ids[index])
++                  }
++                  SubResource => {
++                    local_type_table.push(
++                      Some(ResourceType(-1, 0x7f, None, HostDefined)),
++                    )
++                    local_resource_ids.push(Some(new_index))
++                    resource_names[name] = new_index
++                  }
++                }
++              }
++              FuncType(index) =>
++                match local_type_table[index] {
++                  Some(FuncType(ft)) => {
++                    validate_bracketed_func_name(
++                      7, name, ft, local_type_table, local_resource_ids, resource_names,
++                    )
++                    validate_accessor_pair(
++                      7, name, ft, local_type_table, local_resource_ids, export_functions,
++                    )
++                    export_functions[name] = ft
++                  }
++                  _ => ()
++                }
++              _ => ()
+@@ -1433 +1482 @@
+-  core_type_bound : Int,
++  core_type_bound : Int32,
+@@ -1578 +1627 @@
+-fn canon_memory_idx(opts : Array[@component.CanonOpt]) -> Int? {
++fn canon_memory_idx(opts : Array[@component.CanonOpt]) -> Int32? {
+@@ -1588 +1637 @@
+-fn canon_realloc_idx(opts : Array[@component.CanonOpt]) -> Int? {
++fn canon_realloc_idx(opts : Array[@component.CanonOpt]) -> Int32? {
+@@ -1598 +1647 @@
+-fn canon_post_return_idx(opts : Array[@component.CanonOpt]) -> Int? {
++fn canon_post_return_idx(opts : Array[@component.CanonOpt]) -> Int32? {
+@@ -1680 +1729 @@
+-  visiting : Map[Int, Unit],
++  visiting : Map[Int32, Unit],
+--- a/core_type.mbt
++++ b/core_type.mbt
+@@ -0,0 +1,3 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++// Modified by wasm-devkit: validate accessor and async-constructor contracts.
++
+@@ -4,4 +7,4 @@
+-  max_outer_depth : Int,
+-  current_core_type_bound : Int,
+-  outer_core_type_bounds : Array[Int],
+-) -> Map[String, Int] raise ComponentValidationError {
++  max_outer_depth : Int32,
++  current_core_type_bound : Int32,
++  outer_core_type_bounds : Array[Int32],
++) -> Map[String, Int32] raise ComponentValidationError {
+@@ -9,2 +12,2 @@
+-  let exports : Map[String, Int] = Map([])
+-  let seen_imports : Map[String, Int] = Map([])
++  let exports : Map[String, Int32] = Map([])
++  let seen_imports : Map[String, Int32] = Map([])
+@@ -120,4 +123,4 @@
+-  max_outer_depth : Int,
+-  base_core_type_bound : Int,
+-  outer_core_type_bounds : Array[Int],
+-) -> Array[Map[String, Int]?] raise ComponentValidationError {
++  max_outer_depth : Int32,
++  base_core_type_bound : Int32,
++  outer_core_type_bounds : Array[Int32],
++) -> Array[Map[String, Int32]?] raise ComponentValidationError {
+@@ -126 +129 @@
+-  let out : Array[Map[String, Int]?] = []
++  let out : Array[Map[String, Int32]?] = []
+@@ -159,3 +162,3 @@
+-  max_outer_depth : Int,
+-  base_core_type_bound : Int,
+-  outer_core_type_bounds : Array[Int],
++  max_outer_depth : Int32,
++  base_core_type_bound : Int32,
++  outer_core_type_bounds : Array[Int32],
+@@ -199,3 +202,3 @@
+-  current_core_type_bound : Int,
+-  outer_core_type_bounds : Array[Int],
+-) -> Map[String, Int]? raise ComponentValidationError {
++  current_core_type_bound : Int32,
++  outer_core_type_bounds : Array[Int32],
++) -> Map[String, Int32]? raise ComponentValidationError {
+@@ -313 +316 @@
+-  section : Int,
++  section : Int32,
+@@ -394 +397 @@
+-  section : Int,
++  section : Int32,
+@@ -426 +429 @@
+-  fn parse_resource_prefix(name : String, prefix_len : Int) -> String {
++  fn parse_resource_prefix(name : String, prefix_len : Int32) -> String {
+@@ -541 +544,7 @@
+-  let s = suffix.to_string()
++  let raw_suffix = suffix.to_string()
++  let s = if (p == "method" || p == "static") &&
++    (raw_suffix.has_prefix("[get]") || raw_suffix.has_prefix("[set]")) {
++    raw_suffix[5:].to_owned()
++  } else {
++    raw_suffix
++  }
+@@ -567 +576 @@
+-) -> Int? {
++) -> Int32? {
+@@ -586 +595 @@
+-) -> Int? {
++) -> Int32? {
+@@ -603 +612 @@
+-  section : Int,
++  section : Int32,
+@@ -607,2 +616,2 @@
+-  resource_ids : Array[Int?],
+-  known_resources : Map[String, Int],
++  resource_ids : Array[Int32?],
++  known_resources : Map[String, Int32],
+@@ -609,0 +619 @@
++  validate_accessor_function(section, name, ft, type_table)
+@@ -610,0 +621,3 @@
++  if br is Some(info) && info.kind is Constructor && ft.is_async {
++    raise SectionParseError(section, "constructor cannot be async")
++  }
+@@ -702,2 +715,2 @@
+-  allowed_resource_type_idxs : Map[Int, Int],
+-  visiting : Map[Int, Int],
++  allowed_resource_type_idxs : Map[Int32, Int32],
++  visiting : Map[Int32, Int32],
+@@ -806 +819 @@
+-  allowed_resource_type_idxs : Map[Int, Int],
++  allowed_resource_type_idxs : Map[Int32, Int32],
+@@ -808 +821 @@
+-  let visiting : Map[Int, Int] = Map([])
++  let visiting : Map[Int32, Int32] = Map([])
+@@ -832 +845 @@
+-  resource_ids : Array[Int?],
++  resource_ids : Array[Int32?],
+@@ -834 +847 @@
+-  let visiting : Map[Int, Int] = Map([])
++  let visiting : Map[Int32, Int32] = Map([])
+@@ -853 +866 @@
+-  local_resource_ids : Array[Int?],
++  local_resource_ids : Array[Int32?],
+@@ -855,2 +868,2 @@
+-  global_resource_ids : Array[Int?],
+-  visiting : Map[Int, Int],
++  global_resource_ids : Array[Int32?],
++  visiting : Map[Int32, Int32],
+@@ -973 +986 @@
+-  local_resource_ids : Array[Int?],
++  local_resource_ids : Array[Int32?],
+@@ -975,2 +988,2 @@
+-  global_resource_ids : Array[Int?],
+-  visiting : Map[Int, Int],
++  global_resource_ids : Array[Int32?],
++  visiting : Map[Int32, Int32],
+@@ -1024 +1037 @@
+-  local_resource_ids : Array[Int?],
++  local_resource_ids : Array[Int32?],
+@@ -1026 +1039 @@
+-  global_resource_ids : Array[Int?],
++  global_resource_ids : Array[Int32?],
+@@ -1028 +1041 @@
+-  let visiting : Map[Int, Int] = Map([])
++  let visiting : Map[Int32, Int32] = Map([])
+@@ -1060,2 +1073,2 @@
+-  resource_ids : Array[Int?],
+-  visiting : Map[Int, Int],
++  resource_ids : Array[Int32?],
++  visiting : Map[Int32, Int32],
+@@ -1140,2 +1153,2 @@
+-  resource_ids : Array[Int?],
+-  visiting : Map[Int, Int],
++  resource_ids : Array[Int32?],
++  visiting : Map[Int32, Int32],
+@@ -1170 +1183 @@
+-  idx : Int,
++  idx : Int32,
+@@ -1172 +1185 @@
+-  resource_ids : Array[Int?],
++  resource_ids : Array[Int32?],
+@@ -1178 +1191,4 @@
+-fn type_sig_subst_resources(sig : TypeSig, subst : Map[Int, Int]) -> TypeSig {
++fn type_sig_subst_resources(
++  sig : TypeSig,
++  subst : Map[Int32, Int32],
++) -> TypeSig {
+@@ -1307 +1323 @@
+-  subst : Map[Int, Int],
++  subst : Map[Int32, Int32],
+@@ -1355,3 +1371,3 @@
+-  resource_ids : Array[Int?],
+-  named_types : Map[Int, Int],
+-  visiting : Map[Int, Int],
++  resource_ids : Array[Int32?],
++  named_types : Map[Int32, Int32],
++  visiting : Map[Int32, Int32],
+@@ -1477,3 +1493,3 @@
+-  resource_ids : Array[Int?],
+-  named_types : Map[Int, Int],
+-  visiting : Map[Int, Int],
++  resource_ids : Array[Int32?],
++  named_types : Map[Int32, Int32],
++  visiting : Map[Int32, Int32],
+@@ -1490,3 +1506,3 @@
+-  resource_ids : Array[Int?],
+-  named_types : Map[Int, Int],
+-  visiting : Map[Int, Int],
++  resource_ids : Array[Int32?],
++  named_types : Map[Int32, Int32],
++  visiting : Map[Int32, Int32],
+@@ -1626,2 +1642,2 @@
+-  resource_ids : Array[Int?],
+-  named_types : Map[Int, Int],
++  resource_ids : Array[Int32?],
++  named_types : Map[Int32, Int32],
+@@ -1629 +1645 @@
+-  let visiting : Map[Int, Int] = Map([])
++  let visiting : Map[Int32, Int32] = Map([])
+@@ -1654 +1670 @@
+-  visiting_global : Map[Int, Int],
++  visiting_global : Map[Int32, Int32],
+@@ -1666 +1682 @@
+-  tyidx : Int,
++  tyidx : Int32,
+@@ -1668 +1684 @@
+-  visiting_global : Map[Int, Int],
++  visiting_global : Map[Int32, Int32],
+@@ -1687 +1703 @@
+-  tyidx : Int,
++  tyidx : Int32,
+@@ -1690,2 +1706,2 @@
+-  visiting_local : Map[Int, Int],
+-  visiting_global : Map[Int, Int],
++  visiting_local : Map[Int32, Int32],
++  visiting_global : Map[Int32, Int32],
+@@ -1717 +1733 @@
+-  visiting_global : Map[Int, Int],
++  visiting_global : Map[Int32, Int32],
+@@ -1724 +1740 @@
+-  let visiting_local : Map[Int, Int] = Map([])
++  let visiting_local : Map[Int32, Int32] = Map([])
+@@ -1749 +1765 @@
+-  tyidx : Int,
++  tyidx : Int32,
+@@ -1760,2 +1776,2 @@
+-      let local_resource_ids : Array[Int?] = []
+-      let local_named_types : Map[Int, Int] = Map([])
++      let local_resource_ids : Array[Int32?] = []
++      let local_named_types : Map[Int32, Int32] = Map([])
+@@ -1853,2 +1869,2 @@
+-  let visiting_local : Map[Int, Int] = Map([])
+-  let visiting_global : Map[Int, Int] = Map([])
++  let visiting_local : Map[Int32, Int32] = Map([])
++  let visiting_global : Map[Int32, Int32] = Map([])
+@@ -1935,2 +1951,2 @@
+-  actual : Map[String, Int]?,
+-  expected : Map[String, Int],
++  actual : Map[String, Int32]?,
++  expected : Map[String, Int32],
+@@ -1950,0 +1967,85 @@
++
++///|
++fn validate_accessor_function(
++  section : Int32,
++  name : String,
++  ft : @component.FuncType,
++  type_table : Array[@component.TypeDef?],
++) -> Unit raise ComponentValidationError {
++  let is_method = name.has_prefix("[method]")
++  let rest = if is_method || name.has_prefix("[static]") {
++    name[8:].to_owned()
++  } else {
++    name
++  }
++  let getter = rest.has_prefix("[get]")
++  let setter = rest.has_prefix("[set]")
++  if !getter && !setter {
++    return
++  }
++  if ft.is_async {
++    raise SectionParseError(section, "accessor cannot be async")
++  }
++  let parameters = ft.params.length() - (if is_method { 1 } else { 0 })
++  if (getter && parameters != 0) || (setter && parameters != 1) {
++    raise SectionParseError(section, "invalid accessor parameter count")
++  }
++  let result_without_success = match ft.result {
++    Some(TypeIdx(index)) if index >= 0 && index < type_table.length() =>
++      type_table[index] is Some(Result(None, _))
++    _ => false
++  }
++  if getter && (ft.result is None || result_without_success) {
++    raise SectionParseError(section, "getter must return a value")
++  }
++  if setter && ft.result is Some(_) && !result_without_success {
++    raise SectionParseError(
++      section, "setter may return only a result without success",
++    )
++  }
++}
++
++///|
++fn validate_accessor_pair(
++  section : Int32,
++  name : String,
++  ft : @component.FuncType,
++  type_table : Array[@component.TypeDef?],
++  resource_ids : Array[Int32?],
++  preceding : Map[String, @component.FuncType],
++) -> Unit raise ComponentValidationError {
++  let rest = if name.has_prefix("[method]") || name.has_prefix("[static]") {
++    name[8:].to_owned()
++  } else {
++    name
++  }
++  if !rest.has_prefix("[set]") {
++    return
++  }
++  let getter_name = name.replace(old="[set]", new="[get]")
++  guard preceding.get(getter_name) is Some(getter) else {
++    raise SectionParseError(section, "setter requires a preceding getter")
++  }
++  guard getter.result is Some(property) && !ft.params.is_empty() else {
++    raise SectionParseError(section, "accessor pair has an invalid signature")
++  }
++  let property = match property {
++    TypeIdx(index) if index >= 0 && index < type_table.length() =>
++      match type_table[index] {
++        Some(Result(Some(success), _)) => success
++        _ => property
++      }
++    _ => property
++  }
++  if type_sig_of_valtype(
++      ft.params[ft.params.length() - 1].ty,
++      type_table,
++      resource_ids,
++      Map([]),
++    ) !=
++    type_sig_of_valtype(property, type_table, resource_ids, Map([])) {
++    raise SectionParseError(
++      section, "setter parameter does not match getter property type",
++    )
++  }
++}
+--- a/moon.pkg
++++ b/moon.pkg
+@@ -6 +5,0 @@
+-  "moonbitlang/core/hashset",
+--- a/prelude.mbt
++++ b/prelude.mbt
+@@ -0,0 +1,3 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++// Modified by wasm-devkit: accept pinned component accessor name grammar.
++
+@@ -13,19 +16,19 @@
+-  InvalidTypeIndex(Int)
+-  TypeIndexNotFuncType(Int)
+-  TypeIndexNotComponentType(Int)
+-  TypeIndexNotInstanceType(Int)
+-  TypeIndexNotDefinedType(Int)
+-  TypeIndexNotResourceType(Int)
+-  InvalidFuncIndex(Int)
+-  InvalidValueIndex(Int)
+-  InvalidComponentIndex(Int)
+-  InvalidInstanceIndex(Int)
+-  InvalidCoreFuncIndex(Int)
+-  InvalidCoreModuleIndex(Int)
+-  InvalidCoreInstanceIndex(Int)
+-  InvalidCoreTypeIndex(Int)
+-  CoreTypeIndexNotModuleType(Int)
+-  InvalidCoreTableIndex(Int)
+-  InvalidCoreMemoryIndex(Int)
+-  InvalidCoreGlobalIndex(Int)
+-  InvalidCoreTagIndex(Int)
++  InvalidTypeIndex(Int32)
++  TypeIndexNotFuncType(Int32)
++  TypeIndexNotComponentType(Int32)
++  TypeIndexNotInstanceType(Int32)
++  TypeIndexNotDefinedType(Int32)
++  TypeIndexNotResourceType(Int32)
++  InvalidFuncIndex(Int32)
++  InvalidValueIndex(Int32)
++  InvalidComponentIndex(Int32)
++  InvalidInstanceIndex(Int32)
++  InvalidCoreFuncIndex(Int32)
++  InvalidCoreModuleIndex(Int32)
++  InvalidCoreInstanceIndex(Int32)
++  InvalidCoreTypeIndex(Int32)
++  CoreTypeIndexNotModuleType(Int32)
++  InvalidCoreTableIndex(Int32)
++  InvalidCoreMemoryIndex(Int32)
++  InvalidCoreGlobalIndex(Int32)
++  InvalidCoreTagIndex(Int32)
+@@ -34,3 +37,3 @@
+-  CanonExpectedFuncType(Int)
+-  CanonAsyncTypeMismatch(Int)
+-  CanonMemoryNot32Bit(Int)
++  CanonExpectedFuncType(Int32)
++  CanonAsyncTypeMismatch(Int32)
++  CanonMemoryNot32Bit(Int32)
+@@ -39 +42 @@
+-  UnsupportedCoreSort(Int)
++  UnsupportedCoreSort(Int32)
+@@ -42 +45 @@
+-  ExportedImportedFunc(Int)
++  ExportedImportedFunc(Int32)
+@@ -48,2 +51,2 @@
+-  MissingInstanceExport(Int, String)
+-  MissingCoreInstanceExport(Int, String)
++  MissingInstanceExport(Int32, String)
++  MissingCoreInstanceExport(Int32, String)
+@@ -55 +58 @@
+-  SectionParseError(Int, String)
++  SectionParseError(Int32, String)
+@@ -83 +86 @@
+-  component_implements? : Bool = true,
++  component_implements~ : Bool = true,
+@@ -114,12 +117,12 @@
+-  mut func : Int
+-  mut value : Int
+-  mut component : Int
+-  mut instance : Int
+-  mut core_func : Int
+-  mut core_module : Int
+-  mut core_instance : Int
+-  mut core_type : Int
+-  mut core_table : Int
+-  mut core_memory : Int
+-  mut core_global : Int
+-  mut core_tag : Int
++  mut func : Int32
++  mut value : Int32
++  mut component : Int32
++  mut instance : Int32
++  mut core_func : Int32
++  mut core_module : Int32
++  mut core_instance : Int32
++  mut core_type : Int32
++  mut core_table : Int32
++  mut core_memory : Int32
++  mut core_global : Int32
++  mut core_tag : Int32
+@@ -165,2 +168,2 @@
+-  Existing(Int)
+-  Resource(Int)
++  Existing(Int32)
++  Resource(Int32)
+@@ -182,3 +185,3 @@
+-  Resource(Int)
+-  Own(Int)
+-  Borrow(Int)
++  Resource(Int32)
++  Own(Int32)
++  Borrow(Int32)
+@@ -204,2 +207,2 @@
+-  resource_ids : Array[Int?],
+-) -> Int? {
++  resource_ids : Array[Int32?],
++) -> Int32? {
+@@ -218,3 +221,3 @@
+-  resource_ids : Array[Int?],
+-  preferred_named_types : Map[Int, Int]?,
+-) -> Int? {
++  resource_ids : Array[Int32?],
++  preferred_named_types : Map[Int32, Int32]?,
++) -> Int32? {
+@@ -238,2 +241,2 @@
+-  resource_ids : Array[Int?],
+-  preferred_named_types : Map[Int, Int]?,
++  resource_ids : Array[Int32?],
++  preferred_named_types : Map[Int32, Int32]?,
+@@ -258,2 +261,2 @@
+-  resource_ids : Array[Int?],
+-  preferred_named_types : Map[Int, Int]?,
++  resource_ids : Array[Int32?],
++  preferred_named_types : Map[Int32, Int32]?,
+@@ -460 +463,4 @@
+-fn core_func_type_of_idx(m : @types.Module, func_idx : Int) -> @types.FuncType? {
++fn core_func_type_of_idx(
++  m : @types.Module,
++  func_idx : Int32,
++) -> @types.FuncType? {
+@@ -485 +491 @@
+-  table_idx : Int,
++  table_idx : Int32,
+@@ -506 +512 @@
+-  mem_idx : Int,
++  mem_idx : Int32,
+@@ -527 +533 @@
+-  global_idx : Int,
++  global_idx : Int32,
+@@ -546 +552 @@
+-fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int) -> @types.FuncType? {
++fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int32) -> @types.FuncType? {
+@@ -642 +648 @@
+-fn core_kind_of_extern_type(ty : CoreExternType) -> Int {
++fn core_kind_of_extern_type(ty : CoreExternType) -> Int32 {
+@@ -679 +685 @@
+-  idx : Int,
++  idx : Int32,
+@@ -763 +769 @@
+-fn is_lower_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
++fn is_lower_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
+@@ -793 +799 @@
+-fn is_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
++fn is_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
+@@ -843 +849 @@
+-fn is_canonversion_range(name : Bytes, start : Int, end_ : Int) -> Bool {
++fn is_canonversion_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
+@@ -892 +898 @@
+-fn is_semver_range(name : Bytes, start : Int, end_ : Int) -> Bool {
++fn is_semver_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
+@@ -1185 +1191 @@
+-fn is_integrity_value(name : Bytes, start : Int, end_ : Int) -> Bool {
++fn is_integrity_value(name : Bytes, start : Int32, end_ : Int32) -> Bool {
+@@ -1453,0 +1460,3 @@
++  if prefix_eq("get") || prefix_eq("set") {
++    return is_kebab_case_range(name, close + 1, name.length())
++  }
+@@ -1460 +1469,9 @@
+-  // method/static: require exactly one '.' and kebab-case around it.
++  // Method/static names can have one accessor annotation before the resource.
++  let mut start = close + 1
++  if start + 5 <= name.length() &&
++    (
++      name[start:start + 5] == b"[get]".exact_view() ||
++      name[start:start + 5] == b"[set]".exact_view()
++    ) {
++    start += 5
++  }
+@@ -1462 +1479 @@
+-  for k in (close + 1)..<name.length() {
++  for k in start..<name.length() {
+@@ -1470,4 +1487,4 @@
+-  if dot < 0 || dot == close + 1 || dot == name.length() - 1 {
+-    return false
+-  }
+-  is_kebab_case_range(name, close + 1, dot) &&
++  if dot < 0 || dot == start || dot == name.length() - 1 {
++    return false
++  }
++  is_kebab_case_range(name, start, dot) &&
+@@ -1506 +1523 @@
+-  mut pos : Int
++  mut pos : Int32
+@@ -1522 +1539 @@
+-) -> Int raise ComponentValidationError {
++) -> Int32 raise ComponentValidationError {
+@@ -1534 +1551 @@
+-) -> Int raise ComponentValidationError {
++) -> Int32 raise ComponentValidationError {
+@@ -1554 +1571 @@
+-  n : Int,
++  n : Int32,
+@@ -1627,2 +1644,2 @@
+-  kind : Int,
+-  func_type_bound : Int,
++  kind : Int32,
++  func_type_bound : Int32,
+@@ -1679 +1696 @@
+-    heap : Int,
++    heap : Int32,
+@@ -1748 +1765 @@
+-  kind : Int,
++  kind : Int32,
+@@ -1750 +1767 @@
+-  func_type_bound : Int,
++  func_type_bound : Int32,
+@@ -1859,3 +1876,3 @@
+-  max_outer_depth : Int,
+-  current_core_type_bound : Int,
+-  outer_core_type_bounds : Array[Int],
++  max_outer_depth : Int32,
++  current_core_type_bound : Int32,
++  outer_core_type_bounds : Array[Int32],
+@@ -1864 +1881 @@
+-  let seen_imports : Map[String, Int] = Map([])
++  let seen_imports : Map[String, Int32] = Map([])
+--- a/prelude_wbtest.mbt
++++ b/prelude_wbtest.mbt
+@@ -0,0 +1,2 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++
+--- a/section_alias.mbt
++++ b/section_alias.mbt
+@@ -0,0 +1,2 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++
+@@ -8,7 +10,7 @@
+-  resource_ids : Array[Int?],
+-  type_sizes : Array[Int],
+-  type_depths : Array[Int],
+-  component_sizes : Array[Int],
+-  instance_sizes : Array[Int],
+-  named_types : Map[Int, Int],
+-  core_module_exports : Array[Map[String, Int]?],
++  resource_ids : Array[Int32?],
++  type_sizes : Array[Int32],
++  type_depths : Array[Int32],
++  component_sizes : Array[Int32],
++  instance_sizes : Array[Int32],
++  named_types : Map[Int32, Int32],
++  core_module_exports : Array[Map[String, Int32]?],
+@@ -19 +21 @@
+-  core_instance_exports : Array[Map[String, Int]?],
++  core_instance_exports : Array[Map[String, Int32]?],
+@@ -26 +28 @@
+-    Map[String, Map[String, Int]]?,
++    Map[String, Map[String, Int32]]?,
+@@ -28 +30 @@
+-  component_import_core_module_exports : Array[Map[String, Map[String, Int]]?],
++  component_import_core_module_exports : Array[Map[String, Map[String, Int32]]?],
+@@ -45,3 +47,3 @@
+-  interface_instance_idxs : Map[Int, Int],
+-  instance_export_type_idxs : Array[Array[Int]?],
+-  instance_export_func_idxs : Array[Array[Int]?],
++  interface_instance_idxs : Map[Int32, Int32],
++  instance_export_type_idxs : Array[Array[Int32]?],
++  instance_export_func_idxs : Array[Array[Int32]?],
+@@ -58 +60 @@
+-  component_size_outers : Array[Array[Int]],
++  component_size_outers : Array[Array[Int32]],
+@@ -218 +220 @@
+-      let mut new_rid : Int? = None
++      let mut new_rid : Int32? = None
+--- a/section_export.mbt
++++ b/section_export.mbt
+@@ -0,0 +1,2 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++
+@@ -10,8 +12,8 @@
+-  resource_ids : Array[Int?],
+-  type_sizes : Array[Int],
+-  type_depths : Array[Int],
+-  component_sizes : Array[Int],
+-  instance_sizes : Array[Int],
+-  export_size : Int,
+-  named_types : Map[Int, Int],
+-  core_module_exports : Array[Map[String, Int]?],
++  resource_ids : Array[Int32?],
++  type_sizes : Array[Int32],
++  type_depths : Array[Int32],
++  component_sizes : Array[Int32],
++  instance_sizes : Array[Int32],
++  export_size : Int32,
++  named_types : Map[Int32, Int32],
++  core_module_exports : Array[Map[String, Int32]?],
+@@ -22 +24 @@
+-  core_instance_exports : Array[Map[String, Int]?],
++  core_instance_exports : Array[Map[String, Int32]?],
+@@ -29 +31 @@
+-    Map[String, Map[String, Int]]?,
++    Map[String, Map[String, Int32]]?,
+@@ -31 +33 @@
+-  component_import_core_module_exports : Array[Map[String, Map[String, Int]]?],
++  component_import_core_module_exports : Array[Map[String, Map[String, Int32]]?],
+@@ -48,3 +50,3 @@
+-  interface_instance_idxs : Map[Int, Int],
+-  instance_export_type_idxs : Array[Array[Int]?],
+-  instance_export_func_idxs : Array[Array[Int]?],
++  interface_instance_idxs : Map[Int32, Int32],
++  instance_export_type_idxs : Array[Array[Int32]?],
++  instance_export_func_idxs : Array[Array[Int32]?],
+@@ -60 +62 @@
+-  imported_funcs : Int,
++  imported_funcs : Int32,
+@@ -62 +64 @@
+-  export_resource_names : Map[String, Int],
++  export_resource_names : Map[String, Int32],
+@@ -70,2 +72,2 @@
+-  next_resource_id : Int,
+-) -> (Int, Int) raise ComponentValidationError {
++  next_resource_id : Int32,
++) -> (Int32, Int32) raise ComponentValidationError {
+@@ -121 +123 @@
+-    let mut ascribed_resource_id : Int? = None
++    let mut ascribed_resource_id : Int32? = None
+@@ -247,2 +249,2 @@
+-          let exported_type_idxs : Array[Int] = []
+-          let seen : Map[Int, Int] = Map([])
++          let exported_type_idxs : Array[Int32] = []
++          let seen : Map[Int32, Int32] = Map([])
+@@ -295 +297 @@
+-          let inst_named : Map[Int, Int] = Map([])
++          let inst_named : Map[Int32, Int32] = Map([])
+--- a/section_import.mbt
++++ b/section_import.mbt
+@@ -0,0 +1,2 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++
+@@ -10,8 +12,8 @@
+-  resource_ids : Array[Int?],
+-  type_sizes : Array[Int],
+-  type_depths : Array[Int],
+-  component_sizes : Array[Int],
+-  instance_sizes : Array[Int],
+-  named_types : Map[Int, Int],
+-  import_named_types : Map[Int, Int],
+-  core_type_exports : Array[Map[String, Int]?],
++  resource_ids : Array[Int32?],
++  type_sizes : Array[Int32],
++  type_depths : Array[Int32],
++  component_sizes : Array[Int32],
++  instance_sizes : Array[Int32],
++  named_types : Map[Int32, Int32],
++  import_named_types : Map[Int32, Int32],
++  core_type_exports : Array[Map[String, Int32]?],
+@@ -20 +22 @@
+-  core_module_exports : Array[Map[String, Int]?],
++  core_module_exports : Array[Map[String, Int32]?],
+@@ -28 +30 @@
+-    Map[String, Map[String, Int]]?,
++    Map[String, Map[String, Int32]]?,
+@@ -30 +32 @@
+-  component_import_core_module_exports : Array[Map[String, Map[String, Int]]?],
++  component_import_core_module_exports : Array[Map[String, Map[String, Int32]]?],
+@@ -47,3 +49,3 @@
+-  interface_instance_idxs : Map[Int, Int],
+-  instance_export_type_idxs : Array[Array[Int]?],
+-  instance_export_func_idxs : Array[Array[Int]?],
++  interface_instance_idxs : Map[Int32, Int32],
++  instance_export_type_idxs : Array[Array[Int32]?],
++  instance_export_func_idxs : Array[Array[Int32]?],
+@@ -60 +62 @@
+-  import_resource_names : Map[String, Int],
++  import_resource_names : Map[String, Int32],
+@@ -64 +66 @@
+-  my_import_instance_resource_exports : Map[String, Map[String, Int]],
++  my_import_instance_resource_exports : Map[String, Map[String, Int32]],
+@@ -68,3 +70,3 @@
+-  next_resource_id : Int,
+-  imported_funcs : Int,
+-) -> (Int, Int) raise ComponentValidationError {
++  next_resource_id : Int32,
++  imported_funcs : Int32,
++) -> (Int32, Int32) raise ComponentValidationError {
+@@ -190 +192 @@
+-        let mut resource_exports : Map[String, Int]? = None
++        let mut resource_exports : Map[String, Int32]? = None
+@@ -202 +204 @@
+-                let local_resource_ids : Array[Int?] = []
++                let local_resource_ids : Array[Int32?] = []
+@@ -205 +207 @@
+-                let res : Map[String, Int] = Map([])
++                let res : Map[String, Int32] = Map([])
+@@ -209 +211 @@
+-                let visiting : Map[Int, Int] = Map([])
++                let visiting : Map[Int32, Int32] = Map([])
+@@ -360 +362 @@
+-      let mut import_core_module_exports : Map[String, Map[String, Int]]? = None
++      let mut import_core_module_exports : Map[String, Map[String, Int32]]? = None
+--- a/section_instance.mbt
++++ b/section_instance.mbt
+@@ -0,0 +1,2 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++
+@@ -8,4 +10,4 @@
+-  resource_ids : Array[Int?],
+-  component_sizes : Array[Int],
+-  instance_sizes : Array[Int],
+-  core_module_exports : Array[Map[String, Int]?],
++  resource_ids : Array[Int32?],
++  component_sizes : Array[Int32],
++  instance_sizes : Array[Int32],
++  core_module_exports : Array[Map[String, Int32]?],
+@@ -18 +20 @@
+-    Map[String, Map[String, Int]]?,
++    Map[String, Map[String, Int32]]?,
+@@ -20 +22 @@
+-  component_import_core_module_exports : Array[Map[String, Map[String, Int]]?],
++  component_import_core_module_exports : Array[Map[String, Map[String, Int32]]?],
+@@ -37,2 +39,2 @@
+-  instance_export_type_idxs : Array[Array[Int]?],
+-  instance_export_func_idxs : Array[Array[Int]?],
++  instance_export_type_idxs : Array[Array[Int32]?],
++  instance_export_func_idxs : Array[Array[Int32]?],
+@@ -48,2 +50,2 @@
+-  next_resource_id : Int,
+-) -> Int raise ComponentValidationError {
++  next_resource_id : Int32,
++) -> Int32 raise ComponentValidationError {
+@@ -57,2 +59,2 @@
+-    let mut inst_type_idxs : Array[Int]? = None
+-    let mut inst_func_idxs : Array[Int]? = None
++    let mut inst_type_idxs : Array[Int32]? = None
++    let mut inst_func_idxs : Array[Int32]? = None
+@@ -124,4 +126,4 @@
+-        let pending_type_args : Array[(String, Int)] = []
+-        let pending_func_args : Array[(String, Int)] = []
+-        let pending_instance_args : Array[(String, Int)] = []
+-        let seen_args : Map[String, Int] = Map([])
++        let pending_type_args : Array[(String, Int32)] = []
++        let pending_func_args : Array[(String, Int32)] = []
++        let pending_instance_args : Array[(String, Int32)] = []
++        let seen_args : Map[String, Int32] = Map([])
+@@ -217 +219 @@
+-        let rid_subst : Map[Int, Int] = Map([])
++        let rid_subst : Map[Int32, Int32] = Map([])
+@@ -421 +423 @@
+-                        let mut found : Int? = None
++                        let mut found : Int32? = None
+@@ -443 +445 @@
+-                    let mut found : Int? = None
++                    let mut found : Int32? = None
+@@ -519,2 +521,2 @@
+-        let t_idxs : Array[Int] = []
+-        let f_idxs : Array[Int] = []
++        let t_idxs : Array[Int32] = []
++        let f_idxs : Array[Int32] = []
+--- a/trait_extensions.mbt
++++ b/trait_extensions.mbt
+@@ -0,0 +1,2 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++
+--- a/validate.mbt
++++ b/validate.mbt
+@@ -0,0 +1,2 @@
++// Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
++
+@@ -8,2 +10,2 @@
+-  type_depths : Array[Int],
+-) -> Int {
++  type_depths : Array[Int32],
++) -> Int32 {
+@@ -24,2 +26,2 @@
+-  type_depths : Array[Int],
+-) -> Int {
++  type_depths : Array[Int32],
++) -> Int32 {
+@@ -93 +95 @@
+-  size : Int
++  size : Int32
+@@ -97 +99 @@
+-  import_instance_resource_exports : Map[String, Map[String, Int]]
++  import_instance_resource_exports : Map[String, Map[String, Int32]]
+@@ -100 +102 @@
+-  import_core_module_exports : Map[String, Map[String, Int]]
++  import_core_module_exports : Map[String, Map[String, Int32]]
+@@ -116 +118 @@
+-  depth : Int,
++  depth : Int32,
+@@ -118,3 +120,3 @@
+-  type_outer_depths : Array[Int],
+-  core_type_bound_outers : Array[Int],
+-  component_size_outers : Array[Array[Int]],
++  type_outer_depths : Array[Int32],
++  core_type_bound_outers : Array[Int32],
++  component_size_outers : Array[Array[Int32]],
+@@ -129 +131 @@
+-  let resource_ids : Array[Int?] = []
++  let resource_ids : Array[Int32?] = []
+@@ -131,2 +133,2 @@
+-  let type_sizes : Array[Int] = []
+-  let type_depths : Array[Int] = []
++  let type_sizes : Array[Int32] = []
++  let type_depths : Array[Int32] = []
+@@ -134,2 +136,2 @@
+-  let component_sizes : Array[Int] = []
+-  let instance_sizes : Array[Int] = []
++  let component_sizes : Array[Int32] = []
++  let instance_sizes : Array[Int32] = []
+@@ -138 +140 @@
+-  let named_types : Map[Int, Int] = Map([])
++  let named_types : Map[Int32, Int32] = Map([])
+@@ -141,2 +143,2 @@
+-  let import_named_types : Map[Int, Int] = Map([])
+-  let core_type_exports : Array[Map[String, Int]?] = []
++  let import_named_types : Map[Int32, Int32] = Map([])
++  let core_type_exports : Array[Map[String, Int32]?] = []
+@@ -145 +147 @@
+-  let core_module_exports : Array[Map[String, Int]?] = []
++  let core_module_exports : Array[Map[String, Int32]?] = []
+@@ -151 +153 @@
+-  let core_instance_exports : Array[Map[String, Int]?] = []
++  let core_instance_exports : Array[Map[String, Int32]?] = []
+@@ -158 +160 @@
+-    Map[String, Map[String, Int]]?,
++    Map[String, Map[String, Int32]]?,
+@@ -161 +163 @@
+-    Map[String, Map[String, Int]]?,
++    Map[String, Map[String, Int32]]?,
+@@ -181,3 +183,3 @@
+-  let interface_instance_idxs : Map[Int, Int] = Map([])
+-  let instance_export_type_idxs : Array[Array[Int]?] = []
+-  let instance_export_func_idxs : Array[Array[Int]?] = []
++  let interface_instance_idxs : Map[Int32, Int32] = Map([])
++  let instance_export_type_idxs : Array[Array[Int32]?] = []
++  let instance_export_func_idxs : Array[Array[Int32]?] = []
+@@ -199,2 +201,2 @@
+-  let import_resource_names : Map[String, Int] = Map([])
+-  let export_resource_names : Map[String, Int] = Map([])
++  let import_resource_names : Map[String, Int32] = Map([])
++  let export_resource_names : Map[String, Int32] = Map([])
+@@ -206 +208 @@
+-  let my_import_instance_resource_exports : Map[String, Map[String, Int]] = Map([],
++  let my_import_instance_resource_exports : Map[String, Map[String, Int32]] = Map([],
+@@ -229 +231 @@
+-        let seen_imports : Map[String, Int] = Map([])
++        let seen_imports : Map[String, Int32] = Map([])
+@@ -240 +242 @@
+-        let exports : Map[String, Int] = Map([])
++        let exports : Map[String, Int32] = Map([])
+@@ -266 +268 @@
+-          let mut export_map : Map[String, Int]? = None
++          let mut export_map : Map[String, Int32]? = None
+@@ -283,2 +285,2 @@
+-              let providers : Map[String, Int] = Map([])
+-              let seen_arg_names : Map[String, Int] = Map([])
++              let providers : Map[String, Int32] = Map([])
++              let seen_arg_names : Map[String, Int32] = Map([])
+@@ -428 +430 @@
+-              let map : Map[String, Int] = Map([])
++              let map : Map[String, Int32] = Map([])
