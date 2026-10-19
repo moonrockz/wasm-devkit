@@ -5,6 +5,9 @@ The WIT suite also retains all 261 upstream UI test groups in
 [`wit-upstream-ui/`](wit-upstream-ui/README.md), including original dependency
 layouts. All 78 accepted groups compare full public models in four-target library
 tests. One documented parser-depth extension is explicit in that corpus manifest.
+[`wit-upstream-encoded/`](wit-upstream-encoded/README.md) checks 78 encoder outputs,
+including full models for all 67 accepted encoded WIT packages. Source and encoded
+corpora also exercise repeat/reorder laws; source formatting preserves full models.
 `wit-world-stability/` adds ten original reference cases for include metadata
 merging and implicit import/export stability. WAC full-corpus conformance and
 additional encoded/mixed-provider laws remain tracked under issue #5.
@@ -51,13 +54,15 @@ Three-column rows retain the default semantic profile. WAC rows use only `defaul
 | WIT | wasm-tools 1.262.0 | `e22db44da4eaf17a0e46ec55b911c7539589a3cc` | `wasm-tools component wit FILE` calls WIT package resolution |
 | WAC | wac-cli 0.12.0 | `5a7480c69ae7a4dc9eb161f485cbcb8c95e372c9` | `wac resolve --deps-dir tests/semantic/deps FILE` calls `Document::resolve` |
 
-Use the official release executables or build those exact revisions with their default
-release build features. The runner checks executable version output. In-profile
+The `build:semantic-tools` task installs the exact CLI pins under `.dev/reference-cli`,
+including WAC WIT/WAT loading and no registry client. The CI semantic-reference
+job builds these tools and requires the differential gate to pass. Supplied
+executables must use these versions and support the fixture input formats. The runner checks executable version output. In-profile
 acceptance differences fail the runner.
 
 ```shell
-mise run build:semantic-reference
-mise run test:semantics -- /path/to/wasm-tools /path/to/wac
+mise run build:semantic-tools
+mise run test:semantics -- .dev/reference-cli/bin/wasm-tools .dev/reference-cli/bin/wac
 ```
 
 The WIT grammar fixture pin predates this semantic reference; these seed cases use

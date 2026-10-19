@@ -186,3 +186,7 @@ run = "moonx scripts/test-semantics.mbtx"
 [tasks."build:semantic-reference"]
 description = "Build the pinned upstream semantic API oracle with Rust 1.94.1"
 run = "moonx scripts/build-semantic-reference.mbtx"
+
+[tasks."build:semantic-tools"]
+description = "Build pinned semantic API and CLI references with local WIT/WAT providers"
+run = "moonx scripts/build-semantic-reference.mbtx --with-cli"

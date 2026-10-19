@@ -10,6 +10,11 @@ import {
 
 ///|
 async fn main {
+  let with_cli = match @env.args()[1:] {
+    [] => false
+    ["--with-cli"] => true
+    _ => fail("Usage: build-semantic-reference.mbtx [--with-cli]")
+  }
   let version = @env.get_env_var("SEMANTIC_REFERENCE_RUST_VERSION").unwrap_or(
     "1.94.1",
   )
@@ -33,5 +38,37 @@ async fn main {
   )
   if code != 0 {
     @sys.exit(if code > 0 { code } else { 1 })
+  }
+  if with_cli {
+    let installs : Array[Array[String]] = [
+      ["wasm-tools", "--version", "1.262.0"],
+      [
+        "wac-cli", "--git", "https://github.com/bytecodealliance/wac", "--rev", "5a7480c69ae7a4dc9eb161f485cbcb8c95e372c9",
+        "--no-default-features", "--features", "wit,wat",
+      ],
+    ]
+    for package_args in installs {
+      let code = @process.run(
+        "mise",
+        [
+          "exec",
+          "rust@" + version,
+          "--",
+          "cargo",
+          "install",
+          ..package_args,
+          "--locked",
+          "--root",
+          ".dev/reference-cli",
+          "--target-dir",
+          ".dev/reference-target",
+        ],
+        stdout=@stdio.stdout,
+        stderr=@stdio.stderr,
+      )
+      if code != 0 {
+        @sys.exit(if code > 0 { code } else { 1 })
+      }
+    }
   }
 }

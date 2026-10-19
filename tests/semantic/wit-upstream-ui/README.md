@@ -14,7 +14,11 @@ compare all 78 accepted public models with the pinned Rust reference.
 structure, parameter and field order, function kind and asyncness, world keys,
 stability and external-ID metadata, and nominal resource equivalence. Arena
 indices, documentation text, source coordinates and unreachable anonymous nodes
-are representation details and are excluded. Projection uses an explicit stack.
+are representation details and are excluded. Projection uses an explicit stack. Every group checks deterministic results;
+accepted groups also check reversed source/dependency order, formatting-preserved
+models, formatter idempotence and unchanged previously returned models.
+[Encoded variants](../wit-upstream-encoded/README.md) exercise the binary loader
+against the same pinned reference.
 
 The CLI reference gate covers 260 groups using `feature=active` in the parent
 manifest, including original directory layouts and encoded dependencies. The

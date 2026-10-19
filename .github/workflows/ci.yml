@@ -139,12 +139,33 @@ jobs:
             dist/wasm-devkit-*.sha256
           if-no-files-found: error
 
+  semantic-reference:
+    name: Pinned semantic references
+    runs-on: ubuntu-latest
+    needs: [lint]
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            .dev/reference-target
+            .dev/reference-cli
+          key: semantic-${{ runner.os }}-1.94.1-${{ hashFiles('tools/**/Cargo.lock', 'scripts/build-semantic-*') }}
+      - run: mise run build:semantic-tools
+      - run: mise run test:semantics -- .dev/reference-cli/bin/wasm-tools .dev/reference-cli/bin/wac
+
   ci-ok:
     name: ci-ok
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: always()
-    needs: [lint, build, test, windows, test-native-zig, test-scripts, cli]
+    needs: [lint, build, test, windows, test-native-zig, test-scripts, cli, semantic-reference]
     steps:
       - name: Require every job to succeed
         env:

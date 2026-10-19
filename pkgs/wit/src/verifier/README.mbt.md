@@ -585,7 +585,10 @@ The verifier tests retain all 261 test groups from wit-parser at wasm-tools
 `active` enabled. All 78 accepted groups compare resolved package, interface,
 world, function and type contracts, including stability metadata and nominal
 resource identity, on all four targets. The original directory layouts and
-encoded dependencies are retained. The CLI gate checks 260 matching groups.
+encoded dependencies are retained. Encoding those inputs adds 67 full encoded
+model comparisons and 11 explicit empty-root package rejections. Both corpora
+check deterministic repeated results and input ordering; formatting preserves
+accepted source models. The CLI gate checks 260 matching groups.
 The remaining group exceeds upstream's source parser depth limit and is accepted
 under this library's documented stack-safe nesting extension. See the
 [corpus manifest and normalization contract](../../../../tests/semantic/wit-upstream-ui/README.md).

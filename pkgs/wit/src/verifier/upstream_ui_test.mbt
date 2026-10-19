@@ -3,7 +3,7 @@
 
 ///|
 test "upstream semantic accessors.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -54,7 +54,7 @@ test "upstream semantic accessors.wit" {
 
 ///|
 test "upstream semantic async.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -89,7 +89,7 @@ test "upstream semantic async.wit" {
 
 ///|
 test "upstream semantic comments.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -111,7 +111,7 @@ test "upstream semantic comments.wit" {
 
 ///|
 test "upstream semantic complex-include" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -175,7 +175,7 @@ test "upstream semantic complex-include" {
 
 ///|
 test "upstream semantic cross-package-resource" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -206,7 +206,7 @@ test "upstream semantic cross-package-resource" {
 
 ///|
 test "upstream semantic diamond1" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -246,7 +246,7 @@ test "upstream semantic diamond1" {
 
 ///|
 test "upstream semantic disambiguate-diamond" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -283,7 +283,7 @@ test "upstream semantic disambiguate-diamond" {
 
 ///|
 test "upstream semantic distinct-names.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -309,7 +309,7 @@ test "upstream semantic distinct-names.wit" {
 
 ///|
 test "upstream semantic empty.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [section_document("empty.wit", "package foo:empty;\n")],
     }),
@@ -325,7 +325,7 @@ test "upstream semantic empty.wit" {
 
 ///|
 test "upstream semantic error-context.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -349,7 +349,7 @@ test "upstream semantic error-context.wit" {
 
 ///|
 test "upstream semantic feature-gates.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -393,7 +393,7 @@ test "upstream semantic feature-gates.wit" {
 
 ///|
 test "upstream semantic feature-types.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -417,7 +417,7 @@ test "upstream semantic feature-types.wit" {
 
 ///|
 test "upstream semantic foreign-deps" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -521,7 +521,7 @@ test "upstream semantic foreign-deps" {
 
 ///|
 test "upstream semantic foreign-deps-union" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -643,7 +643,7 @@ test "upstream semantic foreign-deps-union" {
 
 ///|
 test "upstream semantic foreign-interface-dep-gated.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -665,7 +665,7 @@ test "upstream semantic foreign-interface-dep-gated.wit" {
 
 ///|
 test "upstream semantic foreign-world-dep-gated.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -687,7 +687,7 @@ test "upstream semantic foreign-world-dep-gated.wit" {
 
 ///|
 test "upstream semantic functions.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -718,7 +718,7 @@ test "upstream semantic functions.wit" {
 
 ///|
 test "upstream semantic gated-include.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -821,7 +821,7 @@ test "upstream semantic gated-include.wit" {
 
 ///|
 test "upstream semantic gated-use.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -843,7 +843,7 @@ test "upstream semantic gated-use.wit" {
 
 ///|
 test "upstream semantic ignore-files-deps" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -874,7 +874,7 @@ test "upstream semantic ignore-files-deps" {
 
 ///|
 test "upstream semantic import-export-overlap1.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -897,7 +897,7 @@ test "upstream semantic import-export-overlap1.wit" {
 
 ///|
 test "upstream semantic import-export-overlap2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -920,7 +920,7 @@ test "upstream semantic import-export-overlap2.wit" {
 
 ///|
 test "upstream semantic include-accessor-pair.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -947,7 +947,7 @@ test "upstream semantic include-accessor-pair.wit" {
 
 ///|
 test "upstream semantic include-reps.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -975,7 +975,7 @@ test "upstream semantic include-reps.wit" {
 
 ///|
 test "upstream semantic kebab-name-include-with.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1003,7 +1003,7 @@ test "upstream semantic kebab-name-include-with.wit" {
 
 ///|
 test "upstream semantic kinds-of-deps" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1058,7 +1058,7 @@ test "upstream semantic kinds-of-deps" {
 
 ///|
 test "upstream semantic many-names" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document("many-names/a.wit", "interface x {}\nuse x as name;\n"),
@@ -1082,7 +1082,7 @@ test "upstream semantic many-names" {
 
 ///|
 test "upstream semantic maps.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1155,7 +1155,7 @@ test "upstream semantic maps.wit" {
 
 ///|
 test "upstream semantic max-flags.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1179,7 +1179,7 @@ test "upstream semantic max-flags.wit" {
 
 ///|
 test "upstream semantic multi-file" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1233,7 +1233,7 @@ test "upstream semantic multi-file" {
 
 ///|
 test "upstream semantic multi-file-multi-package" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1278,7 +1278,7 @@ test "upstream semantic multi-file-multi-package" {
 
 ///|
 test "upstream semantic multi-package-deps" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1316,7 +1316,7 @@ test "upstream semantic multi-package-deps" {
 
 ///|
 test "upstream semantic multi-package-gated-include.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1445,7 +1445,7 @@ test "upstream semantic multi-package-gated-include.wit" {
 
 ///|
 test "upstream semantic multi-package-shared-deps" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1503,7 +1503,7 @@ test "upstream semantic multi-package-shared-deps" {
 
 ///|
 test "upstream semantic multi-package-transitive-deps" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1558,7 +1558,7 @@ test "upstream semantic multi-package-transitive-deps" {
 
 ///|
 test "upstream semantic name-both-resource-and-type" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1590,7 +1590,7 @@ test "upstream semantic name-both-resource-and-type" {
 
 ///|
 test "upstream semantic package-syntax1.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [section_document("package-syntax1.wit", "package foo:foo;\n")],
     }),
@@ -1606,7 +1606,7 @@ test "upstream semantic package-syntax1.wit" {
 
 ///|
 test "upstream semantic package-syntax3.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [section_document("package-syntax3.wit", "package foo:bar;\n")],
     }),
@@ -1622,7 +1622,7 @@ test "upstream semantic package-syntax3.wit" {
 
 ///|
 test "upstream semantic package-syntax4.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document("package-syntax4.wit", "package foo:bar@2.0.0;\n"),
@@ -1640,7 +1640,7 @@ test "upstream semantic package-syntax4.wit" {
 
 ///|
 test "upstream semantic packages-multiple-nested.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1678,7 +1678,7 @@ test "upstream semantic packages-multiple-nested.wit" {
 
 ///|
 test "upstream semantic packages-nested-colliding-decl-names.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1709,7 +1709,7 @@ test "upstream semantic packages-nested-colliding-decl-names.wit" {
 
 ///|
 test "upstream semantic packages-nested-internal-references.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1736,7 +1736,7 @@ test "upstream semantic packages-nested-internal-references.wit" {
 
 ///|
 test "upstream semantic packages-nested-with-semver.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1768,7 +1768,7 @@ test "upstream semantic packages-nested-with-semver.wit" {
 
 ///|
 test "upstream semantic packages-single-nested.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1794,7 +1794,7 @@ test "upstream semantic packages-single-nested.wit" {
 
 ///|
 test "upstream semantic random.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1818,7 +1818,7 @@ test "upstream semantic random.wit" {
 
 ///|
 test "upstream semantic resources-empty.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1842,7 +1842,7 @@ test "upstream semantic resources-empty.wit" {
 
 ///|
 test "upstream semantic resources-multiple-returns-own.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1866,7 +1866,7 @@ test "upstream semantic resources-multiple-returns-own.wit" {
 
 ///|
 test "upstream semantic resources-multiple.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1903,7 +1903,7 @@ test "upstream semantic resources-multiple.wit" {
 
 ///|
 test "upstream semantic resources-return-own.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1927,7 +1927,7 @@ test "upstream semantic resources-return-own.wit" {
 
 ///|
 test "upstream semantic resources.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1973,7 +1973,7 @@ test "upstream semantic resources.wit" {
 
 ///|
 test "upstream semantic resources1.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -1999,7 +1999,7 @@ test "upstream semantic resources1.wit" {
 
 ///|
 test "upstream semantic same-name-import-export.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2023,7 +2023,7 @@ test "upstream semantic same-name-import-export.wit" {
 
 ///|
 test "upstream semantic shared-types.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2049,7 +2049,7 @@ test "upstream semantic shared-types.wit" {
 
 ///|
 test "upstream semantic simple-wasm-text.wat" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Encoded(
       @verifier.decode_wat_package(
         "(component\n  (type $x (component\n    (export \"a:b/x\" (instance))\n  ))\n  (export \"x\" (type $x))\n)\n",
@@ -2069,7 +2069,7 @@ test "upstream semantic simple-wasm-text.wat" {
 
 ///|
 test "upstream semantic since-and-unstable.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2126,7 +2126,7 @@ test "upstream semantic since-and-unstable.wit" {
 
 ///|
 test "upstream semantic streams-and-futures.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2156,7 +2156,7 @@ test "upstream semantic streams-and-futures.wit" {
 
 ///|
 test "upstream semantic stress-export-elaborate.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2289,7 +2289,7 @@ test "upstream semantic stress-export-elaborate.wit" {
 
 ///|
 test "upstream semantic type-then-eof.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2311,7 +2311,7 @@ test "upstream semantic type-then-eof.wit" {
 
 ///|
 test "upstream semantic types.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2365,7 +2365,7 @@ test "upstream semantic types.wit" {
 
 ///|
 test "upstream semantic union-fuzz-1.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2388,7 +2388,7 @@ test "upstream semantic union-fuzz-1.wit" {
 
 ///|
 test "upstream semantic union-fuzz-2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2414,7 +2414,7 @@ test "upstream semantic union-fuzz-2.wit" {
 
 ///|
 test "upstream semantic unstable-resource.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2436,7 +2436,7 @@ test "upstream semantic unstable-resource.wit" {
 
 ///|
 test "upstream semantic use-chain.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2459,7 +2459,7 @@ test "upstream semantic use-chain.wit" {
 
 ///|
 test "upstream semantic use.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2490,7 +2490,7 @@ test "upstream semantic use.wit" {
 
 ///|
 test "upstream semantic version-syntax.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2512,7 +2512,7 @@ test "upstream semantic version-syntax.wit" {
 
 ///|
 test "upstream semantic versions" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2552,7 +2552,7 @@ test "upstream semantic versions" {
 
 ///|
 test "upstream semantic wasi.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2587,7 +2587,7 @@ test "upstream semantic wasi.wit" {
 
 ///|
 test "upstream semantic with-resource-as.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2627,7 +2627,7 @@ test "upstream semantic with-resource-as.wit" {
 
 ///|
 test "upstream semantic world-diamond.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2663,7 +2663,7 @@ test "upstream semantic world-diamond.wit" {
 
 ///|
 test "upstream semantic world-iface-no-collide.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2689,7 +2689,7 @@ test "upstream semantic world-iface-no-collide.wit" {
 
 ///|
 test "upstream semantic world-implicit-import1.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2716,7 +2716,7 @@ test "upstream semantic world-implicit-import1.wit" {
 
 ///|
 test "upstream semantic world-implicit-import2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2742,7 +2742,7 @@ test "upstream semantic world-implicit-import2.wit" {
 
 ///|
 test "upstream semantic world-implicit-import3.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2768,7 +2768,7 @@ test "upstream semantic world-implicit-import3.wit" {
 
 ///|
 test "upstream semantic world-same-fields4.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2795,7 +2795,7 @@ test "upstream semantic world-same-fields4.wit" {
 
 ///|
 test "upstream semantic world-top-level-funcs.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2822,7 +2822,7 @@ test "upstream semantic world-top-level-funcs.wit" {
 
 ///|
 test "upstream semantic world-top-level-resources.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2875,7 +2875,7 @@ test "upstream semantic world-top-level-resources.wit" {
 
 ///|
 test "upstream semantic worlds-union-dedup.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2910,7 +2910,7 @@ test "upstream semantic worlds-union-dedup.wit" {
 
 ///|
 test "upstream semantic worlds-with-types.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2949,7 +2949,7 @@ test "upstream semantic worlds-with-types.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-async.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2965,7 +2965,7 @@ test "upstream semantic parse-fail/accessor-async.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-canonical-case.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2981,7 +2981,7 @@ test "upstream semantic parse-fail/accessor-canonical-case.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-canonical-hyphens.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -2997,7 +2997,7 @@ test "upstream semantic parse-fail/accessor-canonical-hyphens.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-canonical-pair.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3013,7 +3013,7 @@ test "upstream semantic parse-fail/accessor-canonical-pair.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-canonical-resource.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3029,7 +3029,7 @@ test "upstream semantic parse-fail/accessor-canonical-resource.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-canonical-world.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3045,7 +3045,7 @@ test "upstream semantic parse-fail/accessor-canonical-world.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-duplicate-getter.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3061,7 +3061,7 @@ test "upstream semantic parse-fail/accessor-duplicate-getter.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-getter-conflicts-func.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3077,7 +3077,7 @@ test "upstream semantic parse-fail/accessor-getter-conflicts-func.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-getter-no-result.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3093,7 +3093,7 @@ test "upstream semantic parse-fail/accessor-getter-no-result.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-getter-params.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3109,7 +3109,7 @@ test "upstream semantic parse-fail/accessor-getter-params.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-resource-canonical-static.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3125,7 +3125,7 @@ test "upstream semantic parse-fail/accessor-resource-canonical-static.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-resource-conflicts-method.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3141,7 +3141,7 @@ test "upstream semantic parse-fail/accessor-resource-conflicts-method.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-resource-duplicate-setter.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3157,7 +3157,7 @@ test "upstream semantic parse-fail/accessor-resource-duplicate-setter.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-resource-static-mismatch.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3173,7 +3173,7 @@ test "upstream semantic parse-fail/accessor-resource-static-mismatch.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-setter-bad-result.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3189,7 +3189,7 @@ test "upstream semantic parse-fail/accessor-setter-bad-result.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-setter-bad-result2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3205,7 +3205,7 @@ test "upstream semantic parse-fail/accessor-setter-bad-result2.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-setter-no-getter.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3221,7 +3221,7 @@ test "upstream semantic parse-fail/accessor-setter-no-getter.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-setter-no-params.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3237,7 +3237,7 @@ test "upstream semantic parse-fail/accessor-setter-no-params.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-setter-two-params.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3253,7 +3253,7 @@ test "upstream semantic parse-fail/accessor-setter-two-params.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-type-conflicts-getter.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3269,7 +3269,7 @@ test "upstream semantic parse-fail/accessor-type-conflicts-getter.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-world-getter-conflicts.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3285,7 +3285,7 @@ test "upstream semantic parse-fail/accessor-world-getter-conflicts.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-world-setter-no-getter.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3301,7 +3301,7 @@ test "upstream semantic parse-fail/accessor-world-setter-no-getter.wit" {
 
 ///|
 test "upstream semantic parse-fail/accessor-world-setter-static-mismatch.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3317,7 +3317,7 @@ test "upstream semantic parse-fail/accessor-world-setter-static-mismatch.wit" {
 
 ///|
 test "upstream semantic parse-fail/alias-no-type.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3333,7 +3333,7 @@ test "upstream semantic parse-fail/alias-no-type.wit" {
 
 ///|
 test "upstream semantic parse-fail/async-bad-world.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3349,7 +3349,7 @@ test "upstream semantic parse-fail/async-bad-world.wit" {
 
 ///|
 test "upstream semantic parse-fail/async-bad-world2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3365,7 +3365,7 @@ test "upstream semantic parse-fail/async-bad-world2.wit" {
 
 ///|
 test "upstream semantic parse-fail/async-bad-world3.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3381,7 +3381,7 @@ test "upstream semantic parse-fail/async-bad-world3.wit" {
 
 ///|
 test "upstream semantic parse-fail/async-bad-world4.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3397,7 +3397,7 @@ test "upstream semantic parse-fail/async-bad-world4.wit" {
 
 ///|
 test "upstream semantic parse-fail/async-bad1.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3413,7 +3413,7 @@ test "upstream semantic parse-fail/async-bad1.wit" {
 
 ///|
 test "upstream semantic parse-fail/async-bad2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3429,7 +3429,7 @@ test "upstream semantic parse-fail/async-bad2.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-deprecated1.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3445,7 +3445,7 @@ test "upstream semantic parse-fail/bad-deprecated1.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-deprecated2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3461,7 +3461,7 @@ test "upstream semantic parse-fail/bad-deprecated2.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-deprecated3.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3477,7 +3477,7 @@ test "upstream semantic parse-fail/bad-deprecated3.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-deprecated4.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3493,7 +3493,7 @@ test "upstream semantic parse-fail/bad-deprecated4.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-function.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3509,7 +3509,7 @@ test "upstream semantic parse-fail/bad-function.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-function2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3525,7 +3525,7 @@ test "upstream semantic parse-fail/bad-function2.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-gate-record-field.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3541,7 +3541,7 @@ test "upstream semantic parse-fail/bad-gate-record-field.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-gate1.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3557,7 +3557,7 @@ test "upstream semantic parse-fail/bad-gate1.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-gate2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3573,7 +3573,7 @@ test "upstream semantic parse-fail/bad-gate2.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-gate3.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3589,7 +3589,7 @@ test "upstream semantic parse-fail/bad-gate3.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-gate4.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3605,7 +3605,7 @@ test "upstream semantic parse-fail/bad-gate4.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-gate5.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3621,7 +3621,7 @@ test "upstream semantic parse-fail/bad-gate5.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-include1.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3637,7 +3637,7 @@ test "upstream semantic parse-fail/bad-include1.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-include2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3653,7 +3653,7 @@ test "upstream semantic parse-fail/bad-include2.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-include3.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3669,7 +3669,7 @@ test "upstream semantic parse-fail/bad-include3.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-list.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3685,7 +3685,7 @@ test "upstream semantic parse-fail/bad-list.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-list2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3701,7 +3701,7 @@ test "upstream semantic parse-fail/bad-list2.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-list3.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3717,7 +3717,7 @@ test "upstream semantic parse-fail/bad-list3.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-list4.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3733,7 +3733,7 @@ test "upstream semantic parse-fail/bad-list4.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-pkg1" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3749,7 +3749,7 @@ test "upstream semantic parse-fail/bad-pkg1" {
 
 ///|
 test "upstream semantic parse-fail/bad-pkg2" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3773,7 +3773,7 @@ test "upstream semantic parse-fail/bad-pkg2" {
 
 ///|
 test "upstream semantic parse-fail/bad-pkg3" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3797,7 +3797,7 @@ test "upstream semantic parse-fail/bad-pkg3" {
 
 ///|
 test "upstream semantic parse-fail/bad-pkg4" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3821,7 +3821,7 @@ test "upstream semantic parse-fail/bad-pkg4" {
 
 ///|
 test "upstream semantic parse-fail/bad-pkg5" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3845,7 +3845,7 @@ test "upstream semantic parse-fail/bad-pkg5" {
 
 ///|
 test "upstream semantic parse-fail/bad-pkg6" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3869,7 +3869,7 @@ test "upstream semantic parse-fail/bad-pkg6" {
 
 ///|
 test "upstream semantic parse-fail/bad-resource1.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3885,7 +3885,7 @@ test "upstream semantic parse-fail/bad-resource1.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-resource10.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3901,7 +3901,7 @@ test "upstream semantic parse-fail/bad-resource10.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-resource11.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3917,7 +3917,7 @@ test "upstream semantic parse-fail/bad-resource11.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-resource12.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3933,7 +3933,7 @@ test "upstream semantic parse-fail/bad-resource12.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-resource13.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3949,7 +3949,7 @@ test "upstream semantic parse-fail/bad-resource13.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-resource14.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3965,7 +3965,7 @@ test "upstream semantic parse-fail/bad-resource14.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-resource15" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -3989,7 +3989,7 @@ test "upstream semantic parse-fail/bad-resource15" {
 
 ///|
 test "upstream semantic parse-fail/bad-resource16.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4005,7 +4005,7 @@ test "upstream semantic parse-fail/bad-resource16.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-resource17.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4021,7 +4021,7 @@ test "upstream semantic parse-fail/bad-resource17.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-resource2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4037,7 +4037,7 @@ test "upstream semantic parse-fail/bad-resource2.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-resource3.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4053,7 +4053,7 @@ test "upstream semantic parse-fail/bad-resource3.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-resource4.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4069,7 +4069,7 @@ test "upstream semantic parse-fail/bad-resource4.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-resource5.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4085,7 +4085,7 @@ test "upstream semantic parse-fail/bad-resource5.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-resource6.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4101,7 +4101,7 @@ test "upstream semantic parse-fail/bad-resource6.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-resource7.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4117,7 +4117,7 @@ test "upstream semantic parse-fail/bad-resource7.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-resource8.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4133,7 +4133,7 @@ test "upstream semantic parse-fail/bad-resource8.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-resource9.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4149,7 +4149,7 @@ test "upstream semantic parse-fail/bad-resource9.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-since-on-include.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4165,7 +4165,7 @@ test "upstream semantic parse-fail/bad-since-on-include.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-since-on-interface.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4181,7 +4181,7 @@ test "upstream semantic parse-fail/bad-since-on-interface.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-since-on-type.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4197,7 +4197,7 @@ test "upstream semantic parse-fail/bad-since-on-type.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-since-on-world-import.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4213,7 +4213,7 @@ test "upstream semantic parse-fail/bad-since-on-world-import.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-since-on-world.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4229,7 +4229,7 @@ test "upstream semantic parse-fail/bad-since-on-world.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-since1.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4245,7 +4245,7 @@ test "upstream semantic parse-fail/bad-since1.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-since3.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4261,7 +4261,7 @@ test "upstream semantic parse-fail/bad-since3.wit" {
 
 ///|
 test "upstream semantic parse-fail/bad-world-type1.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4277,7 +4277,7 @@ test "upstream semantic parse-fail/bad-world-type1.wit" {
 
 ///|
 test "upstream semantic parse-fail/case-insensitive-duplicates.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4293,7 +4293,7 @@ test "upstream semantic parse-fail/case-insensitive-duplicates.wit" {
 
 ///|
 test "upstream semantic parse-fail/case-insensitive-function-params.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4309,7 +4309,7 @@ test "upstream semantic parse-fail/case-insensitive-function-params.wit" {
 
 ///|
 test "upstream semantic parse-fail/conflicting-package" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4328,7 +4328,7 @@ test "upstream semantic parse-fail/conflicting-package" {
 
 ///|
 test "upstream semantic parse-fail/cycle.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4344,7 +4344,7 @@ test "upstream semantic parse-fail/cycle.wit" {
 
 ///|
 test "upstream semantic parse-fail/cycle2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4360,7 +4360,7 @@ test "upstream semantic parse-fail/cycle2.wit" {
 
 ///|
 test "upstream semantic parse-fail/cycle3.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4376,7 +4376,7 @@ test "upstream semantic parse-fail/cycle3.wit" {
 
 ///|
 test "upstream semantic parse-fail/cycle4.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4392,7 +4392,7 @@ test "upstream semantic parse-fail/cycle4.wit" {
 
 ///|
 test "upstream semantic parse-fail/cycle5.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4408,7 +4408,7 @@ test "upstream semantic parse-fail/cycle5.wit" {
 
 ///|
 test "upstream semantic parse-fail/dangling-type.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4424,7 +4424,7 @@ test "upstream semantic parse-fail/dangling-type.wit" {
 
 ///|
 test "upstream semantic parse-fail/duplicate-enum-cases.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4440,7 +4440,7 @@ test "upstream semantic parse-fail/duplicate-enum-cases.wit" {
 
 ///|
 test "upstream semantic parse-fail/duplicate-flags.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4456,7 +4456,7 @@ test "upstream semantic parse-fail/duplicate-flags.wit" {
 
 ///|
 test "upstream semantic parse-fail/duplicate-function-params.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4472,7 +4472,7 @@ test "upstream semantic parse-fail/duplicate-function-params.wit" {
 
 ///|
 test "upstream semantic parse-fail/duplicate-functions.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4488,7 +4488,7 @@ test "upstream semantic parse-fail/duplicate-functions.wit" {
 
 ///|
 test "upstream semantic parse-fail/duplicate-interface.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4504,7 +4504,7 @@ test "upstream semantic parse-fail/duplicate-interface.wit" {
 
 ///|
 test "upstream semantic parse-fail/duplicate-interface2" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4523,7 +4523,7 @@ test "upstream semantic parse-fail/duplicate-interface2" {
 
 ///|
 test "upstream semantic parse-fail/duplicate-record-fields.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4539,7 +4539,7 @@ test "upstream semantic parse-fail/duplicate-record-fields.wit" {
 
 ///|
 test "upstream semantic parse-fail/duplicate-type.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4555,7 +4555,7 @@ test "upstream semantic parse-fail/duplicate-type.wit" {
 
 ///|
 test "upstream semantic parse-fail/duplicate-variant-cases.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4571,7 +4571,7 @@ test "upstream semantic parse-fail/duplicate-variant-cases.wit" {
 
 ///|
 test "upstream semantic parse-fail/empty-enum.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4587,7 +4587,7 @@ test "upstream semantic parse-fail/empty-enum.wit" {
 
 ///|
 test "upstream semantic parse-fail/empty-tuple.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4603,7 +4603,7 @@ test "upstream semantic parse-fail/empty-tuple.wit" {
 
 ///|
 test "upstream semantic parse-fail/empty-variant1.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4619,7 +4619,7 @@ test "upstream semantic parse-fail/empty-variant1.wit" {
 
 ///|
 test "upstream semantic parse-fail/export-twice.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4635,7 +4635,7 @@ test "upstream semantic parse-fail/export-twice.wit" {
 
 ///|
 test "upstream semantic parse-fail/implements-conflicts-func.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4651,7 +4651,7 @@ test "upstream semantic parse-fail/implements-conflicts-func.wit" {
 
 ///|
 test "upstream semantic parse-fail/implements-duplicate-label.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4667,7 +4667,7 @@ test "upstream semantic parse-fail/implements-duplicate-label.wit" {
 
 ///|
 test "upstream semantic parse-fail/implements-nonexistent.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4683,7 +4683,7 @@ test "upstream semantic parse-fail/implements-nonexistent.wit" {
 
 ///|
 test "upstream semantic parse-fail/implements-not-interface.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4699,7 +4699,7 @@ test "upstream semantic parse-fail/implements-not-interface.wit" {
 
 ///|
 test "upstream semantic parse-fail/import-and-export1.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4715,7 +4715,7 @@ test "upstream semantic parse-fail/import-and-export1.wit" {
 
 ///|
 test "upstream semantic parse-fail/import-and-export2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4731,7 +4731,7 @@ test "upstream semantic parse-fail/import-and-export2.wit" {
 
 ///|
 test "upstream semantic parse-fail/import-and-export3.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4747,7 +4747,7 @@ test "upstream semantic parse-fail/import-and-export3.wit" {
 
 ///|
 test "upstream semantic parse-fail/import-and-export4.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4763,7 +4763,7 @@ test "upstream semantic parse-fail/import-and-export4.wit" {
 
 ///|
 test "upstream semantic parse-fail/import-and-export5.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4779,7 +4779,7 @@ test "upstream semantic parse-fail/import-and-export5.wit" {
 
 ///|
 test "upstream semantic parse-fail/import-twice.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4795,7 +4795,7 @@ test "upstream semantic parse-fail/import-twice.wit" {
 
 ///|
 test "upstream semantic parse-fail/include-cycle.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4811,7 +4811,7 @@ test "upstream semantic parse-fail/include-cycle.wit" {
 
 ///|
 test "upstream semantic parse-fail/include-foreign" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4835,7 +4835,7 @@ test "upstream semantic parse-fail/include-foreign" {
 
 ///|
 test "upstream semantic parse-fail/include-setter-no-getter.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4851,7 +4851,7 @@ test "upstream semantic parse-fail/include-setter-no-getter.wit" {
 
 ///|
 test "upstream semantic parse-fail/include-strongly-unique.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4867,7 +4867,7 @@ test "upstream semantic parse-fail/include-strongly-unique.wit" {
 
 ///|
 test "upstream semantic parse-fail/include-with-id.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4883,7 +4883,7 @@ test "upstream semantic parse-fail/include-with-id.wit" {
 
 ///|
 test "upstream semantic parse-fail/include-with-on-id.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4899,7 +4899,7 @@ test "upstream semantic parse-fail/include-with-on-id.wit" {
 
 ///|
 test "upstream semantic parse-fail/invalid-toplevel.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4915,7 +4915,7 @@ test "upstream semantic parse-fail/invalid-toplevel.wit" {
 
 ///|
 test "upstream semantic parse-fail/invalid-type-reference.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4931,7 +4931,7 @@ test "upstream semantic parse-fail/invalid-type-reference.wit" {
 
 ///|
 test "upstream semantic parse-fail/invalid-type-reference2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4947,7 +4947,7 @@ test "upstream semantic parse-fail/invalid-type-reference2.wit" {
 
 ///|
 test "upstream semantic parse-fail/kebab-name-include-not-found.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4963,7 +4963,7 @@ test "upstream semantic parse-fail/kebab-name-include-not-found.wit" {
 
 ///|
 test "upstream semantic parse-fail/kebab-name-include.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4979,7 +4979,7 @@ test "upstream semantic parse-fail/kebab-name-include.wit" {
 
 ///|
 test "upstream semantic parse-fail/keyword.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -4995,7 +4995,7 @@ test "upstream semantic parse-fail/keyword.wit" {
 
 ///|
 test "upstream semantic parse-fail/map-invalid-key.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5011,7 +5011,7 @@ test "upstream semantic parse-fail/map-invalid-key.wit" {
 
 ///|
 test "upstream semantic parse-fail/missing-main-declaration-initial-main.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5027,7 +5027,7 @@ test "upstream semantic parse-fail/missing-main-declaration-initial-main.wit" {
 
 ///|
 test "upstream semantic parse-fail/missing-main-declaration-initial-nested.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5043,7 +5043,7 @@ test "upstream semantic parse-fail/missing-main-declaration-initial-nested.wit" 
 
 ///|
 test "upstream semantic parse-fail/missing-package.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [section_document("parse-fail/missing-package.wit", "")],
     }),
@@ -5055,7 +5055,7 @@ test "upstream semantic parse-fail/missing-package.wit" {
 
 ///|
 test "upstream semantic parse-fail/multi-file-missing-delimiter" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5074,7 +5074,7 @@ test "upstream semantic parse-fail/multi-file-missing-delimiter" {
 
 ///|
 test "upstream semantic parse-fail/multi-package-deps-share-nest" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5105,7 +5105,7 @@ test "upstream semantic parse-fail/multi-package-deps-share-nest" {
 
 ///|
 test "upstream semantic parse-fail/multiple-package-docs" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5124,7 +5124,7 @@ test "upstream semantic parse-fail/multiple-package-docs" {
 
 ///|
 test "upstream semantic parse-fail/multiple-package-inline-cycle.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5140,7 +5140,7 @@ test "upstream semantic parse-fail/multiple-package-inline-cycle.wit" {
 
 ///|
 test "upstream semantic parse-fail/multiple-packages-no-scope-blocks.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5156,7 +5156,7 @@ test "upstream semantic parse-fail/multiple-packages-no-scope-blocks.wit" {
 
 ///|
 test "upstream semantic parse-fail/nested-packages-colliding-names.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5172,7 +5172,7 @@ test "upstream semantic parse-fail/nested-packages-colliding-names.wit" {
 
 ///|
 test "upstream semantic parse-fail/nested-packages-with-error.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5188,7 +5188,7 @@ test "upstream semantic parse-fail/nested-packages-with-error.wit" {
 
 ///|
 test "upstream semantic parse-fail/no-access-to-sibling-use" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5207,7 +5207,7 @@ test "upstream semantic parse-fail/no-access-to-sibling-use" {
 
 ///|
 test "upstream semantic parse-fail/non-existence-world-include" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5231,7 +5231,7 @@ test "upstream semantic parse-fail/non-existence-world-include" {
 
 ///|
 test "upstream semantic parse-fail/old-float-types.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5247,7 +5247,7 @@ test "upstream semantic parse-fail/old-float-types.wit" {
 
 ///|
 test "upstream semantic parse-fail/package-nesting-too-deep.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5263,7 +5263,7 @@ test "upstream semantic parse-fail/package-nesting-too-deep.wit" {
 
 ///|
 test "upstream semantic parse-fail/pkg-cycle" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5287,7 +5287,7 @@ test "upstream semantic parse-fail/pkg-cycle" {
 
 ///|
 test "upstream semantic parse-fail/pkg-cycle2" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5318,7 +5318,7 @@ test "upstream semantic parse-fail/pkg-cycle2" {
 
 ///|
 test "upstream semantic parse-fail/resource-method-named-after-resource.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5334,7 +5334,7 @@ test "upstream semantic parse-fail/resource-method-named-after-resource.wit" {
 
 ///|
 test "upstream semantic parse-fail/resources-multiple-returns-borrow.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5350,7 +5350,7 @@ test "upstream semantic parse-fail/resources-multiple-returns-borrow.wit" {
 
 ///|
 test "upstream semantic parse-fail/resources-return-borrow.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5366,7 +5366,7 @@ test "upstream semantic parse-fail/resources-return-borrow.wit" {
 
 ///|
 test "upstream semantic parse-fail/return-borrow1.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5382,7 +5382,7 @@ test "upstream semantic parse-fail/return-borrow1.wit" {
 
 ///|
 test "upstream semantic parse-fail/return-borrow2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5398,7 +5398,7 @@ test "upstream semantic parse-fail/return-borrow2.wit" {
 
 ///|
 test "upstream semantic parse-fail/return-borrow3.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5414,7 +5414,7 @@ test "upstream semantic parse-fail/return-borrow3.wit" {
 
 ///|
 test "upstream semantic parse-fail/return-borrow4.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5430,7 +5430,7 @@ test "upstream semantic parse-fail/return-borrow4.wit" {
 
 ///|
 test "upstream semantic parse-fail/return-borrow5.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5446,7 +5446,7 @@ test "upstream semantic parse-fail/return-borrow5.wit" {
 
 ///|
 test "upstream semantic parse-fail/return-borrow6.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5462,7 +5462,7 @@ test "upstream semantic parse-fail/return-borrow6.wit" {
 
 ///|
 test "upstream semantic parse-fail/return-borrow7.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5478,7 +5478,7 @@ test "upstream semantic parse-fail/return-borrow7.wit" {
 
 ///|
 test "upstream semantic parse-fail/return-borrow8" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5502,7 +5502,7 @@ test "upstream semantic parse-fail/return-borrow8" {
 
 ///|
 test "upstream semantic parse-fail/too-many-flags.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5518,7 +5518,7 @@ test "upstream semantic parse-fail/too-many-flags.wit" {
 
 ///|
 test "upstream semantic parse-fail/type-and-resource-same-name" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5542,7 +5542,7 @@ test "upstream semantic parse-fail/type-and-resource-same-name" {
 
 ///|
 test "upstream semantic parse-fail/type-nesting-too-deep.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5558,7 +5558,7 @@ test "upstream semantic parse-fail/type-nesting-too-deep.wit" {
 
 ///|
 test "upstream semantic parse-fail/undefined-typed.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5574,7 +5574,7 @@ test "upstream semantic parse-fail/undefined-typed.wit" {
 
 ///|
 test "upstream semantic parse-fail/unknown-interface.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5590,7 +5590,7 @@ test "upstream semantic parse-fail/unknown-interface.wit" {
 
 ///|
 test "upstream semantic parse-fail/unresolved-interface1.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5606,7 +5606,7 @@ test "upstream semantic parse-fail/unresolved-interface1.wit" {
 
 ///|
 test "upstream semantic parse-fail/unresolved-interface2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5622,7 +5622,7 @@ test "upstream semantic parse-fail/unresolved-interface2.wit" {
 
 ///|
 test "upstream semantic parse-fail/unresolved-interface3.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5638,7 +5638,7 @@ test "upstream semantic parse-fail/unresolved-interface3.wit" {
 
 ///|
 test "upstream semantic parse-fail/unresolved-interface4.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5654,7 +5654,7 @@ test "upstream semantic parse-fail/unresolved-interface4.wit" {
 
 ///|
 test "upstream semantic parse-fail/unresolved-use1.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5670,7 +5670,7 @@ test "upstream semantic parse-fail/unresolved-use1.wit" {
 
 ///|
 test "upstream semantic parse-fail/unresolved-use10" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5689,7 +5689,7 @@ test "upstream semantic parse-fail/unresolved-use10" {
 
 ///|
 test "upstream semantic parse-fail/unresolved-use2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5705,7 +5705,7 @@ test "upstream semantic parse-fail/unresolved-use2.wit" {
 
 ///|
 test "upstream semantic parse-fail/unresolved-use3.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5721,7 +5721,7 @@ test "upstream semantic parse-fail/unresolved-use3.wit" {
 
 ///|
 test "upstream semantic parse-fail/unresolved-use7.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5737,7 +5737,7 @@ test "upstream semantic parse-fail/unresolved-use7.wit" {
 
 ///|
 test "upstream semantic parse-fail/unresolved-use8.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5753,7 +5753,7 @@ test "upstream semantic parse-fail/unresolved-use8.wit" {
 
 ///|
 test "upstream semantic parse-fail/unresolved-use9.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5769,7 +5769,7 @@ test "upstream semantic parse-fail/unresolved-use9.wit" {
 
 ///|
 test "upstream semantic parse-fail/use-and-include-world" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5793,7 +5793,7 @@ test "upstream semantic parse-fail/use-and-include-world" {
 
 ///|
 test "upstream semantic parse-fail/use-conflict.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5809,7 +5809,7 @@ test "upstream semantic parse-fail/use-conflict.wit" {
 
 ///|
 test "upstream semantic parse-fail/use-conflict2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5825,7 +5825,7 @@ test "upstream semantic parse-fail/use-conflict2.wit" {
 
 ///|
 test "upstream semantic parse-fail/use-conflict3.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5841,7 +5841,7 @@ test "upstream semantic parse-fail/use-conflict3.wit" {
 
 ///|
 test "upstream semantic parse-fail/use-cycle1.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5857,7 +5857,7 @@ test "upstream semantic parse-fail/use-cycle1.wit" {
 
 ///|
 test "upstream semantic parse-fail/use-cycle4.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5873,7 +5873,7 @@ test "upstream semantic parse-fail/use-cycle4.wit" {
 
 ///|
 test "upstream semantic parse-fail/use-shadow1.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5889,7 +5889,7 @@ test "upstream semantic parse-fail/use-shadow1.wit" {
 
 ///|
 test "upstream semantic parse-fail/use-world" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5913,7 +5913,7 @@ test "upstream semantic parse-fail/use-world" {
 
 ///|
 test "upstream semantic parse-fail/very-large-column.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5946,7 +5946,7 @@ test "upstream semantic parse-fail/very-large-column.wit" {
 
 ///|
 test "upstream semantic parse-fail/very-nested-packages.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5962,7 +5962,7 @@ test "upstream semantic parse-fail/very-nested-packages.wit" {
 
 ///|
 test "upstream semantic parse-fail/world-interface-clash.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5978,7 +5978,7 @@ test "upstream semantic parse-fail/world-interface-clash.wit" {
 
 ///|
 test "upstream semantic parse-fail/world-same-fields2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -5994,7 +5994,7 @@ test "upstream semantic parse-fail/world-same-fields2.wit" {
 
 ///|
 test "upstream semantic parse-fail/world-same-fields3.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -6010,7 +6010,7 @@ test "upstream semantic parse-fail/world-same-fields3.wit" {
 
 ///|
 test "upstream semantic parse-fail/world-top-level-func.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
@@ -6026,7 +6026,7 @@ test "upstream semantic parse-fail/world-top-level-func.wit" {
 
 ///|
 test "upstream semantic parse-fail/world-top-level-func2.wit" {
-  let result = @verifier.resolve_packages(
+  let result = corpus_resolve(
     Source({
       documents: [
         section_document(
