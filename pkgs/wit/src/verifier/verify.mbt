@@ -45,7 +45,7 @@ pub fn verify_ast(
     diagnostics: [],
   }
   match resolve({ documents: [document], }, semantic_features~) {
-    Ok(result) => Ok(result.model)
+    Ok(result) => Ok(result.model.with_source(source_id, source, tree))
     Err(errors) => Err(errors)
   }
 }
@@ -930,10 +930,7 @@ fn verify_prepared(
     let interfaces = ReadOnlyArray::from_array(
       arena.interface_order.map(id => arena.interfaces[id]),
     )
-    let model : Verified = {
-      source_id: first.id,
-      source_text: first.text,
-      tree: first.ast,
+    let model : SemanticModel = {
       bindings: ReadOnlyArray::from_array(
         bindings.filter(b => {
           selection.nodes[b.node] && selection.nodes[b.target]
@@ -949,6 +946,10 @@ fn verify_prepared(
     }
     Ok({
       model,
+      root_location: {
+        source: first.id,
+        span: first.ast.nodes[first.ast.nodes.length() - 1].span,
+      },
       documents: prepared.documents,
       packages: prepared.identities,
       origins: ReadOnlyArray::from_array(arena.origins),

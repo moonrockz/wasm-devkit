@@ -31,6 +31,18 @@ pub(all) struct Binding {
 } derive(Eq, Debug)
 
 ///|
+/// Package semantics do not require a source document. Original source syntax
+/// belongs only to Verified, while Resolution can retain other input origins.
+priv struct SemanticModel {
+  bindings : ReadOnlyArray[Binding]
+  resolved_types : ReadOnlyArray[ResolvedType]
+  package_identity : PackageIdentity
+  resolved_worlds : ReadOnlyArray[ResolvedWorld]
+  resolved_interfaces : ReadOnlyArray[ResolvedInterface]
+  resolved_functions : ReadOnlyArray[ResolvedFunction]
+}
+
+///|
 /// Construction is private. A value exists only after the entire supported
 /// model passes verification. Retained syntax and binding tables are immutable.
 pub struct Verified {
@@ -207,3 +219,40 @@ pub extend PackageIdentity with Eq::{equal, not_equal}
 
 ///|
 pub extend PackageIdentity with @debug.Debug::{to_repr}
+
+///|
+fn Verified::semantic_model(self : Verified) -> SemanticModel {
+  {
+    bindings: self.bindings,
+    resolved_types: self.resolved_types,
+    package_identity: self.package_identity,
+    resolved_worlds: self.resolved_worlds,
+    resolved_interfaces: self.resolved_interfaces,
+    resolved_functions: self.resolved_functions,
+  }
+}
+
+///|
+fn SemanticModel::with_source(
+  self : SemanticModel,
+  source_id : String,
+  source_text : String,
+  tree : @ast.Tree,
+) -> Verified {
+  {
+    source_id,
+    source_text,
+    tree,
+    bindings: self.bindings,
+    resolved_types: self.resolved_types,
+    package_identity: self.package_identity,
+    resolved_worlds: self.resolved_worlds,
+    resolved_interfaces: self.resolved_interfaces,
+    resolved_functions: self.resolved_functions,
+  }
+}
+
+///|
+fn error_at(location : Location, code : String, message : String) -> Diagnostic {
+  { code, message, primary: { location, message, }, related: [], }
+}

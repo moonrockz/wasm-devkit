@@ -507,28 +507,42 @@ pub fn Verified::select_world(
   self : Verified,
   name~ : String? = None,
 ) -> Result[ResolvedWorld, ReadOnlyArray[Diagnostic]] {
-  let candidates = self
-    .worlds()
-    .filter(world => {
-      match name {
-        None => world.package_identity == self.identity()
-        Some(selector) =>
-          if selector.contains("/") {
-            qualified_item(world.package_identity, world.name) == selector
-          } else if selector.contains(":") {
-            world.package_identity.key() == selector
-          } else {
-            world.package_identity == self.identity() && world.name == selector
-          }
-      }
-    })
+  self
+  .semantic_model()
+  .select_world(
+    {
+      source: self.source_id,
+      span: self.tree.nodes[self.tree.nodes.length() - 1].span,
+    },
+    name~,
+  )
+}
+
+///|
+fn SemanticModel::select_world(
+  self : SemanticModel,
+  at : Location,
+  name~ : String? = None,
+) -> Result[ResolvedWorld, ReadOnlyArray[Diagnostic]] {
+  let candidates = self.resolved_worlds.filter(world => {
+    match name {
+      None => world.package_identity == self.package_identity
+      Some(selector) =>
+        if selector.contains("/") {
+          qualified_item(world.package_identity, world.name) == selector
+        } else if selector.contains(":") {
+          world.package_identity.key() == selector
+        } else {
+          world.package_identity == self.package_identity &&
+          world.name == selector
+        }
+    }
+  })
   if candidates.length() == 1 {
     return Ok(candidates[0])
   }
-  let span = self.tree.nodes[self.tree.nodes.length() - 1].span
-  let d = error(
-    self.source(),
-    span,
+  let d = error_at(
+    at,
     if candidates.is_empty() {
       "WIT-S005"
     } else {
@@ -556,27 +570,32 @@ pub fn Resolution::select_world(
   self : Resolution,
   name~ : String? = None,
 ) -> Result[ResolvedWorld, ReadOnlyArray[Diagnostic]] {
-  self.model.select_world(name~)
+  self.model.select_world(self.root_location, name~)
 }
 
 ///|
 /// A bounded, arena-independent summary of world keys, item kinds and named
 /// interface/resource identities. Type/function bodies remain in typed APIs.
 pub fn Verified::world_summary(self : Verified) -> Json {
+  self.semantic_model().world_summary()
+}
+
+///|
+fn SemanticModel::world_summary(self : SemanticModel) -> Json {
   let identities : Map[Int32, String] = Map([])
-  for interface_ in self.interfaces() {
+  for interface_ in self.resolved_interfaces {
     identities[interface_.id] = match interface_.name {
       Some(name) => qualified_item(interface_.package_identity, name)
       None => "inline"
     }
   }
   let scopes : Map[Int32, String] = Map([])
-  for interface_ in self.interfaces() {
+  for interface_ in self.resolved_interfaces {
     if interface_.name is Some(name) {
       scopes[interface_.id] = qualified_item(interface_.package_identity, name)
     }
   }
-  for world in self.worlds() {
+  for world in self.resolved_worlds {
     let qualified = qualified_item(world.package_identity, world.name)
     scopes[world.id] = qualified
     for imported in [true, false] {
@@ -590,11 +609,11 @@ pub fn Verified::world_summary(self : Verified) -> Json {
     }
   }
   let types : Map[Int32, ResolvedType] = Map([])
-  for ty in self.types() {
+  for ty in self.resolved_types {
     types[ty.id] = ty
   }
   let roots : Map[Int32, Int32] = Map([])
-  for ty in self.types() {
+  for ty in self.resolved_types {
     let mut id = ty.id
     let path = []
     while !roots.contains(id) {
@@ -621,7 +640,7 @@ pub fn Verified::world_summary(self : Verified) -> Json {
     }
   }
   let interface_resources : Map[Int32, Json] = Map([])
-  for interface_ in self.interfaces() {
+  for interface_ in self.resolved_interfaces {
     let resources : Map[String, Json] = Map([])
     for ty in interface_.types {
       if resource(ty.ty) is Some(identity) {
@@ -633,7 +652,7 @@ pub fn Verified::world_summary(self : Verified) -> Json {
     }
   }
   let worlds : Map[String, Json] = Map([])
-  for world in self.worlds() {
+  for world in self.resolved_worlds {
     let imports : Map[String, Json] = Map([])
     let exports : Map[String, Json] = Map([])
     for imported in [true, false] {

@@ -34,7 +34,8 @@ pub(all) struct Origin {
 ///|
 /// Verified closure with the original per-file ASTs and source provenance.
 pub struct Resolution {
-  priv model : Verified
+  priv model : SemanticModel
+  priv root_location : Location
   priv documents : ReadOnlyArray[Document]
   priv packages : ReadOnlyArray[PackageIdentity]
   priv origins : ReadOnlyArray[Origin]
@@ -47,12 +48,12 @@ pub fn Resolution::root(self : Resolution) -> PackageIdentity {
 
 ///|
 pub fn Resolution::types(self : Resolution) -> ReadOnlyArray[ResolvedType] {
-  self.model.types()
+  self.model.resolved_types
 }
 
 ///|
 pub fn Resolution::declarations(self : Resolution) -> ReadOnlyArray[Binding] {
-  self.model.declarations()
+  self.model.bindings
 }
 
 ///|
@@ -606,7 +607,7 @@ pub(all) struct ResolvedWorld {
 
 ///|
 pub fn Resolution::worlds(self : Resolution) -> ReadOnlyArray[ResolvedWorld] {
-  self.model.worlds()
+  self.model.resolved_worlds
 }
 
 ///|

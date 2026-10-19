@@ -58,14 +58,14 @@ pub fn Verified::functions(self : Verified) -> ReadOnlyArray[ResolvedFunction] {
 pub fn Resolution::interfaces(
   self : Resolution,
 ) -> ReadOnlyArray[ResolvedInterface] {
-  self.model.interfaces()
+  self.model.resolved_interfaces
 }
 
 ///|
 pub fn Resolution::functions(
   self : Resolution,
 ) -> ReadOnlyArray[ResolvedFunction] {
-  self.model.functions()
+  self.model.resolved_functions
 }
 
 ///|
