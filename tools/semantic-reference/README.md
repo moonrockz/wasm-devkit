@@ -77,3 +77,16 @@ merge each result using `Resolve::merge`. Feature options apply to every input.
 The default `push_path` operation is unchanged. This mode checks mixed source and
 encoded inputs where the pinned directory loader panics when a source package
 repeats a package already inferred from encoded dependencies.
+
+`wac-semantic-reference --encode-wit WIT_PATH OUTPUT_BINARY` uses WAC's pinned
+wit-parser/wit-component 0.258.0 to load a WIT file or package directory and encode
+its type wrappers. Feed those bytes to `--package` or `--dependency` to compare
+WIT-backed WAC inputs with the same profile as `wac resolve`. This is separate
+from the WIT oracle's 0.262.0 profile. It performs no registry lookup.
+
+Directory inputs load their local dependency closure; a single WIT file does not
+automatically load a sibling `deps` directory. The pinned WAC filesystem resolver
+accepts automatically discovered WIT package directories, but rejects directories
+passed through its file-only `--dep` override check. The encoder mode can encode
+either input directly; filesystem-provider comparisons must also run the actual
+WAC CLI to preserve that distinction.

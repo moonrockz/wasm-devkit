@@ -54,6 +54,22 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         println!("wac-parser 0.12.0 5a7480c69ae7a4dc9eb161f485cbcb8c95e372c9");
         return Ok(());
     }
+    if path == "--encode-wit" {
+        let mut args = env::args().skip(2);
+        let input = args.next().ok_or("expected WIT file or directory")?;
+        let output = args.next().ok_or("expected output binary path")?;
+        if args.next().is_some() {
+            return Err("usage: --encode-wit WIT_PATH OUTPUT_BINARY".into());
+        }
+        let mut resolve = wit_parser_wac::Resolve::new();
+        let package = if std::path::Path::new(&input).is_dir() {
+            resolve.push_dir(&input)?.0
+        } else {
+            resolve.push_file(&input)?
+        };
+        fs::write(output, wit_component_wac::encode(&resolve, package)?)?;
+        return Ok(());
+    }
     if path == "--target" {
         let mut args = env::args().skip(2);
         let target_path = args.next().ok_or("expected target package binary")?;
