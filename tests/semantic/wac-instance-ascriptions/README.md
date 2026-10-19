@@ -1,6 +1,6 @@
 # Instance export annotations
 
-These 43 original Apache-2.0 fixtures compare instance export annotations with
+These 47 original Apache-2.0 fixtures compare instance export annotations with
 WAC 0.12.0 `Package::from_bytes`, commit
 `5a7480c69ae7a4dc9eb161f485cbcb8c95e372c9`, and wasm-tools 1.262.0, commit
 `e22db44da4eaf17a0e46ec55b911c7539589a3cc`. Both enable all Wasm features.
@@ -20,10 +20,11 @@ already concrete. A newly introduced resource in an annotation does not match
 that instance's resource, even when both use the same instance type. An alias of
 the actual exported resource does match. The reference pairs cover both cases.
 
-`component` and `component-missing` retain the current unsupported boundary:
-component members need complete component-contract comparison and return
-`WAC-B002`. Other incompatible annotations return `WAC-B003`. The WIT type-only
-codec still excludes root annotations. Tracking: `wasm-devkit-p5m.8.2.2`.
+Component members use the same complete scoped contract comparison as root
+component annotations, including fresh resource binders and captured identities.
+Concrete instance resources seed the scoped metadata so comparisons preserve
+their existing identities. Incompatible annotations return `WAC-B003`. The WIT
+type-only codec still excludes root annotations. Tracking: `wasm-devkit-p5m.8.2.2`.
 
 Reproduce reference results with locked `wac-semantic-reference --package
 test:dep CASE.wasm` and `wasm-tools validate --features all CASE.wasm`.

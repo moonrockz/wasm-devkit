@@ -400,6 +400,11 @@ fn validate_component_section_alias(
           func_sig_shapes.push(new_sig)
         }
         Instance => {
+          if a.target is Export(parent, name) &&
+            counts.instance_contracts.get(parent) is Some((contract, node)) &&
+            contract.nodes[node].exports.children.get(name) is Some(child) {
+            counts.instance_contracts[counts.instance - 1] = (contract, child)
+          }
           instance_sigs.push(new_instance_sig)
           if new_metadata is Some(metadata) {
             counts.instance_metadata[instance_sigs.length() - 1] = metadata
@@ -418,6 +423,11 @@ fn validate_component_section_alias(
           instance_sizes.push(1)
         }
         Component => {
+          if a.target is Export(parent, name) &&
+            counts.instance_contracts.get(parent) is Some((contract, node)) &&
+            contract.nodes[node].exports.children.get(name) is Some(child) {
+            counts.component_contracts[counts.component - 1] = (contract, child)
+          }
           component_import_sorts.push(None)
           component_import_instance_sigs.push(None)
           component_import_func_sigs.push(None)

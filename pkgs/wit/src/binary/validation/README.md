@@ -117,12 +117,12 @@ a supplied graph must contain a root scope. Runtime component admission remains
 controlled by the binary framing profile.
 
 Instance export annotations compare complete instance metadata with an explicit
-work stack in `instance_ascription.mbt`. Function/value shapes and nominal
+work stack in `contract_ascription.mbt`. Function/value shapes and nominal
 resource identities are invariant; expected members must exist, while extra
 actual members may be hidden. Nested instances share the same cumulative
 comparison budget. Complete module contracts come from immutable core-scope
-metadata and use the shared module subtype operation. Component members remain
-unsupported. The annotation's metadata replaces the exported alias contract so
+metadata and use the shared module subtype operation. Component members use the
+same complete contract comparison. The annotation's metadata replaces the exported alias contract so
 later aliases and re-exports cannot recover hidden members or narrower limits.
 
 Imported component annotations use `contract_metadata.mbt` and
@@ -132,10 +132,11 @@ resource binders receive directed substitutions, while captures stay fixed;
 function and value comparisons retain those substitutions. Expected metadata
 replaces the exported component alias contract for subsequent annotation checks.
 Runtime component instantiation remains excluded; the older reduced tables are
-not proof of these complete contracts. Component aliases extracted from instances
-still lack complete metadata and fail closed. A 6,000-scope whitebox test covers
-stack safety, deepest mismatch and cumulative work exhaustion.
-
+not proof of these complete contracts. Component and instance aliases preserve
+scoped graph nodes. Imported instance metadata seeds concrete resource identities;
+nested component binders remain abstract. The shared comparator replaces the
+earlier instance-only comparator. Whitebox tests cover 6,000-scope stack safety,
+deepest mismatch, cumulative work exhaustion and seeded resource preservation.
 
 Synchronous canonical lift/lower uses an iterative, cached value-shape walk.
 It checks complete core signatures and memory/realloc/post-return contracts,

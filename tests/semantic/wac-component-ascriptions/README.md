@@ -1,6 +1,6 @@
 # Component export annotations
 
-These 54 original Apache-2.0 fixtures compare component export annotations with
+These 61 original Apache-2.0 fixtures compare component export annotations with
 WAC 0.12.0 `Package::from_bytes`, commit
 `5a7480c69ae7a4dc9eb161f485cbcb8c95e372c9`, and wasm-tools 1.262.0, commit
 `e22db44da4eaf17a0e46ec55b911c7539589a3cc`. Both enable all Wasm features.
@@ -22,11 +22,12 @@ collecting matching resource binders. It never treats different captured
 resources as equal. This differs from an already-instantiated instance's concrete
 resource identities; the paired positive/negative cases retain both rules.
 
-`alias-component` remains unsupported: component aliases extracted from imported
-instances do not yet carry complete scoped component metadata. It returns
-`WAC-B002`; other incompatible annotations return `WAC-B003`. Component members
-inside instance annotations also remain outside their current profile, tracked
-by `tests/semantic/wac-instance-ascriptions`. Tracking: `wasm-devkit-p5m.8.2.2`.
+Component aliases extracted from imported instances retain complete scoped
+metadata, including nested aliases, narrowing and captured instance resources.
+Paired tests reject a capture from a different instance and prevent re-exports
+from recovering hidden members. Component members inside instance annotations
+use the same comparison. Incompatible annotations return `WAC-B003`.
+Tracking: `wasm-devkit-p5m.8.2.2`.
 
 Reproduce reference results with locked `wac-semantic-reference --package
 test:dep CASE.wasm` and `wasm-tools validate --features all CASE.wasm`.

@@ -838,26 +838,39 @@ test "instance export ascription component" {
   )
   assert_eq(
     result is Ok(_),
-    false,
+    true,
     msg=match result {
       Ok(_) => "accepted"
       Err(errors) => errors[0].render()
     },
   )
-  assert_eq(result.unwrap_err()[0].code, "WAC-B002")
+  assert_eq(binary_projection(result.unwrap()), [
+    "world", "", "0", "1", "a", "instance", "interface", "", "0", "1", "c", "component",
+    "world", "", "0", "0", "0", "1", "a", "instance", "interface", "", "0", "1",
+    "c", "component", "world", "", "0", "0", "0", "instance", "interface", "", "0",
+    "1", "a", "instance", "interface", "", "0", "1", "c", "component", "world", "",
+    "0", "0", "0", "definitions", "0",
+  ])
+  assert_eq(result.unwrap().bytes(), bytes)
   let text_result = @verifier.decode_wat_component_package(
     "(component  (type $a (instance (type (component )) (export \"c\" (component (type 0))))) (type $b (instance (type (component )) (export \"c\" (component (type 0))))) (import \"a\" (instance (type $a))) (export \"a\" (instance 0) (instance (type $b))))\n",
     source_id="component.wat",
   )
   assert_eq(
     text_result is Ok(_),
-    false,
+    true,
     msg=match text_result {
       Ok(_) => "accepted"
       Err(errors) => errors[0].render()
     },
   )
-  assert_eq(text_result.unwrap_err()[0].code, "WAC-B002")
+  assert_eq(binary_projection(text_result.unwrap()), [
+    "world", "", "0", "1", "a", "instance", "interface", "", "0", "1", "c", "component",
+    "world", "", "0", "0", "0", "1", "a", "instance", "interface", "", "0", "1",
+    "c", "component", "world", "", "0", "0", "0", "instance", "interface", "", "0",
+    "1", "a", "instance", "interface", "", "0", "1", "c", "component", "world", "",
+    "0", "0", "0", "definitions", "0",
+  ])
 }
 
 ///|
@@ -875,7 +888,7 @@ test "instance export ascription component-missing" {
       Err(errors) => errors[0].render()
     },
   )
-  assert_eq(result.unwrap_err()[0].code, "WAC-B002")
+  assert_eq(result.unwrap_err()[0].code, "WAC-B003")
   let text_result = @verifier.decode_wat_component_package(
     "(component  (type $a (instance (type (component )) (export \"c\" (component (type 0))))) (type $b (instance (type (component (type (func)) (export \"f\" (func (type 0))))) (export \"c\" (component (type 0))))) (import \"a\" (instance (type $a))) (export \"a\" (instance 0) (instance (type $b))))\n",
     source_id="component-missing.wat",
@@ -888,7 +901,7 @@ test "instance export ascription component-missing" {
       Err(errors) => errors[0].render()
     },
   )
-  assert_eq(text_result.unwrap_err()[0].code, "WAC-B002")
+  assert_eq(text_result.unwrap_err()[0].code, "WAC-B003")
 }
 
 ///|
@@ -1735,6 +1748,189 @@ test "instance export ascription reexport-module-mismatch" {
   let text_result = @verifier.decode_wat_component_package(
     "(component (type $a (instance (core type (module (export \"m\" (memory 2 5)))) (export \"m\" (core module (type 0))))) (type $b (instance (core type (module (export \"m\" (memory 1 10)))) (export \"m\" (core module (type 0))))) (import \"a\" (instance (type $a))) (export \"first\" (instance 0) (instance (type $b))) (export \"second\" (instance 1) (instance (type $a))))\n",
     source_id="reexport-module-mismatch.wat",
+  )
+  assert_eq(
+    text_result is Ok(_),
+    false,
+    msg=match text_result {
+      Ok(_) => "accepted"
+      Err(errors) => errors[0].render()
+    },
+  )
+  assert_eq(text_result.unwrap_err()[0].code, "WAC-B003")
+}
+
+///|
+test "instance export ascription component-import-resource" {
+  let bytes = b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x07\x45\x02\x42\x02\x01\x41\x04\x03\x00\x01\x72\x03\x01\x01\x69\x00\x01\x40\x00\x00\x01\x04\x00\x04\x6d\x61\x6b\x65\x01\x02\x04\x00\x01\x63\x04\x00\x42\x02\x01\x41\x04\x03\x00\x01\x72\x03\x01\x01\x69\x00\x01\x40\x00\x00\x01\x04\x00\x04\x6d\x61\x6b\x65\x01\x02\x04\x00\x01\x63\x04\x00\x0a\x06\x01\x00\x01\x61\x05\x00\x0b\x09\x01\x00\x01\x61\x05\x00\x01\x05\x01\x00\x19\x0e\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x2d\x6e\x61\x6d\x65\x01\x08\x03\x02\x00\x01\x61\x01\x01\x62"
+  let result = @verifier.decode_component_package(
+    bytes,
+    source_id="component-import-resource.wasm",
+  )
+  assert_eq(
+    result is Ok(_),
+    true,
+    msg=match result {
+      Ok(_) => "accepted"
+      Err(errors) => errors[0].render()
+    },
+  )
+  assert_eq(binary_projection(result.unwrap()), [
+    "world", "", "0", "1", "a", "instance", "interface", "", "0", "1", "c", "component",
+    "world", "", "0", "1", "r", "type", "resource", "0", "1", "make", "func", "function",
+    "false", "0", "some", "own", "0", "1", "a", "instance", "interface", "", "0",
+    "1", "c", "component", "world", "", "0", "1", "r", "type", "resource", "1", "1",
+    "make", "func", "function", "false", "0", "some", "own", "1", "instance", "interface",
+    "", "0", "1", "a", "instance", "interface", "", "0", "1", "c", "component", "world",
+    "", "0", "1", "r", "type", "resource", "1", "1", "make", "func", "function",
+    "false", "0", "some", "own", "1", "definitions", "0",
+  ])
+  assert_eq(result.unwrap().bytes(), bytes)
+  let text_result = @verifier.decode_wat_component_package(
+    "(component  (type $a (instance (type (component (import \"r\" (type (sub resource))) (type (own 0)) (type (func (result 1))) (export \"make\" (func (type 2))))) (export \"c\" (component (type 0))))) (type $b (instance (type (component (import \"r\" (type (sub resource))) (type (own 0)) (type (func (result 1))) (export \"make\" (func (type 2))))) (export \"c\" (component (type 0))))) (import \"a\" (instance (type $a))) (export \"a\" (instance 0) (instance (type $b))))\n",
+    source_id="component-import-resource.wat",
+  )
+  assert_eq(
+    text_result is Ok(_),
+    true,
+    msg=match text_result {
+      Ok(_) => "accepted"
+      Err(errors) => errors[0].render()
+    },
+  )
+  assert_eq(binary_projection(text_result.unwrap()), [
+    "world", "", "0", "1", "a", "instance", "interface", "", "0", "1", "c", "component",
+    "world", "", "0", "1", "r", "type", "resource", "0", "1", "make", "func", "function",
+    "false", "0", "some", "own", "0", "1", "a", "instance", "interface", "", "0",
+    "1", "c", "component", "world", "", "0", "1", "r", "type", "resource", "1", "1",
+    "make", "func", "function", "false", "0", "some", "own", "1", "instance", "interface",
+    "", "0", "1", "a", "instance", "interface", "", "0", "1", "c", "component", "world",
+    "", "0", "1", "r", "type", "resource", "1", "1", "make", "func", "function",
+    "false", "0", "some", "own", "1", "definitions", "0",
+  ])
+}
+
+///|
+test "instance export ascription component-export-resource" {
+  let bytes = b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x07\x45\x02\x42\x02\x01\x41\x04\x04\x00\x01\x72\x03\x01\x01\x69\x00\x01\x40\x00\x00\x01\x04\x00\x04\x6d\x61\x6b\x65\x01\x02\x04\x00\x01\x63\x04\x00\x42\x02\x01\x41\x04\x04\x00\x01\x72\x03\x01\x01\x69\x00\x01\x40\x00\x00\x01\x04\x00\x04\x6d\x61\x6b\x65\x01\x02\x04\x00\x01\x63\x04\x00\x0a\x06\x01\x00\x01\x61\x05\x00\x0b\x09\x01\x00\x01\x61\x05\x00\x01\x05\x01\x00\x19\x0e\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x2d\x6e\x61\x6d\x65\x01\x08\x03\x02\x00\x01\x61\x01\x01\x62"
+  let result = @verifier.decode_component_package(
+    bytes,
+    source_id="component-export-resource.wasm",
+  )
+  assert_eq(
+    result is Ok(_),
+    true,
+    msg=match result {
+      Ok(_) => "accepted"
+      Err(errors) => errors[0].render()
+    },
+  )
+  assert_eq(binary_projection(result.unwrap()), [
+    "world", "", "0", "1", "a", "instance", "interface", "", "0", "1", "c", "component",
+    "world", "", "0", "0", "2", "r", "type", "resource", "0", "make", "func", "function",
+    "false", "0", "some", "own", "0", "1", "a", "instance", "interface", "", "0",
+    "1", "c", "component", "world", "", "0", "0", "2", "r", "type", "resource", "1",
+    "make", "func", "function", "false", "0", "some", "own", "1", "instance", "interface",
+    "", "0", "1", "a", "instance", "interface", "", "0", "1", "c", "component", "world",
+    "", "0", "0", "2", "r", "type", "resource", "1", "make", "func", "function",
+    "false", "0", "some", "own", "1", "definitions", "0",
+  ])
+  assert_eq(result.unwrap().bytes(), bytes)
+  let text_result = @verifier.decode_wat_component_package(
+    "(component  (type $a (instance (type (component (export \"r\" (type (sub resource))) (type (own 0)) (type (func (result 1))) (export \"make\" (func (type 2))))) (export \"c\" (component (type 0))))) (type $b (instance (type (component (export \"r\" (type (sub resource))) (type (own 0)) (type (func (result 1))) (export \"make\" (func (type 2))))) (export \"c\" (component (type 0))))) (import \"a\" (instance (type $a))) (export \"a\" (instance 0) (instance (type $b))))\n",
+    source_id="component-export-resource.wat",
+  )
+  assert_eq(
+    text_result is Ok(_),
+    true,
+    msg=match text_result {
+      Ok(_) => "accepted"
+      Err(errors) => errors[0].render()
+    },
+  )
+  assert_eq(binary_projection(text_result.unwrap()), [
+    "world", "", "0", "1", "a", "instance", "interface", "", "0", "1", "c", "component",
+    "world", "", "0", "0", "2", "r", "type", "resource", "0", "make", "func", "function",
+    "false", "0", "some", "own", "0", "1", "a", "instance", "interface", "", "0",
+    "1", "c", "component", "world", "", "0", "0", "2", "r", "type", "resource", "1",
+    "make", "func", "function", "false", "0", "some", "own", "1", "instance", "interface",
+    "", "0", "1", "a", "instance", "interface", "", "0", "1", "c", "component", "world",
+    "", "0", "0", "2", "r", "type", "resource", "1", "make", "func", "function",
+    "false", "0", "some", "own", "1", "definitions", "0",
+  ])
+}
+
+///|
+test "instance export ascription component-capture" {
+  let bytes = b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x0a\x0b\x02\x00\x01\x72\x03\x01\x00\x01\x73\x03\x01\x07\x51\x02\x42\x02\x01\x41\x05\x02\x03\x02\x02\x00\x04\x00\x01\x72\x03\x00\x00\x01\x69\x01\x01\x40\x00\x00\x02\x04\x00\x04\x6d\x61\x6b\x65\x01\x03\x04\x00\x01\x63\x04\x00\x42\x02\x01\x41\x05\x02\x03\x02\x02\x00\x04\x00\x01\x72\x03\x00\x00\x01\x69\x01\x01\x40\x00\x00\x02\x04\x00\x04\x6d\x61\x6b\x65\x01\x03\x04\x00\x01\x63\x04\x00\x0a\x06\x01\x00\x01\x61\x05\x02\x0b\x09\x01\x00\x01\x61\x05\x00\x01\x05\x03\x00\x19\x0e\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x2d\x6e\x61\x6d\x65\x01\x08\x03\x02\x02\x01\x61\x03\x01\x62"
+  let result = @verifier.decode_component_package(
+    bytes,
+    source_id="component-capture.wasm",
+  )
+  assert_eq(
+    result is Ok(_),
+    true,
+    msg=match result {
+      Ok(_) => "accepted"
+      Err(errors) => errors[0].render()
+    },
+  )
+  assert_eq(binary_projection(result.unwrap()), [
+    "world", "", "0", "3", "r", "type", "resource", "0", "s", "type", "resource",
+    "1", "a", "instance", "interface", "", "0", "1", "c", "component", "world", "",
+    "0", "0", "2", "r", "type", "resource", "0", "make", "func", "function", "false",
+    "0", "some", "own", "0", "1", "a", "instance", "interface", "", "0", "1", "c",
+    "component", "world", "", "0", "0", "2", "r", "type", "resource", "0", "make",
+    "func", "function", "false", "0", "some", "own", "0", "instance", "interface",
+    "", "0", "1", "a", "instance", "interface", "", "0", "1", "c", "component", "world",
+    "", "0", "0", "2", "r", "type", "resource", "0", "make", "func", "function",
+    "false", "0", "some", "own", "0", "definitions", "0",
+  ])
+  assert_eq(result.unwrap().bytes(), bytes)
+  let text_result = @verifier.decode_wat_component_package(
+    "(component (import \"r\" (type (sub resource))) (import \"s\" (type (sub resource))) (type $a (instance (type (component (alias outer 2 0 (type)) (export \"r\" (type (eq 0))) (type (own 1)) (type (func (result 2))) (export \"make\" (func (type 3))))) (export \"c\" (component (type 0))))) (type $b (instance (type (component (alias outer 2 0 (type)) (export \"r\" (type (eq 0))) (type (own 1)) (type (func (result 2))) (export \"make\" (func (type 3))))) (export \"c\" (component (type 0))))) (import \"a\" (instance (type $a))) (export \"a\" (instance 0) (instance (type $b))))\n",
+    source_id="component-capture.wat",
+  )
+  assert_eq(
+    text_result is Ok(_),
+    true,
+    msg=match text_result {
+      Ok(_) => "accepted"
+      Err(errors) => errors[0].render()
+    },
+  )
+  assert_eq(binary_projection(text_result.unwrap()), [
+    "world", "", "0", "3", "r", "type", "resource", "0", "s", "type", "resource",
+    "1", "a", "instance", "interface", "", "0", "1", "c", "component", "world", "",
+    "0", "0", "2", "r", "type", "resource", "0", "make", "func", "function", "false",
+    "0", "some", "own", "0", "1", "a", "instance", "interface", "", "0", "1", "c",
+    "component", "world", "", "0", "0", "2", "r", "type", "resource", "0", "make",
+    "func", "function", "false", "0", "some", "own", "0", "instance", "interface",
+    "", "0", "1", "a", "instance", "interface", "", "0", "1", "c", "component", "world",
+    "", "0", "0", "2", "r", "type", "resource", "0", "make", "func", "function",
+    "false", "0", "some", "own", "0", "definitions", "0",
+  ])
+}
+
+///|
+test "instance export ascription component-wrong-capture" {
+  let bytes = b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x0a\x0b\x02\x00\x01\x72\x03\x01\x00\x01\x73\x03\x01\x07\x51\x02\x42\x02\x01\x41\x05\x02\x03\x02\x02\x00\x04\x00\x01\x72\x03\x00\x00\x01\x69\x01\x01\x40\x00\x00\x02\x04\x00\x04\x6d\x61\x6b\x65\x01\x03\x04\x00\x01\x63\x04\x00\x42\x02\x01\x41\x05\x02\x03\x02\x02\x01\x04\x00\x01\x72\x03\x00\x00\x01\x69\x01\x01\x40\x00\x00\x02\x04\x00\x04\x6d\x61\x6b\x65\x01\x03\x04\x00\x01\x63\x04\x00\x0a\x06\x01\x00\x01\x61\x05\x02\x0b\x09\x01\x00\x01\x61\x05\x00\x01\x05\x03\x00\x19\x0e\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x2d\x6e\x61\x6d\x65\x01\x08\x03\x02\x02\x01\x61\x03\x01\x62"
+  let result = @verifier.decode_component_package(
+    bytes,
+    source_id="component-wrong-capture.wasm",
+  )
+  assert_eq(
+    result is Ok(_),
+    false,
+    msg=match result {
+      Ok(_) => "accepted"
+      Err(errors) => errors[0].render()
+    },
+  )
+  assert_eq(result.unwrap_err()[0].code, "WAC-B003")
+  let text_result = @verifier.decode_wat_component_package(
+    "(component (import \"r\" (type (sub resource))) (import \"s\" (type (sub resource))) (type $a (instance (type (component (alias outer 2 0 (type)) (export \"r\" (type (eq 0))) (type (own 1)) (type (func (result 2))) (export \"make\" (func (type 3))))) (export \"c\" (component (type 0))))) (type $b (instance (type (component (alias outer 2 1 (type)) (export \"r\" (type (eq 0))) (type (own 1)) (type (func (result 2))) (export \"make\" (func (type 3))))) (export \"c\" (component (type 0))))) (import \"a\" (instance (type $a))) (export \"a\" (instance 0) (instance (type $b))))\n",
+    source_id="component-wrong-capture.wat",
   )
   assert_eq(
     text_result is Ok(_),

@@ -115,7 +115,7 @@ pub fn validate_declarative_component(
         raise Failure(
           None,
           "WIT-B002",
-          "component ascription requires complete supported contracts",
+          "export ascription requires complete scoped contracts",
         )
       @validation.UnsupportedInstanceAscription =>
         raise Failure(

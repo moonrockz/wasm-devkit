@@ -106,8 +106,8 @@ Nested imported instances retain complete signatures, nominal resource binders
 and exported value-type aliases in private indexed graphs. Type-equality export
 ascriptions compare complete structural shapes and nominal resource identities,
 including aliases and re-exports. Instance annotations check functions, values,
-nominal resources, nested instances and core modules against the complete expected
-contract; component members remain unsupported. Annotated aliases and re-exports
+nominal resources, nested instances/components and core modules against the complete
+expected contract. Annotated aliases and re-exports
 retain the narrowed contract. The type-only WIT entry point continues to reject all
 root export ascriptions. Component values and runtime component sections remain unsupported.
 
@@ -139,4 +139,4 @@ contravariant and exports covariant. Resource binders use directed substitution;
 captured resources and equality constraints remain nominal. Explicit work stacks
 and cumulative budgets cover extraction and comparison. Annotated re-exports
 retain their narrowed contract. Component aliases extracted from imported
-instances remain unsupported until they carry complete scoped metadata.
+instances retain complete scoped metadata and captured resource identities.

@@ -373,6 +373,36 @@ fn validate_component_section_import(
           if metadata is Some(metadata) {
             func_export_sigs = Some(metadata.nodes[0].functions)
             counts.instance_metadata[instance_sigs.length() - 1] = (metadata, 0)
+            let core_scope = match counts.core_contracts {
+              Some(graph) =>
+                match graph.scope(0) {
+                  Some(root) =>
+                    match root.binding(3, tyidx) {
+                      Some(Scope(id)) => Some(id)
+                      _ => None
+                    }
+                  None => None
+                }
+              None => None
+            }
+            let (contract, next, remaining) = scoped_contract_metadata(
+              td,
+              type_table,
+              resource_ids,
+              counts.type_metadata,
+              next_resource_id,
+              counts.metadata_remaining,
+              core_contracts=counts.core_contracts,
+              core_scope~,
+              seed=Some((metadata, 0)),
+            )
+            next_resource_id = next
+            counts.metadata_remaining = remaining
+            if contract is Some(contract) {
+              counts.instance_contracts[instance_sigs.length() - 1] = (
+                contract, 0,
+              )
+            }
             instance_sigs[instance_sigs.length() - 1] = Some(
               metadata_instance_sig(metadata, 0),
             )
@@ -423,7 +453,7 @@ fn validate_component_section_import(
         next_resource_id = next
         counts.metadata_remaining = remaining
         if metadata is Some(metadata) {
-          counts.component_contracts[counts.component] = metadata
+          counts.component_contracts[counts.component] = (metadata, 0)
         }
       }
       let mut import_sorts : Map[String, @component.Sort]? = None

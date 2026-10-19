@@ -1692,7 +1692,7 @@
 +    canonical_version_suffix,
 +    restricted_map_keys,
 +  }
-@@ -114,12 +132,18 @@
+@@ -114,12 +132,19 @@
 -  mut func : Int
 -  mut value : Int
 -  mut component : Int
@@ -1708,7 +1708,8 @@
 +  mut core_contracts : @core_types.ContractGraph?
 +  type_metadata : Map[Int32, (InstanceMetadata, Int32)]
 +  instance_metadata : Map[Int32, (InstanceMetadata, Int32)]
-+  component_contracts : Map[Int32, ScopedContractMetadata]
++  component_contracts : Map[Int32, (ScopedContractMetadata, Int32)]
++  instance_contracts : Map[Int32, (ScopedContractMetadata, Int32)]
 +  mut metadata_remaining : Int32
 +  mut ascription_remaining : Int32
 +  mut func : Int32
@@ -1723,7 +1724,7 @@
 +  mut core_memory : Int32
 +  mut core_global : Int32
 +  mut core_tag : Int32
-@@ -161 +185,9 @@
+@@ -161 +186,9 @@
 -} derive(Eq)
 +  complete : CompleteFunctionSignature?
 +}
@@ -1734,88 +1735,89 @@
 +impl Eq for FuncSigShape with fn equal(a, b) {
 +  a.params == b.params && a.result == b.result
 +}
-@@ -165,2 +197,2 @@
+@@ -165,2 +198,2 @@
 -  Existing(Int)
 -  Resource(Int)
 +  Existing(Int32)
 +  Resource(Int32)
-@@ -182,3 +214,3 @@
+@@ -182,3 +215,3 @@
 -  Resource(Int)
 -  Own(Int)
 -  Borrow(Int)
 +  Resource(Int32)
 +  Own(Int32)
 +  Borrow(Int32)
-@@ -204,2 +236,2 @@
+@@ -204,2 +237,2 @@
 -  resource_ids : Array[Int?],
 -) -> Int? {
 +  resource_ids : Array[Int32?],
 +) -> Int32? {
-@@ -218,3 +250,3 @@
+@@ -218,3 +251,3 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 -) -> Int? {
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
 +) -> Int32? {
-@@ -238,2 +270,2 @@
+@@ -238,2 +271,2 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
-@@ -258,2 +290,2 @@
+@@ -258,2 +291,2 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
-@@ -460 +492,4 @@
+@@ -460 +493,4 @@
 -fn core_func_type_of_idx(m : @types.Module, func_idx : Int) -> @types.FuncType? {
 +fn core_func_type_of_idx(
 +  m : @types.Module,
 +  func_idx : Int32,
 +) -> @types.FuncType? {
-@@ -485 +520 @@
+@@ -485 +521 @@
 -  table_idx : Int,
 +  table_idx : Int32,
-@@ -506 +541 @@
+@@ -506 +542 @@
 -  mem_idx : Int,
 +  mem_idx : Int32,
-@@ -527 +562 @@
+@@ -527 +563 @@
 -  global_idx : Int,
 +  global_idx : Int32,
-@@ -546 +581 @@
+@@ -546 +582 @@
 -fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int) -> @types.FuncType? {
 +fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int32) -> @types.FuncType? {
-@@ -642 +677 @@
+@@ -642 +678 @@
 -fn core_kind_of_extern_type(ty : CoreExternType) -> Int {
 +fn core_kind_of_extern_type(ty : CoreExternType) -> Int32 {
-@@ -679 +714 @@
+@@ -679 +715 @@
 -  idx : Int,
 +  idx : Int32,
-@@ -723,0 +759,6 @@
+@@ -723,0 +760,7 @@
 +    type_metadata: Map([]),
 +    instance_metadata: Map([]),
 +    component_contracts: Map([]),
++    instance_contracts: Map([]),
 +    core_contracts: None,
 +    metadata_remaining: 1000000,
 +    ascription_remaining: 1000000,
-@@ -763 +804 @@
+@@ -763 +806 @@
 -fn is_lower_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_lower_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -793 +834 @@
+@@ -793 +836 @@
 -fn is_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -843,2 +884,2 @@
+@@ -843,2 +886,2 @@
 -fn is_canonversion_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 -  if start < 0 || end_ <= start || end_ > name.length() {
 +fn is_semver_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
 +  if start < 0 || start >= end_ || end_ > name.length() {
-@@ -848,2 +889,2 @@
+@@ -848,2 +891,2 @@
 -  if name[i].to_int() >= 0x31 && name[i].to_int() <= 0x39 {
 -    i += 1
 +  for component in 0..<3 {
 +    let begin = i
-@@ -853,11 +894,27 @@
+@@ -853,11 +896,27 @@
 -    return i == end_
 -  }
 -  if name[i].to_int() != 0x30 || i + 1 >= end_ {
@@ -1854,7 +1856,7 @@
 +
 +  // Numeric prerelease identifiers cannot contain leading zeroes.
 +  if i < end_ && name[i] == 0x2d {
-@@ -865 +922,15 @@
+@@ -865 +924,15 @@
 -    while i < end_ && is_ascii_digit(name[i]) {
 +    while true {
 +      let begin = i
@@ -1871,7 +1873,7 @@
 +      if i >= end_ || name[i] != 0x2e {
 +        break
 +      }
-@@ -867,95 +937,0 @@
+@@ -867,95 +939,0 @@
 -    }
 -    return i == end_
 -  }
@@ -1967,13 +1969,13 @@
 -    }
 -    if need_id {
 -      return false
-@@ -1016,3 +991,0 @@
+@@ -1016,3 +993,0 @@
 -      if at != -1 {
 -        return false
 -      }
-@@ -1019,0 +993 @@
+@@ -1019,0 +995 @@
 +      break
-@@ -1028,9 +1002 @@
+@@ -1028,9 +1004 @@
 -  if at != -1 {
 -    if at >= name.length() - 1 {
 -      return false
@@ -1984,14 +1986,14 @@
 -    }
 -  }
 +  // Version syntax is checked with the separately encoded suffix.
-@@ -1185 +1151 @@
+@@ -1185 +1153 @@
 -fn is_integrity_value(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_integrity_value(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -1453,0 +1420,3 @@
+@@ -1453,0 +1422,3 @@
 +  if prefix_eq("get") || prefix_eq("set") {
 +    return is_kebab_case_range(name, close + 1, name.length())
 +  }
-@@ -1460 +1429,9 @@
+@@ -1460 +1431,9 @@
 -  // method/static: require exactly one '.' and kebab-case around it.
 +  // Method/static names can have one accessor annotation before the resource.
 +  let mut start = close + 1
@@ -2002,10 +2004,10 @@
 +    ) {
 +    start += 5
 +  }
-@@ -1462 +1439 @@
+@@ -1462 +1441 @@
 -  for k in (close + 1)..<name.length() {
 +  for k in start..<name.length() {
-@@ -1470,4 +1447,4 @@
+@@ -1470,4 +1449,4 @@
 -  if dot < 0 || dot == close + 1 || dot == name.length() - 1 {
 -    return false
 -  }
@@ -2014,19 +2016,19 @@
 +    return false
 +  }
 +  is_kebab_case_range(name, start, dot) &&
-@@ -1506 +1483 @@
+@@ -1506 +1485 @@
 -  mut pos : Int
 +  mut pos : Int32
-@@ -1522 +1499 @@
+@@ -1522 +1501 @@
 -) -> Int raise ComponentValidationError {
 +) -> Int32 raise ComponentValidationError {
-@@ -1534 +1511 @@
+@@ -1534 +1513 @@
 -) -> Int raise ComponentValidationError {
 +) -> Int32 raise ComponentValidationError {
-@@ -1554 +1531 @@
+@@ -1554 +1533 @@
 -  n : Int,
 +  n : Int32,
-@@ -1585,5 +1562,9 @@
+@@ -1585,5 +1564,9 @@
 -  ascii_bytes_to_string(self.read_bytes(len))
 -}
 -
@@ -2041,7 +2043,7 @@
 +
 +///|
 +fn CoreTypeReader::read_limit(
-@@ -1591 +1572,23 @@
+@@ -1591 +1574,23 @@
 -) -> Unit raise ComponentValidationError {
 +  wide : Bool,
 +) -> UInt64 raise ComponentValidationError {
@@ -2066,7 +2068,7 @@
 +  self : CoreTypeReader,
 +  memory : Bool,
 +) -> (Int32, UInt64, UInt64?, Int32) raise ComponentValidationError {
-@@ -1593,4 +1596,24 @@
+@@ -1593,4 +1598,24 @@
 -  self.read_leb_u32() |> ignore
 -  if (flags & 0x01) != 0 {
 -    self.read_leb_u32() |> ignore
@@ -2095,12 +2097,12 @@
 +    }
 +  }
 +  (flags, min, max, page)
-@@ -1627,2 +1650,2 @@
+@@ -1627,2 +1652,2 @@
 -  kind : Int,
 -  func_type_bound : Int,
 +  kind : Int32,
 +  func_type_bound : Int32,
-@@ -1639,17 +1662,3 @@
+@@ -1639,17 +1664,3 @@
 -      self.skip_limits()
 -    }
 -    0x02 => {
@@ -2121,16 +2123,16 @@
 +      self.read_limits(false) |> ignore
 +    }
 +    0x02 => self.read_limits(true) |> ignore
-@@ -1679 +1688 @@
+@@ -1679 +1690 @@
 -    heap : Int,
 +    heap : Int32,
-@@ -1748 +1757 @@
+@@ -1748 +1759 @@
 -  kind : Int,
 +  kind : Int32,
-@@ -1750 +1759 @@
+@@ -1750 +1761 @@
 -  func_type_bound : Int,
 +  func_type_bound : Int32,
-@@ -1775,6 +1784,5 @@
+@@ -1775,6 +1786,5 @@
 -      let flags = self.read_u8()
 -      let min = self.read_leb_u32()
 -      let max = if (flags & 0x01) != 0 {
@@ -2142,7 +2144,7 @@
 +        (max is Some(n) && n > 9223372036854775807UL) ||
 +        (flags & 2) != 0 {
 +        return None
-@@ -1783,7 +1791,4 @@
+@@ -1783,7 +1793,4 @@
 -        min: min.to_int64(),
 -        max: match max {
 -          Some(v) => Some(v.to_int64())
@@ -2154,7 +2156,7 @@
 +        max: max.map(n => n.reinterpret_as_int64()),
 +      }
 +      Some(Table({ elem_type: elem_ty, limits, is_table64: (flags & 4) != 0, }))
-@@ -1792,14 +1797,6 @@
+@@ -1792,14 +1799,6 @@
 -      // memtype: flags + limits (track memory64 when present)
 -      let flags = self.read_u8()
 -      let min = self.read_leb_u32()
@@ -2175,7 +2177,7 @@
 +      if min > 9223372036854775807UL ||
 +        (max is Some(n) && n > 9223372036854775807UL) {
 +        return None
-@@ -1808,7 +1805,3 @@
+@@ -1808,7 +1807,3 @@
 -        min: min.to_int64(),
 -        max: match max {
 -          Some(v) => Some(v.to_int64())
@@ -2186,33 +2188,33 @@
 +        min: min.reinterpret_as_int64(),
 +        max: max.map(n => n.reinterpret_as_int64()),
 +      }
-@@ -1818,3 +1811,3 @@
+@@ -1818,3 +1813,3 @@
 -          is_memory64,
 -          is_shared: (flags & 0x02) != 0,
 -          page_size_log2: 16,
 +          is_memory64: (flags & 4) != 0,
 +          is_shared: (flags & 2) != 0,
 +          page_size_log2: page,
-@@ -1828 +1821,4 @@
+@@ -1828 +1823,4 @@
 -      let mutable = mut_ != 0
 +      if (mut_ & 2) != 0 {
 +        return None
 +      }
 +      let mutable = (mut_ & 1) != 0
-@@ -1859,3 +1855,3 @@
+@@ -1859,3 +1857,3 @@
 -  max_outer_depth : Int,
 -  current_core_type_bound : Int,
 -  outer_core_type_bounds : Array[Int],
 +  max_outer_depth : Int32,
 +  current_core_type_bound : Int32,
 +  outer_core_type_bounds : Array[Int32],
-@@ -1864 +1860 @@
+@@ -1864 +1862 @@
 -  let seen_imports : Map[String, Int] = Map([])
 +  let seen_imports : Map[(String, String), Int32] = Map([])
-@@ -1883 +1879 @@
+@@ -1883 +1881 @@
 -        let key = "\{mod_s}:\{name_s}"
 +        let key = (mod_s, name_s)
-@@ -1919 +1915,3 @@
+@@ -1919 +1917,3 @@
 -                let bound = if depth <= 1 {
 +                let bound = if depth == 0 {
 +                  func_type_bound - 1
@@ -2307,13 +2309,25 @@
 +        if (visibility & 2) != 0 {
 +          import_named_types.set(type_table.length() - 1, 1)
 +        }
-@@ -365,0 +404,7 @@
+@@ -364,0 +403,5 @@
++          if a.target is Export(parent, name) &&
++            counts.instance_contracts.get(parent) is Some((contract, node)) &&
++            contract.nodes[node].exports.children.get(name) is Some(child) {
++            counts.instance_contracts[counts.instance - 1] = (contract, child)
++          }
+@@ -365,0 +409,7 @@
 +          if new_metadata is Some(metadata) {
 +            counts.instance_metadata[instance_sigs.length() - 1] = metadata
 +          }
 +          if a.target is Export(parent, _) &&
 +            interface_instance_idxs.get(parent) is Some(visibility) {
 +            interface_instance_idxs.set(instance_sigs.length() - 1, visibility)
++          }
+@@ -375,0 +426,5 @@
++          if a.target is Export(parent, name) &&
++            counts.instance_contracts.get(parent) is Some((contract, node)) &&
++            contract.nodes[node].exports.children.get(name) is Some(child) {
++            counts.component_contracts[counts.component - 1] = (contract, child)
 +          }
 --- a/section_export.mbt
 +++ b/section_export.mbt
@@ -2368,34 +2382,35 @@
 -) -> (Int, Int) raise ComponentValidationError {
 +  next_resource_id : Int32,
 +) -> (Int32, Int32) raise ComponentValidationError {
-@@ -77,0 +81,2 @@
+@@ -77,0 +81,3 @@
 +    let mut ascribed_instance : InstanceMetadata? = None
++    let mut ascribed_instance_contract : ScopedContractMetadata? = None
 +    let mut ascribed_component : ScopedContractMetadata? = None
-@@ -86,5 +90,0 @@
+@@ -86,5 +91,0 @@
 -    if is_root && e.sortidx.sort is Component {
 -      raise SectionParseError(
 -        11, "exporting a component from the root component is not supported",
 -      )
 -    }
-@@ -117,3 +116,0 @@
+@@ -117,3 +117,0 @@
 -    if is_root && e.sortidx.sort is Func && e.sortidx.idx < imported_funcs {
 -      raise ExportedImportedFunc(e.sortidx.idx)
 -    }
-@@ -121 +118 @@
+@@ -121 +119 @@
 -    let mut ascribed_resource_id : Int? = None
 +    let mut ascribed_resource_id : Int32? = None
-@@ -247,2 +244,2 @@
+@@ -247,2 +245,2 @@
 -          let exported_type_idxs : Array[Int] = []
 -          let seen : Map[Int, Int] = Map([])
 +          let exported_type_idxs : Array[Int32] = []
 +          let seen : Map[Int32, Int32] = Map([])
-@@ -295 +292 @@
+@@ -295 +293 @@
 -          let inst_named : Map[Int, Int] = Map([])
 +          let inst_named : Map[Int32, Int32] = Map([])
-@@ -447 +444 @@
+@@ -447 +445 @@
 -    // the actual export (we currently model instance-type compatibility).
 +    // the actual export. Functions require complete invariant signatures.
-@@ -449,4 +446,15 @@
+@@ -449,4 +447,15 @@
 -      (Instance, Some(InstanceType(tyidx))) =>
 -        if tyidx >= 0 && tyidx < type_table.length() {
 -          let expected = instancetype_sig_of_global_idx(
@@ -2415,12 +2430,12 @@
 +        let actual = if func_types.get(e.sortidx.idx) is Some(Some(actual)) {
 +          let signature = metadata_global_function(
 +            actual,
-@@ -454 +462,3 @@
+@@ -454 +463,3 @@
 -            Map([]),
 +            resource_ids,
 +            counts.type_metadata,
 +            counts.metadata_remaining,
-@@ -456,14 +466,136 @@
+@@ -456,14 +467,159 @@
 -          let actual = if e.sortidx.idx >= 0 &&
 -            e.sortidx.idx < instance_sigs.length() {
 -            instance_sigs[e.sortidx.idx]
@@ -2477,7 +2492,7 @@
 +      (Type, Some(Type(SubResource))) => raise AscribedExportTypeIncompatible
 +      (Instance, Some(InstanceType(tyidx))) => {
 +        guard type_table.get(tyidx) is Some(Some(td)) &&
-+          counts.instance_metadata.get(e.sortidx.idx)
++          counts.instance_contracts.get(e.sortidx.idx)
 +          is Some((actual, actual_node)) else {
 +          raise UnsupportedInstanceAscription
 +        }
@@ -2512,14 +2527,35 @@
 +            }
 +          None => None
 +        }
-+        counts.ascription_remaining = check_instance_ascription(
++        let (contract, next, remaining) = scoped_contract_metadata(
++          td,
++          type_table,
++          resource_ids,
++          counts.type_metadata,
++          next_resource_id,
++          counts.metadata_remaining,
++          core_contracts=counts.core_contracts,
++          core_scope=core_scopes.map(pair => pair.1),
++          seed=Some((expected, 0)),
++        )
++        next_resource_id = next
++        counts.metadata_remaining = remaining
++        guard contract is Some(contract) else {
++          if remaining == 0 {
++            raise SectionParseError(
++              11, "instance contract exceeds the verification work limit",
++            )
++          }
++          raise UnsupportedInstanceAscription
++        }
++        counts.ascription_remaining = check_scoped_contract(
 +          actual,
-+          actual_node,
-+          expected,
++          contract,
 +          counts.ascription_remaining,
 +          core_contracts=counts.core_contracts,
-+          core_scopes~,
++          actual_node~,
 +        )
++        ascribed_instance_contract = Some(contract)
 +        ascribed_instance = Some(expected)
 +        if exportname_to_string(e.name) is Some(name) {
 +          my_export_instance_sigs[name] = metadata_instance_sig(expected, 0)
@@ -2528,7 +2564,8 @@
 +      }
 +      (Component, Some(ComponentType(tyidx))) => {
 +        guard type_table.get(tyidx) is Some(Some(td)) &&
-+          counts.component_contracts.get(e.sortidx.idx) is Some(actual) else {
++          counts.component_contracts.get(e.sortidx.idx)
++          is Some((actual, actual_node)) else {
 +          raise UnsupportedComponentAscription
 +        }
 +        let core_scope = match counts.core_contracts {
@@ -2568,14 +2605,25 @@
 +          expected,
 +          counts.ascription_remaining,
 +          core_contracts=counts.core_contracts,
++          actual_node~,
 +        )
 +        ascribed_component = Some(expected)
 +      }
-@@ -487,0 +620,3 @@
+@@ -487,0 +644,3 @@
 +        if counts.type_metadata.get(idx) is Some(metadata) {
 +          counts.type_metadata[type_table.length()] = metadata
 +        }
-@@ -528 +663,9 @@
+@@ -524,0 +684,9 @@
++      if e.sortidx.sort is Instance {
++        let contract = match ascribed_instance_contract {
++          Some(contract) => Some((contract, 0))
++          None => counts.instance_contracts.get(e.sortidx.idx)
++        }
++        if contract is Some(contract) {
++          counts.instance_contracts[counts.instance - 1] = contract
++        }
++      }
+@@ -528 +696,9 @@
 -            func_types.push(func_types[e.sortidx.idx])
 +            let exported = match e.desc {
 +              Some(FuncType(index)) =>
@@ -2586,7 +2634,7 @@
 +              _ => func_types[e.sortidx.idx]
 +            }
 +            func_types.push(exported)
-@@ -540,0 +684,11 @@
+@@ -540,0 +717,11 @@
 +            if ascribed_instance is Some(metadata) {
 +              instance_sigs[instance_sigs.length() - 1] = Some(
 +                metadata_instance_sig(metadata, 0),
@@ -2598,21 +2646,21 @@
 +              is Some(metadata) {
 +              counts.instance_metadata[instance_sigs.length() - 1] = metadata
 +            }
-@@ -580,0 +735,5 @@
+@@ -580,0 +768,5 @@
 +            if ascribed_instance is Some(metadata) {
 +              instance_export_func_sigs[instance_export_func_sigs.length() - 1] = Some(
 +                metadata.nodes[0].functions,
 +              )
 +            }
-@@ -602 +761,4 @@
+@@ -602 +794,4 @@
 -            interface_instance_idxs.set(instance_sigs.length() - 1, 1)
 +            interface_instance_idxs.set(
 +              instance_sigs.length() - 1,
 +              interface_instance_idxs.get(e.sortidx.idx).unwrap_or(1),
 +            )
-@@ -616,0 +779,7 @@
+@@ -616,0 +812,7 @@
 +          let metadata = match ascribed_component {
-+            Some(metadata) => Some(metadata)
++            Some(metadata) => Some((metadata, 0))
 +            None => counts.component_contracts.get(src)
 +          }
 +          if metadata is Some(metadata) {
@@ -2735,7 +2783,7 @@
 +                                    global_function=local_origins.contains(
 +                                      ft_idx,
 +                                    ),
-@@ -334,0 +361,20 @@
+@@ -334,0 +361,50 @@
 +        if type_table[tyidx] is Some(td) {
 +          let (metadata, next, remaining) = imported_instance_metadata(
 +            td,
@@ -2751,16 +2799,46 @@
 +          if metadata is Some(metadata) {
 +            func_export_sigs = Some(metadata.nodes[0].functions)
 +            counts.instance_metadata[instance_sigs.length() - 1] = (metadata, 0)
++            let core_scope = match counts.core_contracts {
++              Some(graph) =>
++                match graph.scope(0) {
++                  Some(root) =>
++                    match root.binding(3, tyidx) {
++                      Some(Scope(id)) => Some(id)
++                      _ => None
++                    }
++                  None => None
++                }
++              None => None
++            }
++            let (contract, next, remaining) = scoped_contract_metadata(
++              td,
++              type_table,
++              resource_ids,
++              counts.type_metadata,
++              next_resource_id,
++              counts.metadata_remaining,
++              core_contracts=counts.core_contracts,
++              core_scope~,
++              seed=Some((metadata, 0)),
++            )
++            next_resource_id = next
++            counts.metadata_remaining = remaining
++            if contract is Some(contract) {
++              counts.instance_contracts[instance_sigs.length() - 1] = (
++                contract, 0,
++              )
++            }
 +            instance_sigs[instance_sigs.length() - 1] = Some(
 +              metadata_instance_sig(metadata, 0),
 +            )
 +          }
 +        }
-@@ -345 +391,2 @@
+@@ -345 +421,2 @@
 -        interface_instance_idxs.set(instance_sigs.length() - 1, 1)
 +        // Bit 1 names exported types; bit 2 also permits using them in imports.
 +        interface_instance_idxs.set(instance_sigs.length() - 1, 3)
-@@ -352,0 +400,29 @@
+@@ -352,0 +430,29 @@
 +      if type_table.get(tyidx) is Some(Some(td)) {
 +        let core_scope = match counts.core_contracts {
 +          Some(graph) =>
@@ -2787,10 +2865,10 @@
 +        next_resource_id = next
 +        counts.metadata_remaining = remaining
 +        if metadata is Some(metadata) {
-+          counts.component_contracts[counts.component] = metadata
++          counts.component_contracts[counts.component] = (metadata, 0)
 +        }
 +      }
-@@ -360 +436 @@
+@@ -360 +466 @@
 -      let mut import_core_module_exports : Map[String, Map[String, Int]]? = None
 +      let mut import_core_module_exports : Map[String, Map[String, Int32]]? = None
 --- a/section_instance.mbt

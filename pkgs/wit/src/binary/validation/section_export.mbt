@@ -79,6 +79,7 @@ fn validate_component_section_export(
   }
   for e in exports {
     let mut ascribed_instance : InstanceMetadata? = None
+    let mut ascribed_instance_contract : ScopedContractMetadata? = None
     let mut ascribed_component : ScopedContractMetadata? = None
     validate_export_name(e.name, cfg)
     validate_name_attributes(
@@ -505,7 +506,7 @@ fn validate_component_section_export(
       (Type, Some(Type(SubResource))) => raise AscribedExportTypeIncompatible
       (Instance, Some(InstanceType(tyidx))) => {
         guard type_table.get(tyidx) is Some(Some(td)) &&
-          counts.instance_metadata.get(e.sortidx.idx)
+          counts.instance_contracts.get(e.sortidx.idx)
           is Some((actual, actual_node)) else {
           raise UnsupportedInstanceAscription
         }
@@ -540,14 +541,35 @@ fn validate_component_section_export(
             }
           None => None
         }
-        counts.ascription_remaining = check_instance_ascription(
+        let (contract, next, remaining) = scoped_contract_metadata(
+          td,
+          type_table,
+          resource_ids,
+          counts.type_metadata,
+          next_resource_id,
+          counts.metadata_remaining,
+          core_contracts=counts.core_contracts,
+          core_scope=core_scopes.map(pair => pair.1),
+          seed=Some((expected, 0)),
+        )
+        next_resource_id = next
+        counts.metadata_remaining = remaining
+        guard contract is Some(contract) else {
+          if remaining == 0 {
+            raise SectionParseError(
+              11, "instance contract exceeds the verification work limit",
+            )
+          }
+          raise UnsupportedInstanceAscription
+        }
+        counts.ascription_remaining = check_scoped_contract(
           actual,
-          actual_node,
-          expected,
+          contract,
           counts.ascription_remaining,
           core_contracts=counts.core_contracts,
-          core_scopes~,
+          actual_node~,
         )
+        ascribed_instance_contract = Some(contract)
         ascribed_instance = Some(expected)
         if exportname_to_string(e.name) is Some(name) {
           my_export_instance_sigs[name] = metadata_instance_sig(expected, 0)
@@ -556,7 +578,8 @@ fn validate_component_section_export(
       }
       (Component, Some(ComponentType(tyidx))) => {
         guard type_table.get(tyidx) is Some(Some(td)) &&
-          counts.component_contracts.get(e.sortidx.idx) is Some(actual) else {
+          counts.component_contracts.get(e.sortidx.idx)
+          is Some((actual, actual_node)) else {
           raise UnsupportedComponentAscription
         }
         let core_scope = match counts.core_contracts {
@@ -596,6 +619,7 @@ fn validate_component_section_export(
           expected,
           counts.ascription_remaining,
           core_contracts=counts.core_contracts,
+          actual_node~,
         )
         ascribed_component = Some(expected)
       }
@@ -657,6 +681,15 @@ fn validate_component_section_export(
       }
     } else {
       count_alias(e.sortidx.sort, counts)
+      if e.sortidx.sort is Instance {
+        let contract = match ascribed_instance_contract {
+          Some(contract) => Some((contract, 0))
+          None => counts.instance_contracts.get(e.sortidx.idx)
+        }
+        if contract is Some(contract) {
+          counts.instance_contracts[counts.instance - 1] = contract
+        }
+      }
       match e.sortidx.sort {
         Func =>
           if e.sortidx.idx >= 0 && e.sortidx.idx < func_types.length() {
@@ -777,7 +810,7 @@ fn validate_component_section_export(
         Component => {
           let src = e.sortidx.idx
           let metadata = match ascribed_component {
-            Some(metadata) => Some(metadata)
+            Some(metadata) => Some((metadata, 0))
             None => counts.component_contracts.get(src)
           }
           if metadata is Some(metadata) {

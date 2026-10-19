@@ -12,9 +12,10 @@ fn check_scoped_contract(
   expected : ScopedContractMetadata,
   budget : Int32,
   core_contracts~ : @core_types.ContractGraph? = None,
+  actual_node~ : Int32 = 0,
 ) -> Int32 raise ComponentValidationError {
   let graphs = [actual, expected]
-  let work = [(0, 0, 1, 0, false)]
+  let work = [(0, actual_node, 1, 0, false)]
   let leaves : Array[ContractLeaf] = []
   let substitutions : Map[(Int32, Int32), (Int32, Int32)] = Map([])
   let mut remaining = budget

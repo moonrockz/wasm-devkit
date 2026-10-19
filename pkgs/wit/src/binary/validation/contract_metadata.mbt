@@ -40,6 +40,7 @@ priv struct ScopedContractMetadata {
 
 ///|
 priv struct ScopedContractScope {
+  seed_node : Int32?
   parent : Int32?
   types : Array[Int32]
   instances : Array[Int32]
@@ -59,6 +60,7 @@ fn scoped_contract_metadata(
   budget : Int32,
   core_contracts~ : @core_types.ContractGraph? = None,
   core_scope~ : Int32? = None,
+  seed~ : (InstanceMetadata, Int32)? = None,
 ) -> (ScopedContractMetadata?, Int32, Int32) {
   let mut next_resource = next_resource
   let mut remaining = budget
@@ -76,6 +78,7 @@ fn scoped_contract_metadata(
         declarations: [],
         position: 0,
         node: -1,
+        seed_node: None,
         core_scope: Some(0),
       },
     ]
@@ -110,6 +113,7 @@ fn scoped_contract_metadata(
       td : @component.TypeDef,
       parent : Int32,
       core_scope : Int32?,
+      seed_node : Int32?,
     ) -> Int32 raise IncompleteFunctionSignature {
       step()
       let node = nodes.length()
@@ -122,6 +126,7 @@ fn scoped_contract_metadata(
       let index = scopes.length()
       scopes.push({
         parent: Some(parent),
+        seed_node,
         types: [],
         instances: [],
         declarations: declarations(td),
@@ -151,7 +156,7 @@ fn scoped_contract_metadata(
         TypeIdx(index) => TypeIdx(type_index(scope, index))
       }
     }
-    let root = add_scope(td, 0, core_scope)
+    let root = add_scope(td, 0, core_scope, seed.map(pair => pair.1))
     let stack = [root]
     while stack.last() is Some(index) {
       step()
@@ -222,9 +227,22 @@ fn scoped_contract_metadata(
           items.sorts[name] = sort_of_externdesc(desc)
           match desc {
             Type(SubResource) => {
-              let resource = next_resource
-              next_resource += 1
-              locals[resource] = true
+              let resource = match (seed, scope.seed_node) {
+                (Some((seed, _)), Some(node)) => {
+                  guard seed.nodes.get(node) is Some(node) &&
+                    node.types.get(name) is Some(ty) &&
+                    seed.resources.get(ty) is Some(Some(resource)) else {
+                    raise IncompleteFunctionSignature
+                  }
+                  resource
+                }
+                _ => {
+                  let resource = next_resource
+                  next_resource += 1
+                  locals[resource] = true
+                  resource
+                }
+              }
               items.binders[name] = true
               let slot = types.length()
               types.push(Some(ResourceType(-1, 0x7f, None, HostDefined)))
@@ -265,10 +283,16 @@ fn scoped_contract_metadata(
                   }
                 _ => None
               }
+              let child_seed = match (seed, scope.seed_node, desc) {
+                (Some((seed, _)), Some(node), InstanceType(_)) =>
+                  seed.nodes[node].children.get(name)
+                _ => None
+              }
               let child_scope = add_scope(
                 child,
                 origins.get(ty).unwrap_or(0),
                 child_core_scope,
+                child_seed,
               )
               let child_node = scopes[child_scope].node
               items.children[name] = child_node

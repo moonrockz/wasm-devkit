@@ -223,8 +223,8 @@ limit. Tests cover 5,000 nominal aliases, immutable snapshots, malformed input
 and deep physical scopes on all four targets. Ordered type/resource/use
 projections match the pinned `wac_types::Package::from_bytes` oracle for all 49
 parseable dependency fixtures and 25 supported original packages. The 32
-original probes also cover invalid metadata and the accepted-but-unsupported
-value/ascription boundaries. The dependency fixture sources, licenses, revision
+original probes also cover invalid metadata and the export annotations and unsupported
+value boundaries. The dependency fixture sources, licenses, revision
 and named-result WAT exclusion live in
 [`pkgs/wit/src/binary/fixtures/wac`](../../../wit/src/binary/fixtures/wac/README.md).
 
@@ -570,21 +570,22 @@ all annotations. The 49 retained cases compare binary and WAT package models;
 three version differences are recorded in `tests/semantic/wac-module-ascriptions`.
 
 Instance export annotations compare complete function/value shapes, concrete
-resource identities, nested instances and core-module contracts using explicit
+resource identities, nested instances/components and core-module contracts using explicit
 work stacks and a cumulative budget. Extra actual members may be hidden; aliases
 and re-exports preserve the annotation's contract. Fresh resource declarations
 in an annotation cannot replace an existing instance's resource identity. The
-43 retained binary/WAT cases in `tests/semantic/wac-instance-ascriptions` compare
-complete accepted models with both pinned references. Component members inside
-an instance annotation remain unsupported and return `WAC-B002`.
+47 retained binary/WAT cases in `tests/semantic/wac-instance-ascriptions` compare
+complete accepted models with both pinned references. Scoped metadata is seeded
+with concrete instance resource identities before comparing component members.
 
 Imported component export annotations compare complete function/value, instance,
 component and core-module contracts. Imports reverse the subtype direction;
 exports preserve it. Resource binders permit directed substitution while captured
 identities and alias constraints remain fixed. Re-exports preserve the narrowed
-contract. The 54 cases in `tests/semantic/wac-component-ascriptions` retain full
+contract. The 61 cases in `tests/semantic/wac-component-ascriptions` retain full
 binary/WAT model comparisons and both reference results. Component aliases from
-imported instances still require complete scoped metadata and return `WAC-B002`.
+imported instances retain complete scoped metadata through nested aliases and
+narrowed re-exports, including captures of concrete instance resources.
 
 ## Core instances and canonical functions
 
