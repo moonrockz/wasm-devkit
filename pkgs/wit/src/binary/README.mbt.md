@@ -121,12 +121,13 @@ with limits above u32 or custom memory pages return `WIT-B002` before the pinned
 parser runs; root core-type sections support those encodings.
 
 
-The declarative entry point also validates flat concrete core modules. The
+The declarative entry point also validates concrete core modules. The
 `core_types.inspect_module` preflight retains full contracts and charges a
 conservative work estimate before the original bytes reach the core validator.
-The sum across modules is limited to 1,000,000. Structured instructions,
-concrete/shared heap references, supertypes and shared globals reject before
-recursive parsing. Function-only groups without recursive references are valid.
+The sum across modules is limited to 1,000,000. Block, loop and if instructions
+use explicit parser/validator stacks, with binary control depth limited to 256.
+Concrete/shared heap references, supertypes and shared globals reject before
+parsing. Function-only groups without recursive references are valid.
 The type-only WIT entry point continues to reject concrete core modules.
 
 Core module export annotations use the ordered lexical module/type bindings and

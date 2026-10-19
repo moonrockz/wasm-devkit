@@ -1,0 +1,281 @@
+[
+  {
+    "case": "block-extra-result",
+    "wasm_tools": 1,
+    "wac_package": 0,
+    "product": 1,
+    "diagnostic": "WAC-B003",
+    "wat_profile_limit": false,
+    "exclusion": "core-body-not-validated-by-package"
+  },
+  {
+    "case": "block-result",
+    "wasm_tools": 0,
+    "wac_package": 0,
+    "product": 0,
+    "diagnostic": null,
+    "wat_profile_limit": false,
+    "exclusion": null
+  },
+  {
+    "case": "block-underflow",
+    "wasm_tools": 1,
+    "wac_package": 0,
+    "product": 1,
+    "diagnostic": "WAC-B003",
+    "wat_profile_limit": false,
+    "exclusion": "core-body-not-validated-by-package"
+  },
+  {
+    "case": "block-wrong-result",
+    "wasm_tools": 1,
+    "wac_package": 0,
+    "product": 1,
+    "diagnostic": "WAC-B003",
+    "wat_profile_limit": false,
+    "exclusion": "core-body-not-validated-by-package"
+  },
+  {
+    "case": "branch-function",
+    "wasm_tools": 0,
+    "wac_package": 0,
+    "product": 0,
+    "diagnostic": null,
+    "wat_profile_limit": false,
+    "exclusion": null
+  },
+  {
+    "case": "branch-if-retains-value",
+    "wasm_tools": 0,
+    "wac_package": 0,
+    "product": 0,
+    "diagnostic": null,
+    "wat_profile_limit": false,
+    "exclusion": null
+  },
+  {
+    "case": "branch-table",
+    "wasm_tools": 0,
+    "wac_package": 0,
+    "product": 0,
+    "diagnostic": null,
+    "wat_profile_limit": false,
+    "exclusion": null
+  },
+  {
+    "case": "branch-table-polymorphic",
+    "wasm_tools": 0,
+    "wac_package": 0,
+    "product": 0,
+    "diagnostic": null,
+    "wat_profile_limit": false,
+    "exclusion": null
+  },
+  {
+    "case": "branch-table-wrong-type",
+    "wasm_tools": 1,
+    "wac_package": 0,
+    "product": 1,
+    "diagnostic": "WAC-B003",
+    "wat_profile_limit": false,
+    "exclusion": "core-body-not-validated-by-package"
+  },
+  {
+    "case": "branch-wrong-index",
+    "wasm_tools": 1,
+    "wac_package": 0,
+    "product": 1,
+    "diagnostic": "WAC-B003",
+    "wat_profile_limit": false,
+    "exclusion": "core-body-not-validated-by-package"
+  },
+  {
+    "case": "branch-wrong-value",
+    "wasm_tools": 1,
+    "wac_package": 0,
+    "product": 1,
+    "diagnostic": "WAC-B003",
+    "wat_profile_limit": false,
+    "exclusion": "core-body-not-validated-by-package"
+  },
+  {
+    "case": "depth-256",
+    "wasm_tools": 0,
+    "wac_package": 0,
+    "product": 0,
+    "diagnostic": null,
+    "wat_profile_limit": true,
+    "exclusion": null
+  },
+  {
+    "case": "depth-257",
+    "wasm_tools": 0,
+    "wac_package": 0,
+    "product": 1,
+    "diagnostic": "WAC-B002",
+    "wat_profile_limit": true,
+    "exclusion": "bounded-profile"
+  },
+  {
+    "case": "double-else",
+    "wasm_tools": 1,
+    "wac_package": 0,
+    "product": 1,
+    "diagnostic": "WAC-B001",
+    "wat_profile_limit": false,
+    "exclusion": "core-body-not-validated-by-package"
+  },
+  {
+    "case": "else-in-block",
+    "wasm_tools": 1,
+    "wac_package": 0,
+    "product": 1,
+    "diagnostic": "WAC-B001",
+    "wat_profile_limit": false,
+    "exclusion": "core-body-not-validated-by-package"
+  },
+  {
+    "case": "if-arms",
+    "wasm_tools": 0,
+    "wac_package": 0,
+    "product": 0,
+    "diagnostic": null,
+    "wat_profile_limit": false,
+    "exclusion": null
+  },
+  {
+    "case": "if-implicit-else-params",
+    "wasm_tools": 0,
+    "wac_package": 0,
+    "product": 0,
+    "diagnostic": null,
+    "wat_profile_limit": false,
+    "exclusion": null
+  },
+  {
+    "case": "if-missing-else",
+    "wasm_tools": 1,
+    "wac_package": 0,
+    "product": 1,
+    "diagnostic": "WAC-B003",
+    "wat_profile_limit": false,
+    "exclusion": "core-body-not-validated-by-package"
+  },
+  {
+    "case": "if-wrong-condition",
+    "wasm_tools": 1,
+    "wac_package": 0,
+    "product": 1,
+    "diagnostic": "WAC-B003",
+    "wat_profile_limit": false,
+    "exclusion": "core-body-not-validated-by-package"
+  },
+  {
+    "case": "if-wrong-else",
+    "wasm_tools": 1,
+    "wac_package": 0,
+    "product": 1,
+    "diagnostic": "WAC-B003",
+    "wat_profile_limit": false,
+    "exclusion": "core-body-not-validated-by-package"
+  },
+  {
+    "case": "invalid-block-type",
+    "wasm_tools": 1,
+    "wac_package": 0,
+    "product": 1,
+    "diagnostic": "WAC-B001",
+    "wat_profile_limit": false,
+    "exclusion": "core-body-not-validated-by-package"
+  },
+  {
+    "case": "local-work-bounded",
+    "wasm_tools": 0,
+    "wac_package": 0,
+    "product": 0,
+    "diagnostic": null,
+    "wat_profile_limit": true,
+    "exclusion": null
+  },
+  {
+    "case": "local-work-exceeded",
+    "wasm_tools": 0,
+    "wac_package": 0,
+    "product": 1,
+    "diagnostic": "WAC-B002",
+    "wat_profile_limit": true,
+    "exclusion": "bounded-profile"
+  },
+  {
+    "case": "loop-back",
+    "wasm_tools": 0,
+    "wac_package": 0,
+    "product": 0,
+    "diagnostic": null,
+    "wat_profile_limit": false,
+    "exclusion": null
+  },
+  {
+    "case": "loop-parameter",
+    "wasm_tools": 0,
+    "wac_package": 0,
+    "product": 0,
+    "diagnostic": null,
+    "wat_profile_limit": false,
+    "exclusion": null
+  },
+  {
+    "case": "missing-end",
+    "wasm_tools": 1,
+    "wac_package": 0,
+    "product": 1,
+    "diagnostic": "WAC-B001",
+    "wat_profile_limit": false,
+    "exclusion": "core-body-not-validated-by-package"
+  },
+  {
+    "case": "multi-value-block",
+    "wasm_tools": 0,
+    "wac_package": 0,
+    "product": 0,
+    "diagnostic": null,
+    "wat_profile_limit": false,
+    "exclusion": null
+  },
+  {
+    "case": "trailing-end",
+    "wasm_tools": 1,
+    "wac_package": 0,
+    "product": 1,
+    "diagnostic": "WAC-B001",
+    "wat_profile_limit": false,
+    "exclusion": "core-body-not-validated-by-package"
+  },
+  {
+    "case": "unexpected-else",
+    "wasm_tools": 1,
+    "wac_package": 0,
+    "product": 1,
+    "diagnostic": "WAC-B001",
+    "wat_profile_limit": false,
+    "exclusion": "core-body-not-validated-by-package"
+  },
+  {
+    "case": "unknown-block-type",
+    "wasm_tools": 1,
+    "wac_package": 0,
+    "product": 1,
+    "diagnostic": "WAC-B003",
+    "wat_profile_limit": false,
+    "exclusion": "core-body-not-validated-by-package"
+  },
+  {
+    "case": "unreachable-block-does-not-inherit",
+    "wasm_tools": 1,
+    "wac_package": 0,
+    "product": 1,
+    "diagnostic": "WAC-B003",
+    "wat_profile_limit": false,
+    "exclusion": "core-body-not-validated-by-package"
+  }
+]

@@ -39,7 +39,7 @@ test "concrete modules validate long flat functions without recursive walks" {
 }
 
 ///|
-test "concrete module structured code rejects before the recursive parser" {
+test "concrete module control depth rejects before instruction parsing" {
   let body = [b'\x00']
   for _ in 0..<10000 {
     body.push(b'\x02')

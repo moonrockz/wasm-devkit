@@ -2,7 +2,7 @@ import {
   "moonrockz/wit/core_types",
   "moonbitlang/core/encoding/utf8",
   "Milky2018/wasm_component" @component,
-  "Milky2018/wasm_core/parser",
+  "moonrockz/wit/binary/core_parser" @parser,
   "Milky2018/wasm_core/types",
-  "Milky2018/wasm_core/validator" @core_validator,
+  "moonrockz/wit/binary/core_validation" @core_validator,
 }

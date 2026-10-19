@@ -20,21 +20,23 @@ They are not ordinary acceptance-equivalence cases. The `padded-heap` binary
 uses a padded negative abstract heap code. Both references reject that encoding;
 its WAT file describes the canonical form before the deliberate byte mutation.
 
-`shared-global`, `structured`, `concrete-heap-index` and
+`shared-global`, `concrete-heap-index` and
 `nested-component` are
 reference-accepted boundaries that still return `WAC-B002`. Concrete and shared
 heap references, GC types and supertypes also remain outside this slice.
 Function-only recursive groups without recursive references are supported.
 
 Original function instructions and non-code metadata reach the retained core
-validator. A flat byte preflight rejects structured/proposal instructions before
-the recursive dependency parser. The text frontend rejects structured control
-keywords before its core WAT parser, including keyword nesting without nested
-parentheses. Contract tests exercise 20,000 flat instructions, 10,000 nested
-block keywords, signed-LEB overflow, truncation, local expansion and a shared
-component validation-work limit. The conservative module estimate is
-`bytes * max(function-type-count, body-count, 1) + expanded-locals`; their sum
-must not exceed 1,000,000 before retained validation starts.
+validator. Structured block, loop and if instructions are now supported through
+explicit parser/validator stacks. The `structured` fixture accepts. Physical
+control nesting is bounded at 256 in binary and 64 for combined flat keywords
+and folded expressions in WAT. Contract
+tests exercise 20,000 sequential instructions, 10,000 nested block rejection,
+signed-LEB overflow, truncation, local expansion and a shared validation-work
+limit. The estimate charges signature arity, pairwise type comparisons and
+control-local snapshots rather than multiplying all bytes by body count.
+See `../wac-core-control` and `pkgs/wit/src/core_types/README.md` for the formula,
+new exact witnesses and the unchanged hello/greeter production components.
 
 `SHA256SUMS` covers every retained fixture and reference projection. The
 validator and compiler changes retain their original hashes and reconstructable

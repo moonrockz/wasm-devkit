@@ -37,13 +37,18 @@ have a shared work budget in the enclosing binary and WAC decoders.
 `ModuleMetadata` containing the contract and a validation-work estimate.
 `decode_module` returns only the contract. Neither operation certifies instruction
 semantics. The enclosing binary boundary must validate the original bytes.
-The estimate is `bytes * max(function-type-count, body-count, 1) + expanded-locals`,
-limited to 1,000,000 per module and summed across the enclosing component.
-Flat function/initializer framing uses loops. Structured instructions, concrete
-references, GC types, supertypes and unimplemented proposals reject before the
-retained recursive parser runs. Function-only groups are supported when no
-concrete references occur. Shared globals and limits above signed Int64 remain
-outside the concrete-module profile because of the retained parser/validator.
+The estimate is `bytes * A + types² * A + sum((locals + params) * (controls + 1))`,
+where `A` is at least one and otherwise the largest function parameter/result
+count. It bounds instruction stack effects, pairwise type canonicalization and
+local initialization snapshots. The limit remains 1,000,000 per module and is
+summed across the enclosing component. Arithmetic is checked before products can
+exceed that limit. Local expansion has its own 1,000,000 ceiling.
+Function/initializer framing uses explicit control frames; block, loop and if
+nesting is limited to 256. The retained binary parser and validator use explicit
+stacks. Concrete references, GC types, supertypes and unimplemented proposals
+reject before parsing. Function-only groups are supported when no concrete
+references occur. Shared globals and limits above signed Int64 remain outside
+the concrete-module profile because of the retained parser/validator.
 
 
 `check_external_subtype` and `check_module_subtype` compare already validated

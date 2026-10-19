@@ -438,31 +438,17 @@ fn wat_producers(
 }
 
 ///|
-fn wat_literal(bytes : Bytes) -> String raise ComponentTextError {
-  let text = wat_text(bytes)
+fn wat_literal(bytes : Bytes) -> String {
   let out = StringBuilder()
+  let hex = "0123456789abcdef"
   out.write_string("\"")
-  for c in text {
-    match c {
-      '"' => out.write_string("\\\"")
-      '\\' => out.write_string("\\\\")
-      '\n' => out.write_string("\\n")
-      '\r' => out.write_string("\\r")
-      '\t' => out.write_string("\\t")
-      _ => {
-        let value = c.to_int()
-        if value < 32 || value == 127 {
-          let hex = "0123456789abcdef"
-          out.write_string(
-            "\\" +
-            hex[value >> 4:value / 16 + 1].to_owned() +
-            hex[value & 15:(value & 15) + 1].to_owned(),
-          )
-        } else {
-          out.write_char(c)
-        }
-      }
-    }
+  for byte in bytes {
+    let value = byte.to_int()
+    out.write_string(
+      "\\" +
+      hex[value >> 4:(value >> 4) + 1].to_owned() +
+      hex[value & 15:(value & 15) + 1].to_owned(),
+    )
   }
   out.write_string("\"")
   out.to_string()

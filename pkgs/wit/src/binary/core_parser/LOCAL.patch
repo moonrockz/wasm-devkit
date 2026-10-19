@@ -1,0 +1,428 @@
+--- a/basic_types.mbt
++++ b/basic_types.mbt
+@@ -7 +7 @@
+-fn Parser::read_u32(self : Parser) -> Int raise ParserError {
++fn Parser::read_u32(self : Parser) -> Int32 raise ParserError {
+@@ -23 +23,3 @@
+-fn Parser::read_memarg(self : Parser) -> (Int, Int, Int64) raise ParserError {
++fn Parser::read_memarg(
++  self : Parser,
++) -> (Int32, Int32, Int64) raise ParserError {
+@@ -45 +47 @@
+-fn Parser::read_i32(self : Parser) -> Int raise ParserError {
++fn Parser::read_i32(self : Parser) -> Int32 raise ParserError {
+--- a/elem_segment.mbt
++++ b/elem_segment.mbt
+@@ -10 +10 @@
+-  flags : Int,
++  flags : Int32,
+--- a/error.mbt
++++ b/error.mbt
+@@ -15 +15 @@
+-  InvalidValueType(Int)
++  InvalidValueType(Int32)
+@@ -18,3 +18,3 @@
+-  UnknownOpcode(Int)
+-  InvalidImportKind(Int)
+-  InvalidExportKind(Int)
++  UnknownOpcode(Int32)
++  InvalidImportKind(Int32)
++  InvalidExportKind(Int32)
+@@ -23,2 +23,2 @@
+-  MalformedSectionId(Int) // invalid section id
+-  MalformedLimitsFlags(Int) // invalid limits flags
++  MalformedSectionId(Int32) // invalid section id
++  MalformedLimitsFlags(Int32) // invalid limits flags
+@@ -28,4 +28,4 @@
+-  DuplicateSection(Int) // non-custom section appears multiple times or out of order
+-  MalformedReferenceType(Int) // element segment has non-reference type
+-  MalformedMutability(Int) // mutability must be 0 or 1
+-  MalformedDataSegmentFlags(Int) // data segment flags must be 0, 1, or 2
++  DuplicateSection(Int32) // non-custom section appears multiple times or out of order
++  MalformedReferenceType(Int32) // element segment has non-reference type
++  MalformedMutability(Int32) // mutability must be 0 or 1
++  MalformedDataSegmentFlags(Int32) // data segment flags must be 0, 1, or 2
+@@ -43 +43 @@
+-const LIMITS_NO_MAX : Int = 0x00
++const LIMITS_NO_MAX : Int32 = 0x00
+@@ -46 +46 @@
+-const LIMITS_HAS_MAX : Int = 0x01
++const LIMITS_HAS_MAX : Int32 = 0x01
+@@ -51 +51 @@
+-const LIMITS_SHARED : Int = 0x03 // shared, has max (memory only)
++const LIMITS_SHARED : Int32 = 0x03 // shared, has max (memory only)
+@@ -56 +56 @@
+-const LIMITS_64_NO_MAX : Int = 0x04
++const LIMITS_64_NO_MAX : Int32 = 0x04
+@@ -59 +59 @@
+-const LIMITS_64_HAS_MAX : Int = 0x05
++const LIMITS_64_HAS_MAX : Int32 = 0x05
+@@ -62 +62 @@
+-const LIMITS_64_SHARED : Int = 0x07 // shared, has max, 64-bit (memory only)
++const LIMITS_64_SHARED : Int32 = 0x07 // shared, has max, 64-bit (memory only)
+@@ -66 +66 @@
+-fn int_to_hex(n : Int) -> String {
++fn int_to_hex(n : Int32) -> String {
+--- a/instructions.mbt
++++ b/instructions.mbt
+@@ -18,0 +19,17 @@
++priv enum ExpressionHead {
++  Block(@types.BlockType)
++  Loop(@types.BlockType)
++  If(@types.BlockType)
++  Try(@types.BlockType, Array[@types.CatchHandler])
++}
++
++///|
++priv struct ExpressionFrame {
++  head : ExpressionHead
++  outer : Array[@types.Instruction]
++  mut then_body : Array[@types.Instruction]?
++}
++
++///|
++// Build structured instruction trees with an explicit stack. The physical
++// nesting cap also bounds recursive destruction in third-party model backends.
+@@ -22 +39,2 @@
+-  let instructions : Array[@types.Instruction] = []
++  let frames : Array[ExpressionFrame] = []
++  let mut body : Array[@types.Instruction] = []
+@@ -25,6 +43,43 @@
+-    if opcode == 0x0B {
+-      // end
+-      break
+-    } else {
+-      instructions.push(self.read_instruction(opcode))
+-    }
++    match opcode {
++      0x0b => {
++        guard frames.pop() is Some(frame) else { return body }
++        let instruction = match frame.head {
++          Block(bt) => @types.Instruction::Block(bt, body)
++          Loop(bt) => @types.Instruction::Loop(bt, body)
++          If(bt) =>
++            match frame.then_body {
++              Some(first) => @types.Instruction::If(bt, first, body)
++              None => @types.Instruction::If(bt, body, [])
++            }
++          Try(bt, handlers) => @types.Instruction::TryTable(bt, handlers, body)
++        }
++        body = frame.outer
++        body.push(instruction)
++      }
++      0x05 => {
++        guard frames.last() is Some(frame) &&
++          frame.head is If(_) &&
++          frame.then_body is None else {
++          raise ParseError("unexpected else opcode")
++        }
++        frame.then_body = Some(body)
++        body = []
++      }
++      0x02 | 0x03 | 0x04 | 0x1f => {
++        if frames.length() >= 256 {
++          raise ParseError("core control nesting exceeds 256")
++        }
++        let bt = self.read_block_type()
++        let head = match opcode {
++          0x02 => ExpressionHead::Block(bt)
++          0x03 => ExpressionHead::Loop(bt)
++          0x04 => ExpressionHead::If(bt)
++          _ => ExpressionHead::Try(bt, self.read_catch_handlers())
++        }
++        frames.push({ head, outer: body, then_body: None, })
++        body = []
++      }
++      _ => body.push(self.read_instruction(opcode))
++    }
++  } nobreak {
++    body
+@@ -32 +86,0 @@
+-  instructions
+@@ -36,3 +90 @@
+-/// Read if-then body, stopping at either 0x05 (else) or 0x0B (end)
+-/// Returns (body, has_else) where has_else is true if we stopped at else
+-fn Parser::read_if_then_body(
++fn Parser::read_catch_handlers(
+@@ -40,16 +92,13 @@
+-) -> (Array[@types.Instruction], Bool) raise ParserError {
+-  let instructions : Array[@types.Instruction] = []
+-  let mut has_else = false
+-  while true {
+-    let opcode = self.read_byte()
+-    if opcode == 0x0B {
+-      // end - no else clause
+-      has_else = false
+-      break
+-    } else if opcode == 0x05 {
+-      // else
+-      has_else = true
+-      break
+-    } else {
+-      instructions.push(self.read_instruction(opcode))
+-    }
++) -> Array[@types.CatchHandler] raise ParserError {
++  let count = self.read_u32()
++  let handlers : Array[@types.CatchHandler] = []
++  for _ in 0..<count {
++    handlers.push(
++      match self.read_byte() {
++        0 => Catch(self.read_u32(), self.read_u32())
++        1 => CatchRef(self.read_u32(), self.read_u32())
++        2 => CatchAll(self.read_u32())
++        3 => CatchAllRef(self.read_u32())
++        other => raise ParseError("invalid catch handler kind: \{other}")
++      },
++    )
+@@ -57 +106 @@
+-  (instructions, has_else)
++  handlers
+@@ -63 +112 @@
+-  opcode : Int,
++  opcode : Int32,
+@@ -69,22 +118,2 @@
+-    0x02 => {
+-      let bt = self.read_block_type()
+-      let body = self.read_expr()
+-      Block(bt, body)
+-    }
+-    0x03 => {
+-      let bt = self.read_block_type()
+-      let body = self.read_expr()
+-      Loop(bt, body)
+-    }
+-    0x04 => {
+-      let bt = self.read_block_type()
+-      // Read then body, which ends at either 0x05 (else) or 0x0B (end)
+-      let (then_body, has_else) = self.read_if_then_body()
+-      if has_else {
+-        // Read else body until 0x0B (end)
+-        let else_body = self.read_expr()
+-        If(bt, then_body, else_body)
+-      } else {
+-        If(bt, then_body, [])
+-      }
+-    }
++    0x02 | 0x03 | 0x04 | 0x1f =>
++      raise ParseError("structured opcode outside expression reader")
+@@ -94,37 +122,0 @@
+-    0x1F => {
+-      // try_table: blocktype, catch_handlers*, body
+-      let bt = self.read_block_type()
+-      let handler_count = self.read_u32()
+-      let handlers : Array[@types.CatchHandler] = []
+-      for _ in 0..<handler_count {
+-        let catch_kind = self.read_byte()
+-        let handler = match catch_kind {
+-          0x00 => {
+-            // catch: tag_idx, label_idx
+-            let tag_idx = self.read_u32()
+-            let label_idx = self.read_u32()
+-            @types.CatchHandler::Catch(tag_idx, label_idx)
+-          }
+-          0x01 => {
+-            // catch_ref: tag_idx, label_idx
+-            let tag_idx = self.read_u32()
+-            let label_idx = self.read_u32()
+-            CatchRef(tag_idx, label_idx)
+-          }
+-          0x02 => {
+-            // catch_all: label_idx
+-            let label_idx = self.read_u32()
+-            CatchAll(label_idx)
+-          }
+-          0x03 => {
+-            // catch_all_ref: label_idx
+-            let label_idx = self.read_u32()
+-            CatchAllRef(label_idx)
+-          }
+-          _ => raise ParseError("invalid catch handler kind: \{catch_kind}")
+-        }
+-        handlers.push(handler)
+-      }
+-      let body = self.read_expr()
+-      TryTable(bt, handlers, body)
+-    }
+@@ -581 +573 @@
+-  subopcode : Int,
++  subopcode : Int32,
+@@ -685 +677 @@
+-  subopcode : Int,
++  subopcode : Int32,
+@@ -756 +748 @@
+-      let lanes : FixedArray[Int] = FixedArray::make(16, 0)
++      let lanes : FixedArray[Int32] = FixedArray::make(16, 0)
+--- a/leb128.mbt
++++ b/leb128.mbt
+@@ -7 +7 @@
+-fn Parser::read_leb128_u32(self : Parser) -> Int raise ParserError {
++fn Parser::read_leb128_u32(self : Parser) -> Int32 raise ParserError {
+@@ -29 +29 @@
+-fn Parser::read_leb128_i32(self : Parser) -> Int raise ParserError {
++fn Parser::read_leb128_i32(self : Parser) -> Int32 raise ParserError {
+--- a/moon.pkg
++++ b/moon.pkg
+@@ -2,0 +3,4 @@
++}
++
++import {
++  "moonrockz/wit/binary/core_parser" @parser,
+@@ -4 +8 @@
+-}
++} for "test"
+--- a/parser_test.mbt
++++ b/parser_test.mbt
+@@ -6,2 +6,2 @@
+-fn make_wasm_module(sections : Array[FixedArray[Int]]) -> Bytes {
+-  let bytes : Array[Int] = []
++fn make_wasm_module(sections : Array[FixedArray[Int32]]) -> Bytes {
++  let bytes : Array[Int32] = []
+@@ -28 +28 @@
+-fn parse_wasm(sections : Array[FixedArray[Int]]) -> @types.Module? {
++fn parse_wasm(sections : Array[FixedArray[Int32]]) -> @types.Module? {
+@@ -43 +43 @@
+-  let mem_section : FixedArray[Int] = [0x05, 0x03, 0x01, 0x00, 0x01]
++  let mem_section : FixedArray[Int32] = [0x05, 0x03, 0x01, 0x00, 0x01]
+@@ -53 +53 @@
+-  let mem_section : FixedArray[Int] = [0x05, 0x04, 0x01, 0x01, 0x01, 0x04]
++  let mem_section : FixedArray[Int32] = [0x05, 0x04, 0x01, 0x01, 0x01, 0x04]
+@@ -62 +62 @@
+-  let mem_section : FixedArray[Int] = [0x05, 0x03, 0x01, 0x04, 0x02]
++  let mem_section : FixedArray[Int32] = [0x05, 0x03, 0x01, 0x04, 0x02]
+@@ -72 +72 @@
+-  let mem_section : FixedArray[Int] = [0x05, 0x04, 0x01, 0x05, 0x01, 0x0A]
++  let mem_section : FixedArray[Int32] = [0x05, 0x04, 0x01, 0x05, 0x01, 0x0A]
+@@ -85 +85 @@
+-  let table_section : FixedArray[Int] = [0x04, 0x04, 0x01, 0x70, 0x00, 0x01]
++  let table_section : FixedArray[Int32] = [0x04, 0x04, 0x01, 0x70, 0x00, 0x01]
+@@ -95 +95 @@
+-  let table_section : FixedArray[Int] = [
++  let table_section : FixedArray[Int32] = [
+@@ -106 +106 @@
+-  let table_section : FixedArray[Int] = [0x04, 0x04, 0x01, 0x70, 0x04, 0x02]
++  let table_section : FixedArray[Int32] = [0x04, 0x04, 0x01, 0x70, 0x04, 0x02]
+@@ -116 +116 @@
+-  let table_section : FixedArray[Int] = [
++  let table_section : FixedArray[Int32] = [
+@@ -131 +131 @@
+-  let mem_section : FixedArray[Int] = [0x05, 0x03, 0x01, 0x08, 0x01]
++  let mem_section : FixedArray[Int32] = [0x05, 0x03, 0x01, 0x08, 0x01]
+@@ -137 +137 @@
+-  let table_section : FixedArray[Int] = [0x04, 0x04, 0x01, 0x70, 0x08, 0x01]
++  let table_section : FixedArray[Int32] = [0x04, 0x04, 0x01, 0x70, 0x08, 0x01]
+@@ -143 +143 @@
+-  let table_section : FixedArray[Int] = [
++  let table_section : FixedArray[Int32] = [
+@@ -155 +155,3 @@
+-  let mem_section : FixedArray[Int] = [0x05, 0x05, 0x02, 0x00, 0x01, 0x04, 0x02]
++  let mem_section : FixedArray[Int32] = [
++    0x05, 0x05, 0x02, 0x00, 0x01, 0x04, 0x02,
++  ]
+@@ -166 +168 @@
+-  let table_section : FixedArray[Int] = [
++  let table_section : FixedArray[Int32] = [
+@@ -185 +187 @@
+-  let type_section : FixedArray[Int] = [
++  let type_section : FixedArray[Int32] = [
+@@ -188,2 +190,2 @@
+-  let func_section : FixedArray[Int] = [0x03, 0x02, 0x01, 0x00]
+-  let export_section : FixedArray[Int] = [
++  let func_section : FixedArray[Int32] = [0x03, 0x02, 0x01, 0x00]
++  let export_section : FixedArray[Int32] = [
+@@ -192 +194 @@
+-  let code_section : FixedArray[Int] = [
++  let code_section : FixedArray[Int32] = [
+@@ -214 +216 @@
+-  let type_section : FixedArray[Int] = [
++  let type_section : FixedArray[Int32] = [
+@@ -217,2 +219,2 @@
+-  let func_section : FixedArray[Int] = [0x03, 0x02, 0x01, 0x00]
+-  let export_section : FixedArray[Int] = [
++  let func_section : FixedArray[Int32] = [0x03, 0x02, 0x01, 0x00]
++  let export_section : FixedArray[Int32] = [
+@@ -221 +223 @@
+-  let code_section : FixedArray[Int] = [
++  let code_section : FixedArray[Int32] = [
+@@ -244 +246 @@
+-  let type_section : FixedArray[Int] = [
++  let type_section : FixedArray[Int32] = [
+@@ -268,3 +270,3 @@
+-  let type_section : FixedArray[Int] = [0x01, 0x04, 0x01, 0x60, 0x00, 0x00]
+-  let tag_section : FixedArray[Int] = [0x0d, 0x03, 0x01, 0x00, 0x00]
+-  let global_section : FixedArray[Int] = [
++  let type_section : FixedArray[Int32] = [0x01, 0x04, 0x01, 0x60, 0x00, 0x00]
++  let tag_section : FixedArray[Int32] = [0x0d, 0x03, 0x01, 0x00, 0x00]
++  let global_section : FixedArray[Int32] = [
+--- a/rec_group_types.mbt
++++ b/rec_group_types.mbt
+@@ -72 +72 @@
+-    let supertypes : Array[Int] = if has_supertype {
++    let supertypes : Array[Int32] = if has_supertype {
+@@ -86 +86 @@
+-    let supertypes : Array[Int] = if has_supertype {
++    let supertypes : Array[Int32] = if has_supertype {
+@@ -109 +109 @@
+-    composite_tag : Int,
++    composite_tag : Int32,
+@@ -171 +171 @@
+-  fn skip_composite_type_no_resolve(self : Parser) -> Int raise ParserError {
++  fn skip_composite_type_no_resolve(self : Parser) -> Int32 raise ParserError {
+@@ -209 +209 @@
+-  ) -> Int raise ParserError {
++  ) -> Int32 raise ParserError {
+@@ -253 +253 @@
+-    let composite_tags : Array[Int] = []
++    let composite_tags : Array[Int32] = []
+--- a/sections.mbt
++++ b/sections.mbt
+@@ -26 +26 @@
+-  let mut data_count : Int? = None
++  let mut data_count : Int32? = None
+@@ -42 +42 @@
+-    fn section_order(id : Int) -> Int {
++    fn section_order(id : Int32) -> Int32 {
+@@ -195 +195 @@
+-          let (memory_idx, offset) : (Int, Array[@types.Instruction]) = match
++          let (memory_idx, offset) : (Int32, Array[@types.Instruction]) = match
+--- a/state.mbt
++++ b/state.mbt
+@@ -8 +8 @@
+-  mut pos : Int
++  mut pos : Int32
+@@ -27 +27 @@
+-fn Parser::peek_byte(self : Parser) -> Int raise ParserError {
++fn Parser::peek_byte(self : Parser) -> Int32 raise ParserError {
+@@ -36 +36 @@
+-fn Parser::read_byte(self : Parser) -> Int raise ParserError {
++fn Parser::read_byte(self : Parser) -> Int32 raise ParserError {
+@@ -47 +47 @@
+-fn Parser::skip(self : Parser, n : Int) -> Unit raise ParserError {
++fn Parser::skip(self : Parser, n : Int32) -> Unit raise ParserError {
+@@ -56 +56 @@
+-fn Parser::read_bytes(self : Parser, n : Int) -> Bytes raise ParserError {
++fn Parser::read_bytes(self : Parser, n : Int32) -> Bytes raise ParserError {
+--- a/table_memory_types.mbt
++++ b/table_memory_types.mbt
+@@ -49 +49 @@
+-  let valid_table_flags : FixedArray[Int] = [
++  let valid_table_flags : FixedArray[Int32] = [
+@@ -96 +96 @@
+-  let valid_memory_flags : FixedArray[Int] = [
++  let valid_memory_flags : FixedArray[Int32] = [
+--- a/value_types.mbt
++++ b/value_types.mbt
+@@ -8 +8 @@
+-  heap_type : Int,
++  heap_type : Int32,
+@@ -12 +12 @@
+-    type_idx : Int,
++    type_idx : Int32,
+@@ -59 +59 @@
+-    type_idx : Int,
++    type_idx : Int32,
+@@ -66 +66 @@
+-    heap_type : Int,
++    heap_type : Int32,
+@@ -133 +133 @@
+-fn Parser::read_heap_type(self : Parser) -> Int raise ParserError {
++fn Parser::read_heap_type(self : Parser) -> Int32 raise ParserError {

@@ -1,0 +1,11 @@
+{
+  "name": "branch-table-wrong-type",
+  "wasm": 1,
+  "reference": 0,
+  "product": 1,
+  "wasm_error": "error: func 0 failed to validate\n\nCaused by:\n    0: type mismatch: expected i32, found i64 (at offset 0x30)\n",
+  "reference_error": "",
+  "product_error": ".dev/core-control/cases/branch-table-wrong-type/dep.wasm:[binary]: error WAC-B003: CoreModuleError(\"validate core module: TypeMismatch(\\\"Expected I32, got I64\\\")\")\n.dev/core-control/cases/branch-table-wrong-type/input.wac:[30,39): package `test:dep` requested here\n",
+  "text_product": 1,
+  "text_error": ".dev/core-control/cases/branch-table-wrong-type/dep.wat:[binary]: error WAC-B003: CoreModuleError(\"validate core module: TypeMismatch(\\\"Expected I32, got I64\\\")\")\n.dev/core-control/cases/branch-table-wrong-type/input.wac:[30,39): package `test:dep` requested here\n"
+}

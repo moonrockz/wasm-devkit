@@ -39,7 +39,7 @@ invalid-stack	0	1	1
 invalid-load	0	1	1
 invalid-data-offset	1	1	1
 invalid-element-offset	1	1	1
-structured	0	0	1
+structured	0	0	0
 recursive-functions	0	0	0
 unicode-imports	0	0	0
 concrete-heap-index	0	0	1

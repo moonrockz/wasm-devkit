@@ -533,7 +533,7 @@ rechecks every original consumer. Eight pinned TypeAggregator successes produce
 incompatible module contracts; the product rejects them, backed by independent
 wasm-tools subtype witnesses in `tests/semantic/wac-core-modules/fill`.
 
-Both binary and WAT inputs support these contracts and flat concrete core module
+Both binary and WAT inputs support these contracts and concrete core module
 bodies. Core instantiation and synchronous canonical lift/lower are supported.
 Imported component instantiation and inline instances are supported. Concrete
 component definitions, non-resource type arguments, async canonical functions
@@ -550,16 +550,18 @@ module or component. Remaining binary/runtime scope stays tracked on
 
 Concrete core modules retain ordered contracts and original bytes. Function
 bodies, initializers, start signatures, exports and segment metadata validate
-without execution. Flat instruction preflight protects the retained parser;
-structured control and unimplemented proposals return `WAC-B002`. Function-only
+without execution. Binary framing and retained parser/validator control walks
+use explicit stacks. Block, loop and if are supported; unimplemented proposals
+return `WAC-B002`. Function-only
 recursive groups without concrete references are supported. Shared concrete
 globals and limits above signed Int64 remain unsupported by the retained core
 parser; declarative module types still retain their complete signatures.
 
-The validation-work estimate for each module is its byte size multiplied by the
-maximum of its function-type count, body count and one, plus expanded locals.
-The sum across the component must not exceed 1,000,000. This bounds the retained
-validator's type comparisons and per-function contexts before validation begins.
+The validation-work estimate charges byte count times maximum signature arity,
+pairwise type comparisons and local-state snapshots at control frames. The sum
+across the component must not exceed 1,000,000. Binary controls are limited to
+256 levels. WAT control/expression nesting is limited to 64 before the retained
+text parser/encoder runs. Both paths reject excessive depth with `WAC-B002`.
 Five pinned WAC package-loader successes contain invalid instructions; product
 verification rejects them, as wasm-tools does. Original witnesses, full ordered
 models and five validating compositions are retained in
@@ -644,3 +646,14 @@ whose encoded compositions fail validation. The 45 package and 17 composition
 cases in `tests/semantic/wac-value-externs` retain reference evidence. WAC 0.12.0's
 borrowed-value export rules are used, including its difference from wasm-tools
 1.262.0. Runtime-produced values remain outside the binary profile.
+
+Concrete core modules support block, loop and if instructions through bounded,
+explicit-stack parsing and validation. Both unchanged compiled hello/greeter
+components from the pinned WAC repository verify as binary and printed WAT.
+Binary control depth is limited to 256 and WAT control/expression nesting to 64;
+the enclosing component shares a
+1,000,000 work allowance for instruction effects, type comparisons and local
+state snapshots. Invalid instruction bodies reject even though the pinned WAC
+package loader skips their validation. See
+[`wac-core-control`](../../../../tests/semantic/wac-core-control/README.md)
+for the exact reference inputs and exclusions.

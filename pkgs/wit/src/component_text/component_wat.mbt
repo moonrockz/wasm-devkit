@@ -21,6 +21,7 @@ pub impl Show for ComponentTextError with fn output(self, logger) {
 priv enum SExpr {
   Atom(String)
   Str(String)
+  ByteStr(Bytes)
   List(Array[SExpr])
 }
 
@@ -136,75 +137,18 @@ fn TextReader::skip_ws_and_comments(
 }
 
 ///|
-fn is_hex_digit(ch : Char) -> Bool {
-  ('0' <= ch && ch <= '9') ||
-  ('a' <= ch && ch <= 'f') ||
-  ('A' <= ch && ch <= 'F')
-}
-
-///|
-fn hex_digit_value(ch : Char) -> Int32 {
-  if '0' <= ch && ch <= '9' {
-    ch.to_int() - '0'.to_int()
-  } else if 'a' <= ch && ch <= 'f' {
-    ch.to_int() - 'a'.to_int() + 10
-  } else if 'A' <= ch && ch <= 'F' {
-    ch.to_int() - 'A'.to_int() + 10
-  } else {
-    -1
+fn TextReader::read_string(self : TextReader) -> SExpr raise ComponentTextError {
+  let (bytes, end) = wat_quoted(self.input, self.pos)
+  self.pos = end
+  match
+    (try @utf8.decode(bytes, ignore_bom=false) catch {
+      _ => None
+    } noraise {
+      text => Some(text)
+    }) {
+    Some(text) => Str(text)
+    None => ByteStr(bytes)
   }
-}
-
-///|
-fn TextReader::read_string(
-  self : TextReader,
-) -> String raise ComponentTextError {
-  let out = StringBuilder::StringBuilder()
-  self.next_char() |> ignore // consume opening quote
-  while !self.is_eof() {
-    let ch = match self.next_char() {
-      Some(ch) => ch
-      None => raise ParseError("unterminated string literal")
-    }
-    if ch == '"' {
-      return out.to_string()
-    }
-    if ch != '\\' {
-      out.write_char(ch)
-      continue
-    }
-    if self.is_eof() {
-      raise ParseError("unterminated string escape")
-    }
-    let esc = match self.next_char() {
-      Some(ch) => ch
-      None => raise ParseError("unterminated string escape")
-    }
-    if esc == 'n' {
-      out.write_char('\n')
-    } else if esc == 'r' {
-      out.write_char('\r')
-    } else if esc == 't' {
-      out.write_char('\t')
-    } else if esc == '"' {
-      out.write_char('"')
-    } else if esc == '\\' {
-      out.write_char('\\')
-    } else if is_hex_digit(esc) &&
-      self.peek_char() is Some(next_ch) &&
-      is_hex_digit(next_ch) {
-      let hi = hex_digit_value(esc)
-      let lo_ch = match self.next_char() {
-        Some(ch) => ch
-        None => raise ParseError("unterminated hex escape")
-      }
-      let lo = hex_digit_value(lo_ch)
-      out.write_char((hi * 16 + lo).unsafe_to_char())
-    } else {
-      out.write_char(esc)
-    }
-  }
-  raise ParseError("unterminated string literal")
 }
 
 ///|
@@ -260,7 +204,7 @@ fn parse_sexpr(reader : TextReader) -> SExpr raise ComponentTextError {
       }
       List(items)
     } else if next == Some('"') {
-      Str(reader.read_string())
+      reader.read_string()
     } else {
       Atom(reader.read_atom())
     }
@@ -735,6 +679,9 @@ fn parse_name_text(
   expr : SExpr,
   context : String,
 ) -> String raise ComponentTextError {
+  if expr is ByteStr(_) {
+    raise ParseError("WAT name is not UTF-8")
+  }
   if expr is Str(text) {
     return text
   }
@@ -1019,23 +966,41 @@ fn escape_wat_string(text : String) -> String {
 }
 
 ///|
+priv enum RenderSExpr {
+  Expression(SExpr)
+  Text(String)
+}
+
+///|
 fn sexpr_to_wat(expr : SExpr) -> String {
-  match expr {
-    Atom(text) => text
-    Str(text) => escape_wat_string(text)
-    List(items) => {
-      let out = StringBuilder::StringBuilder()
-      out.write_char('(')
-      for i in 0..<items.length() {
-        if i > 0 {
-          out.write_char(' ')
+  let out = StringBuilder()
+  let work : Array[RenderSExpr] = [Expression(expr)]
+  while work.pop() is Some(task) {
+    match task {
+      Text(text) => out.write_string(text)
+      Expression(Atom(text)) => out.write_string(text)
+      Expression(Str(text)) => out.write_string(escape_wat_string(text))
+      Expression(ByteStr(bytes)) => out.write_string(wat_literal(bytes))
+      Expression(List(items)) => {
+        out.write_char('(')
+        work.push(Text(")"))
+        let data = items.get(0) is Some(Atom("data"))
+        for i = items.length() - 1; i >= 0; i = i - 1 {
+          if data && items[i] is Str(text) {
+            // The retained core lexer represents data characters as bytes.
+            // Explicit UTF-8 escapes avoid truncating Unicode scalar values.
+            work.push(Text(wat_literal(@utf8.encode(text))))
+          } else {
+            work.push(Expression(items[i]))
+          }
+          if i > 0 {
+            work.push(Text(" "))
+          }
         }
-        out.write_string(sexpr_to_wat(items[i]))
       }
-      out.write_char(')')
-      out.to_string()
     }
   }
+  out.to_string()
 }
 
 ///|
@@ -5692,7 +5657,9 @@ fn parse_core_module_field(
     module_items.push(item)
   }
   check_flat_core_module(module_items)
-  let module_text = sexpr_to_wat(List(module_items))
+  let module_text = sexpr_to_wat(
+    List(normalize_core_import_signatures(module_items, state)),
+  )
   let mod = @wat.parse(module_text) catch {
     e => raise ParseError("failed to parse core module: \{e}")
   }

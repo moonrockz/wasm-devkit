@@ -1,0 +1,9 @@
+{
+  "name": "else-in-block",
+  "wasm": 1,
+  "reference": 0,
+  "product": 1,
+  "wasm_error": "error: func 0 failed to validate\n\nCaused by:\n    0: `else` found outside `If` block (at offset 0x24)\n",
+  "reference_error": "",
+  "product_error": ".dev/core-control/cases/else-in-block/dep.wasm:[byte 36]: error WAC-B001: unexpected core else\n.dev/core-control/cases/else-in-block/input.wac:[30,39): package `test:dep` requested here\n"
+}

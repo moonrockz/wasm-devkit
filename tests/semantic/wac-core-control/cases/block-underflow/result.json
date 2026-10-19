@@ -1,0 +1,11 @@
+{
+  "name": "block-underflow",
+  "wasm": 1,
+  "reference": 0,
+  "product": 1,
+  "wasm_error": "error: func 0 failed to validate\n\nCaused by:\n    0: type mismatch: expected a type but nothing on stack (at offset 0x2a)\n",
+  "reference_error": "",
+  "product_error": ".dev/core-control/cases/block-underflow/dep.wasm:[binary]: error WAC-B003: CoreModuleError(\"validate core module: StackUnderflow(\\\"Expected value, but stack is empty\\\")\")\n.dev/core-control/cases/block-underflow/input.wac:[30,39): package `test:dep` requested here\n",
+  "text_product": 1,
+  "text_error": ".dev/core-control/cases/block-underflow/dep.wat:[binary]: error WAC-B003: CoreModuleError(\"validate core module: StackUnderflow(\\\"Expected value, but stack is empty\\\")\")\n.dev/core-control/cases/block-underflow/input.wac:[30,39): package `test:dep` requested here\n"
+}

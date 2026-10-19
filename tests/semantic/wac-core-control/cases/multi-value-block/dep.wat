@@ -1,0 +1,1 @@
+(component (core module $m (func (export "f") (result i64 i32) i32.const 3 i64.const 4 block (param i32 i64) (result i64 i32) drop drop i64.const 4 i32.const 3 end)) (export "module" (core module $m)))

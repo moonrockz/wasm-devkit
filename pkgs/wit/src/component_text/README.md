@@ -49,10 +49,15 @@ Explicit core declarations preserve distinct numeric slots even when signatures
 are equal. Duplicate core type identifiers reject within their lexical scope;
 shadowing outer names remains valid. Name scans have a shared compilation budget.
 
-`core_module.mbt` is an original iterative preflight for concrete core module
-fields. It rejects structured instruction keywords before the pinned core WAT
-parser, whose keyword-based block nesting can exceed parenthesis nesting. Flat
-module bodies compile normally and then validate as their original bytes.
+`core_module.mbt` bounds combined flat control keywords and folded expressions at
+64 before the pinned core WAT parser/encoder runs. Block, loop and if bodies
+compile and then validate as their original encoded instructions. S-expression
+rendering uses an explicit stack. Raw data strings preserve bytes, and Unicode
+data is encoded as UTF-8 byte escapes. Module names remain UTF-8 strings.
+Imported function type uses with redundant inline signatures are checked against
+the referenced declaration before the redundant spelling is removed for the
+pinned parser. Mismatched signatures reject. Exact bytes, full models and printed
+production WAT controls are retained in `tests/semantic/wac-core-control`.
 
 Core module export annotations encode explicit type uses and inline module
 contracts using the same core type index space as module imports.

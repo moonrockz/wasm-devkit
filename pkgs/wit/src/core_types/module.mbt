@@ -33,15 +33,45 @@ fn Reader::signed(self : Reader, bits : Int32) -> Int64 raise Failure {
 }
 
 ///|
-/// Only flat expressions reach the retained recursive instruction parser.
-/// Unknown proposals and structured control fail before that parser runs.
-fn Reader::flat_expression(
-  self : Reader,
-  constant : Bool,
-) -> Unit raise Failure {
+/// Frame supported expressions before the retained instruction parser runs.
+/// Explicit control frames bound nesting and record local-state copy work.
+fn Reader::expression(self : Reader, constant : Bool) -> Int32 raise Failure {
+  let controls : Array[Int32] = []
+  let mut count = 0
   while true {
     match self.byte() {
-      0x0b => return
+      0x0b => {
+        if controls.is_empty() {
+          return count
+        }
+        controls.pop() |> ignore
+      }
+      0x02 | 0x03 | 0x04 as opcode if !constant => {
+        if controls.length() >= 256 {
+          self.fail(Unsupported, "core control nesting exceeds 256")
+        }
+        let first = self.byte()
+        if first == 0x40 {
+          ()
+        } else if (first >= 0x63 && first <= 0x75) ||
+          (first >= 0x7b && first <= 0x7f) {
+          self.position -= 1
+          ignore(self.value())
+        } else {
+          self.position -= 1
+          if self.signed(33) < 0L {
+            self.fail(Malformed, "invalid core block type")
+          }
+        }
+        controls.push(opcode)
+        count += 1
+      }
+      0x05 if !constant => {
+        if controls.last() != Some(0x04) {
+          self.fail(Malformed, "unexpected core else")
+        }
+        controls[controls.length() - 1] = 0x05
+      }
       0x41 => ignore(self.signed(32))
       0x42 => ignore(self.signed(64))
       0x43 => self.skip(4)
@@ -68,7 +98,7 @@ fn Reader::flat_expression(
         if self.index() != 12 {
           self.fail(
             Unsupported,
-            "SIMD instructions other than v128.const are outside the flat module profile",
+            "SIMD instructions other than v128.const are outside the module profile",
           )
         }
         self.skip(16)
@@ -117,21 +147,23 @@ fn Reader::flat_expression(
               _ =>
                 self.fail(
                   Unsupported,
-                  "extended core instruction is outside the flat module profile",
+                  "extended core instruction is outside the module profile",
                 )
             }
           _ =>
             self.fail(
               Unsupported,
-              "structured or proposal core instructions are outside the flat module profile",
+              "proposal core instructions are outside the module profile",
             )
         }
       _ =>
         self.fail(
           Unsupported,
-          "core initializer instruction is outside the flat module profile",
+          "core initializer instruction is outside the module profile",
         )
     }
+  } nobreak {
+    count
   }
 }
 
@@ -198,6 +230,7 @@ pub fn inspect_module(bytes : Bytes) -> Result[ModuleMetadata, Diagnostic] {
     let mut function_count = 0
     let mut code_count = 0
     let mut expanded_locals = 0UL
+    let mut control_local_work = 0UL
     while reader.position < reader.end {
       let section = reader.byte()
       let length = reader.count()
@@ -290,7 +323,7 @@ pub fn inspect_module(bytes : Bytes) -> Result[ModuleMetadata, Diagnostic] {
               ),
             )
             if section == 6 || initialized {
-              payload.flat_expression(true)
+              ignore(payload.expression(true))
             }
           }
         }
@@ -325,7 +358,7 @@ pub fn inspect_module(bytes : Bytes) -> Result[ModuleMetadata, Diagnostic] {
               ignore(payload.index())
             }
             if (flags & 1) == 0 {
-              payload.flat_expression(true)
+              ignore(payload.expression(true))
             }
             if flags != 0 && flags != 4 {
               if flags < 4 {
@@ -341,30 +374,44 @@ pub fn inspect_module(bytes : Bytes) -> Result[ModuleMetadata, Diagnostic] {
               if flags < 4 {
                 ignore(payload.index())
               } else {
-                payload.flat_expression(true)
+                ignore(payload.expression(true))
               }
             }
           }
         }
         10 => {
           code_count = payload.count()
-          for _ in 0..<code_count {
+          for body_index in 0..<code_count {
             let length = payload.count()
             let body : Reader = {
               bytes,
               position: payload.position,
               end: payload.position + length,
             }
+            let mut body_locals = 0UL
             let count = body.count()
             for _ in 0..<count {
               let count = body.unsigned(32)
               expanded_locals += count
+              body_locals += count
               if expanded_locals > 1000000UL {
                 body.fail(Unsupported, "core local expansion exceeds 1000000")
               }
               ignore(body.value())
             }
-            body.flat_expression(false)
+            let controls = body.expression(false).to_uint64()
+            let params = match
+              slots[0].get(slots[0].length() - code_count + body_index) {
+              Some(Func(function)) => function.params.length().to_uint64()
+              _ => 0UL
+            }
+            control_local_work += (body_locals + params) * (controls + 1UL)
+            if control_local_work > 1000000UL {
+              body.fail(
+                Unsupported,
+                "core local-state validation work exceeds 1000000",
+              )
+            }
             if body.position != body.end {
               body.fail(Malformed, "trailing core function bytes")
             }
@@ -382,7 +429,7 @@ pub fn inspect_module(bytes : Bytes) -> Result[ModuleMetadata, Diagnostic] {
               ignore(payload.index())
             }
             if flags != 1 {
-              payload.flat_expression(true)
+              ignore(payload.expression(true))
             }
             let count = payload.count()
             payload.skip(count)
@@ -398,10 +445,26 @@ pub fn inspect_module(bytes : Bytes) -> Result[ModuleMetadata, Diagnostic] {
     if code_count != function_count {
       reader.fail(Invalid, "core function and code counts differ")
     }
-    // The retained validator scans type groups pairwise and builds a function
-    // context per body. Bound that work before entering the dependency.
-    let passes = functions.length().max(code_count).max(1).to_uint64()
-    let validation_work = bytes.length().to_uint64() * passes + expanded_locals
+    // Instruction stack effects are bounded by the largest signature. Type
+    // canonicalization compares groups pairwise; each control frame snapshots
+    // the current function's local-init state. Charge each source of work.
+    let mut max_arity = 1
+    for function in functions {
+      max_arity = max_arity.max(
+        function.params.length() + function.results.length(),
+      )
+    }
+    let arity = max_arity.to_uint64()
+    let types = functions.length().to_uint64()
+    if types * types > 1000000UL / arity {
+      reader.fail(
+        Unsupported,
+        "core type canonicalization work exceeds 1000000",
+      )
+    }
+    let validation_work = bytes.length().to_uint64() * arity +
+      types * types * arity +
+      control_local_work
     if validation_work > 1000000UL {
       reader.fail(
         Unsupported,

@@ -1035,6 +1035,20 @@ async fn main {
       }
     }
   }
+  for name in ["hello", "greeter"] {
+    let root = "tests/semantic/wac-core-control/production/" + name
+    let (binary, _) = run(
+      ["verify", root + "/input.wac", "--dep", "test:dep=dep.wasm"],
+      0,
+      wit,
+    )
+    let (text, _) = run(
+      ["verify", root + "/input.wac", "--dep", "test:dep=dep.wat"],
+      0,
+      wit,
+    )
+    assert_eq(binary, text)
+  }
   for extension in ["wasm", "wat"] {
     for
       (name, status) in [

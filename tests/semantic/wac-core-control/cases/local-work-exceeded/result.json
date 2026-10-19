@@ -1,0 +1,11 @@
+{
+  "name": "local-work-exceeded",
+  "wasm": 0,
+  "reference": 0,
+  "product": 1,
+  "wasm_error": "",
+  "reference_error": "",
+  "product_error": ".dev/core-control/cases/local-work-exceeded/dep.wasm:[byte 815]: error WAC-B002: core local-state validation work exceeds 1000000\n.dev/core-control/cases/local-work-exceeded/input.wac:[30,39): package `test:dep` requested here\n",
+  "text_product": 1,
+  "text_error": ".dev/core-control/cases/local-work-exceeded/dep.wat:[binary]: error WAC-B002: core WAT control/expression nesting exceeds 64\n.dev/core-control/cases/local-work-exceeded/input.wac:[30,39): package `test:dep` requested here\n"
+}

@@ -1,0 +1,1 @@
+package test:app; let i = new test:dep {...}; export i as "out";

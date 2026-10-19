@@ -1,0 +1,793 @@
+--- a/const_expr.mbt
++++ b/const_expr.mbt
+@@ -9,4 +9,4 @@
+-  funcs? : Array[Int] = [],
+-  types? : Array[@types.SubType] = [],
+-  subtyping_ctx? : @types.SubtypingContext? = None,
+-  stack_switching? : Bool = false,
++  funcs~ : Array[Int32] = [],
++  types~ : Array[@types.SubType] = [],
++  subtyping_ctx~ : @types.SubtypingContext? = None,
++  stack_switching~ : Bool = false,
+@@ -170 +170 @@
+-  type_idx : Int,
++  type_idx : Int32,
+@@ -187 +187 @@
+-  type_idx : Int,
++  type_idx : Int32,
+@@ -206 +206 @@
+-  subtyping_ctx? : @types.SubtypingContext? = None,
++  subtyping_ctx~ : @types.SubtypingContext? = None,
+--- a/context.mbt
++++ b/context.mbt
+@@ -21 +21 @@
+-  funcs : Array[Int] // type indices
++  funcs : Array[Int32] // type indices
+@@ -27 +27 @@
+-  data_count : Int // number of data segments
++  data_count : Int32 // number of data segments
+@@ -32 +32 @@
+-  declared_funcs : @hashset.HashSet[Int] // functions declared in elem/global (for ref.func validation)
++  declared_funcs : @hashset.HashSet[Int32] // functions declared in elem/global (for ref.func validation)
+@@ -54 +54 @@
+-  idx : Int,
++  idx : Int32,
+@@ -69 +69 @@
+-  idx : Int,
++  idx : Int32,
+@@ -84 +84 @@
+-  idx : Int,
++  idx : Int32,
+@@ -142 +142 @@
+-  declared : @hashset.HashSet[Int],
++  declared : @hashset.HashSet[Int32],
+@@ -154,2 +154,2 @@
+-  bulk_memory? : Bool = true,
+-  stack_switching? : Bool = false,
++  bulk_memory~ : Bool = true,
++  stack_switching~ : Bool = false,
+@@ -158 +158 @@
+-  let funcs : Array[Int] = []
++  let funcs : Array[Int32] = []
+@@ -207 +207 @@
+-  fn tag_type(type_idx : Int) -> @types.FuncType raise ValidationError {
++  fn tag_type(type_idx : Int32) -> @types.FuncType raise ValidationError {
+@@ -227 +227 @@
+-  let declared_funcs : @hashset.HashSet[Int] = HashSet([])
++  let declared_funcs : @hashset.HashSet[Int32] = HashSet([])
+@@ -310,2 +310,2 @@
+-  num_types : Int,
+-  stack_switching? : Bool = false,
++  num_types : Int32,
++  stack_switching~ : Bool = false,
+@@ -316 +316 @@
+-  let idx : Int? = match ty {
++  let idx : Int32? = match ty {
+@@ -338,2 +338,2 @@
+-  type_idx : Int,
+-  type_rec_groups : Array[Int],
++  type_idx : Int32,
++  type_rec_groups : Array[Int32],
+@@ -341 +341 @@
+-  let ref_idx : Int? = match ty {
++  let ref_idx : Int32? = match ty {
+--- a/continuations.mbt
++++ b/continuations.mbt
+@@ -56,2 +56,2 @@
+-  index : Int,
+-) -> Int raise ValidationError {
++  index : Int32,
++) -> Int32 raise ValidationError {
+@@ -71 +71 @@
+-  index : Int,
++  index : Int32,
+@@ -79 +79 @@
+-  index : Int,
++  index : Int32,
+@@ -90 +90 @@
+-  index : Int,
++  index : Int32,
+@@ -127 +127 @@
+-  index : Int,
++  index : Int32,
+--- a/continuations_test.mbt
++++ b/continuations_test.mbt
+@@ -4,3 +4,3 @@
+-  validate_module(module_, stack_switching=true)
+-  validate_module_with_context(module_, stack_switching=true)
+-  let bytes = Bytes::from_array(@encoder.encode(module_).map(Int::to_byte))
++  @core_validation.validate_module(module_, stack_switching=true)
++  @core_validation.validate_module_with_context(module_, stack_switching=true)
++  let bytes = Bytes::from_array(@encoder.encode(module_).map(Int32::to_byte))
+@@ -8 +8 @@
+-  validate_module(decoded, stack_switching=true)
++  @core_validation.validate_module(decoded, stack_switching=true)
+@@ -11 +11 @@
+-  validate_module(rendered, stack_switching=true)
++  @core_validation.validate_module(rendered, stack_switching=true)
+@@ -57 +57 @@
+-  try validate_module(module_) catch {
++  try @core_validation.validate_module(module_) catch {
+@@ -71 +71 @@
+-    try validate_module(invalid, stack_switching=true) catch {
++    try @core_validation.validate_module(invalid, stack_switching=true) catch {
+--- a/error.mbt
++++ b/error.mbt
+@@ -9,11 +9,11 @@
+-  InvalidFunctionIndex(Int)
+-  InvalidTypeIndex(Int)
+-  InvalidLocalIndex(Int)
+-  InvalidGlobalIndex(Int)
+-  InvalidTableIndex(Int)
+-  InvalidMemoryIndex(Int)
+-  InvalidLabelIndex(Int)
+-  InvalidElemIndex(Int)
+-  InvalidDataIndex(Int) // Unknown data segment index
+-  UnknownTag(Int) // Unknown tag index
+-  UnknownType(Int) // Forward type reference outside rec group
++  InvalidFunctionIndex(Int32)
++  InvalidTypeIndex(Int32)
++  InvalidLocalIndex(Int32)
++  InvalidGlobalIndex(Int32)
++  InvalidTableIndex(Int32)
++  InvalidMemoryIndex(Int32)
++  InvalidLabelIndex(Int32)
++  InvalidElemIndex(Int32)
++  InvalidDataIndex(Int32) // Unknown data segment index
++  UnknownTag(Int32) // Unknown tag index
++  UnknownType(Int32) // Forward type reference outside rec group
+@@ -25 +25 @@
+-  InvalidLaneIndex(Int, Int) // lane index, max lanes
++  InvalidLaneIndex(Int32, Int32) // lane index, max lanes
+@@ -30 +30 @@
+-  UninitializedLocal(Int) // Non-nullable ref local read before initialization
++  UninitializedLocal(Int32) // Non-nullable ref local read before initialization
+@@ -32 +32 @@
+-  UndeclaredFunctionReference(Int) // ref.func used on function not declared in elem/global
++  UndeclaredFunctionReference(Int32) // ref.func used on function not declared in elem/global
+@@ -49,2 +49,2 @@
+-  func_idx : Int? // The function index where validation failed
+-  instr_offset : Int? // The instruction offset within the function body
++  func_idx : Int32? // The function index where validation failed
++  instr_offset : Int32? // The instruction offset within the function body
+@@ -103 +103 @@
+-  idx : Int,
++  idx : Int32,
+@@ -111 +111 @@
+-  offset : Int,
++  offset : Int32,
+--- a/function_validate.mbt
++++ b/function_validate.mbt
+@@ -7 +7 @@
+-  func_idx : Int,
++  func_idx : Int32,
+@@ -87 +87 @@
+-  func_idx : Int,
++  func_idx : Int32,
+@@ -90 +90 @@
+-    validate_instr(ctx, stack, instr) catch {
++    validate_expr(ctx, stack, [instr]) catch {
+@@ -96 +96,9 @@
+-          .with_instruction(instr.to_string()),
++          .with_instruction(
++            match instr {
++              Block(_, _) => "block"
++              Loop(_, _) => "loop"
++              If(_, _, _) => "if"
++              TryTable(_, _, _) => "try_table"
++              _ => instr.to_string()
++            },
++          ),
+@@ -172 +180,47 @@
+-/// Validate an expression (sequence of instructions)
++priv enum ExpressionWork {
++  Sequence(OperandStack, Array[@types.Instruction], Int32)
++  Exit(OperandStack, OperandStack, Array[@types.ValueType], Array[Bool], String)
++  Else(
++    OperandStack,
++    OperandStack,
++    Array[@types.ValueType],
++    Array[@types.ValueType],
++    Array[@types.Instruction],
++    Array[Bool]
++  )
++}
++
++///|
++fn check_control_results(
++  stack : OperandStack,
++  results : Array[@types.ValueType],
++  context : String,
++) -> Unit raise ValidationError {
++  stack.check_height(results.length(), context)
++  for i = results.length() - 1; i >= 0; i = i - 1 {
++    stack.pop(results[i])
++  }
++}
++
++///|
++fn restore_local_init(ctx : ValidationContext, saved : Array[Bool]) -> Unit {
++  for i in 0..<saved.length() {
++    ctx.local_init[i] = saved[i]
++  }
++}
++
++///|
++fn control_stack(
++  ctx : ValidationContext,
++  params : Array[@types.ValueType],
++) -> OperandStack {
++  let stack = OperandStack::new_with_subtyping(ctx.subtyping_ctx)
++  for param in params {
++    stack.push(param)
++  }
++  stack
++}
++
++///|
++// Traverse instruction bodies with explicit continuations. A label stays active
++// until its matching Exit; each if arm starts from the same local-init state.
+@@ -178,4 +232,64 @@
+-  for instr in instrs {
+-    validate_instr(ctx, stack, instr)
+-  }
+-}
++  let work : Array[ExpressionWork] = [Sequence(stack, instrs, 0)]
++  while work.pop() is Some(task) {
++    match task {
++      Sequence(outer, instructions, index) => {
++        if index >= instructions.length() {
++          continue
++        }
++        work.push(Sequence(outer, instructions, index + 1))
++        let instruction = instructions[index]
++        match instruction {
++          Block(bt, body) | Loop(bt, body) | TryTable(bt, _, body) => {
++            let params = get_block_params(ctx, bt)
++            let results = get_block_results(ctx, bt)
++            for i = params.length() - 1; i >= 0; i = i - 1 {
++              outer.pop(params[i])
++            }
++            if instruction is TryTable(_, handlers, _) {
++              validate_catch_handlers(ctx, handlers)
++            }
++            let inner = control_stack(ctx, params)
++            let saved = ctx.local_init.copy()
++            let (kind, context) = match instruction {
++              Loop(_, _) => (LoopLabel, "loop exit")
++              TryTable(_, _, _) => (BlockLabel, "try_table exit")
++              _ => (BlockLabel, "block exit")
++            }
++            ctx.labels.push({ kind, block_type: bt, })
++            work.push(Exit(outer, inner, results, saved, context))
++            work.push(Sequence(inner, body, 0))
++          }
++          If(bt, then_body, else_body) => {
++            outer.pop(I32)
++            let params = get_block_params(ctx, bt)
++            let results = get_block_results(ctx, bt)
++            for i = params.length() - 1; i >= 0; i = i - 1 {
++              outer.pop(params[i])
++            }
++            let saved = ctx.local_init.copy()
++            let inner = control_stack(ctx, params)
++            ctx.labels.push({ kind: BlockLabel, block_type: bt, })
++            work.push(Else(outer, inner, params, results, else_body, saved))
++            work.push(Sequence(inner, then_body, 0))
++          }
++          _ => validate_instr(ctx, outer, instruction)
++        }
++      }
++      Else(outer, then_stack, params, results, else_body, saved) => {
++        check_control_results(then_stack, results, "if-then exit")
++        restore_local_init(ctx, saved)
++        let inner = control_stack(ctx, params)
++        work.push(Exit(outer, inner, results, saved, "if-else exit"))
++        work.push(Sequence(inner, else_body, 0))
++      }
++      Exit(outer, inner, results, saved, context) => {
++        ctx.labels.pop() |> ignore
++        restore_local_init(ctx, saved)
++        check_control_results(inner, results, context)
++        for result in results {
++          outer.push(result)
++        }
++      }
++    }
++  }
++}
+--- a/instr_validate.mbt
++++ b/instr_validate.mbt
+@@ -612 +612 @@
+-        natural : Int,
++        natural : Int32,
+@@ -1244,122 +1244,4 @@
+-    Block(bt, body) => {
+-      let results = get_block_results(ctx, bt)
+-      let params = get_block_params(ctx, bt)
+-      // Pop input params from outer stack
+-      for i = params.length() - 1; i >= 0; i = i - 1 {
+-        stack.pop(params[i])
+-      }
+-      // Create inner stack with params
+-      let block_stack = OperandStack::new_with_subtyping(ctx.subtyping_ctx)
+-      for param in params {
+-        block_stack.push(param)
+-      }
+-      // Save local_init state - locals initialized inside block don't count outside
+-      let saved_init = ctx.local_init.copy()
+-      // Push label for block (br jumps to end, uses results)
+-      let label : LabelInfo = { kind: BlockLabel, block_type: bt, }
+-      ctx.labels.push(label)
+-      // Validate body
+-      validate_expr(ctx, block_stack, body)
+-      // Pop label
+-      ctx.labels.pop() |> ignore
+-      // Restore local_init state
+-      for i in 0..<saved_init.length() {
+-        ctx.local_init[i] = saved_init[i]
+-      }
+-      // Check stack height: should have exactly results.length() values
+-      block_stack.check_height(results.length(), "block exit")
+-      // Verify result types
+-      for i = results.length() - 1; i >= 0; i = i - 1 {
+-        block_stack.pop(results[i])
+-      }
+-      // Push results onto outer stack
+-      for result in results {
+-        stack.push(result)
+-      }
+-    }
+-    Loop(bt, body) => {
+-      let results = get_block_results(ctx, bt)
+-      let params = get_block_params(ctx, bt)
+-      // Pop input params from outer stack
+-      for i = params.length() - 1; i >= 0; i = i - 1 {
+-        stack.pop(params[i])
+-      }
+-      // Create inner stack with params
+-      let block_stack = OperandStack::new_with_subtyping(ctx.subtyping_ctx)
+-      for param in params {
+-        block_stack.push(param)
+-      }
+-      // Save local_init state - locals initialized inside loop don't count outside
+-      let saved_init = ctx.local_init.copy()
+-      // Push label for loop (br jumps to start, uses params)
+-      let label : LabelInfo = { kind: LoopLabel, block_type: bt, }
+-      ctx.labels.push(label)
+-      // Validate body
+-      validate_expr(ctx, block_stack, body)
+-      // Pop label
+-      ctx.labels.pop() |> ignore
+-      // Restore local_init state
+-      for i in 0..<saved_init.length() {
+-        ctx.local_init[i] = saved_init[i]
+-      }
+-      // Check stack height: should have exactly results.length() values
+-      block_stack.check_height(results.length(), "loop exit")
+-      // Verify result types
+-      for i = results.length() - 1; i >= 0; i = i - 1 {
+-        block_stack.pop(results[i])
+-      }
+-      // Push results onto outer stack
+-      for result in results {
+-        stack.push(result)
+-      }
+-    }
+-    If(bt, then_body, else_body) => {
+-      stack.pop(I32) // condition
+-      let results = get_block_results(ctx, bt)
+-      let params = get_block_params(ctx, bt)
+-      // Pop input params from outer stack
+-      for i = params.length() - 1; i >= 0; i = i - 1 {
+-        stack.pop(params[i])
+-      }
+-      // Save local_init state - locals initialized inside if don't count outside
+-      let saved_init = ctx.local_init.copy()
+-      // Push label for if (br jumps to end, uses results)
+-      let label : LabelInfo = { kind: BlockLabel, block_type: bt, }
+-      ctx.labels.push(label)
+-      // Validate then branch
+-      let then_stack = OperandStack::new_with_subtyping(ctx.subtyping_ctx)
+-      for param in params {
+-        then_stack.push(param)
+-      }
+-      validate_expr(ctx, then_stack, then_body)
+-      then_stack.check_height(results.length(), "if-then exit")
+-      // Verify then result types
+-      for i = results.length() - 1; i >= 0; i = i - 1 {
+-        then_stack.pop(results[i])
+-      }
+-      // Restore local_init state before else branch
+-      for i in 0..<saved_init.length() {
+-        ctx.local_init[i] = saved_init[i]
+-      }
+-      // Validate else branch
+-      let else_stack = OperandStack::new_with_subtyping(ctx.subtyping_ctx)
+-      for param in params {
+-        else_stack.push(param)
+-      }
+-      validate_expr(ctx, else_stack, else_body)
+-      else_stack.check_height(results.length(), "if-else exit")
+-      // Verify else result types
+-      for i = results.length() - 1; i >= 0; i = i - 1 {
+-        else_stack.pop(results[i])
+-      }
+-      // Pop label
+-      ctx.labels.pop() |> ignore
+-      // Restore local_init state - locals initialized in if don't count outside
+-      for i in 0..<saved_init.length() {
+-        ctx.local_init[i] = saved_init[i]
+-      }
+-      // Push results onto outer stack
+-      for result in results {
+-        stack.push(result)
+-      }
+-    }
++    Block(_, _) | Loop(_, _) | If(_, _, _) | TryTable(_, _, _) =>
++      raise TypeMismatch(
++        "structured instruction requires expression work stack",
++      )
+@@ -1433,0 +1316,3 @@
++        // Every target must accept the original operands, including when
++        // unreachable operands are polymorphic. Checking arity alone is unsafe.
++        stack.check_branch_values(label_types)
+@@ -1468,163 +1352,0 @@
+-    TryTable(bt, handlers, body) => {
+-      let results = get_block_results(ctx, bt)
+-      let params = get_block_params(ctx, bt)
+-
+-      // Pop params
+-      for i = params.length() - 1; i >= 0; i = i - 1 {
+-        stack.pop(params[i])
+-      }
+-
+-      // Validate each handler BEFORE pushing try_table's label
+-      // (handlers reference labels visible at the try_table instruction,
+-      // NOT from inside the try_table body)
+-      for handler in handlers {
+-        match handler {
+-          Catch(tag_idx, label_idx) => {
+-            // Validate tag index
+-            if tag_idx < 0 || tag_idx >= ctx.tags.length() {
+-              raise UnknownTag(tag_idx)
+-            }
+-            // Validate label index (labels are indexed from innermost)
+-            if label_idx > ctx.labels.length() {
+-              raise InvalidLabelIndex(label_idx)
+-            }
+-            // Get expected types at label
+-            let expected_types = if label_idx == ctx.labels.length() {
+-              ctx.returns
+-            } else {
+-              let target_label = ctx.labels[ctx.labels.length() - 1 - label_idx]
+-              get_label_types(ctx, target_label)
+-            }
+-            // Catch provides tag params
+-            let tag_type = ctx.exception_tag_type(tag_idx)
+-            if tag_type.params.length() != expected_types.length() {
+-              raise TypeMismatch(
+-                "catch handler arity mismatch: tag has \{tag_type.params.length()} params, label expects \{expected_types.length()}",
+-              )
+-            }
+-            // Check that each tag param is a subtype of the expected label type
+-            for i, param_type in tag_type.params {
+-              if !ctx.subtyping_ctx.value_type_subtype(
+-                  param_type,
+-                  expected_types[i],
+-                ) {
+-                raise TypeMismatch(
+-                  "catch handler type mismatch: tag param \{i} has type \{param_type}, label expects \{expected_types[i]}",
+-                )
+-              }
+-            }
+-          }
+-          CatchRef(tag_idx, label_idx) => {
+-            // Validate tag index
+-            if tag_idx < 0 || tag_idx >= ctx.tags.length() {
+-              raise UnknownTag(tag_idx)
+-            }
+-            // Validate label index
+-            if label_idx > ctx.labels.length() {
+-              raise InvalidLabelIndex(label_idx)
+-            }
+-            // Get expected types at label
+-            let expected_types = if label_idx == ctx.labels.length() {
+-              ctx.returns
+-            } else {
+-              let target_label = ctx.labels[ctx.labels.length() - 1 - label_idx]
+-              get_label_types(ctx, target_label)
+-            }
+-            // CatchRef provides tag params + exnref
+-            let tag_type = ctx.exception_tag_type(tag_idx)
+-            let expected_arity = tag_type.params.length() + 1
+-            if expected_arity != expected_types.length() {
+-              raise TypeMismatch(
+-                "catch_ref handler arity mismatch: tag has \{tag_type.params.length()} params + exnref, label expects \{expected_types.length()}",
+-              )
+-            }
+-            // Check that each tag param is a subtype of the expected label type
+-            for i, param_type in tag_type.params {
+-              if !ctx.subtyping_ctx.value_type_subtype(
+-                  param_type,
+-                  expected_types[i],
+-                ) {
+-                raise TypeMismatch(
+-                  "catch_ref handler type mismatch: tag param \{i} has type \{param_type}, label expects \{expected_types[i]}",
+-                )
+-              }
+-            }
+-            // The last expected type should be ExnRef (exnref is always a subtype of itself)
+-          }
+-          CatchAll(label_idx) => {
+-            // Validate label index
+-            if label_idx > ctx.labels.length() {
+-              raise InvalidLabelIndex(label_idx)
+-            }
+-            // CatchAll provides no values
+-            let expected_types = if label_idx == ctx.labels.length() {
+-              ctx.returns
+-            } else {
+-              let target_label = ctx.labels[ctx.labels.length() - 1 - label_idx]
+-              get_label_types(ctx, target_label)
+-            }
+-            if expected_types.length() != 0 {
+-              raise TypeMismatch(
+-                "catch_all handler arity mismatch: provides 0 values, label expects \{expected_types.length()}",
+-              )
+-            }
+-          }
+-          CatchAllRef(label_idx) => {
+-            // Validate label index
+-            if label_idx > ctx.labels.length() {
+-              raise InvalidLabelIndex(label_idx)
+-            }
+-            // CatchAllRef provides exnref only
+-            let expected_types = if label_idx == ctx.labels.length() {
+-              ctx.returns
+-            } else {
+-              let target_label = ctx.labels[ctx.labels.length() - 1 - label_idx]
+-              get_label_types(ctx, target_label)
+-            }
+-            if expected_types.length() != 1 {
+-              raise TypeMismatch(
+-                "catch_all_ref handler arity mismatch: provides 1 value (exnref), label expects \{expected_types.length()}",
+-              )
+-            }
+-          }
+-        }
+-      }
+-
+-      // Create inner stack with params (like Block)
+-      let block_stack = OperandStack::new_with_subtyping(ctx.subtyping_ctx)
+-      for param in params {
+-        block_stack.push(param)
+-      }
+-
+-      // Save local_init state - locals initialized inside block don't count outside
+-      let saved_init = ctx.local_init.copy()
+-
+-      // Now push try_table's label for body validation
+-      let label = { kind: BlockLabel, block_type: bt, }
+-      ctx.labels.push(label)
+-
+-      // Validate body with block_stack
+-      validate_expr(ctx, block_stack, body)
+-
+-      // Remove label
+-      ctx.labels.pop() |> ignore
+-
+-      // Restore local_init state
+-      for i in 0..<saved_init.length() {
+-        ctx.local_init[i] = saved_init[i]
+-      }
+-
+-      // Check stack height: should have exactly results.length() values
+-      block_stack.check_height(results.length(), "try_table exit")
+-
+-      // Verify result types
+-      for i = results.length() - 1; i >= 0; i = i - 1 {
+-        block_stack.pop(results[i])
+-      }
+-
+-      // Push results onto outer stack
+-      for result in results {
+-        stack.push(result)
+-      }
+-    }
+-
+@@ -2164,0 +1887,119 @@
++
++///|
++fn validate_catch_handlers(
++  ctx : ValidationContext,
++  handlers : Array[@types.CatchHandler],
++) -> Unit raise ValidationError {
++  for handler in handlers {
++    match handler {
++      Catch(tag_idx, label_idx) => {
++        // Validate tag index
++        if tag_idx < 0 || tag_idx >= ctx.tags.length() {
++          raise UnknownTag(tag_idx)
++        }
++        // Validate label index (labels are indexed from innermost)
++        if label_idx > ctx.labels.length() {
++          raise InvalidLabelIndex(label_idx)
++        }
++        // Get expected types at label
++        let expected_types = if label_idx == ctx.labels.length() {
++          ctx.returns
++        } else {
++          let target_label = ctx.labels[ctx.labels.length() - 1 - label_idx]
++          get_label_types(ctx, target_label)
++        }
++        // Catch provides tag params
++        let tag_type = ctx.exception_tag_type(tag_idx)
++        if tag_type.params.length() != expected_types.length() {
++          raise TypeMismatch(
++            "catch handler arity mismatch: tag has \{tag_type.params.length()} params, label expects \{expected_types.length()}",
++          )
++        }
++        // Check that each tag param is a subtype of the expected label type
++        for i, param_type in tag_type.params {
++          if !ctx.subtyping_ctx.value_type_subtype(
++              param_type,
++              expected_types[i],
++            ) {
++            raise TypeMismatch(
++              "catch handler type mismatch: tag param \{i} has type \{param_type}, label expects \{expected_types[i]}",
++            )
++          }
++        }
++      }
++      CatchRef(tag_idx, label_idx) => {
++        // Validate tag index
++        if tag_idx < 0 || tag_idx >= ctx.tags.length() {
++          raise UnknownTag(tag_idx)
++        }
++        // Validate label index
++        if label_idx > ctx.labels.length() {
++          raise InvalidLabelIndex(label_idx)
++        }
++        // Get expected types at label
++        let expected_types = if label_idx == ctx.labels.length() {
++          ctx.returns
++        } else {
++          let target_label = ctx.labels[ctx.labels.length() - 1 - label_idx]
++          get_label_types(ctx, target_label)
++        }
++        // CatchRef provides tag params + exnref
++        let tag_type = ctx.exception_tag_type(tag_idx)
++        let expected_arity = tag_type.params.length() + 1
++        if expected_arity != expected_types.length() {
++          raise TypeMismatch(
++            "catch_ref handler arity mismatch: tag has \{tag_type.params.length()} params + exnref, label expects \{expected_types.length()}",
++          )
++        }
++        // Check that each tag param is a subtype of the expected label type
++        for i, param_type in tag_type.params {
++          if !ctx.subtyping_ctx.value_type_subtype(
++              param_type,
++              expected_types[i],
++            ) {
++            raise TypeMismatch(
++              "catch_ref handler type mismatch: tag param \{i} has type \{param_type}, label expects \{expected_types[i]}",
++            )
++          }
++        }
++        // The last expected type should be ExnRef (exnref is always a subtype of itself)
++      }
++      CatchAll(label_idx) => {
++        // Validate label index
++        if label_idx > ctx.labels.length() {
++          raise InvalidLabelIndex(label_idx)
++        }
++        // CatchAll provides no values
++        let expected_types = if label_idx == ctx.labels.length() {
++          ctx.returns
++        } else {
++          let target_label = ctx.labels[ctx.labels.length() - 1 - label_idx]
++          get_label_types(ctx, target_label)
++        }
++        if expected_types.length() != 0 {
++          raise TypeMismatch(
++            "catch_all handler arity mismatch: provides 0 values, label expects \{expected_types.length()}",
++          )
++        }
++      }
++      CatchAllRef(label_idx) => {
++        // Validate label index
++        if label_idx > ctx.labels.length() {
++          raise InvalidLabelIndex(label_idx)
++        }
++        // CatchAllRef provides exnref only
++        let expected_types = if label_idx == ctx.labels.length() {
++          ctx.returns
++        } else {
++          let target_label = ctx.labels[ctx.labels.length() - 1 - label_idx]
++          get_label_types(ctx, target_label)
++        }
++        if expected_types.length() != 1 {
++          raise TypeMismatch(
++            "catch_all_ref handler arity mismatch: provides 1 value (exnref), label expects \{expected_types.length()}",
++          )
++        }
++      }
++    }
++  }
++}
+--- a/limits.mbt
++++ b/limits.mbt
+@@ -53 +53 @@
+-  is_table64? : Bool = false,
++  is_table64~ : Bool = false,
+@@ -108 +108 @@
+-  func_addrs : Array[Int],
++  func_addrs : Array[Int32],
+@@ -134 +134 @@
+-fn count_func_imports(imports : Array[@types.Import]) -> Int {
++fn count_func_imports(imports : Array[@types.Import]) -> Int32 {
+@@ -145 +145 @@
+-fn count_global_imports(imports : Array[@types.Import]) -> Int {
++fn count_global_imports(imports : Array[@types.Import]) -> Int32 {
+@@ -156 +156 @@
+-fn count_tag_imports(imports : Array[@types.Import]) -> Int {
++fn count_tag_imports(imports : Array[@types.Import]) -> Int32 {
+--- a/module_validate.mbt
++++ b/module_validate.mbt
+@@ -5,2 +5,2 @@
+-  bulk_memory? : Bool = true,
+-  stack_switching? : Bool = false,
++  bulk_memory~ : Bool = true,
++  stack_switching~ : Bool = false,
+@@ -266,2 +266,2 @@
+-  bulk_memory? : Bool = true,
+-  stack_switching? : Bool = false,
++  bulk_memory~ : Bool = true,
++  stack_switching~ : Bool = false,
+--- a/moon.pkg
++++ b/moon.pkg
+@@ -9 +9 @@
+-  "Milky2018/wasm_core/parser",
++  "moonrockz/wit/binary/core_parser" @parser,
+--- a/stack.mbt
++++ b/stack.mbt
+@@ -7 +7 @@
+-  mut underflow_limit : Int // stack height at which polymorphism was enabled
++  mut underflow_limit : Int32 // stack height at which polymorphism was enabled
+@@ -322 +322 @@
+-  expected : Int,
++  expected : Int32,
+@@ -341,0 +342,18 @@
++
++///|
++fn OperandStack::check_branch_values(
++  self : OperandStack,
++  expected : Array[@types.ValueType],
++) -> Unit raise ValidationError {
++  let count = self.stack.length().min(expected.length())
++  let start = self.stack.length() - count
++  let trial : OperandStack = {
++    stack: Array::makei(count, i => self.stack[start + i]),
++    polymorphic: self.polymorphic,
++    underflow_limit: 0,
++    subtyping_ctx: self.subtyping_ctx,
++  }
++  for i = expected.length() - 1; i >= 0; i = i - 1 {
++    trial.pop(expected[i])
++  }
++}
+--- a/validator_wbtest.mbt
++++ b/validator_wbtest.mbt
+@@ -1518 +1518 @@
+-  rec_groups : Array[Int],
++  rec_groups : Array[Int32],
+@@ -1542 +1542 @@
+-  mutable? : Bool = false,
++  mutable~ : Bool = false,
+@@ -1695 +1695 @@
+-  is_memory64? : Bool = false,
++  is_memory64~ : Bool = false,
+@@ -1726 +1726 @@
+-  is_table64? : Bool = false,
++  is_table64~ : Bool = false,

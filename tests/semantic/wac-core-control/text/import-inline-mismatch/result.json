@@ -1,0 +1,10 @@
+{
+  "name": "import-inline-mismatch",
+  "parse": 1,
+  "parse_error": "error: inline function type doesn't match type reference\n     --> .dev/core-control/text/import-inline-mismatch/dep.wat:1:100\n      |\n    1 | (component (core module $m (type $t (func (param i32) (result i64))) (import \"env\" \"f\" (func (type $t) (param i64) (result i64)))) (export \"module\" (core module $m)))\n      |                                                                                                    ^\n",
+  "validate": null,
+  "reference": null,
+  "reference_error": null,
+  "product": 1,
+  "product_error": ".dev/core-control/text/import-inline-mismatch/dep.wat:[binary]: error WAC-B001: core import inline signature does not match its type use\n.dev/core-control/text/import-inline-mismatch/input.wac:[30,39): package `test:dep` requested here\n"
+}
