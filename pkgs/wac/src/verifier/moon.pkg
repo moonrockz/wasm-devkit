@@ -19,4 +19,5 @@ import {
   "moonbitlang/core/quickcheck",
   "moonrockz/wit/verifier" @wit_verifier,
   "moonrockz/wit/parser" @wit_parser,
+  "moonrockz/wac/formatter",
 } for "test"

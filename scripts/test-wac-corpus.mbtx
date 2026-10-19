@@ -1,0 +1,158 @@
+///|
+/// Compare the complete pinned WAC resolution corpus and its filesystem providers.
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/async@0.22.5/process",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+}
+
+///|
+fn corpus_cases(input : Json) -> Array[(String, String, Int32)] raise {
+  guard input is Array(rows) else { fail("expected WAC corpus cases") }
+  let result = []
+  let seen : Map[String, Bool] = Map([])
+  for row in rows {
+    guard row
+      is {
+        "source": String(source),
+        "dependencies": String(dependencies),
+        "accepts": True
+        | False as accepts,
+        "phase": String(phase),
+        ..
+      } else {
+      fail("invalid WAC corpus case")
+    }
+    if !source.has_suffix(".wac") ||
+      source.contains("..") ||
+      source.has_prefix("/") ||
+      source.contains("\\") ||
+      dependencies != source[:source.length() - 4].to_owned() ||
+      (phase != "resolution" && phase != "wat-provider") ||
+      (phase == "wat-provider" && accepts == Json::boolean(true)) ||
+      seen.contains(source) {
+      fail("invalid WAC corpus path, phase or duplicate")
+    }
+    seen[source] = true
+    result.push(
+      (source, dependencies, if accepts == Json::boolean(true) { 0 } else { 1 }),
+    )
+  }
+  if result.is_empty() {
+    fail("empty WAC corpus")
+  }
+  result
+}
+
+///|
+async fn main {
+  guard @env.args()[1:] is [wasm_tools, wac] else {
+    fail("Usage: test-wac-corpus.mbtx WASM_TOOLS_1_262_0 WAC_0_12_0")
+  }
+  let root = "tests/semantic/wac-upstream/"
+  let (code, _, error) = @process.collect_output("node", [
+    "--input-type=module", "-e", "import {createHash} from 'node:crypto'; import {readFileSync} from 'node:fs'; const root=process.argv[1]; for(const line of readFileSync(root+'SHA256SUMS','utf8').trim().split('\\n')) { const match=/^([0-9a-f]{64})  (.+)$/.exec(line); if(!match || match[2].includes('..') || match[2].startsWith('/')) throw Error('invalid hash manifest'); const actual=createHash('sha256').update(readFileSync(root+match[2])).digest('hex'); if(actual!==match[1]) throw Error('fixture hash mismatch: '+match[2]); }",
+    root,
+  ])
+  if code != 0 {
+    fail("WAC corpus hashes: " + error.text())
+  }
+  let cases = corpus_cases(
+    @json.parse(@fs.read_file(root + "cases.json").text()),
+  )
+  let oracle = ".dev/reference-target/release/wac-semantic-reference" +
+    (if @env.get_env_var("OS") == Some("Windows_NT") { ".exe" } else { "" })
+  let output = ".dev/wac-corpus-reference"
+  @fs.mkdir(output, recursive=true, allow_exist=true)
+  let mut composed = 0
+  for index, (source, dependencies, expected) in cases {
+    let path = root + source
+    let deps = root + dependencies
+    let checks = [
+      (wac, ["resolve", path, "--deps-dir", deps]),
+      (oracle, [path, "--deps-dir", deps]),
+      (
+        "moon",
+        [
+          "run", "cmd/wasm-devkit", "--target", "wasm", "--quiet", "--", "verify",
+          path, "--base", ".", "--deps-dir", deps,
+        ],
+      ),
+    ]
+    for (program, args) in checks {
+      let (code, _, error) = @process.collect_output(program, args)
+      if code != expected {
+        fail(path + ": " + program + " acceptance mismatch: " + error.text())
+      }
+    }
+    if expected == 0 {
+      let binary = output + "/" + index.to_string() + ".wasm"
+      for
+        (program, args) in [
+          (wac, ["compose", path, "--deps-dir", deps, "-o", binary]),
+          (wasm_tools, ["validate", "--features", "all", binary]),
+        ] {
+        let (code, _, error) = @process.collect_output(program, args)
+        if code != 0 {
+          fail(path + ": composition validation: " + error.text())
+        }
+      }
+      composed += 1
+    }
+  }
+  println(
+    "\{cases.length()} WAC corpus CLI/API comparisons and \{composed} validated compositions passed",
+  )
+}
+
+///|
+test "corpus manifest rejects invalid paths, duplicates and contradictory phases" {
+  let row : Json = {
+    "source": "fail/example.wac",
+    "dependencies": "fail/example",
+    "accepts": false,
+    "phase": "wat-provider",
+  }
+  let valid = Json::array([row])
+  assert_eq(corpus_cases(valid), [("fail/example.wac", "fail/example", 1)])
+  for
+    invalid in [
+      Json::array([]),
+      Json::object({}),
+      Json::array([row, row]),
+      Json::array([
+        {
+          "source": "../example.wac",
+          "dependencies": "../example",
+          "accepts": false,
+          "phase": "resolution",
+        },
+      ]),
+      Json::array([
+        {
+          "source": "example.wac",
+          "dependencies": "elsewhere",
+          "accepts": false,
+          "phase": "resolution",
+        },
+      ]),
+      Json::array([
+        {
+          "source": "example.wac",
+          "dependencies": "example",
+          "accepts": true,
+          "phase": "wat-provider",
+        },
+      ]),
+    ] {
+    let rejected = try {
+      ignore(corpus_cases(invalid))
+      false
+    } catch {
+      _ => true
+    }
+    assert_true(rejected)
+  }
+}

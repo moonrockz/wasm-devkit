@@ -1,0 +1,770 @@
+[
+  {
+    "source": "alias.wac",
+    "dependencies": "alias",
+    "accepts": true,
+    "phase": "resolution"
+  },
+  {
+    "source": "duplicate-world-item.wac",
+    "dependencies": "duplicate-world-item",
+    "accepts": true,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/borrow-in-func-result.wac",
+    "dependencies": "fail/borrow-in-func-result",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/duplicate-enum-case.wac",
+    "dependencies": "fail/duplicate-enum-case",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/duplicate-export.wac",
+    "dependencies": "fail/duplicate-export",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/duplicate-flag.wac",
+    "dependencies": "fail/duplicate-flag",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/duplicate-func-param.wac",
+    "dependencies": "fail/duplicate-func-param",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/duplicate-import.wac",
+    "dependencies": "fail/duplicate-import",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/duplicate-inst-args.wac",
+    "dependencies": "fail/duplicate-inst-args",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/duplicate-interface-export.wac",
+    "dependencies": "fail/duplicate-interface-export",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/duplicate-name-in-include.wac",
+    "dependencies": "fail/duplicate-name-in-include",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/duplicate-record-field.wac",
+    "dependencies": "fail/duplicate-record-field",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/duplicate-resource-constructor-param.wac",
+    "dependencies": "fail/duplicate-resource-constructor-param",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/duplicate-resource-constructor.wac",
+    "dependencies": "fail/duplicate-resource-constructor",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/duplicate-resource-method.wac",
+    "dependencies": "fail/duplicate-resource-method",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/duplicate-use-in-interface.wac",
+    "dependencies": "fail/duplicate-use-in-interface",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/duplicate-use-in-world.wac",
+    "dependencies": "fail/duplicate-use-in-world",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/duplicate-variant-case.wac",
+    "dependencies": "fail/duplicate-variant-case",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/duplicate-world-export.wac",
+    "dependencies": "fail/duplicate-world-export",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/duplicate-world-import.wac",
+    "dependencies": "fail/duplicate-world-import",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/expected-result-named.wac",
+    "dependencies": "fail/expected-result-named",
+    "accepts": false,
+    "phase": "wat-provider"
+  },
+  {
+    "source": "fail/expected-result-scalar.wac",
+    "dependencies": "fail/expected-result-scalar",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/export-conflict-alias.wac",
+    "dependencies": "fail/export-conflict-alias",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/export-conflict-interface.wac",
+    "dependencies": "fail/export-conflict-interface",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/export-conflict-type.wac",
+    "dependencies": "fail/export-conflict-type",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/export-conflict-world.wac",
+    "dependencies": "fail/export-conflict-world",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/export-dep-name.wac",
+    "dependencies": "fail/export-dep-name",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/export-duplicate-name.wac",
+    "dependencies": "fail/export-duplicate-name",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/export-hash-name.wac",
+    "dependencies": "fail/export-hash-name",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/export-invalid-name.wac",
+    "dependencies": "fail/export-invalid-name",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/export-needs-with.wac",
+    "dependencies": "fail/export-needs-with",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/export-url-name.wac",
+    "dependencies": "fail/export-url-name",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/fill-not-last.wac",
+    "dependencies": "fail/fill-not-last",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/func-results-not-present.wac",
+    "dependencies": "fail/func-results-not-present",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/func-results-present.wac",
+    "dependencies": "fail/func-results-present",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/import-duplicate-name.wac",
+    "dependencies": "fail/import-duplicate-name",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/import-id-span.wac",
+    "dependencies": "fail/import-id-span",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/import-invalid-name.wac",
+    "dependencies": "fail/import-invalid-name",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/inaccessible.wac",
+    "dependencies": "fail/inaccessible",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/invalid-alias.wac",
+    "dependencies": "fail/invalid-alias",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/invalid-borrow.wac",
+    "dependencies": "fail/invalid-borrow",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/invalid-func-type-ref.wac",
+    "dependencies": "fail/invalid-func-type-ref",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/invalid-use-alias.wac",
+    "dependencies": "fail/invalid-use-alias",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/invalid-use.wac",
+    "dependencies": "fail/invalid-use",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/invalid-value-type.wac",
+    "dependencies": "fail/invalid-value-type",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/invalid-world-export.wac",
+    "dependencies": "fail/invalid-world-export",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/invalid-world-import.wac",
+    "dependencies": "fail/invalid-world-import",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/invalid-world-include.wac",
+    "dependencies": "fail/invalid-world-include",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/invalid-world-interface-export.wac",
+    "dependencies": "fail/invalid-world-interface-export",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/invalid-world-interface-import.wac",
+    "dependencies": "fail/invalid-world-interface-import",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-async.wac",
+    "dependencies": "fail/mismatched-async",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-enum-cases.wac",
+    "dependencies": "fail/mismatched-enum-cases",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-enum-count.wac",
+    "dependencies": "fail/mismatched-enum-count",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-err-result-type.wac",
+    "dependencies": "fail/mismatched-err-result-type",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-flags-count.wac",
+    "dependencies": "fail/mismatched-flags-count",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-flags.wac",
+    "dependencies": "fail/mismatched-flags",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-func-param-name.wac",
+    "dependencies": "fail/mismatched-func-param-name",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-func-param-type.wac",
+    "dependencies": "fail/mismatched-func-param-type",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-func-params.wac",
+    "dependencies": "fail/mismatched-func-params",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-func-scalar-result.wac",
+    "dependencies": "fail/mismatched-func-scalar-result",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-kind.wac",
+    "dependencies": "fail/mismatched-kind",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-list-element.wac",
+    "dependencies": "fail/mismatched-list-element",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-ok-result-type.wac",
+    "dependencies": "fail/mismatched-ok-result-type",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-option.wac",
+    "dependencies": "fail/mismatched-option",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-record-field-count.wac",
+    "dependencies": "fail/mismatched-record-field-count",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-record-field-name.wac",
+    "dependencies": "fail/mismatched-record-field-name",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-record-field-type.wac",
+    "dependencies": "fail/mismatched-record-field-type",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-resource-types.wac",
+    "dependencies": "fail/mismatched-resource-types",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-tuple-size.wac",
+    "dependencies": "fail/mismatched-tuple-size",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-tuple-type.wac",
+    "dependencies": "fail/mismatched-tuple-type",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-variant-case-count.wac",
+    "dependencies": "fail/mismatched-variant-case-count",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-variant-case-name.wac",
+    "dependencies": "fail/mismatched-variant-case-name",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/mismatched-variant-case-type.wac",
+    "dependencies": "fail/mismatched-variant-case-type",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/missing-access-export.wac",
+    "dependencies": "fail/missing-access-export",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/missing-constructor.wac",
+    "dependencies": "fail/missing-constructor",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/missing-err-result-type.wac",
+    "dependencies": "fail/missing-err-result-type",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/missing-inst-arg.wac",
+    "dependencies": "fail/missing-inst-arg",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/missing-interface-export.wac",
+    "dependencies": "fail/missing-interface-export",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/missing-method.wac",
+    "dependencies": "fail/missing-method",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/missing-ok-result-type.wac",
+    "dependencies": "fail/missing-ok-result-type",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/missing-package-definition.wac",
+    "dependencies": "fail/missing-package-definition",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/missing-static-method.wac",
+    "dependencies": "fail/missing-static-method",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/missing-target-export.wac",
+    "dependencies": "fail/missing-target-export",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/missing-type-in-use.wac",
+    "dependencies": "fail/missing-type-in-use",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/missing-world-include-name.wac",
+    "dependencies": "fail/missing-world-include-name",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/no-err-result-type.wac",
+    "dependencies": "fail/no-err-result-type",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/no-import.wac",
+    "dependencies": "fail/no-import",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/no-ok-result-type.wac",
+    "dependencies": "fail/no-ok-result-type",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/non-instance-spread.wac",
+    "dependencies": "fail/non-instance-spread",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/package-invalid-wasm.wac",
+    "dependencies": "fail/package-invalid-wasm",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/package-not-component.wac",
+    "dependencies": "fail/package-not-component",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/package-not-wasm.wac",
+    "dependencies": "fail/package-not-wasm",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/redefined-name.wac",
+    "dependencies": "fail/redefined-name",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/self-instantiation.wac",
+    "dependencies": "fail/self-instantiation",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/spread-export-no-effect.wac",
+    "dependencies": "fail/spread-export-no-effect",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/spread-instantiation-no-match.wac",
+    "dependencies": "fail/spread-instantiation-no-match",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/target-export-mismatch.wac",
+    "dependencies": "fail/target-export-mismatch",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/target-extraneous-import.wac",
+    "dependencies": "fail/target-extraneous-import",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/target-import-mismatch-resource.wac",
+    "dependencies": "fail/target-import-mismatch-resource",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/target-import-mismatch.wac",
+    "dependencies": "fail/target-import-mismatch",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/target-import-param-name-mismatch.wac",
+    "dependencies": "fail/target-import-param-name-mismatch",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/target-import-param-type-mismatch.wac",
+    "dependencies": "fail/target-import-param-type-mismatch",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/target-import-unexpected-method.wac",
+    "dependencies": "fail/target-import-unexpected-method",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/target-is-not-a-world.wac",
+    "dependencies": "fail/target-is-not-a-world",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/targets-interface-use.wac",
+    "dependencies": "fail/targets-interface-use",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/targets-world-use.wac",
+    "dependencies": "fail/targets-world-use",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/type-decl-conflict.wac",
+    "dependencies": "fail/type-decl-conflict",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/undefined-name.wac",
+    "dependencies": "fail/undefined-name",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/unknown-package.wac",
+    "dependencies": "fail/unknown-package",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/unknown-target-path.wac",
+    "dependencies": "fail/unknown-target-path",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/unknown-targets-path.wac",
+    "dependencies": "fail/unknown-targets-path",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/variant-case-typed.wac",
+    "dependencies": "fail/variant-case-typed",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/variant-case-untyped.wac",
+    "dependencies": "fail/variant-case-untyped",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/windows-file.wac",
+    "dependencies": "fail/windows-file",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/world-include-conflict.wac",
+    "dependencies": "fail/world-include-conflict",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "fail/world-include-with-conflict.wac",
+    "dependencies": "fail/world-include-with-conflict",
+    "accepts": false,
+    "phase": "resolution"
+  },
+  {
+    "source": "import.wac",
+    "dependencies": "import",
+    "accepts": true,
+    "phase": "resolution"
+  },
+  {
+    "source": "let-statements.wac",
+    "dependencies": "let-statements",
+    "accepts": true,
+    "phase": "resolution"
+  },
+  {
+    "source": "no-imports.wac",
+    "dependencies": "no-imports",
+    "accepts": true,
+    "phase": "resolution"
+  },
+  {
+    "source": "package-import.wac",
+    "dependencies": "package-import",
+    "accepts": true,
+    "phase": "resolution"
+  },
+  {
+    "source": "package-use-item.wac",
+    "dependencies": "package-use-item",
+    "accepts": true,
+    "phase": "resolution"
+  },
+  {
+    "source": "package-world-include.wac",
+    "dependencies": "package-world-include",
+    "accepts": true,
+    "phase": "resolution"
+  },
+  {
+    "source": "package-world-item.wac",
+    "dependencies": "package-world-item",
+    "accepts": true,
+    "phase": "resolution"
+  },
+  {
+    "source": "resource.wac",
+    "dependencies": "resource",
+    "accepts": true,
+    "phase": "resolution"
+  },
+  {
+    "source": "targets-empty-world.wac",
+    "dependencies": "targets-empty-world",
+    "accepts": true,
+    "phase": "resolution"
+  },
+  {
+    "source": "targets-world.wac",
+    "dependencies": "targets-world",
+    "accepts": true,
+    "phase": "resolution"
+  },
+  {
+    "source": "types.wac",
+    "dependencies": "types",
+    "accepts": true,
+    "phase": "resolution"
+  },
+  {
+    "source": "wasip3-types.wac",
+    "dependencies": "wasip3-types",
+    "accepts": true,
+    "phase": "resolution"
+  }
+]

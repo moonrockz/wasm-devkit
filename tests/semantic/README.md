@@ -378,3 +378,11 @@ signature and nominal resource graph. The follow-up
 signatures and nominal captures. [29 hierarchical cases](wac-hierarchical-ascriptions/README.md)
 cover nested imported instances, sibling resource identities, re-exports and
 transitive composite-type captures.
+
+The [complete WAC resolution corpus](wac-upstream/README.md) retains all 128
+upstream groups and 191 original inputs. Four-target tests compare every accepted
+composition and type model, check deterministic results and provider ordering,
+and verify formatting preserves semantics. The host-reference gate compares
+actual filesystem-provider/CLI/API acceptance for all groups and validates all
+14 accepted composed components. It checks the complete resolver export-name map
+separately from the pinned encoder's last-name-per-node output.

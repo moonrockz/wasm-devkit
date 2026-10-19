@@ -127,6 +127,8 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = env::args().skip(2);
     let mut dependencies = Vec::new();
     let mut aggregate_imports = false;
+    let mut deps_dir = None;
+    let mut export_names = Vec::new();
     while let Some(flag) = args.next() {
         if flag == "--aggregate-imports" {
             if aggregate_imports {
@@ -135,9 +137,20 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             aggregate_imports = true;
             continue;
         }
+        if flag == "--deps-dir" {
+            if deps_dir.is_some() {
+                return Err("duplicate --deps-dir flag".into());
+            }
+            deps_dir = Some(args.next().ok_or("expected dependencies directory")?);
+            continue;
+        }
+        if flag == "--export-name" {
+            export_names.push(args.next().ok_or("expected export name")?);
+            continue;
+        }
         if flag != "--dependency" {
             return Err(
-                "usage: SOURCE [--aggregate-imports] [--dependency NAME[@VERSION] BINARY]..."
+                "usage: SOURCE [--aggregate-imports] [--export-name NAME]... [--deps-dir DIR | --dependency NAME[@VERSION] BINARY]..."
                     .into(),
             );
         }
@@ -155,15 +168,24 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
         dependencies.push((name, version, fs::read(binary)?));
     }
-    let packages = dependencies
-        .iter()
-        .map(|(name, version, bytes)| {
-            (
-                BorrowedPackageKey::from_name_and_version(name, version.as_ref()),
-                bytes.clone(),
-            )
-        })
-        .collect();
+    if deps_dir.is_some() && !dependencies.is_empty() {
+        return Err("--deps-dir cannot be combined with --dependency".into());
+    }
+    let packages = if let Some(root) = deps_dir {
+        let keys = wac_resolver::packages(&document)?;
+        wac_resolver::FileSystemPackageResolver::new(root, Default::default(), true)
+            .resolve(&keys)?
+    } else {
+        dependencies
+            .iter()
+            .map(|(name, version, bytes)| {
+                (
+                    BorrowedPackageKey::from_name_and_version(name, version.as_ref()),
+                    bytes.clone(),
+                )
+            })
+            .collect()
+    };
     let resolution = document.resolve(packages)?;
     let graph = resolution.graph();
     if aggregate_imports {
@@ -204,6 +226,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     println!(
         "{}",
         json!({
+            "queried_exports": export_names.iter().filter_map(|name| graph.get_export(name).map(|id| (name, id.to_string()))).collect::<Vec<_>>(),
             "types": types_json(graph.types()),
             "nodes": graph.node_ids().map(|id| {
                 let node = &graph[id];

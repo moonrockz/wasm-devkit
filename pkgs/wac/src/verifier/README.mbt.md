@@ -505,3 +505,11 @@ Original inputs and pinned acceptance tables are in
 [`tests/semantic/wac-wit-providers`](../../../../tests/semantic/wac-wit-providers/README.md).
 Focused tests compare package and composition structure, check independent resource
 binders, preserve provenance, and exercise 3,000 nested type levels.
+
+The [pinned upstream resolution corpus](../../../../tests/semantic/wac-upstream/README.md)
+retains all 128 groups and their original filesystem dependency layouts. All
+14 accepted groups compare complete type/composition projections, implicit
+imports, argument/member edges and the resolver export-name map. Four-target
+laws check deterministic results, independent provider ordering, formatting
+preservation/idempotence and returned model immutability. Host-reference CI checks
+all 128 actual provider/CLI/API outcomes and validates the accepted compositions.

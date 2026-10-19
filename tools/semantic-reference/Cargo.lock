@@ -622,6 +622,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "wac-resolver"
+version = "0.12.0"
+source = "git+https://github.com/bytecodealliance/wac?rev=5a7480c69ae7a4dc9eb161f485cbcb8c95e372c9#5a7480c69ae7a4dc9eb161f485cbcb8c95e372c9"
+dependencies = [
+ "anyhow",
+ "indexmap",
+ "log",
+ "miette",
+ "semver",
+ "thiserror",
+ "wac-parser",
+ "wac-types",
+ "wat",
+ "wit-component",
+ "wit-parser 0.258.0",
+]
+
+[[package]]
 name = "wac-types"
 version = "0.12.0"
 source = "git+https://github.com/bytecodealliance/wac?rev=5a7480c69ae7a4dc9eb161f485cbcb8c95e372c9#5a7480c69ae7a4dc9eb161f485cbcb8c95e372c9"
@@ -641,6 +659,7 @@ version = "0.0.0"
 dependencies = [
  "serde_json",
  "wac-parser",
+ "wac-resolver",
  "wac-types",
  "wit-component",
  "wit-parser 0.258.0",

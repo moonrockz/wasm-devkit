@@ -161,6 +161,14 @@ async fn main {
     }
     count += 1
   }
+  let (corpus_code, corpus_output, corpus_error) = @process.collect_output(
+    "moonx",
+    ["scripts/test-wac-corpus.mbtx", wasm_tools, wac],
+  )
+  if corpus_code != 0 {
+    fail("WAC corpus gate: " + corpus_error.text())
+  }
+  println(corpus_output.text().trim())
   println(
     "\{count} semantic fixture comparisons and \{models} normalized WIT world summaries passed",
   )

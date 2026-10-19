@@ -90,3 +90,11 @@ accepts automatically discovered WIT package directories, but rejects directorie
 passed through its file-only `--dep` override check. The encoder mode can encode
 either input directly; filesystem-provider comparisons must also run the actual
 WAC CLI to preserve that distinction.
+
+`wac-semantic-reference SOURCE --deps-dir DIRECTORY` uses the exact pinned
+`FileSystemPackageResolver` with WIT and WAT enabled and registry lookup disabled,
+then calls `Document::resolve`. It preserves provider errors before resolution.
+This mode cannot be combined with explicit `--dependency` arguments. Optional
+repeated `--export-name NAME` flags query `CompositionGraph::get_export`; the
+`queried_exports` array preserves all matching requested names and node IDs,
+including earlier names hidden by each node's last-export field.
