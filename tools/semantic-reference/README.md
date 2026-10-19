@@ -15,6 +15,16 @@ component imports and exports. The `nodes` projection retains definition, import
 instance and alias roles, package lookup keys, alias sources and instantiation
 arguments. Arguments are sorted by external name; node/type IDs require
 normalization before comparing implementations.
+
+`wac-semantic-reference SOURCE --aggregate-imports [--dependency NAME BINARY]...`
+passes the graph's ordered implicit and explicit import requirements to the pinned
+`wac_types::TypeAggregator`. It checks exact explicit/implicit name conflicts and
+returns the aggregated type arena, imports and canonical-name redirects. This
+isolates import merging from the encoder, which panics on some valid resource
+captures. Aggregation alone is not proof of a valid composition: the pinned
+aggregator can discard nested exports required by a consumer. Keep validating
+`wac compose` comparisons for final compatibility and nominal-resource checks.
+
 `wac-semantic-reference --package NAME BINARY [VERSION]` calls the pinned
 `wac_types::Package::from_bytes` API, returning the supplied package identity,
 component/instance IDs, definitions and type arenas. Record fields, variant

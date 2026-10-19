@@ -2,7 +2,7 @@
 use serde_json::{Value, json};
 use std::{env, fs};
 use wac_parser::Document;
-use wac_types::{BorrowedPackageKey, DefinedType, Package, Types};
+use wac_types::{BorrowedPackageKey, DefinedType, Package, SubtypeChecker, TypeAggregator, Types};
 
 fn types_json(types: &Types) -> Value {
     // JSON object keys cannot preserve core module import pairs. Ordered entry
@@ -77,9 +77,20 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let document = Document::parse(&source)?;
     let mut args = env::args().skip(2);
     let mut dependencies = Vec::new();
+    let mut aggregate_imports = false;
     while let Some(flag) = args.next() {
+        if flag == "--aggregate-imports" {
+            if aggregate_imports {
+                return Err("duplicate --aggregate-imports flag".into());
+            }
+            aggregate_imports = true;
+            continue;
+        }
         if flag != "--dependency" {
-            return Err("usage: SOURCE [--dependency NAME[@VERSION] BINARY]...".into());
+            return Err(
+                "usage: SOURCE [--aggregate-imports] [--dependency NAME[@VERSION] BINARY]..."
+                    .into(),
+            );
         }
         let key = args.next().ok_or("expected dependency name")?;
         let binary = args.next().ok_or("expected dependency binary path")?;
@@ -106,6 +117,41 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
     let resolution = document.resolve(packages)?;
     let graph = resolution.graph();
+    if aggregate_imports {
+        // Match graph::resolve_imports without invoking the component encoder.
+        // Public imports() yields implicit requirements before explicit imports.
+        let requests = graph.imports().collect::<Vec<_>>();
+        for (name, _, node) in &requests {
+            if node.is_none()
+                && requests
+                    .iter()
+                    .any(|(other, _, node)| node.is_some() && other == name)
+            {
+                return Err(
+                    format!("implicit import `{name}` conflicts with an explicit import").into(),
+                );
+            }
+        }
+        let mut aggregator = TypeAggregator::new();
+        let mut cache = Default::default();
+        let mut checker = SubtypeChecker::new(&mut cache);
+        for (name, kind, _) in &requests {
+            aggregator = aggregator.aggregate(name, graph.types(), *kind, &mut checker)?;
+        }
+        println!(
+            "{}",
+            json!({
+                "types": types_json(aggregator.types()),
+                "imports": aggregator.imports().collect::<Vec<_>>(),
+                "requests": requests.iter().map(|(name, _, node)| json!({
+                    "name": name,
+                    "canonical": aggregator.canonical_import_name(name),
+                    "explicit": node.map(|id| id.to_string()),
+                })).collect::<Vec<_>>()
+            })
+        );
+        return Ok(());
+    }
     println!(
         "{}",
         json!({
