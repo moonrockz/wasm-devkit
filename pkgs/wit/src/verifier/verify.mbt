@@ -951,6 +951,7 @@ fn verify_prepared(
         position: SourceSpan(first.ast.nodes[first.ast.nodes.length() - 1].span),
       },
       documents: prepared.documents,
+      encoded_packages: [],
       packages: prepared.identities,
       origins: ReadOnlyArray::from_array(arena.origins),
     })

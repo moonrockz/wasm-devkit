@@ -213,7 +213,7 @@ cat ./world.wit | wasm-devkit verify --language wit --base ./wit
 
 A WIT directory combines its immediate `*.wit` files. Dependencies come from the
 resolution base's `deps` directory by default. Each direct subdirectory is one
-package; direct `.wit` files are individual packages. Other files are ignored.
+package; direct `.wit`, `.wasm` and `.wat` files are individual packages. Other files are ignored.
 Nested dependency directories are not searched, matching the pinned WIT resolver.
 
 The resolution base defaults to the input directory, or to a file's parent directory.
@@ -223,8 +223,15 @@ packages with the same declared identity. A mapping must match the loaded packag
 name and optional version. Version references match exactly; an unversioned reference
 does not fall back to a versioned package.
 
-WAC dependency providers and encoded WIT packages remain explicit unsupported errors
-while the remaining issue #5 tasks are implemented. Source files are never rewritten.
+`verify package.wasm` and `verify package.wat` select WIT automatically. Encoded
+inputs also work through `deps` discovery and `--dep` mappings. The current strict
+v2 profile supports named value types, bare resources, freestanding functions and
+world function/instance imports and exports. Its [exact encoding limitations](../../pkgs/wit/src/verifier/README.mbt.md#current-profile)
+include nonempty package metadata, resource methods and foreign type aliases.
+The portable WAT frontend does not accept `@custom` or `@producers` syntax.
+Unsupported forms return a diagnostic and exit 1. Missing files and provider I/O
+failures return exit 2. WAC dependency providers remain unfinished under issue #5.
+Source and encoded inputs are never rewritten.
 
 WIT files may also contain top-level dependency package blocks after the main
 package header. For example, `package example:app;` may be followed by declarations

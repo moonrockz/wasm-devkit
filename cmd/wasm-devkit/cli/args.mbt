@@ -10,7 +10,8 @@ pub let help : String =
   #|Usage: wasm-devkit <parse|verify|ast|cst|tokens|print|format> [FILE|-] [OPTIONS]
   #|       wasm-devkit --help | --version
   #|
-  #|Language: inferred from .wit/.wac, or --language wit|wac (required for stdin).
+  #|Language: inferred from .wit/.wac; verify also accepts .wasm/.wat as WIT.
+  #|Use --language wit|wac for stdin.
   #|Input defaults to stdin. Output goes to stdout; diagnostics go to stderr.
   #|
   #|Options:
@@ -213,7 +214,11 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
   let language = match language {
     Some(value) => value
     None =>
-      if path.has_suffix(".wit") {
+      if path.has_suffix(".wit") ||
+        (
+          command == Verify &&
+          (path.has_suffix(".wasm") || path.has_suffix(".wat"))
+        ) {
         Wit
       } else if path.has_suffix(".wac") {
         Wac

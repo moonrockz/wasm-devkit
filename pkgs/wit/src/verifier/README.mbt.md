@@ -65,9 +65,26 @@ gates, while a foreign imported type retains its first selector's annotation.
 Foreign interface/world kind checks occur before selection. Source order can
 therefore affect which foreign gates and anonymous type annotations take precedence.
 
-Encoded packages and other attributes still fail explicitly
-under `WIT-S003`. Their implementation
-continues under [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
+Encoded package loading has an initial, strict v2 type-wrapper profile. Use
+`decode_package` for bytes or `decode_wat_package` for component WAT, then pass
+`PackageInput::Encoded` to `resolve_packages`. Source packages use
+`PackageInput::Source`. These operations perform no I/O. Supported encoded
+interfaces contain exported named scalar/composite types, records, flags, enums,
+variants, bare resources and freestanding functions. Worlds contain function or
+instance imports/exports; qualified instances must match a supplied interface in
+the same encoded package. An instance with an ordinary name becomes an inline
+interface. Component type indices include aliases introduced by type exports.
+
+The initial profile rejects v1 packages, outer/instance aliases, wrapper imports,
+foreign or structurally different world instances, resource methods/accessors,
+anonymous structural types, name attributes and export ascriptions. Missing or
+empty version-1 `package-docs` metadata is accepted. Nonempty metadata is rejected
+until its distinct binary stability rules are implemented. WAT uses the portable
+frontend from `Milky2018/wasm_component@0.16.0`; its unsupported `@custom` and
+`@producers` forms return errors. Physical WAT nesting is limited to 256 before
+that frontend runs. Expanded value types have a one-million-step decoding limit.
+These limitations remain under [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
+Other unsupported source attributes still fail under `WIT-S003`.
 A successful result covers the entire supported input. An unsupported or unresolved
 construct never yields a `Verified` model.
 
@@ -101,6 +118,44 @@ test "verify syntax separately from semantics" {
   assert_eq(errors[0].primary.location.source, "api.wit")
 }
 ```
+
+## Encoded dependencies
+
+```mbt check
+///|
+test "resolve an encoded dependency without publishing generated source" {
+  let wat = "(component (type (component (type (instance (type u32) (export \"id\" (type (eq 0))))) (export \"example:dep/api\" (instance (type 0))))) (export \"api\" (type 0)))"
+  let encoded = @verifier.decode_wat_package(wat, source_id="dep.wat").unwrap()
+  let text = "package example:app;interface api{use example:dep/api.{id};}"
+  let source = @verifier.SourcePackage::{
+    documents: [
+      @verifier.Document::from_parse("app.wit", text, @parser.parse(text)),
+    ],
+  }
+  let model = @verifier.resolve_packages(Source(source), dependencies=[
+    Encoded(encoded),
+  ]).unwrap()
+  assert_eq(model.sources().length(), 1)
+  assert_eq(model.sources()[0].id, "app.wit")
+  assert_eq(model.binaries()[0].source(), "dep.wat")
+  assert_true(
+    model
+    .types()
+    .any(ty => {
+      ty.name == Some("id") && ty.location.position == BinaryOffset(None)
+    }),
+  )
+}
+```
+
+`Resolution::sources()` contains only caller-supplied original text and ASTs.
+`binaries()` retains immutable encoded inputs; for WAT, `bytes()` returns compiled
+bytes. The decoder's private lowering is never returned as original syntax.
+Encoded origins have `node=None` and byte-based locations with no invented span.
+WAT errors never report offsets in compiled bytes as positions in the WAT text.
+`WIT-B001` reports malformed binary framing, `WIT-B002` unsupported forms,
+`WIT-B003` component validation errors, and `WIT-B004` invalid WIT package shape.
+Semantic errors discovered during closure resolution retain their `WIT-S` codes.
 
 ## Contracts
 

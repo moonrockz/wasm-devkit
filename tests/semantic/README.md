@@ -1,10 +1,10 @@
 # Semantic reference fixtures
 
-These are original Apache-2.0 fixture sources for the initial verifier API path.
+These are original Apache-2.0 fixtures for the initial verifier API path.
 They are a seed suite, not the complete upstream conformance gate required by issue #5.
 No upstream fixture sources are copied here yet.
 
-`manifest.tsv` records acceptance and SHA-256 over the exact source bytes. For a
+`manifest.tsv` records acceptance and SHA-256 over the exact input bytes. For a
 directory bundle, the digest covers each sorted relative file name, a NUL separator
 and its bytes, including files intentionally ignored by source discovery. Each file
 is passed unchanged to the reference semantic resolver and the wasm-devkit CLI.
@@ -35,7 +35,7 @@ mise run test:semantics -- /path/to/wasm-tools /path/to/wac
 
 The WIT grammar fixture pin predates this semantic reference; these seed cases use
 syntax shared by both revisions. The WAC grammar and semantic revisions are identical.
-The complete source/dependency corpus, normalized model comparison, binary fixtures,
+The complete source/dependency corpus, full normalized model comparison, complete binary coverage,
 feature profiles and justified exclusions remain tracked in Beads
 `wasm-devkit-p5m.8.1.7` and `wasm-devkit-p5m.8.2.7`.
 
@@ -81,3 +81,15 @@ and annotated resource functions, world items, use selectors and includes.
 Feature profiles exercise inactive declarations, surviving references and owners,
 borrowed results, accessor validation order, use/include/package boundaries,
 anonymous interning and dependency/source allocation order.
+
+Encoded fixtures include equivalent original source, binary and WAT packages,
+named composites, async functions, nominal resource aliases, inline world interfaces,
+local encoded dependencies, truncated bytes, invalid component type indices,
+fixed-list bounds and memory64 layout overflow including aggregate padding.
+Binary fixtures were generated from the original sources with the pinned
+`wasm-tools component wit --wasm` encoder. The WAT case contains the same type
+sections without custom metadata, within the portable frontend's current profile.
+The runner passes `.wasm` and `.wat` inputs unchanged to both reference tools and
+the product CLI, and compares world/resource summaries. Nonempty binary metadata,
+resource methods and cross-package encoded aliases remain outside this initial
+profile; their implementation remains on `wasm-devkit-p5m.8.1.5`.

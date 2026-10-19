@@ -4,7 +4,8 @@
 components or accessing files, networks or subprocesses. A `ValidatedComponent`
 retains immutable bytes. It proves component validation within the documented
 encoding boundary. It does not prove WIT package reconstruction or dependency
-resolution, which remain under [issue #5](https://github.com/moonrockz/wasm-devkit/issues/5).
+resolution. The [verifier](../verifier/README.mbt.md#encoded-dependencies) performs
+those separate operations within its documented encoded-package profile.
 
 The boundary admits component preamble version 13, layer 1, and custom, component
 type and component export sections. Component/instance type declarations, aliases,
@@ -12,7 +13,11 @@ imports and exports are framed with explicit work stacks. Physical type-scope
 nesting is limited to 256 before the dependency parser runs. Core declarations,
 core module descriptions and other root sections return an unsupported-encoding
 diagnostic. Type indices and component type semantics then validate through
-`Milky2018/wasm_component/validator` pinned at `0.16.0`.
+`Milky2018/wasm_component/validator` pinned at `0.16.0`. A further explicit-stack
+pass enforces the pinned wasmparser memory64 value-layout limit, below 2^28 bytes,
+including record/variant padding, fixed lists and aliases across scopes. Fixed
+lists contain 1 through 1,073,741,824 elements and must also fit that byte limit.
+Records, tuples, variants and enums are limited to 10,000 fields or cases.
 
 The dependency's mutable parsed model never escapes this package. The original
 `Bytes` value is immutable. `WIT-B001` reports malformed framing, encoding or UTF-8;

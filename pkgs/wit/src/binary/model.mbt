@@ -36,6 +36,7 @@ pub fn validate_type_component(
     @validation.validate_component(component) catch {
       error => raise Failure(None, "WIT-B003", error.to_string())
     }
+    validate_layouts(component)
     Ok({ bytes, })
   } catch {
     Failure(offset, code, message) =>

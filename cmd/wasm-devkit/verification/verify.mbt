@@ -42,7 +42,7 @@ async fn read_document(
 }
 
 ///|
-async fn load_package(
+async fn load_source_package(
   path : String,
   features : @parser.Features,
 ) -> @verifier.SourcePackage {
@@ -61,13 +61,23 @@ async fn load_package(
 }
 
 ///|
-fn unsupported(path : String) -> @verifier.Diagnostic {
-  let message = "encoded WIT package loading is not yet supported"
-  {
-    code: "WIT-S003",
-    message,
-    primary: { location: @verifier.Location::binary(path), message, },
-    related: [],
+async fn load_package(
+  path : String,
+  features : @parser.Features,
+) -> Result[@verifier.PackageInput, ReadOnlyArray[@verifier.Diagnostic]] {
+  if @fs.kind(path) is Directory {
+    Ok(Source(load_source_package(path, features)))
+  } else if path.has_suffix(".wasm") {
+    @verifier.decode_package(@fs.read_file(path).binary(), source_id=path).map(input => {
+      @verifier.PackageInput::Encoded(input)
+    })
+  } else if path.has_suffix(".wat") {
+    let text = @utf8.decode(@fs.read_file(path).binary(), ignore_bom=false)
+    @verifier.decode_wat_package(text, source_id=path).map(input => {
+      @verifier.PackageInput::Encoded(input)
+    })
+  } else {
+    Ok(Source(load_source_package(path, features)))
   }
 }
 
@@ -84,7 +94,7 @@ async fn wit(options : @cli.Options) -> @cli.Output {
   )
   let root = if options.path == "-" {
     let text = @utf8.decode(@stdio.stdin.read_all().binary(), ignore_bom=false)
-    @verifier.SourcePackage::{
+    @verifier.PackageInput::Source({
       documents: [
         @verifier.Document::from_parse(
           "<stdin>",
@@ -92,13 +102,19 @@ async fn wit(options : @cli.Options) -> @cli.Output {
           @parser.parse(text, features~),
         ),
       ],
-    }
-  } else if options.path.has_suffix(".wasm") || options.path.has_suffix(".wat") {
-    return output("", unsupported(options.path).render(), 1)
+    })
   } else {
-    load_package(options.path, features)
+    match load_package(options.path, features) {
+      Ok(input) => input
+      Err(diagnostics) =>
+        return output(
+          "",
+          diagnostics.map(diagnostic => diagnostic.render()).iter().join(""),
+          1,
+        )
+    }
   }
-  let dependencies : Array[@verifier.SourcePackage] = []
+  let dependencies : Array[@verifier.PackageInput] = []
   let errors : Array[@verifier.Diagnostic] = []
   let deps_dir = relative(base, options.deps_dir.unwrap_or("deps"))
   if @fs.exists(deps_dir) {
@@ -107,10 +123,14 @@ async fn wit(options : @cli.Options) -> @cli.Output {
     }
     for entry in @fs.readdir(deps_dir, sort=true) {
       let path = relative(deps_dir, entry)
-      if @fs.kind(path) is Directory || entry.has_suffix(".wit") {
-        dependencies.push(load_package(path, features))
-      } else if entry.has_suffix(".wasm") || entry.has_suffix(".wat") {
-        errors.push(unsupported(path))
+      if @fs.kind(path) is Directory ||
+        entry.has_suffix(".wit") ||
+        entry.has_suffix(".wasm") ||
+        entry.has_suffix(".wat") {
+        match load_package(path, features) {
+          Ok(input) => dependencies.push(input)
+          Err(diagnostics) => errors.append(diagnostics.iter().to_array())
+        }
       }
     }
   } else if options.deps_dir is Some(_) {
@@ -122,11 +142,13 @@ async fn wit(options : @cli.Options) -> @cli.Output {
     if !@fs.exists(path) {
       return output("", path + ": dependency mapping does not exist\n", 2)
     }
-    if path.has_suffix(".wasm") || path.has_suffix(".wat") {
-      errors.push(unsupported(path))
-      continue
+    let package_input = match load_package(path, features) {
+      Ok(input) => input
+      Err(diagnostics) => {
+        errors.append(diagnostics.iter().to_array())
+        continue
+      }
     }
-    let package_input = load_package(path, features)
     match package_input.identity() {
       Err(diagnostics) => errors.append(diagnostics.iter().to_array())
       Ok(identity) => {
@@ -140,12 +162,16 @@ async fn wit(options : @cli.Options) -> @cli.Output {
             source: path,
             position: SourceSpan({ start: 0, end: 0, }),
           }
-          for document in package_input.documents {
-            for node in document.ast.nodes {
-              if node.data is Package(nested=false, ..) {
-                location = @verifier.Location::text(document.id, node.span)
+          match package_input {
+            Source(source_package) =>
+              for document in source_package.documents {
+                for node in document.ast.nodes {
+                  if node.data is Package(nested=false, ..) {
+                    location = @verifier.Location::text(document.id, node.span)
+                  }
+                }
               }
-            }
+            Encoded(_) => location = @verifier.Location::binary(path)
           }
           errors.push({
             code: "WIT-S011",
@@ -171,8 +197,10 @@ async fn wit(options : @cli.Options) -> @cli.Output {
   }
   let sources : Array[(String, String)] = []
   for package_input in [root].iter().concat(dependencies.iter()) {
-    for document in package_input.documents {
-      sources.push((document.id, document.text))
+    if package_input is Source(source_package) {
+      for document in source_package.documents {
+        sources.push((document.id, document.text))
+      }
     }
   }
   if !errors.is_empty() {
@@ -186,7 +214,7 @@ async fn wit(options : @cli.Options) -> @cli.Output {
     )
   }
   match
-    @verifier.resolve(
+    @verifier.resolve_packages(
       root,
       dependencies=ReadOnlyArray::from_array(dependencies),
       semantic_features={

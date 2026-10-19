@@ -1,4 +1,7 @@
 import {
+  "Milky2018/wasm_component" @component,
+  "Milky2018/wasm_component/text" @component_text,
+  "moonbitlang/core/encoding/utf8",
   "moonrockz/wit/ast",
   "moonrockz/wit/binary",
   "moonrockz/wit/parser",

@@ -11,7 +11,13 @@ import {
 }
 
 // Values
+pub fn decode_package(Bytes, source_id? : String) -> Result[EncodedPackage, ReadOnlyArray[Diagnostic]]
+
+pub fn decode_wat_package(String, source_id? : String) -> Result[EncodedPackage, ReadOnlyArray[Diagnostic]]
+
 pub fn resolve(SourcePackage, dependencies? : ReadOnlyArray[SourcePackage], semantic_features? : SemanticFeatures) -> Result[Resolution, ReadOnlyArray[Diagnostic]]
+
+pub fn resolve_packages(PackageInput, dependencies? : ReadOnlyArray[PackageInput], semantic_features? : SemanticFeatures) -> Result[Resolution, ReadOnlyArray[Diagnostic]]
 
 pub fn verify(@parser.Parse, source_id? : String, source~ : String, semantic_features? : SemanticFeatures) -> Result[Verified, ReadOnlyArray[Diagnostic]]
 
@@ -49,6 +55,15 @@ pub(all) struct Document {
   diagnostics : ReadOnlyArray[@diagnostic.Diagnostic]
 }
 pub fn Document::from_parse(String, String, @parser.Parse) -> Self
+
+pub struct EncodedPackage {
+  source_id : String
+  bytes : Bytes
+  lowered : SourcePackage
+}
+pub fn EncodedPackage::bytes(Self) -> Bytes
+pub fn EncodedPackage::identity(Self) -> PackageIdentity
+pub fn EncodedPackage::source(Self) -> String
 
 pub(all) enum FunctionFlavor {
   Plain
@@ -107,6 +122,12 @@ pub fn PackageIdentity::key(Self) -> String
 pub fn PackageIdentity::not_equal(Self, Self) -> Bool
 pub fn PackageIdentity::to_repr(Self) -> @debug.Repr
 
+pub(all) enum PackageInput {
+  Source(SourcePackage)
+  Encoded(EncodedPackage)
+}
+pub fn PackageInput::identity(Self) -> Result[PackageIdentity, ReadOnlyArray[Diagnostic]]
+
 pub(all) enum Position {
   SourceSpan(@span.Span)
   BinaryOffset(Int?)
@@ -118,6 +139,7 @@ pub fn Position::to_repr(Self) -> @debug.Repr
 pub struct Resolution {
   // private fields
 }
+pub fn Resolution::binaries(Self) -> ReadOnlyArray[EncodedPackage]
 pub fn Resolution::declarations(Self) -> ReadOnlyArray[Binding]
 pub fn Resolution::functions(Self) -> ReadOnlyArray[ResolvedFunction]
 pub fn Resolution::identities(Self) -> ReadOnlyArray[PackageIdentity]

@@ -71,7 +71,9 @@ available for invalid input, and the CST always reconstructs the original text.
 
 `wasm-devkit verify api.wit` and `wasm-devkit verify app.wac` check the current
 semantic profiles. WIT source-package dependencies also work through
-`wasm-devkit verify ./wit --language wit`, with local dependency roots and explicit mappings. Syntax acceptance remains available through `parse` and `check`.
+`wasm-devkit verify ./wit --language wit`, with local dependency roots and explicit mappings. Encoded WIT `.wasm` and `.wat`
+packages have an initial strict v2 profile through the same provider paths. Syntax
+acceptance remains available through `parse` and `check`.
 See the [WIT verifier](pkgs/wit/src/verifier/README.mbt.md) and
 [WAC verifier](pkgs/wac/src/verifier/README.mbt.md) for checked examples and exact scope.
 Unsupported semantic constructs fail explicitly. Full dependency and component verification

@@ -38,6 +38,7 @@ pub struct Resolution {
   priv model : SemanticModel
   priv root_location : Location
   priv documents : ReadOnlyArray[Document]
+  priv encoded_packages : ReadOnlyArray[EncodedPackage]
   priv packages : ReadOnlyArray[PackageIdentity]
   priv origins : ReadOnlyArray[Origin]
 }
@@ -60,6 +61,12 @@ pub fn Resolution::declarations(self : Resolution) -> ReadOnlyArray[Binding] {
 ///|
 pub fn Resolution::sources(self : Resolution) -> ReadOnlyArray[Document] {
   self.documents
+}
+
+///|
+/// Encoded inputs retain immutable bytes and caller-supplied provider identities.
+pub fn Resolution::binaries(self : Resolution) -> ReadOnlyArray[EncodedPackage] {
+  self.encoded_packages
 }
 
 ///|

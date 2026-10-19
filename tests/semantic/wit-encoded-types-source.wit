@@ -1,0 +1,30 @@
+package example:types@1.0.0;
+interface api {
+  type scalar = u32;
+  type alias = scalar;
+  type bytes = list<u8>;
+  type fixed = list<u8, 4>;
+  type pair = tuple<u8, string>;
+  type maybe = option<pair>;
+  type answer = result<pair, string>;
+  type no-ok = result<_, string>;
+  type no-err = result<pair>;
+  type empty-result = result;
+  type later = future<bytes>;
+  type later-none = future;
+  type flow = stream<scalar>;
+  type flow-none = stream;
+  type table = map<string, bytes>;
+  flags options { a, b }
+  enum side { left, right }
+  variant value { empty, number(u32), pair(pair) }
+  resource token;
+  type alias-token = token;
+  take: async func(token: own<token>, view: borrow<token>, value: value) -> answer;
+}
+world app {
+  import api;
+  export api;
+  import host: interface { resource item; get: func() -> item; }
+  export run: func(x: string) -> u32;
+}
