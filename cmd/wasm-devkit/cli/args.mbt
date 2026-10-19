@@ -186,6 +186,9 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
       world = Some(args[at])
     } else if !literal && arg == "--json" {
       json = true
+    } else if !literal && arg.has_prefix("--semantic-feature=") {
+      let start = "--semantic-feature=".length()
+      semantic_features.push(arg[start:].to_owned())
     } else if !literal && arg == "--semantic-feature" {
       at += 1
       if at == args.length() || args[at].is_empty() || args[at].has_prefix("-") {

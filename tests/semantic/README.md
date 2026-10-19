@@ -90,8 +90,7 @@ Binary fixtures were generated from the original sources with the pinned
 `wasm-tools component wit --wasm` encoder. The WAT case contains the same type
 sections without custom metadata, within the portable frontend's current profile.
 The runner passes `.wasm` and `.wat` inputs unchanged to both reference tools and
-the product CLI, and compares world/resource summaries. Nonempty binary metadata,
-world-owned resource members and cross-package encoded aliases remain outside this initial
+the product CLI, and compares world/resource summaries. World-owned resource members and cross-package encoded aliases remain outside this initial
 profile; their implementation remains on `wasm-devkit-p5m.8.1.5`.
 
 Encoded resource-function fixtures compare default/fallible constructors,
@@ -101,3 +100,12 @@ Binary setters require preceding matching getters; binary getter and setter
 property types must agree even where source resolution alone accepts a mismatch.
 These cases retain exact bytes and use the same pinned binary validator and
 Resolve API operation as the corresponding positive packages.
+
+Metadata cases cover version 0/1 JSON, all stability variants, raw feature strings,
+future stable versions, dictionary and struct duplicates, overwritten schema errors,
+missing targets and aggregate members, inline import/export precedence and source
+packages consuming gated binary dependencies. They include deeply nested ignored
+values, ignored unpaired surrogates/invalid UTF-8 and huge numbers accepted by the
+pinned serde loader. Required strings still reject invalid Unicode and UTF-8.
+Library tests also compare function selection, retained declaration stability,
+anonymous receiver stability and binary provenance, beyond the world projection.

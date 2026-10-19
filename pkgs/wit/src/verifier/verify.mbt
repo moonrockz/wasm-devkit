@@ -55,12 +55,15 @@ fn verify_prepared(
   prepared : Prepared,
   semantic_features : SemanticFeatures,
   binary_sources~ : Map[String, Bool] = Map([]),
+  binary_metadata~ : Map[Int32, Stability] = Map([]),
 ) -> Result[Resolution, ReadOnlyArray[Diagnostic]] {
   let tree = prepared.tree
   let errors : Array[Diagnostic] = []
-  let stabilities = ReadOnlyArray::from_array(
-    parse_stabilities(prepared, errors),
-  )
+  let stability_values = parse_stabilities(prepared, errors)
+  for (id, value) in binary_metadata {
+    stability_values[id] = { value, origin: None, }
+  }
+  let stabilities = ReadOnlyArray::from_array(stability_values)
   let bad = fn(id : Int32, code : String, message : String) {
     errors.push(prepared_error(prepared, id, code, message))
   }
@@ -874,7 +877,12 @@ fn verify_prepared(
     return Err(dependency_chains(prepared, package_edges, errors))
   }
   let arena = SemanticArena::new(
-    prepared, edges, resources, stabilities, interface_edges,
+    prepared,
+    edges,
+    resources,
+    stabilities,
+    interface_edges,
+    binary_sources~,
   )
   verify_interface_accessors(arena, errors)
   if !errors.is_empty() {
@@ -888,6 +896,7 @@ fn verify_prepared(
     semantic_features,
     foreign.versions,
     errors,
+    binary_sources~,
   )
   verify_handles(prepared, edges, selection.functions, errors)
   for (owner, target, at, _) in includes {

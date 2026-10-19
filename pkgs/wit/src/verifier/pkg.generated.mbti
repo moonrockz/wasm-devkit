@@ -57,9 +57,7 @@ pub(all) struct Document {
 pub fn Document::from_parse(String, String, @parser.Parse) -> Self
 
 pub struct EncodedPackage {
-  source_id : String
-  bytes : Bytes
-  lowered : SourcePackage
+  // private fields
 }
 pub fn EncodedPackage::bytes(Self) -> Bytes
 pub fn EncodedPackage::identity(Self) -> PackageIdentity

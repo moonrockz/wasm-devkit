@@ -32,6 +32,7 @@ priv struct Selection {
   functions : ReadOnlyArray[Bool]
   types : ReadOnlyArray[Bool]
   features : SemanticFeatures
+  binary_sources : Map[String, Bool]
 }
 
 ///|
@@ -64,10 +65,25 @@ fn select_features(
   features : SemanticFeatures,
   foreign_versions : ReadOnlyArray[Bool],
   errors : Array[Diagnostic],
+  binary_sources~ : Map[String, Bool] = Map([]),
 ) -> Selection {
   let tree = prepared.tree
   let owners = lexical_owners(tree)
   let nodes = infos.map(info => features.includes(info.value)).iter().to_array()
+  for id, node in tree.nodes {
+    if binary_sources.contains(prepared.origins[id].location.source) {
+      let interface_function = owners[id] >= 0 &&
+        tree.nodes[owners[id]].data is Interface(..) &&
+        (
+          node.data is Function(..) ||
+          node.data is Signature(..) ||
+          node.data is Constructor(..)
+        )
+      if !interface_function {
+        nodes[id] = true
+      }
+    }
+  }
   let functions = Array::make(tree.nodes.length(), false)
   let relevant = Array::make(tree.nodes.length(), false)
   for id, node in tree.nodes {
@@ -117,7 +133,10 @@ fn select_features(
   let selected_types = Array::make(arena.origins.length(), false)
   let witnesses = Array::make(arena.origins.length(), -2)
   for id in arena.type_order {
-    selected_types[id] = features.includes(arena.types[id].stability)
+    selected_types[id] = binary_sources.contains(
+        arena.types[id].location.source,
+      ) ||
+      features.includes(arena.types[id].stability)
   }
   // Every graph edge is visited once. Bridge nodes used by the source-backed
   // public graph propagate availability without becoming extra global checks.
@@ -235,6 +254,7 @@ fn select_features(
     functions: ReadOnlyArray::from_array(functions),
     types,
     features,
+    binary_sources,
   }
 }
 
@@ -269,7 +289,10 @@ fn filter_world_items(
           }
           Function(function) => selection.functions[function]
           Interface(interface_) => {
-            let enabled = selection.features.includes(item.stability)
+            let enabled = selection.binary_sources.contains(
+                item.location.source,
+              ) ||
+              selection.features.includes(item.stability)
             if enabled && !selection.nodes[interface_] {
               errors.push(unavailable(prepared, arena, id, interface_))
             }

@@ -263,3 +263,15 @@ test "world selection is explicit and summaries contain no arena indices" {
     assert_true(@cli.arguments(args[:]) is Err(_))
   }
 }
+
+///|
+test "explicit feature values retain raw encoded metadata names" {
+  let parsed = options([
+    "verify", "api.wasm", "--semantic-feature=", "--semantic-feature=-preview", "--semantic-feature=😀",
+  ])
+  assert_eq(parsed.semantic_features, ["", "-preview", "😀"])
+  assert_false(parsed.all_features)
+  assert_true(
+    @cli.arguments(["verify", "api.wac", "--semantic-feature="]) is Err(_),
+  )
+}

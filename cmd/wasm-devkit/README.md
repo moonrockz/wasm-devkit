@@ -228,7 +228,11 @@ inputs also work through `deps` discovery and `--dep` mappings. The current stri
 v2 profile supports named value types, resources and their function/accessor
 contracts, freestanding functions and
 world function/instance imports and exports. Its [exact encoding limitations](../../pkgs/wit/src/verifier/README.mbt.md#current-profile)
-include nonempty package metadata, world-owned resource members and foreign type aliases.
+include world-owned resource members and foreign type aliases. Binary metadata
+versions 0/1 retain stability and validate referenced items. Interface functions
+follow semantic feature selection; binary types, worlds and world items remain
+present under their own binary-loader rules. Use `--semantic-feature=VALUE` for
+raw binary feature names that are empty or begin with `-`.
 The portable WAT frontend does not accept `@custom` or `@producers` syntax.
 Unsupported forms return a diagnostic and exit 1. Missing files and provider I/O
 failures return exit 2. WAC dependency providers remain unfinished under issue #5.

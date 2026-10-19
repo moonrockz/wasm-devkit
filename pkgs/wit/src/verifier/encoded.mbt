@@ -3,9 +3,10 @@
 /// whole component and consumes every WIT export; unsupported forms fail closed.
 /// The private lowering never appears in Resolution::sources or source origins.
 pub struct EncodedPackage {
-  source_id : String
-  bytes : Bytes
-  lowered : SourcePackage
+  priv source_id : String
+  priv bytes : Bytes
+  priv lowered : SourcePackage
+  priv metadata : Map[Int32, Stability]
 }
 
 ///|
@@ -43,7 +44,7 @@ pub fn decode_package(
     let component = @component.parse_component(bytes) catch {
       _ => raise Invalid("validated component could not be read")
     }
-    let text = lower_encoded(component)
+    let (text, metadata_bytes) = lower_encoded(component)
     let parsed = @parser.parse(text, features=@parser.Features::reference())
     guard parsed.is_valid() else {
       raise Invalid("decoded package cannot be represented by the WIT grammar")
@@ -54,7 +55,11 @@ pub fn decode_package(
     guard lowered.identity() is Ok(_) else {
       raise Invalid("invalid decoded package identity")
     }
-    Ok({ source_id, bytes, lowered, })
+    let metadata : Map[Int32, Stability] = match metadata_bytes {
+      None => Map([])
+      Some(bytes) => metadata_read(bytes, lowered)
+    }
+    Ok({ source_id, bytes, lowered, metadata, })
   } catch {
     Unsupported(message) =>
       Err([error_at(Location::binary(source_id), "WIT-B002", message)])
@@ -195,8 +200,26 @@ pub fn resolve_packages(
   let result = match
     prepare(root.lowered(), dependencies.map(PackageInput::lowered)) {
     Err(errors) => Err(errors)
-    Ok(prepared) =>
-      verify_prepared(prepared, semantic_features, binary_sources=binaries)
+    Ok(prepared) => {
+      let metadata : Map[Int32, Stability] = Map([])
+      let inputs : Map[String, EncodedPackage] = Map([])
+      for input in encoded_inputs {
+        inputs[input.source_id] = input
+      }
+      for id, origin in prepared.origins {
+        if inputs.get(origin.location.source) is Some(input) &&
+          origin.node is Some(node) &&
+          input.metadata.get(node) is Some(value) {
+          metadata[id] = value
+        }
+      }
+      verify_prepared(
+        prepared,
+        semantic_features,
+        binary_sources=binaries,
+        binary_metadata=metadata,
+      )
+    }
   }
   match result {
     Err(errors) =>

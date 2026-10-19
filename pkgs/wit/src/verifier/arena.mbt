@@ -35,11 +35,17 @@ fn SemanticArena::new(
   resources : ReadOnlyArray[Int32],
   stabilities : ReadOnlyArray[StabilityInfo],
   interface_edges : Array[(Int32, Int32, Int32)],
+  binary_sources~ : Map[String, Bool] = Map([]),
 ) -> SemanticArena {
   let scopes = lexical_owners(prepared.tree)
   let origins = prepared.origins.iter().to_array()
   let type_stabilities = type_stabilities(
-    prepared, references, resources, stabilities, interface_edges,
+    prepared,
+    references,
+    resources,
+    stabilities,
+    interface_edges,
+    binary_sources~,
   )
   let types = resolved_types(
       prepared.tree,

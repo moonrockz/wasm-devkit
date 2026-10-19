@@ -259,5 +259,47 @@ async fn main {
   let (method_summary, _) = run(["verify", encoded_methods, "--json"], 0, wit)
   assert_true(method_summary.contains("example:methods/files@1.0.0#file"))
   assert_eq(@fs.read_file(encoded_methods).binary(), encoded_method_bytes)
+  let metadata_file = dir + "/metadata.wasm"
+  let metadata_bytes = @fs.read_file(
+    "tests/semantic/wit-encoded-metadata-world.wasm",
+  ).binary()
+  @fs.write_file(metadata_file, metadata_bytes)
+  let (metadata_summary, _) = run(
+    ["verify", metadata_file, "--world", "app", "--json"],
+    0,
+    wit,
+  )
+  assert_true(metadata_summary.contains("example:metadata/app@1.0.0"))
+  let _ = run(["verify", metadata_file, "--semantic-feature", "inner"], 0, wit)
+  let _ = run(["verify", metadata_file, "--all-semantic-features"], 0, wit)
+  assert_eq(@fs.read_file(metadata_file).binary(), metadata_bytes)
+  let raw_feature_file = dir + "/metadata-feature.wasm"
+  @fs.write_file(
+    raw_feature_file,
+    @fs.read_file(
+      "tests/semantic/wit-encoded-metadata-unstable-raw-feature.wasm",
+    ).binary(),
+  )
+  let _ = run(
+    ["verify", raw_feature_file, "--semantic-feature", "foo bar"],
+    0,
+    wit,
+  )
+  let empty_feature_file = dir + "/metadata-empty-feature.wasm"
+  @fs.write_file(
+    empty_feature_file,
+    @fs.read_file(
+      "tests/semantic/wit-encoded-metadata-unstable-empty-feature.wasm",
+    ).binary(),
+  )
+  let _ = run(["verify", empty_feature_file, "--semantic-feature="], 0, wit)
+  let invalid_metadata_file = dir + "/metadata-invalid.wasm"
+  @fs.write_file(
+    invalid_metadata_file,
+    @fs.read_file("tests/semantic/wit-encoded-metadata-missing-interface.wasm").binary(),
+  )
+  let (_, metadata_error) = run(["verify", invalid_metadata_file], 1, wit)
+  assert_true(metadata_error.contains("WIT-B004"))
+  assert_true(metadata_error.contains("metadata-invalid.wasm:[binary]"))
   println("CLI smoke checks passed")
 }

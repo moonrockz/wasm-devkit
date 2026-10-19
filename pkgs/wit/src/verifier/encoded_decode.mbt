@@ -474,10 +474,10 @@ fn encoded_world(
 // export is consumed; unsupported identities, metadata and edges fail closed.
 fn lower_encoded(
   component : @component.Component,
-) -> String raise EncodedFailure {
+) -> (String, Bytes?) raise EncodedFailure {
   let slots : Array[@component.TypeDef] = []
   let members : Array[(String, String, @component.TypeDef)] = []
-  let mut metadata_seen = false
+  let mut metadata : Bytes? = None
   for section in component.binary.sections {
     match section.id {
       0 => {
@@ -502,27 +502,14 @@ fn lower_encoded(
         }
         index += length
         if name == "package-docs" {
-          guard !metadata_seen else {
+          guard metadata is None else {
             raise Invalid("duplicate package-docs section")
           }
-          metadata_seen = true
-          guard index < bytes.length() && bytes[index] == b'\x01' else {
+          guard index < bytes.length() &&
+            (bytes[index] == b'\x00' || bytes[index] == b'\x01') else {
             raise Unsupported("package-docs metadata version")
           }
-          let text = @utf8.decode(
-            bytes[index + 1:].to_owned(),
-            ignore_bom=false,
-          ) catch {
-            _ => raise Invalid("invalid package-docs UTF-8")
-          }
-          guard text
-            .replace(old=" ", new="")
-            .replace(old="\n", new="")
-            .replace(old="\r", new="")
-            .replace(old="\t", new="") ==
-            "{}" else {
-            raise Unsupported("nonempty package-docs metadata")
-          }
+          metadata = Some(bytes[index + 1:].to_owned())
         }
       }
       7 => {
@@ -632,5 +619,5 @@ fn lower_encoded(
       )
     }
   }
-  out.to_string()
+  (out.to_string(), metadata)
 }

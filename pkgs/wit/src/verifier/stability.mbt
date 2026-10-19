@@ -348,12 +348,14 @@ fn type_stabilities(
   resources : ReadOnlyArray[Int32],
   infos : ReadOnlyArray[StabilityInfo],
   interface_edges : Array[(Int32, Int32, Int32)],
+  binary_sources~ : Map[String, Bool] = Map([]),
 ) -> ReadOnlyArray[Stability] {
   let tree = prepared.tree
   let values = infos.map(info => info.value).iter().to_array()
   let named_roots = Array::make(tree.nodes.length(), false)
   for id, node in tree.nodes {
-    if type_declaration(node.data) {
+    if type_declaration(node.data) &&
+      !binary_sources.contains(prepared.origins[id].location.source) {
       let pending = type_edges(node.data).iter().to_array()
       if node.data is Alias(ty~, ..) {
         named_roots[ty] = true
@@ -389,7 +391,14 @@ fn type_stabilities(
         let key = prepared.node_packages[signature].to_string() +
           ":borrow:t" +
           resource.to_string()
-        let (_, stability) = intern(key, infos[resource].value)
+        let initial = if binary_sources.contains(
+            prepared.origins[signature].location.source,
+          ) {
+          Stability::Unknown
+        } else {
+          infos[resource].value
+        }
+        let (_, stability) = intern(key, initial)
         values[signature] = stability
         continue
       }
@@ -436,6 +445,10 @@ fn type_stabilities(
               }
             }
           }
+      }
+      if binary_sources.contains(prepared.origins[id].location.source) &&
+        !type_declaration(data) {
+        values[id] = Unknown
       }
       if !named_roots[id] && anonymous_key(data, canonical) is Some(key) {
         let key = prepared.node_packages[id].to_string() + ":" + key

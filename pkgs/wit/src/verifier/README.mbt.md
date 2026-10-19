@@ -78,9 +78,24 @@ interface. Component type indices include aliases introduced by type exports.
 
 The initial profile rejects v1 packages, outer/instance aliases, wrapper imports,
 foreign or structurally different world instances, world-owned resource members,
-anonymous structural types, name attributes and export ascriptions. Missing or
-empty version-1 `package-docs` metadata is accepted. Nonempty metadata is rejected
-until its distinct binary stability rules are implemented. WAT uses the portable
+anonymous structural types, name attributes and export ascriptions.
+`package-docs` metadata versions 0 and 1 retain release/feature/deprecation
+annotations and validate docs, member names and item kinds. Unknown schema fields,
+duplicate struct fields and missing targets are errors. Dictionary duplicates keep
+the last value after every value has passed schema validation. Original docs remain
+available in `binaries()`; the semantic model exposes stability rather than a docs API.
+
+Binary metadata follows the pinned loader's own selection rules. Types,
+interfaces, worlds and world items stay present regardless of their unstable
+annotations. Unstable interface functions, including inline interface functions,
+are selected by `semantic_features`; world functions remain present. Binary
+stable annotations can exceed the package version, and binary feature strings
+need not be source identifiers. Anonymous binary types and implicit receivers
+retain unknown stability. Source annotations keep the source rules above.
+Metadata parsing uses explicit byte/object frames, including ignored extension
+values and deeply nested JSON; it never turns an ignored number into a float.
+
+WAT uses the portable
 frontend from `Milky2018/wasm_component@0.16.0`; its unsupported `@custom` and
 `@producers` forms return errors. Physical WAT nesting is limited to 256 before
 that frontend runs. Expanded value types have a one-million-step decoding limit.
