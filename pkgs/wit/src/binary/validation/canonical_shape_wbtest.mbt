@@ -54,6 +54,65 @@ test "canonical ABI pointer containers and variant joins retain shape" {
 }
 
 ///|
+test "async canonical ABI keeps stackful and callback signatures distinct" {
+  let context : CanonicalContext = {
+    types: [],
+    pointer: @types.I32,
+    budget: { remaining: 1000000, },
+    cache: Map([]),
+  }
+  let function : @component.FuncType = {
+    is_async: true,
+    params: [{ label: "p1", ty: Prim(U32), }],
+    result: Some(Prim(U32)),
+  }
+  let stackful = context.abi(function, true, true, false)
+  assert_eq(stackful.core, { params: [@types.I32], results: [], })
+  assert_false(stackful.memory)
+  let callback = context.abi(function, true, true, true)
+  assert_eq(callback.core, { params: [@types.I32], results: [@types.I32], })
+  let lowered = context.abi(function, false, true, false)
+  assert_eq(lowered.core, {
+    params: [@types.I32, @types.I32],
+    results: [@types.I32],
+  })
+  assert_true(lowered.memory)
+  assert_false(lowered.realloc)
+  let wide = context.abi(
+    {
+      is_async: true,
+      params: [
+        { label: "a", ty: Prim(U32), },
+        { label: "b", ty: Prim(U32), },
+        { label: "c", ty: Prim(U32), },
+        { label: "d", ty: Prim(U32), },
+        { label: "e", ty: Prim(U32), },
+      ],
+      result: None,
+    },
+    false,
+    true,
+    false,
+  )
+  assert_eq(wide.core, { params: [@types.I32], results: [@types.I32], })
+  assert_true(wide.memory)
+  let exhausted : CanonicalContext = {
+    types: [],
+    pointer: @types.I32,
+    budget: { remaining: 0, },
+    cache: Map([]),
+  }
+  let bounded = try {
+    ignore(exhausted.abi(function, true, true, false))
+    false
+  } catch {
+    CanonicalBudgetExceeded => true
+    _ => false
+  }
+  assert_true(bounded)
+}
+
+///|
 test "canonical ABI work budget and cycles fail without recursion" {
   let context : CanonicalContext = {
     types: [Some(Option(TypeIdx(0)))],

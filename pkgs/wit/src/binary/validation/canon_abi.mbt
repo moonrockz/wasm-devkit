@@ -73,7 +73,7 @@ fn core_functype_for_canon(
         budget,
         cache: Map([]),
       }
-      Some(context.function(function).lowered)
+      Some(context.abi(function, false, canon_has_async(opts), false).core)
     }
     BackpressureInc | BackpressureDec | TaskCancel =>
       Some({ params: [], results: [], })
@@ -158,8 +158,20 @@ fn validate_canon(
       let td = type_table[tyidx]
       match td {
         Some(FuncType(ft)) => {
-          if ft.is_async {
-            raise UnsupportedCanonical
+          let asynchronous = canon_has_async(opts)
+          let callback = canon_callback_idx(opts)
+          if asynchronous && !ft.is_async {
+            raise SectionParseError(
+              8, "the async canonical option requires an async function type",
+            )
+          }
+          if !asynchronous && callback is Some(_) {
+            raise SectionParseError(8, "cannot specify callback without async")
+          }
+          if asynchronous && canon_has_post_return(opts) {
+            raise SectionParseError(
+              8, "cannot specify post-return function in async",
+            )
           }
           let context : CanonicalContext = {
             types: type_table,
@@ -167,10 +179,7 @@ fn validate_canon(
             budget,
             cache: Map([]),
           }
-          let shape = context.function(ft)
-          if canon_has_async(opts) && !ft.is_async {
-            raise CanonAsyncTypeMismatch(tyidx)
-          }
+          let shape = context.abi(ft, true, asynchronous, callback is Some(_))
           match canon_realloc_idx(opts) {
             Some(idx) =>
               if !canon_has_memory(opts) {
@@ -216,21 +225,36 @@ fn validate_canon(
           if needs_memory && !canon_has_memory(opts) {
             raise MissingCanonOption("memory")
           }
-          if shape.lift_realloc && !canon_has_realloc(opts) {
+          if shape.realloc && !canon_has_realloc(opts) {
             raise MissingCanonOption("realloc")
           }
-          // Async-lifted functions use a callback/event-code ABI and do not
-          // match the direct lowering signature.
-          if !canon_has_async(opts) {
-            match (core_func_types[core_func_idx], Some(shape.lifted)) {
-              (Some(core_ft), Some(expected_core_ft)) =>
-                if core_ft != expected_core_ft {
+          if callback is Some(callback_index) {
+            if callback_index < 0 || callback_index >= core_func_types.length() {
+              raise InvalidCoreFuncIndex(callback_index)
+            }
+            match core_func_types[callback_index] {
+              Some(callback_type) => {
+                let expected : @types.FuncType = {
+                  params: [I32, I32, I32],
+                  results: [I32],
+                }
+                if callback_type != expected {
                   raise CanonCoreFuncTypeMismatch(
-                    "canon lift core signature mismatch",
+                    "canonical option `callback` uses a core function with an incorrect signature",
                   )
                 }
-              _ => ()
+              }
+              None => ()
             }
+          }
+          match (core_func_types[core_func_idx], Some(shape.core)) {
+            (Some(core_ft), Some(expected_core_ft)) =>
+              if core_ft != expected_core_ft {
+                raise CanonCoreFuncTypeMismatch(
+                  "canon lift core signature mismatch",
+                )
+              }
+            _ => ()
           }
         }
         None => ()
@@ -261,8 +285,24 @@ fn validate_canon(
       }
       match func_types[func_idx] {
         Some(ft) => {
-          if ft.is_async {
-            raise UnsupportedCanonical
+          let asynchronous = canon_has_async(opts)
+          if asynchronous && !ft.is_async {
+            raise SectionParseError(
+              8, "the async canonical option requires an async function type",
+            )
+          }
+          if !asynchronous && canon_callback_idx(opts) is Some(_) {
+            raise SectionParseError(8, "cannot specify callback without async")
+          }
+          if canon_callback_idx(opts) is Some(_) {
+            raise SectionParseError(
+              8, "canonical option `callback` cannot be specified for lowerings",
+            )
+          }
+          if asynchronous && canon_has_post_return(opts) {
+            raise SectionParseError(
+              8, "cannot specify post-return function in async",
+            )
           }
           let context : CanonicalContext = {
             types: type_table,
@@ -270,10 +310,7 @@ fn validate_canon(
             budget,
             cache: Map([]),
           }
-          let shape = context.function(ft)
-          if canon_has_async(opts) && !ft.is_async {
-            raise CanonAsyncTypeMismatch(func_idx)
-          }
+          let shape = context.abi(ft, false, asynchronous, false)
           match canon_realloc_idx(opts) {
             Some(idx) =>
               if !canon_has_memory(opts) {
@@ -300,7 +337,7 @@ fn validate_canon(
           if shape.memory && !canon_has_memory(opts) {
             raise MissingCanonOption("memory")
           }
-          if shape.lower_realloc && !canon_has_realloc(opts) {
+          if shape.realloc && !canon_has_realloc(opts) {
             raise MissingCanonOption("realloc")
           }
         }

@@ -26,8 +26,9 @@ These differences remain tracked on `wasm-devkit-p5m.8.2.2`.
 
 Verification never executes a module or component. Original concrete module
 bodies still pass the flat-instruction preflight and core validator. Nested
-runtime components, component starts/values, structured core instructions,
-async canonical functions and canonical intrinsics remain outside this slice.
+runtime components, structured core instructions and canonical intrinsics other
+than lift, lower and resource new/drop/rep remain outside this slice. Async
+lift/lower and component start are covered by `wac-proposal-profiles/`.
 The canonical type walk uses an explicit stack, caches shared type graphs and
 charges a shared work budget. Flattened signature prefixes stop after 17 slots,
 while validation still visits every reachable child. Core instantiations and

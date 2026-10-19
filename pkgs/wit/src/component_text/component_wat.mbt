@@ -371,6 +371,7 @@ priv struct ComponentBuildState {
   mut next_core_memory_idx : Int32
   mut next_core_global_idx : Int32
   mut next_core_tag_idx : Int32
+  mut has_start : Bool
 }
 
 ///|
@@ -419,6 +420,7 @@ fn ComponentBuildState::ComponentBuildState(
     next_core_memory_idx: 0,
     next_core_global_idx: 0,
     next_core_tag_idx: 0,
+    has_start: false,
   }
 }
 
@@ -5157,6 +5159,81 @@ fn parse_func_field(
 }
 
 ///|
+fn parse_start_field(
+  field : Array[SExpr],
+  state : ComponentBuildState,
+) -> Unit raise ComponentTextError {
+  if state.has_start {
+    raise Unsupported("component cannot have more than one start function")
+  }
+  if field.length() < 2 {
+    raise Unsupported("start requires a function reference")
+  }
+  let func_idx = resolve_reference(field[1], state.func_names, "function")
+  let args : Array[Int32] = []
+  let mut results = 0
+  let mut saw_result = false
+  for i in 2..<field.length() {
+    let item = field[i]
+    if item is Atom(_) {
+      args.push(resolve_reference(item, state.value_names, "value"))
+      continue
+    }
+    let list = if item is List(items) {
+      items
+    } else {
+      raise Unsupported("unsupported start argument")
+    }
+    if list.length() == 0 {
+      raise Unsupported("empty start argument")
+    }
+    if list[0] is Atom("value") {
+      if list.length() < 2 {
+        raise Unsupported("start value requires a value reference")
+      }
+      for j in 1..<list.length() {
+        args.push(resolve_reference(list[j], state.value_names, "value"))
+      }
+    } else if list[0] is Atom("result") {
+      if saw_result || list.length() != 2 {
+        raise Unsupported(
+          "start result must be `(result <count>)` or `(result $name)`",
+        )
+      }
+      saw_result = true
+      guard list[1] is Atom(text) else {
+        raise Unsupported("start result must name a count or value")
+      }
+      if text.has_prefix("$") {
+        results = 1
+        let idx = state.next_value_idx
+        state.next_value_idx += 1
+        bind_named_index(state.value_names, Some(text), idx)
+      } else {
+        results = parse_u32_literal(list[1], "start result count")
+        if results != 0 && results != 1 {
+          raise Unsupported("start result count must be 0 or 1")
+        }
+        if results == 1 {
+          state.next_value_idx += 1
+        }
+      }
+    } else {
+      raise Unsupported("unsupported start argument")
+    }
+  }
+  state.has_start = true
+  let payload = ByteBuf::ByteBuf()
+  payload.push_uleb_u32(func_idx)
+  payload.push_uleb_u32(args.length())
+  for arg in args {
+    payload.push_uleb_u32(arg)
+  }
+  payload.push_uleb_u32(results)
+  state.sections_ordered.push({ section_id: 9, payload: payload.to_bytes(), })
+}
+
+///|
 fn parse_export_ascribed_desc(
   ascribed_expr_opt : SExpr?,
   sort_tag : Int32,
@@ -7718,6 +7795,10 @@ fn component_compile_frame(
       }
       if field[0] is Atom("export") {
         parse_export_field(field, state)
+        continue
+      }
+      if field[0] is Atom("start") {
+        parse_start_field(field, state)
         continue
       }
       let head_name = match expr_head_atom(field_expr) {

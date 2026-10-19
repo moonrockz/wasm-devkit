@@ -35,9 +35,9 @@ consume them. Root core-type sections retain these encodings without loss.
 The separate deep fixture traverses 41 component type scopes. Unit contracts
 also exercise 50,000 function parameters, truncated limits, overflowing u64 LEBs
 and immutable module graphs. `SHA256SUMS` covers all retained sources and tables.
-Separate suites cover runtime core bodies, values and export annotations. Optional
-proposal extensions outside the documented profile are tracked in
-`wasm-devkit-p5m.10`.
+Separate suites cover runtime core bodies, values and export annotations.
+Concrete GC and reference types, exception instructions, shared concrete globals
+and limits above signed Int64 stay outside the documented profile.
 
 Eight text-only cases reject duplicate type identifiers/aliases, invalid global
 syntax and malformed/overflowing limits against the pinned text parser.

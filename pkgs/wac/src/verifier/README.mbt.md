@@ -207,8 +207,8 @@ All diagnostic positions count bytes. Unknown offsets remain absent.
 Imported-component instantiation and inline instances validate full argument
 contracts, including named type arguments and runtime values. Concrete nested
 components preserve scoped imports, exports and captured declaration identities.
-Async canonical functions, other intrinsics and component start
-sections remain unsupported. Function export ascriptions validate parameter
+Async callback and stackful lift, async lower and component start sections
+are supported. Other canonical intrinsics remain unsupported. Function export ascriptions validate parameter
 names, async mode, structural value types and nominal resource identities, and
 retain the ascribed function type. Type-equality export annotations compare
 complete value shapes and nominal resource identity, including imported aliases
@@ -536,16 +536,19 @@ wasm-tools subtype witnesses in `tests/semantic/wac-core-modules/fill`.
 Both binary and WAT inputs support these contracts and concrete core module
 bodies. Core instantiation and synchronous canonical lift/lower are supported.
 Imported and concrete component instantiation and inline instances are supported.
-Async canonical functions, other intrinsics and component starts remain outside
-this profile.
-Concrete GC/reference types, supertypes and shared heap types remain
+Async callback and stackful lift, async lower and a component start with zero
+or one result are in this profile. A component function type without the async
+option keeps the synchronous core ABI. Other canonical intrinsics, and the `gc`
+and `core-type` canon options, remain outside this profile.
+Concrete GC/reference types, supertypes, shared heap types, exception
+instructions, shared concrete globals and limits above signed Int64 remain
 unsupported. Nested component/instance core declarations with limits above u32
 or custom memory pages return `WAC-B002` before the pinned parser runs; root
 core-type sections support full UInt64 limits. The pinned WAC encoder panics
 when composing the accepted core-module instance-export cases, so independent
 validator witnesses establish their subtype behavior. No public API executes a
-module or component. Optional binary proposal extensions outside this profile
-are tracked in `wasm-devkit-p5m.10`.
+module or component. The remaining profile extensions are tracked in
+`wasm-devkit-p5m.12`.
 
 
 Concrete core modules retain ordered contracts and original bytes. Function

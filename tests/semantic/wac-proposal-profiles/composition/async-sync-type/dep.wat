@@ -1,0 +1,1 @@
+(component (core module $m (func (export "foo") (result i32) unreachable)) (core instance $i (instantiate $m)) (alias core export $i "foo" (core func $foo)) (func $foo (export "foo") (result u32) (canon lift (core func $foo) async)))

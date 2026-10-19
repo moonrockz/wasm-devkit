@@ -65,8 +65,9 @@ Core instances and synchronous canonical lift/lower validate full core contracts
 and canonical signatures. Imported-component instantiation and inline instances
 validate complete argument contracts, including named type arguments and runtime
 values. Concrete nested components validate through explicit frames with shared
-work budgets and complete scoped contracts. Async canonical functions, other
-intrinsics and component start sections return `WIT-B002`. Combined concrete/type
+work budgets and complete scoped contracts. Async callback and stackful lift,
+async lower and component start sections validate in this profile. Other
+canonical intrinsics return `WIT-B002`. Combined concrete/type
 scope nesting is limited to 256. Value descriptor adaptation permits at most
 16,777,216 copied bytes across enclosing sections.
 Component-value externs use a framing-guided adapter for the retained parser's

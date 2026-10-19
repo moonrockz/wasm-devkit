@@ -295,3 +295,88 @@ fn CanonicalContext::function(
     lower_realloc: result.dynamic,
   }
 }
+
+///|
+priv struct CanonicalAbi {
+  core : @types.FuncType
+  memory : Bool
+  realloc : Bool
+}
+
+///|
+// Async lower passes at most four flat parameters. A component result is
+// returned through a pointer and the core result is the async status code.
+// Async lift keeps the synchronous parameter ABI. The component result is
+// delivered by `task.return`, so it changes only the memory requirement.
+// Callback lift appends an i32 status result; stackful lift does not.
+fn CanonicalContext::abi(
+  self : CanonicalContext,
+  function : @component.FuncType,
+  lifting : Bool,
+  asynchronous : Bool,
+  callback : Bool,
+) -> CanonicalAbi raise ComponentValidationError {
+  if !asynchronous {
+    let shape = self.function(function)
+    return if lifting {
+      { core: shape.lifted, memory: shape.memory, realloc: shape.lift_realloc, }
+    } else {
+      {
+        core: shape.lowered,
+        memory: shape.memory,
+        realloc: shape.lower_realloc,
+      }
+    }
+  }
+  let limit = if lifting { 16 } else { 4 }
+  let params : Array[@types.ValueType] = []
+  let mut dynamic_params = false
+  let mut overflow = false
+  for param in function.params {
+    self.budget.step()
+    let shape = self.shape(param.ty)
+    dynamic_params = dynamic_params || shape.dynamic
+    if !overflow {
+      if params.length() + shape.flat.length() > limit {
+        overflow = true
+      } else {
+        for value in shape.flat {
+          self.budget.step()
+          params.push(value)
+        }
+      }
+    }
+  }
+  let has_result = function.result is Some(_)
+  let result_shape = match function.result {
+    Some(result) => self.shape(result)
+    None => { flat: [], dynamic: false, }
+  }
+  let params = if overflow { [self.pointer] } else { params }
+  let params = if !lifting && has_result {
+    let with_result = params.copy()
+    with_result.push(self.pointer)
+    with_result
+  } else {
+    params
+  }
+  let results : Array[@types.ValueType] = []
+  if !(lifting && !callback) {
+    results.push(@types.I32)
+  }
+  let result_memory = if lifting {
+    result_shape.dynamic || result_shape.flat.length() > 16
+  } else {
+    has_result
+  }
+  let realloc = if lifting {
+    dynamic_params || overflow
+  } else {
+    result_shape.dynamic
+  }
+  {
+    core: { params, results, },
+    memory: dynamic_params || overflow || result_memory,
+    realloc,
+  }
+}

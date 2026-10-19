@@ -147,7 +147,8 @@ including memory64 pointer widths. Core instance imports and aliases use full
 immutable contracts from the ordered scope pass. Core contract work and
 canonical shape work each share a 1,000,000-unit allowance across the component.
 The current flags profile permits at most 32 members, matching both pins.
-Async canonical operations and other intrinsics remain unsupported. Concrete module
+Async callback and stackful lift, async lower and component start are supported.
+Other canonical intrinsics remain unsupported. Concrete module
 bodies still undergo original-byte validation; no substituted body is accepted
 as proof of validity.
 

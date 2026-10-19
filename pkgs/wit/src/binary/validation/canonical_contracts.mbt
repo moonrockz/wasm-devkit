@@ -77,10 +77,25 @@ fn check_canonical_contract(
     }
     _ => raise UnsupportedCanonical
   }
-  if ft.is_async {
-    raise UnsupportedCanonical
-  }
   validate_canon_opts(opts)
+  let asynchronous = canon_has_async(opts)
+  let callback = canon_callback_idx(opts)
+  if asynchronous && !ft.is_async {
+    raise SectionParseError(
+      8, "the async canonical option requires an async function type",
+    )
+  }
+  if !asynchronous && callback is Some(_) {
+    raise SectionParseError(8, "cannot specify callback without async")
+  }
+  if asynchronous && canon_has_post_return(opts) {
+    raise SectionParseError(8, "cannot specify post-return function in async")
+  }
+  if !lifting && callback is Some(_) {
+    raise SectionParseError(
+      8, "canonical option `callback` cannot be specified for lowerings",
+    )
+  }
   let mut pointer : @types.ValueType = I32
   for option in opts {
     work.charge(1)
@@ -94,7 +109,7 @@ fn check_canonical_contract(
         }
         pointer = if memory64 { I64 } else { I32 }
       }
-      StringEncoding(_) | Realloc(_) | PostReturn(_) => ()
+      StringEncoding(_) | Realloc(_) | PostReturn(_) | Async | Callback(_) => ()
       _ => raise UnsupportedCanonical
     }
   }
@@ -104,12 +119,11 @@ fn check_canonical_contract(
     budget,
     cache: Map([]),
   }
-  let shape = context.function(ft)
-  if shape.memory && !canon_has_memory(opts) {
+  let abi = context.abi(ft, lifting, asynchronous, callback is Some(_))
+  if abi.memory && !canon_has_memory(opts) {
     raise MissingCanonOption("memory")
   }
-  if (if lifting { shape.lift_realloc } else { shape.lower_realloc }) &&
-    !canon_has_realloc(opts) {
+  if abi.realloc && !canon_has_realloc(opts) {
     raise MissingCanonOption("realloc")
   }
   if canon_realloc_idx(opts) is Some(realloc) {
@@ -129,16 +143,24 @@ fn check_canonical_contract(
     }
     check_canonical_core_function(
       post_return,
-      { params: shape.lifted.results, results: [], },
+      { params: abi.core.results, results: [], },
+      externs,
+      work,
+    )
+  }
+  if callback is Some(callback_index) {
+    check_canonical_core_function(
+      callback_index,
+      { params: [I32, I32, I32], results: [I32], },
       externs,
       work,
     )
   }
   if lifting {
-    check_canonical_core_function(index, shape.lifted, externs, work)
+    check_canonical_core_function(index, abi.core, externs, work)
     None
   } else {
-    Some(shape.lowered)
+    Some(abi.core)
   }
 }
 

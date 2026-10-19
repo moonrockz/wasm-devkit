@@ -19,9 +19,9 @@ accept and their emitted binaries validate independently; the wrong i64-resource
 destructor rejects. Native and wasm CLI smoke tests load these binary/WAT inputs.
 The verifier never executes a resource operation or destructor.
 
-`SHA256SUMS` covers all retained files. Async canonical operations, other
-intrinsics and remaining runtime component sections stay open on
-`wasm-devkit-p5m.8.2.2` and `wasm-devkit-p5m.8.2.4`.
+`SHA256SUMS` covers all retained files. Canonical intrinsics other than
+resource new/drop/rep are tracked in `wasm-devkit-p5m.12.1`. Async lift/lower and
+component start are covered by `wac-proposal-profiles/`.
 
 `import-capture-gaps` retains 39 additional import-resource cases, including
 seven former product false positives now rejected. Binary/WAT acceptance agrees

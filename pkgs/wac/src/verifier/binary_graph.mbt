@@ -9,6 +9,7 @@ priv enum BinaryDeclaration {
   Alias(@component.Alias)
   Describe(Bool, String, Array[@component.NameAttribute], @component.ExternDesc)
   Export(@component.Export)
+  Start(@component.Start)
 }
 
 ///|

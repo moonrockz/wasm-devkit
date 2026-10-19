@@ -559,7 +559,7 @@ fn preflight(
               raise Failure(
                 Some(payload.position - 1),
                 "WIT-B002",
-                "canonical intrinsic is outside the synchronous lift/lower profile",
+                "canonical intrinsic is outside the async lift/lower profile",
               )
             }
             if payload.byte() != 0 {
@@ -573,13 +573,13 @@ fn preflight(
             let options = payload.count()
             for _ in 0..<options {
               match payload.byte() {
-                0 | 1 | 2 => ()
-                3 | 4 | 5 => ignore(payload.unsigned())
+                0 | 1 | 2 | 6 => ()
+                3 | 4 | 5 | 7 => ignore(payload.unsigned())
                 _ =>
                   raise Failure(
                     Some(payload.position - 1),
                     "WIT-B002",
-                    "canonical option is outside the synchronous ABI profile",
+                    "canonical option is outside the async lift/lower profile",
                   )
               }
             }
@@ -640,6 +640,14 @@ fn preflight(
             base_depth=depth,
             value_offsets~,
           )
+        9 if declarations => {
+          ignore(payload.unsigned())
+          let arguments = payload.count()
+          for _ in 0..<arguments {
+            ignore(payload.unsigned())
+          }
+          ignore(payload.unsigned())
+        }
         10 if declarations => {
           let count = payload.count()
           for _ in 0..<count {

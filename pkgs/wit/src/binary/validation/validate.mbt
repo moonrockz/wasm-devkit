@@ -1032,9 +1032,9 @@ fn component_validation_frame(
           let start = @component.parse_start_section(s.payload) catch {
             e => raise SectionParseError(9, "\{e}")
           }
-          if start.func_idx < 0 || start.func_idx >= counts.func {
-            raise InvalidFuncIndex(start.func_idx)
-          }
+          validate_component_start(
+            start, counts, func_types, type_table, resource_ids,
+          )
         }
         _ => ()
       }

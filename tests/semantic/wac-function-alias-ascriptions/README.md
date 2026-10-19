@@ -16,5 +16,7 @@ Accepted binary and WAT package projections match the pinned oracle.
 
 `nested-instance` is supported. The [hierarchical cases](../wac-hierarchical-ascriptions/README.md)
 extend it with deeper scopes, resource captures, alias chains and transitive
-value-type captures. Separate suites cover the other supported binary forms;
-optional proposal extensions are tracked in `wasm-devkit-p5m.10`.
+value-type captures. Separate suites cover the other supported binary forms.
+Async lift/lower and component start are in `wac-proposal-profiles/`. Concrete
+GC and reference types, exception instructions, shared concrete globals and
+limits above signed Int64 stay outside the profile.
