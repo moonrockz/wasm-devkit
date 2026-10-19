@@ -42,9 +42,11 @@ directory bundle, the digest covers each sorted relative file name, a NUL separa
 and its bytes, including files intentionally ignored by source discovery. Each file
 is passed unchanged to the reference semantic resolver and the wasm-devkit CLI.
 Directory fixtures include complete multi-file and dependency bundles. There are no
-registry lookups in this suite. The wasm-devkit CLI
-uses `--all-features` to admit the fixed-list grammar. The reference resolvers use
-the semantic profile recorded in each manifest row.
+registry lookups in this suite. WIT verification uses the reference grammar,
+which already admits fixed lists, external IDs and accessors. The product
+`--all-features` grammar switch is reserved for WAC rows; enabling WIT nested
+namespace syntax changes unspaced named-interface path disambiguation. The
+reference resolvers use the semantic profile recorded in each manifest row.
 
 The optional fourth manifest column is `default`, `feature=NAME` or `all`.
 Comma-separated names in a `feature=` profile enable multiple named features.

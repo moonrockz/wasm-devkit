@@ -330,3 +330,16 @@ test "WIT verification grammar extensions require all-features independently" {
     assert_true(output.stderr.contains("WIT-S001"))
   }
 }
+
+///|
+test "WIT verification defaults to the semantic reference grammar" {
+  let source = "package example:app; interface api {} world app {import a:api; import b:api;}"
+  let reference = @cli.execute(options(["verify", "a.wit"]), source)
+  assert_eq(reference.exit_code, 0, msg=reference.stderr)
+  let extended = @cli.execute(
+    options(["verify", "a.wit", "--all-features"]),
+    source,
+  )
+  assert_eq(extended.exit_code, 1)
+  assert_true(extended.stderr.contains("WIT-P003"))
+}

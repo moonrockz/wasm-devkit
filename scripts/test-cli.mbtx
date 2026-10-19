@@ -389,6 +389,14 @@ async fn main {
   assert_true(accessor_error.contains("WIT-S007"))
   assert_true(accessor_error.contains(invalid_accessor + ":1:"))
   assert_eq(@fs.read_file(invalid_accessor).text(), invalid_accessor_source)
+  let direct_names = "tests/semantic/wit-world-direct-two-names.wit"
+  let _ = run(["verify", direct_names], 0, wit)
+  let (_, direct_names_error) = run(
+    ["verify", direct_names, "--all-features"],
+    1,
+    wit,
+  )
+  assert_true(direct_names_error.contains("WIT-P003"))
   let extended_grammar = dir + "/extended-grammar.wit"
   let extended_source = "package a:b:c;"
   @fs.write_file(extended_grammar, extended_source)

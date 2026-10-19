@@ -109,11 +109,10 @@ async fn main {
         "--",
         "verify",
         path,
-        "--all-features",
         ..if is_wit {
           ["--language", "wit"]
         } else {
-          []
+          ["--all-features"]
         },
         ..verifier_features,
         ..if expected == 0 && is_wit {
