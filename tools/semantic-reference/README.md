@@ -6,8 +6,17 @@ Its dependency is pinned to WAC revision
 `5a7480c69ae7a4dc9eb161f485cbcb8c95e372c9`, version 0.12.0. The lockfile retains
 wasmparser, wasm-encoder and wasm-metadata 0.258.0 from that revision's lockfile.
 It checks dependency-free WAC acceptance independently of the `wac resolve` CLI
-and emits the resolver's debug graph for inspection. It does not encode or run
-components. Full WAC type graph comparison remains part of the conformance task.
+and emits ordered JSON type and import metadata for inspection. The `exported_nodes`
+projection records each node's last export name; the pinned public graph API
+does not expose its complete export-name map. Package mode below retains all
+component imports and exports.
+`wac-semantic-reference --package NAME BINARY [VERSION]` calls the pinned
+`wac_types::Package::from_bytes` API, returning the supplied package identity,
+component/instance IDs, definitions and type arenas. Record fields, variant
+cases, function parameters and interface/world entries use arrays to preserve
+order. Core module import entries retain both module and field names. This
+helper does not encode or run components. Full WAC type graph comparison remains
+part of the conformance task.
 Both executables are built by the command below.
 
 This test-only executable calls `wit_parser::Resolve::push_path` on the exact file

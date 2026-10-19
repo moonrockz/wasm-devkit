@@ -1,9 +1,43 @@
 ///|
-/// A UTF-16 location qualified by a caller-supplied source identity.
+/// Text coordinates count UTF-16 code units; binary coordinates count bytes.
+/// A binary offset can be unavailable without inventing a textual position.
+pub(all) enum Position {
+  SourceSpan(@span.Span)
+  BinaryOffset(Int32?)
+} derive(Eq, Debug)
+
+///|
 pub(all) struct Location {
   source : String
-  span : @span.Span
+  position : Position
 } derive(Eq, Debug)
+
+///|
+pub fn Location::text(source : String, span : @span.Span) -> Location {
+  { source, position: SourceSpan(span), }
+}
+
+///|
+pub fn Location::binary(source : String, offset~ : Int32? = None) -> Location {
+  { source, position: BinaryOffset(offset), }
+}
+
+///|
+pub fn Location::span(self : Location) -> @span.Span? {
+  match self.position {
+    SourceSpan(span) => Some(span)
+    BinaryOffset(_) => None
+  }
+}
+
+///|
+pub fn Location::render(self : Location) -> String {
+  match self.position {
+    SourceSpan(span) => "\{self.source}:[\{span.start},\{span.end})"
+    BinaryOffset(Some(offset)) => "\{self.source}:[byte \{offset}]"
+    BinaryOffset(None) => "\{self.source}:[binary]"
+  }
+}
 
 ///|
 pub(all) struct Label {
@@ -74,7 +108,7 @@ fn error(
   {
     code,
     message,
-    primary: { location: { source, span, }, message, },
+    primary: { location: Location::text(source, span), message, },
     related: [],
   }
 }
@@ -100,19 +134,15 @@ pub fn verify(
 }
 
 ///|
-/// Render source-qualified locations as UTF-16 ranges. The caller can map each
-/// source identity to a line table without interpreting dependency spans as root spans.
+/// Render text as UTF-16 ranges and binary metadata as byte offsets. Unknown
+/// binary offsets remain distinct from source positions.
 pub fn Diagnostic::render(self : Diagnostic) -> String {
   let out = StringBuilder()
   let p = self.primary.location
-  out.write_string(
-    "\{p.source}:[\{p.span.start},\{p.span.end}): error \{self.code}: \{self.message}\n",
-  )
+  out.write_string("\{p.render()}: error \{self.code}: \{self.message}\n")
   for label in self.related {
     let p = label.location
-    out.write_string(
-      "\{p.source}:[\{p.span.start},\{p.span.end}): \{label.message}\n",
-    )
+    out.write_string("\{p.render()}: \{label.message}\n")
   }
   out.to_string()
 }
@@ -182,3 +212,9 @@ fn identifier(name : String) -> Bool {
   }
   !segment_start
 }
+
+///|
+pub extend Position with Eq::{equal, not_equal}
+
+///|
+pub extend Position with @debug.Debug::{to_repr}

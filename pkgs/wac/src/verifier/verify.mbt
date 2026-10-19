@@ -48,7 +48,7 @@ priv struct Check {
 
 ///|
 fn Check::location(self : Check, node : Int32) -> Location {
-  { source: self.source_id, span: self.tree.nodes[node].span, }
+  Location::text(self.source_id, self.tree.nodes[node].span)
 }
 
 ///|

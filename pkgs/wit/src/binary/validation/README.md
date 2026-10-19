@@ -29,3 +29,12 @@ validator's core imports are pinned directly to `Milky2018/wasm_core@0.16.0`.
 Original white-box tests are retained alongside the source. New fixtures compare
 constructors, nominal method receivers, ordinary/static/async functions, free and
 resource accessors, fallible accessors, transparent aliases and invalid pairs.
+
+The declarative package profile also removes obsolete restrictions on root
+component imports/exports and re-exported imported functions. Both pinned
+wasm-tools 1.262.0 validation and WAC 0.12.0 `Package::from_bytes` accept those
+operations. `section_import.mbt` and `section_export.mbt` contain those changes.
+`core_type.mbt` checks interface value naming with an explicit work stack,
+including fixed lists and map keys/values. These additions are tracked under
+`wasm-devkit-p5m.8.2.2`; runtime sections remain outside the public declarative
+boundary. The patch does not claim complete component-model conformance.

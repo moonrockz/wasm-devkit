@@ -62,7 +62,8 @@ test "nominal resources retain aliases uses constructors and receivers" {
   for ty in model.types() {
     assert_eq(ty.location.source, "app.wac")
     assert_true(
-      ty.location.span.start >= 0 && ty.location.span.end <= source.length(),
+      ty.location.span().unwrap().start >= 0 &&
+      ty.location.span().unwrap().end <= source.length(),
     )
   }
 }
@@ -89,10 +90,12 @@ test "world include conflict reports explicit declaration first" {
   assert_eq(error.code, "WAC-S004")
   assert_eq(error.related.length(), 1)
   assert_true(
-    error.primary.location.span.start < error.related[0].location.span.start,
+    error.primary.location.span().unwrap().start <
+    error.related[0].location.span().unwrap().start,
   )
   assert_true(
-    error.related[0].location.span.start > source.find("include").unwrap(),
+    error.related[0].location.span().unwrap().start >
+    source.find("include").unwrap(),
   )
 }
 
@@ -201,5 +204,28 @@ test "import-only names cannot be inferred as exports" {
       "package example:app; import f as \"url=<https://example.com>\": func(); export f;",
     )
     is Err(_),
+  )
+}
+
+///|
+test "binary and text diagnostic positions remain distinct" {
+  let source = @verifier.Location::text("root.wac", { start: 2, end: 5, })
+  let binary = @verifier.Location::binary("dep.wasm", offset=Some(7))
+  let unknown = @verifier.Location::binary("unknown.wasm")
+  assert_eq(source.span(), Some({ start: 2, end: 5, }))
+  assert_eq(binary.span(), None)
+  assert_eq(unknown.span(), None)
+  let diagnostic : @verifier.Diagnostic = {
+    code: "WAC-B001",
+    message: "invalid package",
+    primary: { location: binary, message: "invalid package", },
+    related: [
+      { location: source, message: "requested here", },
+      { location: unknown, message: "another dependency", },
+    ],
+  }
+  assert_eq(
+    diagnostic.render(),
+    "dep.wasm:[byte 7]: error WAC-B001: invalid package\nroot.wac:[2,5): requested here\nunknown.wasm:[binary]: another dependency\n",
   )
 }

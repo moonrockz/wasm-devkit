@@ -254,7 +254,14 @@ fn type_framing(reader : Reader) -> Unit raise Boundary {
           0x65 | 0x66 => reader.optional_value()
           0x67 => {
             reader.value_type()
-            ignore(reader.unsigned())
+            let count = reader.unsigned()
+            if count == 0U || count > 1073741824U {
+              raise Failure(
+                Some(offset),
+                "WIT-B003",
+                "fixed-length list element count must be between 1 and 1073741824",
+              )
+            }
           }
           0x68 | 0x69 => ignore(reader.unsigned())
           0x6a => {
@@ -264,18 +271,39 @@ fn type_framing(reader : Reader) -> Unit raise Boundary {
           0x6b | 0x70 => reader.value_type()
           0x6d | 0x6e => {
             let count = reader.count()
+            if count > 10000 {
+              raise Failure(
+                Some(offset),
+                "WIT-B003",
+                "component aggregate exceeds 10000 fields or cases",
+              )
+            }
             for _ in 0..<count {
               reader.string()
             }
           }
           0x6f => {
             let count = reader.count()
+            if count > 10000 {
+              raise Failure(
+                Some(offset),
+                "WIT-B003",
+                "component aggregate exceeds 10000 fields or cases",
+              )
+            }
             for _ in 0..<count {
               reader.value_type()
             }
           }
           0x71 => {
             let count = reader.count()
+            if count > 10000 {
+              raise Failure(
+                Some(offset),
+                "WIT-B003",
+                "component aggregate exceeds 10000 fields or cases",
+              )
+            }
             for _ in 0..<count {
               reader.string()
               reader.optional_value()
@@ -284,6 +312,13 @@ fn type_framing(reader : Reader) -> Unit raise Boundary {
           }
           0x72 => {
             let count = reader.count()
+            if count > 10000 {
+              raise Failure(
+                Some(offset),
+                "WIT-B003",
+                "component aggregate exceeds 10000 fields or cases",
+              )
+            }
             for _ in 0..<count {
               reader.string()
               reader.value_type()
@@ -352,7 +387,10 @@ fn type_framing(reader : Reader) -> Unit raise Boundary {
 }
 
 ///|
-fn preflight(bytes : Bytes) -> Unit raise Boundary {
+fn preflight(
+  bytes : Bytes,
+  declarations~ : Bool = false,
+) -> Unit raise Boundary {
   if bytes.length() < 8 || bytes[0:4] != b"\x00asm".exact_view() {
     raise Failure(Some(0), "WIT-B001", "invalid component header")
   }
@@ -370,7 +408,44 @@ fn preflight(bytes : Bytes) -> Unit raise Boundary {
         payload.string()
         payload.position = end
       }
+      6 if declarations => {
+        let count = payload.count()
+        for _ in 0..<count {
+          let offset = payload.position
+          let sort = payload.byte()
+          if sort < 1 || sort > 5 {
+            raise Failure(
+              Some(offset),
+              "WIT-B002",
+              "core aliases are outside the declarative component boundary",
+            )
+          }
+          match payload.byte() {
+            0 => {
+              ignore(payload.unsigned())
+              payload.string()
+            }
+            2 => {
+              ignore(payload.unsigned())
+              ignore(payload.unsigned())
+            }
+            _ =>
+              raise Failure(
+                Some(offset),
+                "WIT-B001",
+                "invalid component alias target",
+              )
+          }
+        }
+      }
       7 => type_framing(payload)
+      10 if declarations => {
+        let count = payload.count()
+        for _ in 0..<count {
+          payload.external_name()
+          payload.description()
+        }
+      }
       11 => {
         let count = payload.count()
         for _ in 0..<count {

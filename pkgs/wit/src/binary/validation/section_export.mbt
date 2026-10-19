@@ -1,11 +1,12 @@
 // Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
+// Modified by wasm-devkit: permit root component and imported function exports.
 
 ///|
 /// Handle component export section (id 11).
 fn validate_component_section_export(
   payload : Bytes,
   cfg : ComponentValidationConfig,
-  is_root : Bool,
+  _is_root : Bool,
   counts : Counts,
   type_table : Array[@component.TypeDef?],
   local_resource_types : Array[Bool],
@@ -59,7 +60,7 @@ fn validate_component_section_export(
   ],
   func_types : Array[@component.FuncType?],
   func_sig_shapes : Array[FuncSigShape?],
-  imported_funcs : Int32,
+  _imported_funcs : Int32,
   seen_export_names : Map[String, String],
   export_resource_names : Map[String, Int32],
   my_export_sorts : Map[String, @component.Sort],
@@ -85,11 +86,6 @@ fn validate_component_section_export(
       e.sortidx.sort,
       cfg,
     )
-    if is_root && e.sortidx.sort is Component {
-      raise SectionParseError(
-        11, "exporting a component from the root component is not supported",
-      )
-    }
     if exportname_to_string(e.name) is Some(name) {
       // wasm-tools' very-nested.wast relies on long export names to
       // trigger the effective-size limiter.
@@ -115,9 +111,6 @@ fn validate_component_section_export(
       parse_bracket_resource_name(name) is Some(_) &&
       !(e.sortidx.sort is Func) {
       raise SectionParseError(11, "is not a func")
-    }
-    if is_root && e.sortidx.sort is Func && e.sortidx.idx < imported_funcs {
-      raise ExportedImportedFunc(e.sortidx.idx)
     }
     check_sortidx(e.sortidx, counts, type_table.length())
     let mut ascribed_resource_id : Int32? = None

@@ -1368,271 +1368,99 @@ fn typedef_requires_name_for_interface(td : @component.TypeDef) -> Bool {
 fn valtype_valid_in_interface(
   ty : @component.ValType,
   type_table : Array[@component.TypeDef?],
-  resource_ids : Array[Int32?],
+  _resource_ids : Array[Int32?],
   named_types : Map[Int32, Int32],
-  visiting : Map[Int32, Int32],
+  _visiting : Map[Int32, Int32],
 ) -> Bool {
-  match ty {
-    Prim(_) => true
-    TypeIdx(idx) =>
-      if idx < 0 || idx >= type_table.length() {
-        true
-      } else if visiting.get(idx) is Some(_) {
-        true
-      } else {
-        match type_table[idx] {
-          None => true
-          Some(td) => {
-            if typedef_requires_name_for_interface(td) &&
-              named_types.get(idx) is None {
-              return false
-            }
-            visiting.set(idx, 1)
-            let ok = match td {
-              DefValType(_) => true
-              Tuple(tys) => {
-                let mut ok = true
-                for t in tys {
-                  if !valtype_valid_in_interface(
-                      t, type_table, resource_ids, named_types, visiting,
-                    ) {
-                    ok = false
-                    break
-                  }
-                }
-                ok
-              }
-              Record(fields) => {
-                let mut ok = true
-                for f in fields {
-                  if !valtype_valid_in_interface(
-                      f.ty,
-                      type_table,
-                      resource_ids,
-                      named_types,
-                      visiting,
-                    ) {
-                    ok = false
-                    break
-                  }
-                }
-                ok
-              }
-              Variant(cases) => {
-                let mut ok = true
-                for c in cases {
-                  match c.ty {
-                    None => ()
-                    Some(t) =>
-                      if !valtype_valid_in_interface(
-                          t, type_table, resource_ids, named_types, visiting,
-                        ) {
-                        ok = false
-                        break
-                      }
-                  }
-                }
-                ok
-              }
-              Option(v) =>
-                valtype_valid_in_interface(
-                  v, type_table, resource_ids, named_types, visiting,
-                )
-              Result(ok, err) => {
-                let ok_ok = match ok {
-                  None => true
-                  Some(v) =>
-                    valtype_valid_in_interface(
-                      v, type_table, resource_ids, named_types, visiting,
-                    )
-                }
-                let err_ok = match err {
-                  None => true
-                  Some(v) =>
-                    valtype_valid_in_interface(
-                      v, type_table, resource_ids, named_types, visiting,
-                    )
-                }
-                ok_ok && err_ok
-              }
-              List(v) =>
-                valtype_valid_in_interface(
-                  v, type_table, resource_ids, named_types, visiting,
-                )
-              Own(idx) | Borrow(idx) =>
-                valtype_valid_in_interface(
-                  TypeIdx(idx),
-                  type_table,
-                  resource_ids,
-                  named_types,
-                  visiting,
-                )
-              // Nominal-ish types still need their payloads checked.
-              Future(v) | Stream(v) =>
-                match v {
-                  None => true
-                  Some(inner) =>
-                    valtype_valid_in_interface(
-                      inner, type_table, resource_ids, named_types, visiting,
-                    )
-                }
-              _ => true
-            }
-            visiting.remove(idx) |> ignore
-            ok
-          }
-        }
-      }
-  }
+  interface_value_work(ty, type_table, named_types, false)
 }
 
 ///|
 fn valtype_valid_for_type_import_export(
   ty : @component.ValType,
   type_table : Array[@component.TypeDef?],
-  resource_ids : Array[Int32?],
+  _resource_ids : Array[Int32?],
   named_types : Map[Int32, Int32],
-  visiting : Map[Int32, Int32],
+  _visiting : Map[Int32, Int32],
 ) -> Bool {
-  valtype_valid_for_type_import_export_inner(
-    ty, type_table, resource_ids, named_types, visiting, false,
-  )
+  interface_value_work(ty, type_table, named_types, true)
 }
 
 ///|
-fn valtype_valid_for_type_import_export_inner(
+// Type index chains are input-controlled even when physical scopes are shallow.
+// Keep this check iterative, including fixed lists and maps from WAC packages.
+fn interface_value_work(
   ty : @component.ValType,
   type_table : Array[@component.TypeDef?],
-  resource_ids : Array[Int32?],
   named_types : Map[Int32, Int32],
-  visiting : Map[Int32, Int32],
-  nested : Bool,
+  type_external : Bool,
 ) -> Bool {
-  match ty {
-    Prim(_) => true
-    TypeIdx(idx) =>
-      if idx < 0 || idx >= type_table.length() {
-        true
-      } else if visiting.get(idx) is Some(_) {
-        true
-      } else {
-        match type_table[idx] {
-          None => true
-          Some(td) => {
-            match td {
-              Own(_) | Borrow(_) => if !nested { return false }
-              FuncType(ft) =>
-                return functype_valid_in_interface(
-                  ft, type_table, resource_ids, named_types,
-                )
-              _ => ()
-            }
-            if typedef_requires_name_for_interface(td) &&
-              named_types.get(idx) is None {
-              return false
-            }
-            visiting.set(idx, 1)
-            let ok = match td {
-              DefValType(_) => true
-              Tuple(tys) => {
-                let mut ok = true
-                for t in tys {
-                  if !valtype_valid_for_type_import_export_inner(
-                      t, type_table, resource_ids, named_types, visiting, true,
-                    ) {
-                    ok = false
-                    break
-                  }
-                }
-                ok
-              }
-              Record(fields) => {
-                let mut ok = true
-                for f in fields {
-                  if !valtype_valid_for_type_import_export_inner(
-                      f.ty,
-                      type_table,
-                      resource_ids,
-                      named_types,
-                      visiting,
-                      true,
-                    ) {
-                    ok = false
-                    break
-                  }
-                }
-                ok
-              }
-              Variant(cases) => {
-                let mut ok = true
-                for c in cases {
-                  match c.ty {
-                    None => ()
-                    Some(t) =>
-                      if !valtype_valid_for_type_import_export_inner(
-                          t, type_table, resource_ids, named_types, visiting, true,
-                        ) {
-                        ok = false
-                        break
-                      }
-                  }
-                }
-                ok
-              }
-              Option(v) =>
-                valtype_valid_for_type_import_export_inner(
-                  v, type_table, resource_ids, named_types, visiting, true,
-                )
-              Result(ok_v, err_v) => {
-                let ok_ok = match ok_v {
-                  None => true
-                  Some(v) =>
-                    valtype_valid_for_type_import_export_inner(
-                      v, type_table, resource_ids, named_types, visiting, true,
-                    )
-                }
-                let err_ok = match err_v {
-                  None => true
-                  Some(v) =>
-                    valtype_valid_for_type_import_export_inner(
-                      v, type_table, resource_ids, named_types, visiting, true,
-                    )
-                }
-                ok_ok && err_ok
-              }
-              List(v) =>
-                valtype_valid_for_type_import_export_inner(
-                  v, type_table, resource_ids, named_types, visiting, true,
-                )
-              Flags(_) | Enum(_) => true
-              Own(idx) | Borrow(idx) =>
-                valtype_valid_in_interface(
-                  TypeIdx(idx),
-                  type_table,
-                  resource_ids,
-                  named_types,
-                  visiting,
-                )
-              ResourceType(_, _, _, _) => true
-              Future(v) | Stream(v) =>
-                match v {
-                  None => true
-                  Some(inner) =>
-                    valtype_valid_for_type_import_export_inner(
-                      inner, type_table, resource_ids, named_types, visiting, true,
-                    )
-                }
-              InstanceTypeEmpty => true
-              InstanceType(_) => true
-              ComponentType(_) => true
-              _ => false
-            }
-            visiting.remove(idx) |> ignore
-            ok
+  let work : Array[(@component.ValType, Bool)] = [(ty, type_external)]
+  let seen : Map[(Int32, Bool), Bool] = Map([])
+  while work.pop() is Some((value, top_external)) {
+    guard value is TypeIdx(index) else { continue }
+    if index < 0 || index >= type_table.length() {
+      continue
+    }
+    if seen.get((index, top_external)) is Some(_) {
+      continue
+    }
+    seen[(index, top_external)] = true
+    guard type_table[index] is Some(definition) else { continue }
+    if top_external && (definition is Own(_) || definition is Borrow(_)) {
+      return false
+    }
+    if typedef_requires_name_for_interface(definition) &&
+      named_types.get(index) is None {
+      return false
+    }
+    match definition {
+      Tuple(values) =>
+        for value in values {
+          work.push((value, false))
+        }
+      Record(fields) =>
+        for field in fields {
+          work.push((field.ty, false))
+        }
+      Variant(cases) =>
+        for case in cases {
+          if case.ty is Some(value) {
+            work.push((value, false))
           }
         }
+      Option(value) | List(value) | FixedList(value, _) =>
+        work.push((value, false))
+      MapType(key, value) => {
+        work.push((key, false))
+        work.push((value, false))
       }
+      Result(ok, error) => {
+        if ok is Some(value) {
+          work.push((value, false))
+        }
+        if error is Some(value) {
+          work.push((value, false))
+        }
+      }
+      Own(index) | Borrow(index) => work.push((TypeIdx(index), false))
+      Future(value) | Stream(value) =>
+        if value is Some(value) {
+          work.push((value, false))
+        }
+      FuncType(function) =>
+        if top_external {
+          for param in function.params {
+            work.push((param.ty, false))
+          }
+          if function.result is Some(result) {
+            work.push((result, false))
+          }
+        }
+      _ => ()
+    }
   }
+  true
 }
 
 ///|

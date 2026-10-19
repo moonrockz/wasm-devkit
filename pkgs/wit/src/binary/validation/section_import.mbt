@@ -1,11 +1,12 @@
 // Retained from Milky2018/wasm_component@0.16.0; local formatting changes.
+// Modified by wasm-devkit: permit root component imports.
 
 ///|
 /// Handle component import section (id 10).
 fn validate_component_section_import(
   payload : Bytes,
   cfg : ComponentValidationConfig,
-  is_root : Bool,
+  _is_root : Bool,
   counts : Counts,
   type_table : Array[@component.TypeDef?],
   local_resource_types : Array[Bool],
@@ -84,11 +85,6 @@ fn validate_component_section_import(
       sort_of_externdesc(i.desc),
       cfg,
     )
-    if is_root && i.desc is ComponentType(_) {
-      raise SectionParseError(
-        10, "root-level component imports are not supported",
-      )
-    }
     if importname_to_string(i.name) is Some(name) {
       let key = if cfg.wit_names { wit_conflict_key(name) } else { name }
       match seen_import_names.get(key) {

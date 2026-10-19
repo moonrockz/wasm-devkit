@@ -243,19 +243,21 @@ fn wac_execute(options : Options, source : String, label : String) -> Output {
           let text = @wac_span.Source::new(source)
           for diagnostic in diagnostics {
             let p = diagnostic.primary.location
-            let position = text.position(p.span.start)
-            let coordinates = match position {
-              Some(p) => "\{p.line+1}:\{p.column+1}"
-              None => "?:?"
+            let location = if p.source == label && p.span() is Some(span) {
+              let coordinates = match text.position(span.start) {
+                Some(position) => "\{position.line+1}:\{position.column+1}"
+                None => "?:?"
+              }
+              "\{p.source}:\{coordinates}"
+            } else {
+              p.render()
             }
             out.write_string(
-              "\{p.source}:\{coordinates}: error \{diagnostic.code}: \{diagnostic.message}\n",
+              "\{location}: error \{diagnostic.code}: \{diagnostic.message}\n",
             )
             for label in diagnostic.related {
               let p = label.location
-              out.write_string(
-                "\{p.source}:[\{p.span.start},\{p.span.end}): \{label.message}\n",
-              )
+              out.write_string("\{p.render()}: \{label.message}\n")
             }
           }
           output("", out.to_string(), 1)

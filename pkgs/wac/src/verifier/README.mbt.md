@@ -121,3 +121,9 @@ Value nesting and expression groups use explicit work stacks. Tests exercise
 wasm, wasm-gc, JavaScript and native. Duplicate type/function externs that panic
 in the pinned resolver return diagnostics here; the exact oracle exclusions are
 recorded in the semantic fixture guide and Beads tasks.
+
+Binary dependency diagnostics use `Location::binary` and byte offsets. Text
+locations use `Location::text` and UTF-16 spans. `Location::span()` returns `None`
+for binary locations; unknown binary offsets render as `[binary]`. This avoids
+interpreting dependency bytes as coordinates in the root WAC source. Binary
+package reconstruction and providers remain under development.
