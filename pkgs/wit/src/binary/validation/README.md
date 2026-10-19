@@ -148,7 +148,9 @@ immutable contracts from the ordered scope pass. Core contract work and
 canonical shape work each share a 1,000,000-unit allowance across the component.
 The current flags profile permits at most 32 members, matching both pins.
 Async callback and stackful lift, async lower and component start are supported.
-Other canonical intrinsics remain unsupported. Concrete module
+Handle/cancellation intrinsics and scalar GC options now validate through the
+complete ordered core contracts, as documented below. Other intrinsics remain
+unsupported. Concrete module
 bodies still undergo original-byte validation; no substituted body is accepted
 as proof of validity.
 
@@ -197,3 +199,14 @@ local resource binders. Nested aliases normalize ordinary graphs before naming
 checks. Imported functions and values cannot acquire names only from exports.
 The binary entry point reads flat component sections and never invokes the
 upstream parser's recursive child construction.
+
+`canonical_intrinsics.mbt` adds complete handle/cancellation signatures and scalar
+GC ABI checks. `canonical_contracts.mbt` checks `gc` and ordered `core-type`
+options, including duplicate, kind, index and exact-signature failures. GC
+arguments have no flat ABI arity cutoff. `validate.mbt` passes the current
+core-type bound so future declarations cannot satisfy an earlier option.
+The framing boundary validates boolean bytes before the retained parser and
+excludes legacy cancellable wait/poll. No intrinsic runs or walks its payload.
+Shape and contract work use the existing shared budgets. GC reference shapes and
+all intrinsics outside the documented chosen set still fail explicitly.
+The low-level retained path without complete core metadata rejects GC options.

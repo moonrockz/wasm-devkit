@@ -426,3 +426,8 @@ stdin dependency bases. Verification never executes a component.
 `wac-value-externs` retains 45 complete package probes and 17 source compositions
 for component values. Full binary/WAT models, linear-use failures, scoped naming
 and the pinned resolver/encoder discrepancies are documented in its README.
+
+`wac-canonical-intrinsics` retains 92 probes for handle/cancellation intrinsics
+and scalar `gc`/`core-type` lift/lower. The semantic gate checks both pinned
+validators, complete reference models and binary/WAT CLI acceptance, alongside
+all 128 WAC resolution bundles. Its README records the chosen set and exclusions.

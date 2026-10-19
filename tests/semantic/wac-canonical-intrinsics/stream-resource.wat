@@ -1,0 +1,1 @@
+(component (import "r" (type $r (sub resource))) (type $own (own $r)) (type $t (stream $own)) (export "t" (type $t))  (core func $f (canon stream.new $t)) (core instance $env (export "f" (func $f))) (core module $m (import "env" "f" (func (result i64)))) (core instance (instantiate $m (with "env" (instance $env)))) )

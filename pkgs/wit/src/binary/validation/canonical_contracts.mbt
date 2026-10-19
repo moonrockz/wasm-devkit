@@ -49,6 +49,8 @@ fn check_canonical_contract(
   types : Array[@component.TypeDef?],
   functions : Array[@component.FuncType?],
   signatures : Array[FuncSigShape?],
+  scope : @core_types.ContractScope,
+  core_type_bound : Int32,
   externs : Map[(Int32, Int32), @core_types.External],
   budget : CanonicalBudget,
   work : CoreContractWork,
@@ -96,6 +98,22 @@ fn check_canonical_contract(
       8, "canonical option `callback` cannot be specified for lowerings",
     )
   }
+  let gc = opts.any(option => option is Gc)
+  let mut core_type : Int32? = None
+  for option in opts {
+    if option is CoreType(index) {
+      core_type = Some(index)
+    }
+  }
+  if core_type is Some(_) && !gc {
+    raise SectionParseError(8, "cannot specify core-type without gc")
+  }
+  if lifting && core_type is Some(_) {
+    raise CanonOptionNotAllowed("core-type")
+  }
+  if !lifting && gc && core_type is None {
+    raise MissingCanonOption("core-type")
+  }
   let mut pointer : @types.ValueType = I32
   for option in opts {
     work.charge(1)
@@ -110,7 +128,7 @@ fn check_canonical_contract(
         pointer = if memory64 { I64 } else { I32 }
       }
       StringEncoding(_) | Realloc(_) | PostReturn(_) | Async | Callback(_) => ()
-      _ => raise UnsupportedCanonical
+      Gc | CoreType(_) => ()
     }
   }
   let context : CanonicalContext = {
@@ -119,7 +137,28 @@ fn check_canonical_contract(
     budget,
     cache: Map([]),
   }
-  let abi = context.abi(ft, lifting, asynchronous, callback is Some(_))
+  let abi = if gc {
+    let expected = canonical_gc_function(ft, type_table, budget)
+    if core_type is Some(index) {
+      if index < 0 || index >= core_type_bound {
+        raise InvalidTypeIndex(index)
+      }
+      guard scope.definition(index) is Some(Function(declared)) else {
+        raise SectionParseError(
+          8, "core-type must reference a core function type",
+        )
+      }
+      work.charge(declared.params.length() + declared.results.length() + 1)
+      if declared != canonical_contract_function(expected) {
+        raise CanonCoreFuncTypeMismatch(
+          "declared core-type does not match the GC lowering",
+        )
+      }
+    }
+    { core: expected, memory: false, realloc: false, }
+  } else {
+    context.abi(ft, lifting, asynchronous, callback is Some(_))
+  }
   if abi.memory && !canon_has_memory(opts) {
     raise MissingCanonOption("memory")
   }

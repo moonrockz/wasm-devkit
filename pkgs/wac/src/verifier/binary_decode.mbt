@@ -324,8 +324,35 @@ fn binary_decode(
       RuntimeInstance(instance) => graph.runtime_instance(scope, instance)
       Canonical(Lift(_, _, index)) =>
         scope.bind(Function(graph.follow(binary_index(scope.types, index))))
-      Canonical(Lower(_, _) | ResourceNew(_) | ResourceDrop(_) | ResourceRep(_)) =>
-        ()
+      // Core-only intrinsics have already passed the complete ordered ABI
+      // validator. They add no component-level public type or value.
+      Canonical(
+        Lower(_, _)
+        | ResourceNew(_)
+        | ResourceDrop(_)
+        | ResourceRep(_)
+        | BackpressureInc
+        | BackpressureDec
+        | TaskCancel
+        | SubtaskDrop
+        | SubtaskCancel(_)
+        | WaitableSetNew
+        | WaitableSetDrop
+        | WaitableJoin
+        | WaitableSetWait(_, _)
+        | WaitableSetPoll(_, _)
+        | ErrorContextDrop
+        | StreamNew(_)
+        | StreamDropReadable(_)
+        | StreamDropWritable(_)
+        | StreamCancelRead(_, _)
+        | StreamCancelWrite(_, _)
+        | FutureNew(_)
+        | FutureDropReadable(_)
+        | FutureDropWritable(_)
+        | FutureCancelRead(_, _)
+        | FutureCancelWrite(_, _)
+      ) => ()
       Canonical(_) => raise Unsupported("unsupported canonical intrinsic")
       Describe(importing, name, attributes, desc) => {
         let kind = graph.describe(scope, importing, name, attributes, desc)

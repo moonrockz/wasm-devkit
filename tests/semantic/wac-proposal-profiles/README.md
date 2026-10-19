@@ -12,9 +12,11 @@ returns `WAC-B003`. Callback lift uses core `(param i32) (result i32)` plus a
 callback `(param i32 i32 i32) (result i32)`. Stackful lift, async lower, start
 argument checks and the remaining exclusions are library tests.
 
-Still outside the profile, with `WAC-B002`: other canonical intrinsics, the
-`gc` and `core-type` canon options, concrete GC and reference types, exception
-instructions, shared concrete globals, and limits above signed Int64.
+The later [canonical handle/scalar GC profile](../wac-canonical-intrinsics/README.md)
+admits selected intrinsics and scalar `gc`/`core-type` options. Remaining
+intrinsics, GC reference shapes, concrete GC and reference types, exception
+instructions, shared concrete globals and limits above signed Int64 still
+return `WAC-B002`.
 
 `composition/` is loaded by the CLI smoke test for both `.wat` and `.wasm`.
 `SHA256SUMS` records every file in this directory. Verification does not

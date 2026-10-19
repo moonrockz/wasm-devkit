@@ -1,0 +1,1 @@
+(component   (core func $f (canon waitable.join)) (core instance $env (export "f" (func $f))) (core module $m (import "env" "f" (func (param i64)))) (core instance (instantiate $m (with "env" (instance $env)))) )

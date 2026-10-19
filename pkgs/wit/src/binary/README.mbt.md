@@ -66,8 +66,9 @@ and canonical signatures. Imported-component instantiation and inline instances
 validate complete argument contracts, including named type arguments and runtime
 values. Concrete nested components validate through explicit frames with shared
 work budgets and complete scoped contracts. Async callback and stackful lift,
-async lower and component start sections validate in this profile. Other
-canonical intrinsics return `WIT-B002`. Combined concrete/type
+async lower and component start sections validate in this profile. Handle and
+cancellation intrinsics and scalar GC lift/lower also validate, as listed below.
+Other canonical intrinsics return `WIT-B002`. Combined concrete/type
 scope nesting is limited to 256. Value descriptor adaptation permits at most
 16,777,216 copied bytes across enclosing sections.
 Component-value externs use a framing-guided adapter for the retained parser's
@@ -172,3 +173,22 @@ continue to reject value externs. `ValidatedDeclarativeComponent.bytes()` retain
 the original input; `parser_bytes()` provides the immutable compatibility encoding
 for the retained parser. Only framing-identified value descriptors and their section
 lengths change. Core bodies, custom sections and unrelated bytes remain exact.
+
+## Canonical handles and scalar GC
+
+The declarative entry point accepts `task.cancel`, `backpressure.inc/dec`,
+`subtask.cancel/drop`, `waitable-set.new/wait/poll/drop`, `waitable.join`,
+`error-context.drop`, and stream/future new, cancellation and readable/writable
+drop operations. Complete signatures check type indices and unshared memory
+widths; both async cancellation flags are valid. Legacy cancellable wait/poll
+remains explicitly unsupported.
+
+`gc` lift and `gc (core-type ...)` lower accept numeric/boolean primitives,
+char, enums and flags. Each argument uses one core slot without a flat-ABI arity
+cutoff. Lower requires an earlier exact core function type; lift infers the type
+and rejects `core-type`. GC reference/aggregate shapes and all remaining
+intrinsics return `WIT-B002` with no successful model. The low-level retained
+validator without complete core metadata rejects GC options. All operations
+remain pure, bounded and iterative. The
+[92 pinned probes](../../../../tests/semantic/wac-canonical-intrinsics/README.md)
+compare binary/WAT models, invalid contracts and explicit exclusions.

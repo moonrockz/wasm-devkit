@@ -130,6 +130,10 @@ fn validate_canon(
   match c {
     Lift(core_func_idx, opts, tyidx) => {
       validate_canon_opts(opts)
+      // The scalar GC ABI needs the ordered complete core-type metadata.
+      if opts.any(option => option is Gc || option is CoreType(_)) {
+        raise UnsupportedCanonical
+      }
       match canon_memory_idx(opts) {
         Some(mem_idx) =>
           if mem_idx < 0 || mem_idx >= core_memory_types.length() {
@@ -263,6 +267,10 @@ fn validate_canon(
     }
     Lower(func_idx, opts) => {
       validate_canon_opts(opts)
+      // The scalar GC ABI needs the ordered complete core-type metadata.
+      if opts.any(option => option is Gc || option is CoreType(_)) {
+        raise UnsupportedCanonical
+      }
       if canon_has_post_return(opts) {
         raise CanonOptionNotAllowed("post-return")
       }

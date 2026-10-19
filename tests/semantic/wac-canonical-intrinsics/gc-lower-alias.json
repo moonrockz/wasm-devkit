@@ -1,0 +1,1 @@
+{"definitions":[],"instance":0,"name":"test:intrinsics","types":{"defined":[],"funcs":[{"async":false,"params":[["p0","u32"]],"result":"u64"}],"interfaces":[{"exports":[],"id":null,"uses":[]}],"modules":[],"resources":[],"worlds":[{"exports":[],"id":null,"imports":[["f",{"func":0}]],"uses":[]}]},"version":null,"world":0}

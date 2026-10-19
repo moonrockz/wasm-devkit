@@ -65,16 +65,36 @@
 +        budget,
 +        cache: Map([]),
 +      }
-+      Some(context.function(function).lowered)
++      Some(context.abi(function, false, canon_has_async(opts), false).core)
 +    }
 @@ -105 +124 @@
 -  type_bound : Int,
 +  type_bound : Int32,
 @@ -108,0 +128 @@
 +  budget~ : CanonicalBudget = { remaining: 1000000, },
-@@ -140,0 +161,10 @@
-+          if ft.is_async {
-+            raise UnsupportedCanonical
+@@ -112,0 +133,4 @@
++      // The scalar GC ABI needs the ordered complete core-type metadata.
++      if opts.any(option => option is Gc || option is CoreType(_)) {
++        raise UnsupportedCanonical
++      }
+@@ -141,3 +165,22 @@
+-          if canon_has_async(opts) && !ft.is_async {
+-            raise CanonAsyncTypeMismatch(tyidx)
+-          }
++          let asynchronous = canon_has_async(opts)
++          let callback = canon_callback_idx(opts)
++          if asynchronous && !ft.is_async {
++            raise SectionParseError(
++              8, "the async canonical option requires an async function type",
++            )
++          }
++          if !asynchronous && callback is Some(_) {
++            raise SectionParseError(8, "cannot specify callback without async")
++          }
++          if asynchronous && canon_has_post_return(opts) {
++            raise SectionParseError(
++              8, "cannot specify post-return function in async",
++            )
 +          }
 +          let context : CanonicalContext = {
 +            types: type_table,
@@ -82,19 +102,22 @@
 +            budget,
 +            cache: Map([]),
 +          }
-+          let shape = context.function(ft)
-@@ -185,5 +215 @@
++          let shape = context.abi(ft, true, asynchronous, callback is Some(_))
+@@ -185,5 +228 @@
 -          let needs_memory = if canon_has_async(opts) {
 -            functype_async_lift_needs_memory(ft, type_table)
 -          } else {
 -            functype_needs_memory(ft, type_table)
 -          }
 +          let needs_memory = shape.memory
-@@ -193,2 +219 @@
+@@ -193,2 +232 @@
 -          if functype_needs_realloc_for_lift(ft, type_table) &&
 -            !canon_has_realloc(opts) {
-+          if shape.lift_realloc && !canon_has_realloc(opts) {
-@@ -200,9 +225 @@
++          if shape.realloc && !canon_has_realloc(opts) {
+@@ -197,14 +235,11 @@
+-          // Async-lifted functions use a callback/event-code ABI and do not
+-          // match the direct lowering signature.
+-          if !canon_has_async(opts) {
 -            match
 -              (
 -                core_func_types[core_func_idx],
@@ -104,10 +127,64 @@
 -                  canon_address_type(opts, core_memory_types),
 -                ),
 -              ) {
-+            match (core_func_types[core_func_idx], Some(shape.lifted)) {
-@@ -246,0 +264,10 @@
-+          if ft.is_async {
-+            raise UnsupportedCanonical
+-              (Some(core_ft), Some(expected_core_ft)) =>
+-                if core_ft != expected_core_ft {
++          if callback is Some(callback_index) {
++            if callback_index < 0 || callback_index >= core_func_types.length() {
++              raise InvalidCoreFuncIndex(callback_index)
++            }
++            match core_func_types[callback_index] {
++              Some(callback_type) => {
++                let expected : @types.FuncType = {
++                  params: [I32, I32, I32],
++                  results: [I32],
++                }
++                if callback_type != expected {
+@@ -212 +247 @@
+-                    "canon lift core signature mismatch",
++                    "canonical option `callback` uses a core function with an incorrect signature",
+@@ -215,2 +250,12 @@
+-              _ => ()
+-            }
++              }
++              None => ()
++            }
++          }
++          match (core_func_types[core_func_idx], Some(shape.core)) {
++            (Some(core_ft), Some(expected_core_ft)) =>
++              if core_ft != expected_core_ft {
++                raise CanonCoreFuncTypeMismatch(
++                  "canon lift core signature mismatch",
++                )
++              }
++            _ => ()
+@@ -224,0 +270,4 @@
++      // The scalar GC ABI needs the ordered complete core-type metadata.
++      if opts.any(option => option is Gc || option is CoreType(_)) {
++        raise UnsupportedCanonical
++      }
+@@ -247,3 +296,26 @@
+-          if canon_has_async(opts) && !ft.is_async {
+-            raise CanonAsyncTypeMismatch(func_idx)
+-          }
++          let asynchronous = canon_has_async(opts)
++          if asynchronous && !ft.is_async {
++            raise SectionParseError(
++              8, "the async canonical option requires an async function type",
++            )
++          }
++          if !asynchronous && canon_callback_idx(opts) is Some(_) {
++            raise SectionParseError(8, "cannot specify callback without async")
++          }
++          if canon_callback_idx(opts) is Some(_) {
++            raise SectionParseError(
++              8, "canonical option `callback` cannot be specified for lowerings",
++            )
++          }
++          if asynchronous && canon_has_post_return(opts) {
++            raise SectionParseError(
++              8, "cannot specify post-return function in async",
++            )
 +          }
 +          let context : CanonicalContext = {
 +            types: type_table,
@@ -115,56 +192,56 @@
 +            budget,
 +            cache: Map([]),
 +          }
-+          let shape = context.function(ft)
-@@ -273 +300 @@
++          let shape = context.abi(ft, false, asynchronous, false)
+@@ -273 +345 @@
 -          if functype_needs_memory(ft, type_table) && !canon_has_memory(opts) {
 +          if shape.memory && !canon_has_memory(opts) {
-@@ -276,2 +303 @@
+@@ -276,2 +348 @@
 -          if functype_needs_realloc_for_lower(ft, type_table) &&
 -            !canon_has_realloc(opts) {
-+          if shape.lower_realloc && !canon_has_realloc(opts) {
-@@ -367 +393 @@
++          if shape.realloc && !canon_has_realloc(opts) {
+@@ -367 +438 @@
 -  visiting : Map[Int, Int],
 +  visiting : Map[Int32, Int32],
-@@ -392 +418 @@
+@@ -392 +463 @@
 -  visiting : Map[Int, Int],
 +  visiting : Map[Int32, Int32],
-@@ -495 +521 @@
+@@ -495 +566 @@
 -  visiting : Map[Int, Int],
 +  visiting : Map[Int32, Int32],
-@@ -626 +652 @@
+@@ -626 +697 @@
 -fn clamp_type_size(size : Int) -> Int {
 +fn clamp_type_size(size : Int32) -> Int32 {
-@@ -635 +661 @@
+@@ -635 +706 @@
 -fn add_type_size(acc : Int, delta : Int) -> Int {
 +fn add_type_size(acc : Int32, delta : Int32) -> Int32 {
-@@ -645 +671 @@
+@@ -645 +716 @@
 -fn local_type_size_of(idx : Int, local_sizes : Array[Int]) -> Int {
 +fn local_type_size_of(idx : Int32, local_sizes : Array[Int32]) -> Int32 {
-@@ -655,2 +681,2 @@
+@@ -655,2 +726,2 @@
 -  local_sizes : Array[Int],
 -) -> Int {
 +  local_sizes : Array[Int32],
 +) -> Int32 {
-@@ -670,3 +696,3 @@
+@@ -670,3 +741,3 @@
 -  outer_sizes : Array[Int],
 -) -> Int {
 -  fn valtype_size(ty : @component.ValType) -> Int {
 +  outer_sizes : Array[Int32],
 +) -> Int32 {
 +  fn valtype_size(ty : @component.ValType) -> Int32 {
-@@ -681 +707 @@
+@@ -681 +752 @@
 -      let local_sizes : Array[Int] = []
 +      let local_sizes : Array[Int32] = []
-@@ -688 +714,3 @@
+@@ -688 +759,3 @@
 -              let s = if count == 1 && idx >= 0 && idx < outer_sizes.length() {
 +              let s = if count == 0 && idx >= 0 && idx < local_sizes.length() {
 +                local_sizes[idx]
 +              } else if count == 1 && idx >= 0 && idx < outer_sizes.length() {
-@@ -722 +750 @@
+@@ -722 +795 @@
 -      let local_sizes : Array[Int] = []
 +      let local_sizes : Array[Int32] = []
-@@ -729 +757,3 @@
+@@ -729 +802,3 @@
 -              let s = if count == 1 && idx >= 0 && idx < outer_sizes.length() {
 +              let s = if count == 0 && idx >= 0 && idx < local_sizes.length() {
 +                local_sizes[idx]
@@ -573,17 +650,27 @@
 @@ -1598 +1767 @@
 -fn canon_post_return_idx(opts : Array[@component.CanonOpt]) -> Int? {
 +fn canon_post_return_idx(opts : Array[@component.CanonOpt]) -> Int32? {
-@@ -1608 +1777 @@
+@@ -1608 +1777,11 @@
 -fn functype_needs_memory(
++fn canon_callback_idx(opts : Array[@component.CanonOpt]) -> Int32? {
++  for o in opts {
++    if o is Callback(idx) {
++      return Some(idx)
++    }
++  }
++  None
++}
++
++///|
 +fn functype_params_need_memory(
-@@ -1611,5 +1780 @@
+@@ -1611,5 +1790 @@
 -) -> Bool {
 -  // Canonical ABI uses linear memory when:
 -  // - any param/result type itself needs memory (e.g. string/list), or
 -  // - the flattened parameter list is too large (>16), or
 -  // - the result can't be represented as a single core value.
 +) -> Bool raise ComponentValidationError {
-@@ -1628,27 +1792,0 @@
+@@ -1628,27 +1802,0 @@
 -  match ft.result {
 -    None => false
 -    Some(r) =>
@@ -611,10 +698,10 @@
 -      None => return true
 -    }
 -  }
-@@ -1662 +1800 @@
+@@ -1662 +1810 @@
 -) -> Bool {
 +) -> Bool raise ComponentValidationError {
-@@ -1675,136 +1812,0 @@
+@@ -1675,136 +1822,0 @@
 -
 -///|
 -fn valtype_contains_list_or_string(
@@ -1992,7 +2079,7 @@
 +    restricted_map_keys,
 +    borrowed_value_exports,
 +  }
-@@ -114,12 +136,32 @@
+@@ -114,12 +136,33 @@
 -  mut func : Int
 -  mut value : Int
 -  mut component : Int
@@ -2026,6 +2113,7 @@
 +  mut ascription_remaining : Int32
 +  mut func : Int32
 +  mut value : Int32
++  mut started : Bool
 +  values : Array[ComponentValue]
 +  mut component : Int32
 +  mut instance : Int32
@@ -2037,7 +2125,7 @@
 +  mut core_memory : Int32
 +  mut core_global : Int32
 +  mut core_tag : Int32
-@@ -161 +203,9 @@
+@@ -161 +204,9 @@
 -} derive(Eq)
 +  complete : CompleteFunctionSignature?
 +}
@@ -2048,65 +2136,65 @@
 +impl Eq for FuncSigShape with fn equal(a, b) {
 +  a.params == b.params && a.result == b.result
 +}
-@@ -165,2 +215,2 @@
+@@ -165,2 +216,2 @@
 -  Existing(Int)
 -  Resource(Int)
 +  Existing(Int32)
 +  Resource(Int32)
-@@ -182,3 +232,3 @@
+@@ -182,3 +233,3 @@
 -  Resource(Int)
 -  Own(Int)
 -  Borrow(Int)
 +  Resource(Int32)
 +  Own(Int32)
 +  Borrow(Int32)
-@@ -204,2 +254,2 @@
+@@ -204,2 +255,2 @@
 -  resource_ids : Array[Int?],
 -) -> Int? {
 +  resource_ids : Array[Int32?],
 +) -> Int32? {
-@@ -218,3 +268,3 @@
+@@ -218,3 +269,3 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 -) -> Int? {
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
 +) -> Int32? {
-@@ -238,2 +288,2 @@
+@@ -238,2 +289,2 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
-@@ -258,2 +308,2 @@
+@@ -258,2 +309,2 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
-@@ -460 +510,4 @@
+@@ -460 +511,4 @@
 -fn core_func_type_of_idx(m : @types.Module, func_idx : Int) -> @types.FuncType? {
 +fn core_func_type_of_idx(
 +  m : @types.Module,
 +  func_idx : Int32,
 +) -> @types.FuncType? {
-@@ -485 +538 @@
+@@ -485 +539 @@
 -  table_idx : Int,
 +  table_idx : Int32,
-@@ -506 +559 @@
+@@ -506 +560 @@
 -  mem_idx : Int,
 +  mem_idx : Int32,
-@@ -527 +580 @@
+@@ -527 +581 @@
 -  global_idx : Int,
 +  global_idx : Int32,
-@@ -546 +599 @@
+@@ -546 +600 @@
 -fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int) -> @types.FuncType? {
 +fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int32) -> @types.FuncType? {
-@@ -642 +695 @@
+@@ -642 +696 @@
 -fn core_kind_of_extern_type(ty : CoreExternType) -> Int {
 +fn core_kind_of_extern_type(ty : CoreExternType) -> Int32 {
-@@ -679 +732 @@
+@@ -679 +733 @@
 -  idx : Int,
 +  idx : Int32,
-@@ -723,0 +777,19 @@
+@@ -723,0 +778,19 @@
 +    core_scope: 0,
 +    outer_counts: [],
 +    origin_scope: 0,
@@ -2126,25 +2214,26 @@
 +    core_contracts: None,
 +    metadata_remaining: 1000000,
 +    ascription_remaining: 1000000,
-@@ -725,0 +798 @@
+@@ -725,0 +799,2 @@
++    started: false,
 +    values: [],
-@@ -763 +836 @@
+@@ -763 +838 @@
 -fn is_lower_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_lower_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -793 +866 @@
+@@ -793 +868 @@
 -fn is_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -843,2 +916,2 @@
+@@ -843,2 +918,2 @@
 -fn is_canonversion_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 -  if start < 0 || end_ <= start || end_ > name.length() {
 +fn is_semver_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
 +  if start < 0 || start >= end_ || end_ > name.length() {
-@@ -848,2 +921,2 @@
+@@ -848,2 +923,2 @@
 -  if name[i].to_int() >= 0x31 && name[i].to_int() <= 0x39 {
 -    i += 1
 +  for component in 0..<3 {
 +    let begin = i
-@@ -853,11 +926,27 @@
+@@ -853,11 +928,27 @@
 -    return i == end_
 -  }
 -  if name[i].to_int() != 0x30 || i + 1 >= end_ {
@@ -2183,7 +2272,7 @@
 +
 +  // Numeric prerelease identifiers cannot contain leading zeroes.
 +  if i < end_ && name[i] == 0x2d {
-@@ -865 +954,15 @@
+@@ -865 +956,15 @@
 -    while i < end_ && is_ascii_digit(name[i]) {
 +    while true {
 +      let begin = i
@@ -2200,7 +2289,7 @@
 +      if i >= end_ || name[i] != 0x2e {
 +        break
 +      }
-@@ -867,95 +969,0 @@
+@@ -867,95 +971,0 @@
 -    }
 -    return i == end_
 -  }
@@ -2296,13 +2385,13 @@
 -    }
 -    if need_id {
 -      return false
-@@ -1016,3 +1023,0 @@
+@@ -1016,3 +1025,0 @@
 -      if at != -1 {
 -        return false
 -      }
-@@ -1019,0 +1025 @@
+@@ -1019,0 +1027 @@
 +      break
-@@ -1028,9 +1034 @@
+@@ -1028,9 +1036 @@
 -  if at != -1 {
 -    if at >= name.length() - 1 {
 -      return false
@@ -2313,14 +2402,14 @@
 -    }
 -  }
 +  // Version syntax is checked with the separately encoded suffix.
-@@ -1185 +1183 @@
+@@ -1185 +1185 @@
 -fn is_integrity_value(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_integrity_value(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -1453,0 +1452,3 @@
+@@ -1453,0 +1454,3 @@
 +  if prefix_eq("get") || prefix_eq("set") {
 +    return is_kebab_case_range(name, close + 1, name.length())
 +  }
-@@ -1460 +1461,9 @@
+@@ -1460 +1463,9 @@
 -  // method/static: require exactly one '.' and kebab-case around it.
 +  // Method/static names can have one accessor annotation before the resource.
 +  let mut start = close + 1
@@ -2331,10 +2420,10 @@
 +    ) {
 +    start += 5
 +  }
-@@ -1462 +1471 @@
+@@ -1462 +1473 @@
 -  for k in (close + 1)..<name.length() {
 +  for k in start..<name.length() {
-@@ -1470,4 +1479,4 @@
+@@ -1470,4 +1481,4 @@
 -  if dot < 0 || dot == close + 1 || dot == name.length() - 1 {
 -    return false
 -  }
@@ -2343,19 +2432,19 @@
 +    return false
 +  }
 +  is_kebab_case_range(name, start, dot) &&
-@@ -1506 +1515 @@
+@@ -1506 +1517 @@
 -  mut pos : Int
 +  mut pos : Int32
-@@ -1522 +1531 @@
+@@ -1522 +1533 @@
 -) -> Int raise ComponentValidationError {
 +) -> Int32 raise ComponentValidationError {
-@@ -1534 +1543 @@
+@@ -1534 +1545 @@
 -) -> Int raise ComponentValidationError {
 +) -> Int32 raise ComponentValidationError {
-@@ -1554 +1563 @@
+@@ -1554 +1565 @@
 -  n : Int,
 +  n : Int32,
-@@ -1585,5 +1594,9 @@
+@@ -1585,5 +1596,9 @@
 -  ascii_bytes_to_string(self.read_bytes(len))
 -}
 -
@@ -2370,7 +2459,7 @@
 +
 +///|
 +fn CoreTypeReader::read_limit(
-@@ -1591 +1604,23 @@
+@@ -1591 +1606,23 @@
 -) -> Unit raise ComponentValidationError {
 +  wide : Bool,
 +) -> UInt64 raise ComponentValidationError {
@@ -2395,7 +2484,7 @@
 +  self : CoreTypeReader,
 +  memory : Bool,
 +) -> (Int32, UInt64, UInt64?, Int32) raise ComponentValidationError {
-@@ -1593,4 +1628,24 @@
+@@ -1593,4 +1630,24 @@
 -  self.read_leb_u32() |> ignore
 -  if (flags & 0x01) != 0 {
 -    self.read_leb_u32() |> ignore
@@ -2424,12 +2513,12 @@
 +    }
 +  }
 +  (flags, min, max, page)
-@@ -1627,2 +1682,2 @@
+@@ -1627,2 +1684,2 @@
 -  kind : Int,
 -  func_type_bound : Int,
 +  kind : Int32,
 +  func_type_bound : Int32,
-@@ -1639,17 +1694,3 @@
+@@ -1639,17 +1696,3 @@
 -      self.skip_limits()
 -    }
 -    0x02 => {
@@ -2450,16 +2539,16 @@
 +      self.read_limits(false) |> ignore
 +    }
 +    0x02 => self.read_limits(true) |> ignore
-@@ -1679 +1720 @@
+@@ -1679 +1722 @@
 -    heap : Int,
 +    heap : Int32,
-@@ -1748 +1789 @@
+@@ -1748 +1791 @@
 -  kind : Int,
 +  kind : Int32,
-@@ -1750 +1791 @@
+@@ -1750 +1793 @@
 -  func_type_bound : Int,
 +  func_type_bound : Int32,
-@@ -1775,6 +1816,5 @@
+@@ -1775,6 +1818,5 @@
 -      let flags = self.read_u8()
 -      let min = self.read_leb_u32()
 -      let max = if (flags & 0x01) != 0 {
@@ -2471,7 +2560,7 @@
 +        (max is Some(n) && n > 9223372036854775807UL) ||
 +        (flags & 2) != 0 {
 +        return None
-@@ -1783,7 +1823,4 @@
+@@ -1783,7 +1825,4 @@
 -        min: min.to_int64(),
 -        max: match max {
 -          Some(v) => Some(v.to_int64())
@@ -2483,7 +2572,7 @@
 +        max: max.map(n => n.reinterpret_as_int64()),
 +      }
 +      Some(Table({ elem_type: elem_ty, limits, is_table64: (flags & 4) != 0, }))
-@@ -1792,14 +1829,6 @@
+@@ -1792,14 +1831,6 @@
 -      // memtype: flags + limits (track memory64 when present)
 -      let flags = self.read_u8()
 -      let min = self.read_leb_u32()
@@ -2504,7 +2593,7 @@
 +      if min > 9223372036854775807UL ||
 +        (max is Some(n) && n > 9223372036854775807UL) {
 +        return None
-@@ -1808,7 +1837,3 @@
+@@ -1808,7 +1839,3 @@
 -        min: min.to_int64(),
 -        max: match max {
 -          Some(v) => Some(v.to_int64())
@@ -2515,33 +2604,33 @@
 +        min: min.reinterpret_as_int64(),
 +        max: max.map(n => n.reinterpret_as_int64()),
 +      }
-@@ -1818,3 +1843,3 @@
+@@ -1818,3 +1845,3 @@
 -          is_memory64,
 -          is_shared: (flags & 0x02) != 0,
 -          page_size_log2: 16,
 +          is_memory64: (flags & 4) != 0,
 +          is_shared: (flags & 2) != 0,
 +          page_size_log2: page,
-@@ -1828 +1853,4 @@
+@@ -1828 +1855,4 @@
 -      let mutable = mut_ != 0
 +      if (mut_ & 2) != 0 {
 +        return None
 +      }
 +      let mutable = (mut_ & 1) != 0
-@@ -1859,3 +1887,3 @@
+@@ -1859,3 +1889,3 @@
 -  max_outer_depth : Int,
 -  current_core_type_bound : Int,
 -  outer_core_type_bounds : Array[Int],
 +  max_outer_depth : Int32,
 +  current_core_type_bound : Int32,
 +  outer_core_type_bounds : Array[Int32],
-@@ -1864 +1892 @@
+@@ -1864 +1894 @@
 -  let seen_imports : Map[String, Int] = Map([])
 +  let seen_imports : Map[(String, String), Int32] = Map([])
-@@ -1883 +1911 @@
+@@ -1883 +1913 @@
 -        let key = "\{mod_s}:\{name_s}"
 +        let key = (mod_s, name_s)
-@@ -1919 +1947,3 @@
+@@ -1919 +1949,3 @@
 -                let bound = if depth <= 1 {
 +                let bound = if depth == 0 {
 +                  func_type_bound - 1
@@ -4942,7 +5031,7 @@
 +            func_sig_shapes,
 +            type_outers,
 +            component_size_outers,
-@@ -838,8 +955,64 @@
+@@ -838,8 +955,77 @@
 -          count_canon(c, counts)
 -          match c {
 -            Lift(_, _, tyidx) =>
@@ -4957,7 +5046,7 @@
 +            e => raise SectionParseError(8, "\{e}")
 +          }
 +          for c in canons {
-+            let complete_lower = if contract_scope is Some(_) {
++            let complete_lower = if contract_scope is Some(scope) {
 +              match c {
 +                ResourceNew(_) | ResourceDrop(_) | ResourceRep(_) =>
 +                  Some(
@@ -4965,10 +5054,23 @@
 +                      c, type_table, local_resource_types, resource_ids, contract_work,
 +                    ),
 +                  )
-+                _ =>
++                Lift(_, _, _) | Lower(_, _) =>
 +                  check_canonical_contract(
-+                    c, type_table, func_types, func_sig_shapes, external_contracts,
-+                    canonical_budget, contract_work,
++                    c,
++                    type_table,
++                    func_types,
++                    func_sig_shapes,
++                    scope,
++                    counts.core_type,
++                    external_contracts,
++                    canonical_budget,
++                    contract_work,
++                  )
++                _ =>
++                  Some(
++                    canonical_handle_function(
++                      c, type_table, external_contracts, contract_work,
++                    ),
 +                  )
 +              }
 +            } else {
@@ -5015,7 +5117,7 @@
 +                } else {
 +                  core_functype_for_canon(
 +                    c, type_table, core_memory_types, func_types, canonical_budget,
-@@ -848,3 +1021,4 @@
+@@ -848,3 +1034,4 @@
 -                _ => {
 -                  func_types.push(None)
 -                  func_sig_shapes.push(None)
@@ -5023,9 +5125,9 @@
 +                  external_contracts[(0, core_func_types.length())] = Func(
 +                    canonical_contract_function(ft),
 +                  )
-@@ -851,0 +1026 @@
+@@ -851,0 +1039 @@
 +                core_func_types.push(signature)
-@@ -853,9 +1028,12 @@
+@@ -853,9 +1041,12 @@
 -            // All non-lift canonical items append a core function to the core-func
 -            // index space. Model known intrinsic signatures so core module
 -            // instantiation validates imports against canonical builtins.
@@ -5042,12 +5144,12 @@
 +          let start = @component.parse_start_section(s.payload) catch {
 +            e => raise SectionParseError(9, "\{e}")
 +          }
-+          if start.func_idx < 0 || start.func_idx >= counts.func {
-+            raise InvalidFuncIndex(start.func_idx)
-+          }
++          validate_component_start(
++            start, counts, func_types, type_table, resource_ids,
++          )
 +        }
 +        _ => ()
-@@ -863,7 +1041,6 @@
+@@ -863,7 +1054,6 @@
 -      9 => {
 -        let start = @component.parse_start_section(s.payload) catch {
 -          e => raise SectionParseError(9, "\{e}")
@@ -5061,9 +5163,9 @@
 +        raise SectionParseError(
 +          10, "value was not used as part of an instantiation, start function, or export",
 +        )
-@@ -871 +1047,0 @@
+@@ -871 +1060,0 @@
 -      _ => ()
-@@ -872,0 +1049,38 @@
+@@ -872,0 +1062,38 @@
 +    if export_size > 100000 {
 +      raise SectionParseError(11, "effective type size exceeds the limit")
 +    }
@@ -5102,7 +5204,7 @@
 +      export_type_sigs: my_export_type_sigs,
 +      export_func_sigs: my_export_func_sigs,
 +    })
-@@ -874,24 +1088 @@
+@@ -874,24 +1101 @@
 -  if export_size > 100000 {
 -    raise SectionParseError(11, "effective type size exceeds the limit")
 -  }
@@ -5128,9 +5230,9 @@
 -    export_func_sigs: my_export_func_sigs,
 -  }
 +  { advance, }
-@@ -913,0 +1105 @@
+@@ -913,0 +1118 @@
 +  core_contracts~ : @core_types.ContractGraph? = None,
-@@ -915 +1107,47 @@
+@@ -915 +1120,47 @@
 -  validate_component_inner(component, true, cfg, 0, [], [], [], []) |> ignore
 +  validate_component_binary_with_config(component.binary, cfg, core_contracts~)
 +}
@@ -5179,9 +5281,9 @@
 +      }
 +    }
 +  }
-@@ -942 +1180 @@
+@@ -942 +1193 @@
 -  let snapshot = @component.parse_component(component_bytes) catch {
 +  let snapshot = @component.parse_component_binary(component_bytes) catch {
-@@ -945 +1183 @@
+@@ -945 +1196 @@
 -  validate_component_with_config(snapshot, cfg)
 +  validate_component_binary_with_config(snapshot, cfg)

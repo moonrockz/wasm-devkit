@@ -86,6 +86,9 @@ include local dependencies and deliberate failures. See the
 [CLI registry guide](cmd/wasm-devkit/README.md#registry-packages).
 See the [WIT verifier](pkgs/wit/src/verifier/README.mbt.md) and
 [WAC verifier](pkgs/wac/src/verifier/README.mbt.md) for checked examples and exact scope.
+Canonical verification also covers selected handle/cancellation intrinsics and
+scalar `gc`/`core-type` lift/lower. The [canonical profile fixtures](tests/semantic/wac-canonical-intrinsics/README.md)
+record exact supported operations and explicit exclusions.
 Dependency and component verification is implemented for the documented v0.2.0 profile.
 Unsupported constructs fail explicitly. Async canonical lift/lower and component
 start sections are in the profile. Concrete GC and reference types, exception

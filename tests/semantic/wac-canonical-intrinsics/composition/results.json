@@ -1,0 +1,50 @@
+[
+  {
+    "name": "task.cancel",
+    "accepts": true,
+    "reference": 0,
+    "cli": 0,
+    "error": "",
+    "diagnostic": ""
+  },
+  {
+    "name": "stream.new",
+    "accepts": true,
+    "reference": 0,
+    "cli": 0,
+    "error": "",
+    "diagnostic": ""
+  },
+  {
+    "name": "gc-lift-many",
+    "accepts": true,
+    "reference": 0,
+    "cli": 0,
+    "error": "",
+    "diagnostic": ""
+  },
+  {
+    "name": "gc-lower-scalars",
+    "accepts": true,
+    "reference": 0,
+    "cli": 0,
+    "error": "",
+    "diagnostic": ""
+  },
+  {
+    "name": "gc-lower-mismatch",
+    "accepts": false,
+    "reference": 1,
+    "cli": 1,
+    "error": "failed to parse package `test:intrinsics`\n",
+    "diagnostic": "error: failed to resolve document\n\n  \u00d7 failed to parse package `test:intrinsics`\n  \u2570\u2500\u25b6 expected to lower component `u32` type to core `i32` type, found `i64` (at offset 0x26)\n   \u256d\u2500[tests/semantic/wac-canonical-intrinsics/composition/gc-lower-mismatch/input.wac:1:33]\n 1 \u2502 package test:app; let dep = new test:intrinsics { ... }; export dep as \"out\";\n   \u00b7                                 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n   \u00b7                                        \u2570\u2500\u2500 package `test:intrinsics` failed to parse\n   \u2570\u2500\u2500\u2500\u2500\n\n"
+  },
+  {
+    "name": "task-return-unsupported",
+    "accepts": false,
+    "reference": 0,
+    "cli": 0,
+    "error": "",
+    "diagnostic": ""
+  }
+]

@@ -1021,6 +1021,32 @@ async fn main {
   }
   for extension in ["wasm", "wat"] {
     for
+      (name, status, code) in [
+        ("task.cancel", 0, ""),
+        ("stream.new", 0, ""),
+        ("gc-lift-many", 0, ""),
+        ("gc-lower-scalars", 0, ""),
+        ("gc-lower-mismatch", 1, "WAC-B003"),
+        ("task-return-unsupported", 1, "WAC-B002"),
+      ] {
+      let root = "tests/semantic/wac-canonical-intrinsics/composition/" + name
+      let (_, diagnostic) = run(
+        [
+          "verify",
+          root + "/input.wac",
+          "--dep",
+          "test:intrinsics=dep." + extension,
+        ],
+        status,
+        wit,
+      )
+      if status == 1 {
+        assert_true(diagnostic.contains(code))
+      }
+    }
+  }
+  for extension in ["wasm", "wat"] {
+    for
       (name, status) in [
         ("async-callback", 0),
         ("component-start", 0),

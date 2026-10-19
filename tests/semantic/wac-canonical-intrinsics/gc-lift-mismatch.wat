@@ -1,0 +1,1 @@
+(component  (core module $m (func (export "f") (param i64) (result i64) unreachable)) (core instance $i (instantiate $m)) (alias core export $i "f" (core func $f)) (func (export "f") (param "p0" u32) (result u64) (canon lift (core func $f) gc)))

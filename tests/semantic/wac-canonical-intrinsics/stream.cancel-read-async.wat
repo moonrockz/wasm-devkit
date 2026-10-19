@@ -1,0 +1,1 @@
+(component (type $t (stream u32)) (export "t" (type $t))  (core func $f (canon stream.cancel-read $t async)) (core instance $env (export "f" (func $f))) (core module $m (import "env" "f" (func (param i32) (result i32)))) (core instance (instantiate $m (with "env" (instance $env)))) )

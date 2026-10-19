@@ -1,0 +1,830 @@
+[
+  {
+    "name": "task.cancel",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "task.cancel-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func) (at offset 0x3f)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func) (at offset 0x3f)\n"
+  },
+  {
+    "name": "backpressure.inc",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "backpressure.inc-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func) (at offset 0x3f)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func) (at offset 0x3f)\n"
+  },
+  {
+    "name": "backpressure.dec",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "backpressure.dec-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func) (at offset 0x3f)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func) (at offset 0x3f)\n"
+  },
+  {
+    "name": "subtask.drop",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "subtask.drop-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func (param i32)) (at offset 0x3f)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func (param i32)) (at offset 0x3f)\n"
+  },
+  {
+    "name": "subtask.cancel",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "subtask.cancel-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x41)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x41)\n"
+  },
+  {
+    "name": "subtask.cancel-async",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "subtask.cancel-async-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x41)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x41)\n"
+  },
+  {
+    "name": "waitable-set.new",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "waitable-set.new-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (result i32)) (at offset 0x40)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (result i32)) (at offset 0x40)\n"
+  },
+  {
+    "name": "waitable-set.drop",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "waitable-set.drop-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func (param i32)) (at offset 0x3f)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func (param i32)) (at offset 0x3f)\n"
+  },
+  {
+    "name": "waitable.join",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "waitable.join-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func (param i32 i32)) (at offset 0x3f)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func (param i32 i32)) (at offset 0x3f)\n"
+  },
+  {
+    "name": "error-context.drop",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "error-context.drop-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func (param i32)) (at offset 0x3f)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func (param i32)) (at offset 0x3f)\n"
+  },
+  {
+    "name": "stream.new",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "stream.new-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i64))\nfound:    (func (result i64)) (at offset 0x50)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i64))\nfound:    (func (result i64)) (at offset 0x50)\n"
+  },
+  {
+    "name": "stream.drop-readable",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "stream.drop-readable-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func (param i32)) (at offset 0x4f)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func (param i32)) (at offset 0x4f)\n"
+  },
+  {
+    "name": "stream.drop-writable",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "stream.drop-writable-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func (param i32)) (at offset 0x4f)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func (param i32)) (at offset 0x4f)\n"
+  },
+  {
+    "name": "stream.cancel-read",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "stream.cancel-read-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x51)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x51)\n"
+  },
+  {
+    "name": "stream.cancel-write",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "stream.cancel-write-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x51)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x51)\n"
+  },
+  {
+    "name": "stream.cancel-read-async",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "stream.cancel-read-async-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x51)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x51)\n"
+  },
+  {
+    "name": "stream.cancel-write-async",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "stream.cancel-write-async-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x51)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x51)\n"
+  },
+  {
+    "name": "future.new",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "future.new-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i64))\nfound:    (func (result i64)) (at offset 0x50)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i64))\nfound:    (func (result i64)) (at offset 0x50)\n"
+  },
+  {
+    "name": "future.drop-readable",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "future.drop-readable-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func (param i32)) (at offset 0x4f)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func (param i32)) (at offset 0x4f)\n"
+  },
+  {
+    "name": "future.drop-writable",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "future.drop-writable-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func (param i32)) (at offset 0x4f)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64))\nfound:    (func (param i32)) (at offset 0x4f)\n"
+  },
+  {
+    "name": "future.cancel-read",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "future.cancel-read-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x51)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x51)\n"
+  },
+  {
+    "name": "future.cancel-write",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "future.cancel-write-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x51)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x51)\n"
+  },
+  {
+    "name": "future.cancel-read-async",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "future.cancel-read-async-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x51)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x51)\n"
+  },
+  {
+    "name": "future.cancel-write-async",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "future.cancel-write-async-wrong-core",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x51)\n",
+    "error": "type mismatch for export `f` of module instantiation argument `env`\nexpected: (func (param i64) (result i32))\nfound:    (func (param i32) (result i32)) (at offset 0x51)\n"
+  },
+  {
+    "name": "waitable-set.wait-32",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "waitable-set.wait-64",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "waitable-set.wait-missing-memory",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: unknown memory 0: memory index out of bounds (at offset 0xb)\n",
+    "error": "unknown memory 0: memory index out of bounds (at offset 0xb)\n"
+  },
+  {
+    "name": "waitable-set.wait-shared-memory",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: mismatch in the shared flag for memories (at offset 0x48)\n",
+    "error": "mismatch in the shared flag for memories (at offset 0x48)\n"
+  },
+  {
+    "name": "waitable-set.poll-32",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "waitable-set.poll-64",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "waitable-set.poll-missing-memory",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: unknown memory 0: memory index out of bounds (at offset 0xb)\n",
+    "error": "unknown memory 0: memory index out of bounds (at offset 0xb)\n"
+  },
+  {
+    "name": "waitable-set.poll-shared-memory",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: mismatch in the shared flag for memories (at offset 0x48)\n",
+    "error": "mismatch in the shared flag for memories (at offset 0x48)\n"
+  },
+  {
+    "name": "stream-wrong-u32",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: `stream.new` requires a stream type (at offset 0xf)\n",
+    "error": "`stream.new` requires a stream type (at offset 0xf)\n"
+  },
+  {
+    "name": "stream-wrong-resource",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type index 0 is not a defined type (at offset 0x11)\n",
+    "error": "type index 0 is not a defined type (at offset 0x11)\n"
+  },
+  {
+    "name": "stream-wrong-other",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: `stream.new` requires a stream type (at offset 0x11)\n",
+    "error": "`stream.new` requires a stream type (at offset 0x11)\n"
+  },
+  {
+    "name": "stream-wrong-later",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: unknown type 0: type index out of bounds (at offset 0xb)\n",
+    "error": "unknown type 0: type index out of bounds (at offset 0xb)\n"
+  },
+  {
+    "name": "future-wrong-u32",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: `future.new` requires a future type (at offset 0xf)\n",
+    "error": "`future.new` requires a future type (at offset 0xf)\n"
+  },
+  {
+    "name": "future-wrong-resource",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: type index 0 is not a defined type (at offset 0x11)\n",
+    "error": "type index 0 is not a defined type (at offset 0x11)\n"
+  },
+  {
+    "name": "future-wrong-other",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: `future.new` requires a future type (at offset 0x11)\n",
+    "error": "`future.new` requires a future type (at offset 0x11)\n"
+  },
+  {
+    "name": "future-wrong-later",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: unknown type 0: type index out of bounds (at offset 0xb)\n",
+    "error": "unknown type 0: type index out of bounds (at offset 0xb)\n"
+  },
+  {
+    "name": "stream-resource",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "future-resource",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "gc-lift-scalars",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "gc-lower-scalars",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "gc-lift-many",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "gc-lower-many",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "gc-lift-mismatch",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: expected to lower component `u32` type to core `i32` type, found `i64` (at offset 0x54)\n",
+    "error": "expected to lower component `u32` type to core `i32` type, found `i64` (at offset 0x54)\n"
+  },
+  {
+    "name": "gc-lower-mismatch",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: expected to lower component `u32` type to core `i32` type, found `i64` (at offset 0x26)\n",
+    "error": "expected to lower component `u32` type to core `i32` type, found `i64` (at offset 0x26)\n"
+  },
+  {
+    "name": "gc-lower-no-type",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: cannot specify `gc` without also specifying a `core-type` for lowerings (at offset 0x26)\n",
+    "error": "cannot specify `gc` without also specifying a `core-type` for lowerings (at offset 0x26)\n"
+  },
+  {
+    "name": "core-type-no-gc",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: cannot specify `core-type` without `gc` (at offset 0x26)\n",
+    "error": "cannot specify `core-type` without `gc` (at offset 0x26)\n"
+  },
+  {
+    "name": "core-type-on-lift",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: canonical option `core-type` is not allowed in `canon lift` (at offset 0x5c)\n",
+    "error": "canonical option `core-type` is not allowed in `canon lift` (at offset 0x5c)\n"
+  },
+  {
+    "name": "gc-duplicate",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: canonical option `gc` is specified more than once (at offset 0x26)\n",
+    "error": "canonical option `gc` is specified more than once (at offset 0x26)\n"
+  },
+  {
+    "name": "core-type-duplicate",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: canonical option `core type` is specified more than once (at offset 0x26)\n",
+    "error": "canonical option `core type` is specified more than once (at offset 0x26)\n"
+  },
+  {
+    "name": "core-type-later",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: unknown type 1: type index out of bounds (at offset 0x26)\n",
+    "error": "unknown type 1: type index out of bounds (at offset 0x26)\n"
+  },
+  {
+    "name": "core-type-module",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: canonical option `core type` must reference a core function type (at offset 0x28)\n",
+    "error": "canonical option `core type` must reference a core function type (at offset 0x28)\n"
+  },
+  {
+    "name": "gc-lower-async",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "gc-lower-async-sync-type",
+    "accepts": false,
+    "unsupported": false,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: the `async` canonical option requires an async function type (at offset 0x26)\n",
+    "error": "the `async` canonical option requires an async function type (at offset 0x26)\n"
+  },
+  {
+    "name": "gc-lower-sync-async-type",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "gc-aggregate-unsupported",
+    "accepts": false,
+    "unsupported": true,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "task-return-unsupported",
+    "accepts": false,
+    "unsupported": true,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "stream-read-unsupported",
+    "accepts": false,
+    "unsupported": true,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "context-get-unsupported",
+    "accepts": false,
+    "unsupported": true,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "gc-lift-tuple-unsupported",
+    "accepts": false,
+    "unsupported": true,
+    "validator": 1,
+    "reference": 1,
+    "validation": "error: expected to lower component `tuple` type to core `(ref null? (struct ...))`, but found `i32` (at offset 0x62)\n",
+    "error": "expected to lower component `tuple` type to core `(ref null? (struct ...))`, but found `i32` (at offset 0x62)\n"
+  },
+  {
+    "name": "gc-lower-alias",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "gc-lower-outer",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "gc-lower-nested",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "gc-lift-enum",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  },
+  {
+    "name": "gc-lift-flags",
+    "accepts": true,
+    "unsupported": false,
+    "validator": 0,
+    "reference": 0,
+    "validation": "",
+    "error": ""
+  }
+]

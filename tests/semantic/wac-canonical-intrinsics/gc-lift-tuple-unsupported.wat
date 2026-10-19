@@ -1,0 +1,1 @@
+(component (type $t (tuple u32)) (export "t" (type $t)) (core module $m (func (export "f") (param i32) unreachable)) (core instance $i (instantiate $m)) (alias core export $i "f" (core func $f)) (func (export "f") (param "p0" $t)  (canon lift (core func $f) gc)))

@@ -1,0 +1,1 @@
+(component (core type $ct (func (param i32) (result i64))) (component (alias outer 1 $ct (core type $alias)) (import "f" (func $f (param "x" u32) (result u64))) (core func (canon lower (func $f) gc (core-type $alias)))))

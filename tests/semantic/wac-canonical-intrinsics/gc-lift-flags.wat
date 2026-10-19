@@ -1,0 +1,1 @@
+(component (type $raw (flags "a" "b")) (export $t "t" (type $raw)) (core module $m (func (export "f") (param i32) (result i32) unreachable)) (core instance $i (instantiate $m)) (alias core export $i "f" (core func $f)) (func (export "f") (param "p0" $t) (result $t) (canon lift (core func $f) gc)))

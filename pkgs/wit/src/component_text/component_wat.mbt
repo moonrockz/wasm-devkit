@@ -4275,6 +4275,10 @@ fn parse_canon_option(
       option_bytes.push_u8(0x02)
       return
     }
+    if atom_name == "gc" {
+      option_bytes.push_u8(0x09)
+      return
+    }
     if atom_name == "async" {
       option_bytes.push_u8(0x06)
       return
@@ -4349,6 +4353,16 @@ fn parse_canon_option(
     }
     option_bytes.push_u8(0x05)
     option_bytes.push_uleb_u32(func_idx)
+    return
+  }
+  if option_items[0] is Atom("core-type") {
+    if option_items.length() != 2 {
+      raise Unsupported(
+        "core-type option must be `(core-type <core-type-ref>)`",
+      )
+    }
+    option_bytes.push_u8(0x08)
+    option_bytes.push_uleb_u32(parse_core_type_ref(option_items[1], state))
     return
   }
   if option_items[0] is Atom("callback") {
@@ -4632,7 +4646,10 @@ fn parse_canon_decl(
   if op_name == "subtask.cancel" {
     let mut is_async = false
     if decl_end == 3 {
-      is_async = parse_canon_bool_flag(canon_items[2])
+      if !(canon_items[2] is Atom("async")) {
+        raise Unsupported("subtask.cancel only accepts an async flag")
+      }
+      is_async = true
     } else if decl_end != 2 {
       raise Unsupported("subtask.cancel accepts at most one `async` flag")
     }
@@ -4804,6 +4821,9 @@ fn parse_canon_decl(
         } else {
           raise Unsupported("memory option must be `(memory <memory-ref>)`")
         }
+        if memory_idx_opt is Some(_) {
+          raise Unsupported("duplicate waitable-set memory option")
+        }
         memory_idx_opt = Some(memory_ref)
         continue
       }
@@ -4891,7 +4911,10 @@ fn parse_canon_decl(
     }
     let type_idx = parse_component_type_ref(canon_items[2], state)
     let is_async = if decl_end == 4 {
-      parse_canon_bool_flag(canon_items[3])
+      if !(canon_items[3] is Atom("async")) {
+        raise Unsupported("cancellation only accepts an async flag")
+      }
+      true
     } else {
       false
     }

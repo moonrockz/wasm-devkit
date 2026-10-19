@@ -87,10 +87,10 @@ test "malformed start and excluded proposals keep explicit diagnostics" {
   guard malformed is Err(errors) else { fail("empty start section accepted") }
   assert_eq(errors[0].code, "WAC-B001")
   let intrinsic = @verifier.decode_component_package(
-    b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x08\x02\x01\x05",
-    source_id="task-cancel.wasm",
+    b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x08\x02\x01\x26",
+    source_id="thread-index.wasm",
   )
-  guard intrinsic is Err(errors) else { fail("task.cancel accepted") }
+  guard intrinsic is Err(errors) else { fail("thread.index accepted") }
   assert_eq(errors[0].code, "WAC-B002")
   assert_true(errors[0].message.contains("canonical intrinsic"))
   let shared_module = b"\x00\x61\x73\x6d\x01\x00\x00\x00\x06\x06\x01\x7f\x02\x41\x00\x0b\x07\x05\x01\x01\x67\x03\x00"
