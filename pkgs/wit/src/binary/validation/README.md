@@ -177,3 +177,10 @@ and annotation checks preserve named-type visibility; nested instance validation
 uses an explicit work stack with named outer scopes. Contract ascription and local
 resource audits also inspect value members. These changes are recorded in
 `LOCAL.patch`; `component_values.mbt` is original wasm-devkit code.
+
+Runtime component values use the same complete contract graphs and cumulative
+budgets. Instantiation and inline exports consume each direct value once; aliases
+from instance values create separately tracked uses. Substitution preserves both
+resource identities and ordinary type origins. Root and instance exports check
+value type visibility after explicit ascriptions, without applying function-result
+borrow rules to the synthetic value signatures.

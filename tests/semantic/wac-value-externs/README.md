@@ -36,5 +36,5 @@ wasm-tools validate --features all composed.wasm
 `packages/cases.json` records both package reference outcomes.
 `composition/results.json` records resolver, encoder and independent validation
 outcomes. `SHA256SUMS` covers every retained fixture. Runtime-produced component
-values remain excluded until their instantiation and naming evidence is complete,
-tracked on `wasm-devkit-p5m.8.2.2` and `wasm-devkit-p5m.8.2.4`.
+values are covered by the subsequent `../wac-runtime-values` fixtures, including
+instantiation, naming evidence and exact consuming uses.

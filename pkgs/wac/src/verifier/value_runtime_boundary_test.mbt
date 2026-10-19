@@ -1,5 +1,5 @@
 ///|
-test "runtime value boundary export-instance" {
+test "runtime value regression export-instance" {
   for
     result in [
       @verifier.decode_component_package(
@@ -9,13 +9,12 @@ test "runtime value boundary export-instance" {
         "(component (type $c (component (export \"v\" (value u32)))) (import \"c\" (component (type $c))) (instance $i (instantiate 0)) (export \"i\" (instance $i)))",
       ),
     ] {
-    assert_true(result is Err(_))
-    assert_eq(result.unwrap_err()[0].code, "WAC-B002")
+    assert_true(result is Ok(_))
   }
 }
 
 ///|
-test "runtime value boundary alias-value" {
+test "runtime value regression alias-value" {
   for
     result in [
       @verifier.decode_component_package(
@@ -25,7 +24,6 @@ test "runtime value boundary alias-value" {
         "(component (type $c (component (export \"v\" (value u32)))) (import \"c\" (component (type $c))) (instance $i (instantiate 0)) (alias export $i \"v\" (value $v)) (export \"v\" (value $v)))",
       ),
     ] {
-    assert_true(result is Err(_))
-    assert_eq(result.unwrap_err()[0].code, "WAC-B002")
+    assert_true(result is Ok(_))
   }
 }

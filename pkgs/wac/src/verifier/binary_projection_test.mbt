@@ -4,6 +4,7 @@ priv enum BinaryProjectionWork {
   Type(Int32)
   Item(@verifier.Extern)
   Resource(Int32)
+  Context(Int32)
 }
 
 ///|
@@ -38,22 +39,24 @@ fn source_projection(model : @verifier.Verified) -> Array[String] raise {
 }
 
 ///|
-fn project_graph(
+fn project_context_graph(
   types : ReadOnlyArray[@verifier.ResolvedType],
-  resource_identity : (Int32) -> Int32?,
+  resource_identity : (Int32, Int32) -> Int32?,
   work : Array[BinaryProjectionWork],
 ) -> Array[String] raise {
   let output : Array[String] = []
   let resources : Map[Int32, Int32] = Map([])
   let mut steps = 0
+  let mut context = -1
   while work.pop() is Some(current) {
     steps += 1
     assert_true(steps < 1000000)
     let next : Array[BinaryProjectionWork] = []
     match current {
+      Context(value) => context = value
       Text(text) => output.push(text)
       Resource(id) => {
-        let id = resource_identity(id).unwrap()
+        let id = resource_identity(id, context).unwrap()
         let ordinal = match resources.get(id) {
           Some(ordinal) => ordinal
           None => {
@@ -225,4 +228,63 @@ fn project_graph(
     }
   }
   output
+}
+
+///|
+// Static arena roots describe reusable templates. Runtime composition contexts
+// supply the nominal identities for each import and instantiated output.
+fn source_runtime_projection(model : @verifier.Verified) -> Array[String] raise {
+  let work : Array[BinaryProjectionWork] = []
+  let nodes = model.composition()
+  for i = model.exports().length() - 1; i >= 0; i = i - 1 {
+    let item = model.exports()[i]
+    let mut context = -1
+    for output in model.composition_exports() {
+      if output.name == item.name {
+        context = output.value
+        break
+      }
+    }
+    work.push(Item(item))
+    work.push(Context(context))
+  }
+  work.push(Text(model.exports().length().to_string()))
+  for i = model.imports().length() - 1; i >= 0; i = i - 1 {
+    let item = model.imports()[i]
+    let mut context = -1
+    for node in nodes {
+      if node.operation == Import(item.name) {
+        context = node.id
+        break
+      }
+    }
+    work.push(Item(item))
+    work.push(Context(context))
+  }
+  work.push(Text(model.imports().length().to_string()))
+  project_context_graph(
+    model.types(),
+    (id, context) => {
+      guard model.resource_identity(id) is Some(root) else { return None }
+      if context >= 0 && context < nodes.length() {
+        for binding in nodes[context].resources {
+          if binding.ty == root {
+            return Some(binding.identity)
+          }
+        }
+      }
+      // Static-only definitions occupy a separate namespace from runtime IDs.
+      Some(-root - 1)
+    },
+    work,
+  )
+}
+
+///|
+fn project_graph(
+  types : ReadOnlyArray[@verifier.ResolvedType],
+  resource_identity : (Int32) -> Int32?,
+  work : Array[BinaryProjectionWork],
+) -> Array[String] raise {
+  project_context_graph(types, (id, _) => resource_identity(id), work)
 }

@@ -95,3 +95,52 @@ test "runtime freshening preserves captured resources and component binders" {
   assert_eq(runtime_fresh_exports(graph, 0, substitutions, 20, counts), 21)
   assert_eq(substitutions.get(8), Some(20))
 }
+
+///|
+test "runtime values retain complete substituted graphs without mutating templates" {
+  let types : Array[@component.TypeDef?] = [
+    Some(ResourceType(-1, 0x7f, None, HostDefined)),
+    Some(Own(0)),
+  ]
+  let resources = [Some(7), None]
+  let (signature, _) = complete_value_signature(
+    TypeIdx(1),
+    types,
+    resources,
+    1000,
+  )
+  let exports = ContractMembers::new()
+  exports.sorts["r"] = Type
+  exports.types["r"] = 0
+  exports.binders["r"] = true
+  exports.sorts["v"] = Value
+  exports.values["v"] = signature
+  let graph : ScopedContractMetadata = {
+    nodes: [
+      {
+        imports: ContractMembers::new(),
+        exports,
+        component: false,
+        core_scope: None,
+      },
+    ],
+    types,
+    resources,
+    locals: Map([(7, true)]),
+    origins: [None, None],
+  }
+  let changed = runtime_substitute(graph, Map([(7, 9)]), Counts::Counts())
+  assert_true(changed.nodes[0].exports.values["v"].resources.contains(Some(9)))
+  assert_true(!changed.nodes[0].exports.values["v"].resources.contains(Some(7)))
+  assert_true(graph.nodes[0].exports.values["v"].resources.contains(Some(7)))
+  assert_eq(graph.resources[0], Some(7))
+  let limited = Counts::Counts()
+  limited.metadata_remaining = 5
+  let rejected = try {
+    runtime_substitute(graph, Map([(7, 9)]), limited) |> ignore
+    false
+  } catch {
+    _ => true
+  }
+  assert_true(rejected)
+}

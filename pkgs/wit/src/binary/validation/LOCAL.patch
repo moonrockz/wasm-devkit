@@ -2672,7 +2672,7 @@
 -    if is_root && e.sortidx.sort is Func && e.sortidx.idx < imported_funcs {
 -      raise ExportedImportedFunc(e.sortidx.idx)
 -    }
-@@ -121 +119,33 @@
+@@ -121 +119,34 @@
 -    let mut ascribed_resource_id : Int? = None
 +    let mut exported_value : CompleteFunctionSignature? = None
 +    if e.sortidx.sort is Value {
@@ -2704,35 +2704,36 @@
 +        _ => raise AscribedExportTypeIncompatible
 +      }
 +      check_value_export(signature, cfg)
++      counts.check_function_origins(signature, named_types, resource_ids)
 +      exported_value = Some(signature)
 +    }
 +    let mut ascribed_resource_id : Int32? = None
-@@ -206 +236 @@
+@@ -206 +237 @@
 -                  idx, type_table, type_outers,
 +                  idx, type_table, type_outers, named_types,
-@@ -217,0 +248,5 @@
+@@ -217,0 +249,5 @@
 +          if e.desc is None &&
 +            func_sig_shapes.get(e.sortidx.idx) is Some(Some(shape)) &&
 +            shape.complete is Some(signature) {
 +            counts.check_function_origins(signature, named_types, resource_ids)
 +          }
-@@ -245,0 +281,4 @@
+@@ -245,0 +282,4 @@
 +        if e.desc is None &&
 +          counts.instance_contracts.get(inst_idx) is Some((graph, root)) {
 +          counts.check_instance_origins(graph, root, named_types, resource_ids)
 +        }
-@@ -247,2 +286,2 @@
+@@ -247,2 +287,2 @@
 -          let exported_type_idxs : Array[Int] = []
 -          let seen : Map[Int, Int] = Map([])
 +          let exported_type_idxs : Array[Int32] = []
 +          let seen : Map[Int32, Int32] = Map([])
-@@ -295 +334 @@
+@@ -295 +335 @@
 -          let inst_named : Map[Int, Int] = Map([])
 +          let inst_named : Map[Int32, Int32] = Map([])
-@@ -447 +486 @@
+@@ -447 +487 @@
 -    // the actual export (we currently model instance-type compatibility).
 +    // the actual export. Functions require complete invariant signatures.
-@@ -449,6 +488,10 @@
+@@ -449,6 +489,10 @@
 -      (Instance, Some(InstanceType(tyidx))) =>
 -        if tyidx >= 0 && tyidx < type_table.length() {
 -          let expected = instancetype_sig_of_global_idx(
@@ -2749,7 +2750,7 @@
 +        let actual = if func_types.get(e.sortidx.idx) is Some(Some(actual)) {
 +          let signature = counts.function_signature(
 +            actual, type_table, resource_ids,
-@@ -456,11 +499,4 @@
+@@ -456,11 +500,4 @@
 -          let actual = if e.sortidx.idx >= 0 &&
 -            e.sortidx.idx < instance_sigs.length() {
 -            instance_sigs[e.sortidx.idx]
@@ -2765,7 +2766,7 @@
 +        } else if func_sig_shapes.get(e.sortidx.idx) is Some(Some(shape)) &&
 +          shape.complete is Some(actual) {
 +          actual
-@@ -468,2 +504,166 @@
+@@ -468,2 +505,166 @@
 -          raise AscribedExportTypeIncompatible
 -        }
 +          raise UnsupportedFunctionAscription
@@ -2934,14 +2935,14 @@
 +        )
 +        ascribed_component = Some(expected)
 +      }
-@@ -480,0 +681,2 @@
+@@ -480,0 +682,2 @@
 +      let created = type_table.length()
 +      counts.type_origins[created] = { scope: 0, index: created, }
-@@ -487,0 +690,3 @@
+@@ -487,0 +691,3 @@
 +        if counts.type_metadata.get(idx) is Some(metadata) {
 +          counts.type_metadata[type_table.length()] = metadata
 +        }
-@@ -524,0 +730,13 @@
+@@ -524,0 +731,13 @@
 +      if exported_value is Some(signature) {
 +        counts.values.push({ signature, used: true, })
 +      }
@@ -2955,7 +2956,7 @@
 +          counts.instance_contracts[counts.instance - 1] = contract
 +        }
 +      }
-@@ -528,2 +746,22 @@
+@@ -528,2 +747,22 @@
 -            func_types.push(func_types[e.sortidx.idx])
 -            if e.sortidx.idx >= 0 && e.sortidx.idx < func_sig_shapes.length() {
 +            let exported = match e.desc {
@@ -2980,7 +2981,7 @@
 +              )
 +            } else if e.sortidx.idx >= 0 &&
 +              e.sortidx.idx < func_sig_shapes.length() {
-@@ -540,0 +779,11 @@
+@@ -540,0 +780,11 @@
 +            if ascribed_instance is Some(metadata) {
 +              instance_sigs[instance_sigs.length() - 1] = Some(
 +                metadata_instance_sig(metadata, 0),
@@ -2992,19 +2993,19 @@
 +              is Some(metadata) {
 +              counts.instance_metadata[instance_sigs.length() - 1] = metadata
 +            }
-@@ -580,0 +830,5 @@
+@@ -580,0 +831,5 @@
 +            if ascribed_instance is Some(metadata) {
 +              instance_export_func_sigs[instance_export_func_sigs.length() - 1] = Some(
 +                metadata.nodes[0].functions,
 +              )
 +            }
-@@ -602 +856,4 @@
+@@ -602 +857,4 @@
 -            interface_instance_idxs.set(instance_sigs.length() - 1, 1)
 +            interface_instance_idxs.set(
 +              instance_sigs.length() - 1,
 +              interface_instance_idxs.get(e.sortidx.idx).unwrap_or(1),
 +            )
-@@ -616,0 +874,7 @@
+@@ -616,0 +875,7 @@
 +          let metadata = match ascribed_component {
 +            Some(metadata) => Some((metadata, 0))
 +            None => counts.component_contracts.get(src)

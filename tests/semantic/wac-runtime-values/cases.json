@@ -1,0 +1,198 @@
+[
+  {
+    "name": "export-instance",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "alias-value",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "argument",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "inline",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "argument-wrong",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for import `v`\nexpected primitive `string` found primitive `u32` (at offset 0x26)\n",
+    "validation": "error: type mismatch for import `v`\nexpected primitive `string` found primitive `u32` (at offset 0x26)\n"
+  },
+  {
+    "name": "argument-twice",
+    "reference": 1,
+    "validator": 1,
+    "error": "value 0 cannot be used more than once (at offset 0x30)\n",
+    "validation": "error: value 0 cannot be used more than once (at offset 0x30)\n"
+  },
+  {
+    "name": "alias-value-unused",
+    "reference": 1,
+    "validator": 1,
+    "error": "value index 0 was not used as part of an instantiation, start function, or export (at offset 0x4f)\n",
+    "validation": "error: value index 0 was not used as part of an instantiation, start function, or export (at offset 0x4f)\n"
+  },
+  {
+    "name": "alias-value-twice",
+    "reference": 1,
+    "validator": 1,
+    "error": "value 0 cannot be used more than once (at offset 0x32)\n",
+    "validation": "error: value 0 cannot be used more than once (at offset 0x32)\n"
+  },
+  {
+    "name": "alias-value-repeat",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "anonymous-value",
+    "reference": 1,
+    "validator": 1,
+    "error": "value not valid to be used as export (at offset 0x42)\n",
+    "validation": "error: value not valid to be used as export (at offset 0x42)\n"
+  },
+  {
+    "name": "named-value",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "anonymous-instance",
+    "reference": 1,
+    "validator": 1,
+    "error": "instance not valid to be used as export (at offset 0x3a)\n",
+    "validation": "error: instance not valid to be used as export (at offset 0x3a)\n"
+  },
+  {
+    "name": "anonymous-private",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "resource-substitution",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "resource-wrong",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for import `v`\nresource types are not the same (at offset 0x4b)\n",
+    "validation": "error: type mismatch for import `v`\nresource types are not the same (at offset 0x4b)\n"
+  },
+  {
+    "name": "borrow-substitution",
+    "reference": 0,
+    "validator": 1,
+    "error": "",
+    "validation": "error: exported value type cannot contain a `borrow` type (at offset 0x20)\n"
+  },
+  {
+    "name": "fresh-resource-hidden",
+    "reference": 1,
+    "validator": 1,
+    "error": "value not valid to be used as export (at offset 0x35)\n",
+    "validation": "error: value not valid to be used as export (at offset 0x35)\n"
+  },
+  {
+    "name": "fresh-resource-visible",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "inline-duplicate",
+    "reference": 1,
+    "validator": 1,
+    "error": "value 0 cannot be used more than once (at offset 0x13)\n",
+    "validation": "error: value 0 cannot be used more than once (at offset 0x13)\n"
+  },
+  {
+    "name": "nested-output",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "fresh-resource-argument",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "crossed-fresh-resource-argument",
+    "reference": 1,
+    "validator": 1,
+    "error": "type mismatch for import `v`\nresource types are not the same (at offset 0x5e)\n",
+    "validation": "error: type mismatch for import `v`\nresource types are not the same (at offset 0x5e)\n"
+  },
+  {
+    "name": "unused-before-instance-export",
+    "reference": 1,
+    "validator": 1,
+    "error": "value index 0 was not used as part of an instantiation, start function, or export (at offset 0x58)\n",
+    "validation": "error: value index 0 was not used as part of an instantiation, start function, or export (at offset 0x58)\n"
+  },
+  {
+    "name": "anonymous-value-ascribed",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "consumed-alias-plus-instance-export",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "instance-export-before-alias-use",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "inline-alias-plus-source-instance",
+    "reference": 0,
+    "validator": 0,
+    "error": "",
+    "validation": ""
+  },
+  {
+    "name": "same-alias-two-inline-instances",
+    "reference": 1,
+    "validator": 1,
+    "error": "value 0 cannot be used more than once (at offset 0x33)\n",
+    "validation": "error: value 0 cannot be used more than once (at offset 0x33)\n"
+  }
+]

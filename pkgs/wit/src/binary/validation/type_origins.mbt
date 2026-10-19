@@ -210,6 +210,21 @@ fn Counts::check_instance_origins(
       resources,
       self,
     )
+    for signature in members.values.values() {
+      charge()
+      guard signature.function.result is Some(value) else {
+        raise UnsupportedComponentAscription
+      }
+      check_origin_values(
+        [value],
+        signature.types,
+        signature.origins,
+        signature.resources,
+        named,
+        resources,
+        self,
+      )
+    }
     for function in members.functions.values() {
       charge()
       guard function.complete is Some(signature) else {

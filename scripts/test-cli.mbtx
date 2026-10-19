@@ -1062,6 +1062,31 @@ async fn main {
   for extension in ["wasm", "wat"] {
     for
       (name, status) in [
+        ("inline", 0),
+        ("argument", 0),
+        ("resource-substitution", 0),
+        ("anonymous-value", 1),
+        ("argument-twice", 1),
+      ] {
+      let root = "tests/semantic/wac-runtime-values/composition/" + name
+      let (_, diagnostic) = run(
+        [
+          "verify",
+          root + "/input.wac",
+          "--dep",
+          "test:runtime=dep." + extension,
+        ],
+        status,
+        wit,
+      )
+      if status == 1 {
+        assert_true(diagnostic.contains("WAC-B003"))
+      }
+    }
+  }
+  for extension in ["wasm", "wat"] {
+    for
+      (name, status) in [
         ("fill", 0),
         ("forward", 0),
         ("duplicate-export", 1),

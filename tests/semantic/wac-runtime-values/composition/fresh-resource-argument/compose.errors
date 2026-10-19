@@ -1,0 +1,4 @@
+
+thread 'main' (255539387) panicked at crates/wac-graph/src/encoding.rs:909:22:
+expected only types, functions, and instance types
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

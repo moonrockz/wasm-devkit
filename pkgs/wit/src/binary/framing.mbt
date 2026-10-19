@@ -510,13 +510,7 @@ fn preflight(
                     "invalid core instance argument sort",
                   )
                 }
-              1 | 3 | 4 | 5 => ()
-              2 =>
-                raise Failure(
-                  Some(payload.position - 1),
-                  "WIT-B002",
-                  "runtime value arguments require value-use validation",
-                )
+              1 | 2 | 3 | 4 | 5 => ()
               _ =>
                 raise Failure(
                   Some(payload.position - 1),

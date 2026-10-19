@@ -94,8 +94,6 @@ fn check_value_export(
       11, "exported value type cannot contain a borrow type",
     )
   }
-  // Current values originate in checked root imports or imported instances.
-  // Their type names remain visible through those imports without requiring a
-  // second root type export. Runtime-produced values need their own visibility
-  // proof before this profile admits them.
+  // The caller separately checks complete origin visibility after any explicit
+  // ascription. Runtime-produced values follow the same escaping-type rule.
 }

@@ -146,6 +146,7 @@ fn validate_component_section_export(
         _ => raise AscribedExportTypeIncompatible
       }
       check_value_export(signature, cfg)
+      counts.check_function_origins(signature, named_types, resource_ids)
       exported_value = Some(signature)
     }
     let mut ascribed_resource_id : Int32? = None

@@ -109,6 +109,7 @@ fn RuntimeContractBuilder::append(
       source.sorts.length() +
       source.types.length() +
       source.functions.length() +
+      source.values.length() +
       source.children.length() +
       source.modules.length() +
       source.direct_modules.length() +
@@ -116,11 +117,6 @@ fn RuntimeContractBuilder::append(
     )
     let result = ContractMembers::new()
     for (name, sort) in source.sorts {
-      // Runtime value contracts require origin and consumption evidence before
-      // they can pass through this builder. Never silently drop their graphs.
-      if sort is Value {
-        raise UnsupportedComponentAscription
-      }
       result.sorts[name] = sort
     }
     for (name, ty) in source.types {
@@ -128,6 +124,9 @@ fn RuntimeContractBuilder::append(
     }
     for (name, function) in source.functions {
       result.functions[name] = function
+    }
+    for (name, value) in source.values {
+      result.values[name] = value
     }
     for (name, child) in source.children {
       result.children[name] = node_base + child
@@ -210,6 +209,8 @@ fn runtime_argument(
   members.sorts[name] = argument.sort
   match argument.sort {
     Type => members.types[name] = argument.idx
+    Value =>
+      members.values[name] = builder.counts.consume_value(argument.idx, 5)
     Func => {
       guard functions.get(argument.idx) is Some(Some(function)) &&
         function.complete is Some(_) else {
@@ -342,6 +343,37 @@ fn runtime_substitute(
         }
         counts.metadata_remaining = remaining
         members.functions[name] = function
+      }
+      let value_names = members.values.keys().to_array()
+      value_names.sort()
+      for name in value_names {
+        builder.charge(1)
+        let signature = members.values[name]
+        builder.charge(
+          signature.resources.length() + signature.origins.length(),
+        )
+        let resources = signature.resources.map(resource => {
+          resource.map(resource => {
+            substitutions.get(resource).unwrap_or(resource)
+          })
+        })
+        let origins = signature.origins.map(origin => {
+          origin.map(origin => type_substitutions.get(origin).unwrap_or(origin))
+        })
+        guard signature.function.result is Some(value) else {
+          raise UnsupportedComponentAscription
+        }
+        let (value, remaining) = complete_value_signature(
+          value,
+          signature.types,
+          resources,
+          counts.metadata_remaining,
+          origins~,
+        ) catch {
+          _ => raise UnsupportedComponentAscription
+        }
+        counts.metadata_remaining = remaining
+        members.values[name] = value
       }
     }
   }

@@ -234,5 +234,7 @@ and instances require visible names. Imported instance names, explicit export
 ascriptions and repeated component templates retain their reference identities.
 The runtime-origin fixtures compare binary and WAT acceptance and complete
 ordered models with the pinned loader; one loader projection panic is recorded
-separately. Runtime value arguments and concrete nested component definitions
-remain tracked binary-profile gaps.
+separately. Runtime value arguments and outputs retain complete substituted
+contracts, exact consuming uses and escaping-type visibility. Their fixtures also
+compare public composition resource contexts with the pinned reference models.
+Concrete nested component definitions remain a tracked binary-profile gap.
