@@ -1,0 +1,1 @@
+(component (type $a (component (type (func)) (export "f" (func (type 0))))) (type $b (component)) (import "c" (component (type $a))) (export "first" (component 0) (component (type $b))) (export "second" (component 1) (component (type $b))))

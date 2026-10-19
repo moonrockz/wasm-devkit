@@ -64,10 +64,9 @@ and re-exports, plus declarative core module/function types and module externs.
 Nested concrete component definitions, instantiation, canonical functions and
 component start sections remain unsupported and
 return `WIT-B002`. Physical type-scope nesting has the same 256 limit.
-Component-value externs and instance/component root export
-ascriptions also return `WIT-B002`:
-the pinned parser's value-bound encoding is obsolete, and the retained validator
-does not yet implement complete ascription compatibility checks.
+Component-value externs return `WIT-B002` because the pinned parser's value-bound
+encoding is obsolete. Supported export annotations are described below; missing
+complete contracts produce explicit unsupported diagnostics.
 
 This entry point follows WAC 0.12.0's wasmparser 0.258.0 metadata profile. It does
 not impose the newer memory64 layout bound or primitive-only map-key rule used
@@ -131,3 +130,11 @@ unsigned limits, shared flags, table width and custom page sizes are preserved.
 Later reexports see the annotated contract. Comparison work is bounded across
 all annotations. The 49 retained cases compare binary and WAT package models;
 three version differences are recorded in `tests/semantic/wac-module-ascriptions`.
+
+Imported component export annotations compare complete scoped contracts,
+including nested instance/component contracts and core modules. Imports are
+contravariant and exports covariant. Resource binders use directed substitution;
+captured resources and equality constraints remain nominal. Explicit work stacks
+and cumulative budgets cover extraction and comparison. Annotated re-exports
+retain their narrowed contract. Component aliases extracted from imported
+instances remain unsupported until they carry complete scoped metadata.

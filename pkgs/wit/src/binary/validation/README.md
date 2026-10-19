@@ -51,9 +51,9 @@ visibility. An alias of an imported resource can appear in a later function
 import; exporting a local resource does not make it importable. Current-scope
 outer aliases and instance re-exports retain that visibility. These changes are
 in `section_alias.mbt`, `section_import.mbt`, `section_export.mbt` and
-`validate.mbt`. The enclosing framing boundary rejects component values and component root
-export ascriptions while their legacy parsing/compatibility rules remain
-incomplete. Instance annotations use the complete comparison described below.
+`validate.mbt`. The enclosing framing boundary rejects component values while their legacy
+encoding remains incomplete. Instance and component annotations use the complete
+comparisons described below.
 
 Component-type function imports retain resource visibility through imported type
 equality aliases, current-scope outer aliases and aliases from imported instances.
@@ -97,7 +97,7 @@ custom page size. Depth-zero aliases use preceding module-local function slots.
 The enclosing declarative codec retains complete unsigned/shared signatures.
 Legacy runtime metadata omits extern signatures it cannot represent, including
 limits above signed Int64 and shared globals/tables. Flat concrete core modules now validate their original instructions after bounded
-preflight. Other runtime sections and component ascriptions remain excluded.
+preflight. Other runtime sections remain excluded.
 
 Concrete module import keys also use `(module, name)` tuples, so colons cannot
 conflate distinct imports. Invalid function bodies reject despite the pinned WAC
@@ -124,3 +124,14 @@ comparison budget. Complete module contracts come from immutable core-scope
 metadata and use the shared module subtype operation. Component members remain
 unsupported. The annotation's metadata replaces the exported alias contract so
 later aliases and re-exports cannot recover hidden members or narrower limits.
+
+Imported component annotations use `contract_metadata.mbt` and
+`contract_ascription.mbt`, with complete flat scoped metadata and explicit work
+stacks. Component imports reverse the comparison direction. Required fresh
+resource binders receive directed substitutions, while captures stay fixed;
+function and value comparisons retain those substitutions. Expected metadata
+replaces the exported component alias contract for subsequent annotation checks.
+Runtime component instantiation remains excluded; the older reduced tables are
+not proof of these complete contracts. Component aliases extracted from instances
+still lack complete metadata and fail closed. A 6,000-scope whitebox test covers
+stack safety, deepest mismatch and cumulative work exhaustion.

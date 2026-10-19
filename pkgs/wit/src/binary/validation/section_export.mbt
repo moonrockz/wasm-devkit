@@ -79,6 +79,7 @@ fn validate_component_section_export(
   }
   for e in exports {
     let mut ascribed_instance : InstanceMetadata? = None
+    let mut ascribed_component : ScopedContractMetadata? = None
     validate_export_name(e.name, cfg)
     validate_name_attributes(
       11,
@@ -553,6 +554,51 @@ fn validate_component_section_export(
           my_export_instance_func_sigs[name] = expected.nodes[0].functions
         }
       }
+      (Component, Some(ComponentType(tyidx))) => {
+        guard type_table.get(tyidx) is Some(Some(td)) &&
+          counts.component_contracts.get(e.sortidx.idx) is Some(actual) else {
+          raise UnsupportedComponentAscription
+        }
+        let core_scope = match counts.core_contracts {
+          Some(graph) =>
+            match graph.scope(0) {
+              Some(root) =>
+                match root.binding(3, tyidx) {
+                  Some(Scope(id)) => Some(id)
+                  _ => None
+                }
+              None => None
+            }
+          None => None
+        }
+        let (expected, next, remaining) = scoped_contract_metadata(
+          td,
+          type_table,
+          resource_ids,
+          counts.type_metadata,
+          next_resource_id,
+          counts.metadata_remaining,
+          core_contracts=counts.core_contracts,
+          core_scope~,
+        )
+        counts.metadata_remaining = remaining
+        next_resource_id = next
+        guard expected is Some(expected) else {
+          if remaining == 0 {
+            raise SectionParseError(
+              11, "component contract exceeds the verification work limit",
+            )
+          }
+          raise UnsupportedComponentAscription
+        }
+        counts.ascription_remaining = check_scoped_contract(
+          actual,
+          expected,
+          counts.ascription_remaining,
+          core_contracts=counts.core_contracts,
+        )
+        ascribed_component = Some(expected)
+      }
       (_sort, Some(d)) =>
         if sort_of_externdesc(d) != e.sortidx.sort {
           raise AscribedExportTypeIncompatible
@@ -730,6 +776,13 @@ fn validate_component_section_export(
           }
         Component => {
           let src = e.sortidx.idx
+          let metadata = match ascribed_component {
+            Some(metadata) => Some(metadata)
+            None => counts.component_contracts.get(src)
+          }
+          if metadata is Some(metadata) {
+            counts.component_contracts[counts.component - 1] = metadata
+          }
           if src >= 0 && src < component_import_sorts.length() {
             component_import_sorts.push(component_import_sorts[src])
             component_import_instance_sigs.push(

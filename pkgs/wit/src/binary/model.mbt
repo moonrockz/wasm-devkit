@@ -111,6 +111,12 @@ pub fn validate_declarative_component(
       ),
       core_contracts=Some(core_contracts),
     ) catch {
+      @validation.UnsupportedComponentAscription =>
+        raise Failure(
+          None,
+          "WIT-B002",
+          "component ascription requires complete supported contracts",
+        )
       @validation.UnsupportedInstanceAscription =>
         raise Failure(
           None,

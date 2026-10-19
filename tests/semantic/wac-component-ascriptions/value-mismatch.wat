@@ -1,0 +1,1 @@
+(component  (type $a (component (type (list u32)) (export "t" (type (eq 0))))) (type $b (component (type (list u64)) (export "t" (type (eq 0))))) (import "c" (component (type $a))) (export "c" (component 0) (component (type $b))))

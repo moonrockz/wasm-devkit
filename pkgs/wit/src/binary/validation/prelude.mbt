@@ -56,6 +56,7 @@ pub(all) suberror ComponentValidationError {
   AscribedExportTypeIncompatible
   UnsupportedFunctionAscription
   UnsupportedInstanceAscription
+  UnsupportedComponentAscription
   AliasTargetMismatch(String)
   SectionParseError(Int32, String)
   CoreModuleError(String)
@@ -128,6 +129,7 @@ priv struct Counts {
   mut core_contracts : @core_types.ContractGraph?
   type_metadata : Map[Int32, (InstanceMetadata, Int32)]
   instance_metadata : Map[Int32, (InstanceMetadata, Int32)]
+  component_contracts : Map[Int32, ScopedContractMetadata]
   mut metadata_remaining : Int32
   mut ascription_remaining : Int32
   mut func : Int32
@@ -753,6 +755,7 @@ fn Counts::Counts() -> Counts {
   {
     type_metadata: Map([]),
     instance_metadata: Map([]),
+    component_contracts: Map([]),
     core_contracts: None,
     metadata_remaining: 1000000,
     ascription_remaining: 1000000,

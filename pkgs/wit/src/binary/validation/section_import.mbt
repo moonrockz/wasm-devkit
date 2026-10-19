@@ -397,6 +397,35 @@ fn validate_component_section_import(
       imported_funcs += 1
     }
     if i.desc is ComponentType(tyidx) {
+      if type_table.get(tyidx) is Some(Some(td)) {
+        let core_scope = match counts.core_contracts {
+          Some(graph) =>
+            match graph.scope(0) {
+              Some(root) =>
+                match root.binding(3, tyidx) {
+                  Some(Scope(id)) => Some(id)
+                  _ => None
+                }
+              None => None
+            }
+          None => None
+        }
+        let (metadata, next, remaining) = scoped_contract_metadata(
+          td,
+          type_table,
+          resource_ids,
+          counts.type_metadata,
+          next_resource_id,
+          counts.metadata_remaining,
+          core_contracts=counts.core_contracts,
+          core_scope~,
+        )
+        next_resource_id = next
+        counts.metadata_remaining = remaining
+        if metadata is Some(metadata) {
+          counts.component_contracts[counts.component] = metadata
+        }
+      }
       let mut import_sorts : Map[String, @component.Sort]? = None
       let mut import_instance_sigs : Map[String, InstanceSig]? = None
       let mut import_func_sigs : Map[String, FuncSigShape]? = None

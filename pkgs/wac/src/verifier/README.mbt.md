@@ -206,8 +206,7 @@ imports and re-exports. It follows WAC 0.12.0's wasmparser 0.258.0 map-key rules
 All diagnostic positions count bytes. Unknown offsets remain absent.
 
 Concrete nested components, instantiation, canonical
-functions, component start sections, component-value externs and component root export
-ascriptions remain unsupported. Function export ascriptions validate parameter
+functions, component start sections and component-value externs remain unsupported. Function export ascriptions validate parameter
 names, async mode, structural value types and nominal resource identities, and
 retain the ascribed function type. Type-equality export annotations compare
 complete value shapes and nominal resource identity, including imported aliases
@@ -215,9 +214,8 @@ and re-exports. Instance-exported function aliases preserve
 complete value/resource signatures and outer declaration scopes, including nested
 imported instances and parent/child re-exports. Private type graphs preserve
 exported composite aliases and transitive captures without changing binary indices. The pinned external parser uses obsolete value-bound
-encoding, and the retained validator does not yet check all export ascriptions.
-Both valid and invalid examples of those forms fail explicitly rather than
-producing a package model. Source `verify` and CLI lookup use this same declarative boundary.
+encoding. Export annotations require complete supported contracts; unsupported
+forms fail explicitly rather than producing a package model. Source `verify` and CLI lookup use this same declarative boundary.
 
 Physical type scopes are limited to 256 before the external parser runs. Graph
 construction and expansion use explicit stacks with a shared one-million-step
@@ -535,7 +533,7 @@ wasm-tools subtype witnesses in `tests/semantic/wac-core-modules/fill`.
 
 Both binary and WAT inputs support these contracts and flat concrete core module
 bodies. Core/component instantiation, canonical functions, component starts, component
-values and component root export ascriptions remain outside this profile.
+values remain outside this profile.
 Concrete GC/reference types, supertypes and shared heap types remain
 unsupported. Nested component/instance core declarations with limits above u32
 or custom memory pages return `WAC-B002` before the pinned parser runs; root
@@ -578,3 +576,11 @@ in an annotation cannot replace an existing instance's resource identity. The
 43 retained binary/WAT cases in `tests/semantic/wac-instance-ascriptions` compare
 complete accepted models with both pinned references. Component members inside
 an instance annotation remain unsupported and return `WAC-B002`.
+
+Imported component export annotations compare complete function/value, instance,
+component and core-module contracts. Imports reverse the subtype direction;
+exports preserve it. Resource binders permit directed substitution while captured
+identities and alias constraints remain fixed. Re-exports preserve the narrowed
+contract. The 54 cases in `tests/semantic/wac-component-ascriptions` retain full
+binary/WAT model comparisons and both reference results. Component aliases from
+imported instances still require complete scoped metadata and return `WAC-B002`.

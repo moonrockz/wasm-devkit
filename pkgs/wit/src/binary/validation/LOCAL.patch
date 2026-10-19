@@ -1346,21 +1346,22 @@
 -  MissingCoreInstanceExport(Int, String)
 +  MissingInstanceExport(Int32, String)
 +  MissingCoreInstanceExport(Int32, String)
-@@ -53,0 +57,2 @@
+@@ -53,0 +57,3 @@
 +  UnsupportedFunctionAscription
 +  UnsupportedInstanceAscription
-@@ -55 +60 @@
++  UnsupportedComponentAscription
+@@ -55 +61 @@
 -  SectionParseError(Int, String)
 +  SectionParseError(Int32, String)
-@@ -77,0 +83,2 @@
+@@ -77,0 +84,2 @@
 +  canonical_version_suffix : Bool
 +  restricted_map_keys : Bool
-@@ -83 +90,3 @@
+@@ -83 +91,3 @@
 -  component_implements? : Bool = true,
 +  component_implements~ : Bool = true,
 +  canonical_version_suffix~ : Bool = true,
 +  restricted_map_keys~ : Bool = true,
-@@ -85 +94,6 @@
+@@ -85 +95,6 @@
 -  { wit_names, component_implements, }
 +  {
 +    wit_names,
@@ -1368,7 +1369,7 @@
 +    canonical_version_suffix,
 +    restricted_map_keys,
 +  }
-@@ -114,12 +128,17 @@
+@@ -114,12 +129,18 @@
 -  mut func : Int
 -  mut value : Int
 -  mut component : Int
@@ -1384,6 +1385,7 @@
 +  mut core_contracts : @core_types.ContractGraph?
 +  type_metadata : Map[Int32, (InstanceMetadata, Int32)]
 +  instance_metadata : Map[Int32, (InstanceMetadata, Int32)]
++  component_contracts : Map[Int32, ScopedContractMetadata]
 +  mut metadata_remaining : Int32
 +  mut ascription_remaining : Int32
 +  mut func : Int32
@@ -1398,7 +1400,7 @@
 +  mut core_memory : Int32
 +  mut core_global : Int32
 +  mut core_tag : Int32
-@@ -161 +180,9 @@
+@@ -161 +182,9 @@
 -} derive(Eq)
 +  complete : CompleteFunctionSignature?
 +}
@@ -1409,87 +1411,88 @@
 +impl Eq for FuncSigShape with fn equal(a, b) {
 +  a.params == b.params && a.result == b.result
 +}
-@@ -165,2 +192,2 @@
+@@ -165,2 +194,2 @@
 -  Existing(Int)
 -  Resource(Int)
 +  Existing(Int32)
 +  Resource(Int32)
-@@ -182,3 +209,3 @@
+@@ -182,3 +211,3 @@
 -  Resource(Int)
 -  Own(Int)
 -  Borrow(Int)
 +  Resource(Int32)
 +  Own(Int32)
 +  Borrow(Int32)
-@@ -204,2 +231,2 @@
+@@ -204,2 +233,2 @@
 -  resource_ids : Array[Int?],
 -) -> Int? {
 +  resource_ids : Array[Int32?],
 +) -> Int32? {
-@@ -218,3 +245,3 @@
+@@ -218,3 +247,3 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 -) -> Int? {
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
 +) -> Int32? {
-@@ -238,2 +265,2 @@
+@@ -238,2 +267,2 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
-@@ -258,2 +285,2 @@
+@@ -258,2 +287,2 @@
 -  resource_ids : Array[Int?],
 -  preferred_named_types : Map[Int, Int]?,
 +  resource_ids : Array[Int32?],
 +  preferred_named_types : Map[Int32, Int32]?,
-@@ -460 +487,4 @@
+@@ -460 +489,4 @@
 -fn core_func_type_of_idx(m : @types.Module, func_idx : Int) -> @types.FuncType? {
 +fn core_func_type_of_idx(
 +  m : @types.Module,
 +  func_idx : Int32,
 +) -> @types.FuncType? {
-@@ -485 +515 @@
+@@ -485 +517 @@
 -  table_idx : Int,
 +  table_idx : Int32,
-@@ -506 +536 @@
+@@ -506 +538 @@
 -  mem_idx : Int,
 +  mem_idx : Int32,
-@@ -527 +557 @@
+@@ -527 +559 @@
 -  global_idx : Int,
 +  global_idx : Int32,
-@@ -546 +576 @@
+@@ -546 +578 @@
 -fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int) -> @types.FuncType? {
 +fn core_tag_type_of_idx(m : @types.Module, tag_idx : Int32) -> @types.FuncType? {
-@@ -642 +672 @@
+@@ -642 +674 @@
 -fn core_kind_of_extern_type(ty : CoreExternType) -> Int {
 +fn core_kind_of_extern_type(ty : CoreExternType) -> Int32 {
-@@ -679 +709 @@
+@@ -679 +711 @@
 -  idx : Int,
 +  idx : Int32,
-@@ -723,0 +754,5 @@
+@@ -723,0 +756,6 @@
 +    type_metadata: Map([]),
 +    instance_metadata: Map([]),
++    component_contracts: Map([]),
 +    core_contracts: None,
 +    metadata_remaining: 1000000,
 +    ascription_remaining: 1000000,
-@@ -763 +798 @@
+@@ -763 +801 @@
 -fn is_lower_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_lower_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -793 +828 @@
+@@ -793 +831 @@
 -fn is_kebab_case_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_kebab_case_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -843,2 +878,2 @@
+@@ -843,2 +881,2 @@
 -fn is_canonversion_range(name : Bytes, start : Int, end_ : Int) -> Bool {
 -  if start < 0 || end_ <= start || end_ > name.length() {
 +fn is_semver_range(name : Bytes, start : Int32, end_ : Int32) -> Bool {
 +  if start < 0 || start >= end_ || end_ > name.length() {
-@@ -848,2 +883,2 @@
+@@ -848,2 +886,2 @@
 -  if name[i].to_int() >= 0x31 && name[i].to_int() <= 0x39 {
 -    i += 1
 +  for component in 0..<3 {
 +    let begin = i
-@@ -853,11 +888,27 @@
+@@ -853,11 +891,27 @@
 -    return i == end_
 -  }
 -  if name[i].to_int() != 0x30 || i + 1 >= end_ {
@@ -1528,7 +1531,7 @@
 +
 +  // Numeric prerelease identifiers cannot contain leading zeroes.
 +  if i < end_ && name[i] == 0x2d {
-@@ -865 +916,15 @@
+@@ -865 +919,15 @@
 -    while i < end_ && is_ascii_digit(name[i]) {
 +    while true {
 +      let begin = i
@@ -1545,7 +1548,7 @@
 +      if i >= end_ || name[i] != 0x2e {
 +        break
 +      }
-@@ -867,95 +931,0 @@
+@@ -867,95 +934,0 @@
 -    }
 -    return i == end_
 -  }
@@ -1641,13 +1644,13 @@
 -    }
 -    if need_id {
 -      return false
-@@ -1016,3 +985,0 @@
+@@ -1016,3 +988,0 @@
 -      if at != -1 {
 -        return false
 -      }
-@@ -1019,0 +987 @@
+@@ -1019,0 +990 @@
 +      break
-@@ -1028,9 +996 @@
+@@ -1028,9 +999 @@
 -  if at != -1 {
 -    if at >= name.length() - 1 {
 -      return false
@@ -1658,14 +1661,14 @@
 -    }
 -  }
 +  // Version syntax is checked with the separately encoded suffix.
-@@ -1185 +1145 @@
+@@ -1185 +1148 @@
 -fn is_integrity_value(name : Bytes, start : Int, end_ : Int) -> Bool {
 +fn is_integrity_value(name : Bytes, start : Int32, end_ : Int32) -> Bool {
-@@ -1453,0 +1414,3 @@
+@@ -1453,0 +1417,3 @@
 +  if prefix_eq("get") || prefix_eq("set") {
 +    return is_kebab_case_range(name, close + 1, name.length())
 +  }
-@@ -1460 +1423,9 @@
+@@ -1460 +1426,9 @@
 -  // method/static: require exactly one '.' and kebab-case around it.
 +  // Method/static names can have one accessor annotation before the resource.
 +  let mut start = close + 1
@@ -1676,10 +1679,10 @@
 +    ) {
 +    start += 5
 +  }
-@@ -1462 +1433 @@
+@@ -1462 +1436 @@
 -  for k in (close + 1)..<name.length() {
 +  for k in start..<name.length() {
-@@ -1470,4 +1441,4 @@
+@@ -1470,4 +1444,4 @@
 -  if dot < 0 || dot == close + 1 || dot == name.length() - 1 {
 -    return false
 -  }
@@ -1688,19 +1691,19 @@
 +    return false
 +  }
 +  is_kebab_case_range(name, start, dot) &&
-@@ -1506 +1477 @@
+@@ -1506 +1480 @@
 -  mut pos : Int
 +  mut pos : Int32
-@@ -1522 +1493 @@
+@@ -1522 +1496 @@
 -) -> Int raise ComponentValidationError {
 +) -> Int32 raise ComponentValidationError {
-@@ -1534 +1505 @@
+@@ -1534 +1508 @@
 -) -> Int raise ComponentValidationError {
 +) -> Int32 raise ComponentValidationError {
-@@ -1554 +1525 @@
+@@ -1554 +1528 @@
 -  n : Int,
 +  n : Int32,
-@@ -1585,5 +1556,9 @@
+@@ -1585,5 +1559,9 @@
 -  ascii_bytes_to_string(self.read_bytes(len))
 -}
 -
@@ -1715,7 +1718,7 @@
 +
 +///|
 +fn CoreTypeReader::read_limit(
-@@ -1591 +1566,23 @@
+@@ -1591 +1569,23 @@
 -) -> Unit raise ComponentValidationError {
 +  wide : Bool,
 +) -> UInt64 raise ComponentValidationError {
@@ -1740,7 +1743,7 @@
 +  self : CoreTypeReader,
 +  memory : Bool,
 +) -> (Int32, UInt64, UInt64?, Int32) raise ComponentValidationError {
-@@ -1593,4 +1590,24 @@
+@@ -1593,4 +1593,24 @@
 -  self.read_leb_u32() |> ignore
 -  if (flags & 0x01) != 0 {
 -    self.read_leb_u32() |> ignore
@@ -1769,12 +1772,12 @@
 +    }
 +  }
 +  (flags, min, max, page)
-@@ -1627,2 +1644,2 @@
+@@ -1627,2 +1647,2 @@
 -  kind : Int,
 -  func_type_bound : Int,
 +  kind : Int32,
 +  func_type_bound : Int32,
-@@ -1639,17 +1656,3 @@
+@@ -1639,17 +1659,3 @@
 -      self.skip_limits()
 -    }
 -    0x02 => {
@@ -1795,16 +1798,16 @@
 +      self.read_limits(false) |> ignore
 +    }
 +    0x02 => self.read_limits(true) |> ignore
-@@ -1679 +1682 @@
+@@ -1679 +1685 @@
 -    heap : Int,
 +    heap : Int32,
-@@ -1748 +1751 @@
+@@ -1748 +1754 @@
 -  kind : Int,
 +  kind : Int32,
-@@ -1750 +1753 @@
+@@ -1750 +1756 @@
 -  func_type_bound : Int,
 +  func_type_bound : Int32,
-@@ -1775,6 +1778,5 @@
+@@ -1775,6 +1781,5 @@
 -      let flags = self.read_u8()
 -      let min = self.read_leb_u32()
 -      let max = if (flags & 0x01) != 0 {
@@ -1816,7 +1819,7 @@
 +        (max is Some(n) && n > 9223372036854775807UL) ||
 +        (flags & 2) != 0 {
 +        return None
-@@ -1783,7 +1785,4 @@
+@@ -1783,7 +1788,4 @@
 -        min: min.to_int64(),
 -        max: match max {
 -          Some(v) => Some(v.to_int64())
@@ -1828,7 +1831,7 @@
 +        max: max.map(n => n.reinterpret_as_int64()),
 +      }
 +      Some(Table({ elem_type: elem_ty, limits, is_table64: (flags & 4) != 0, }))
-@@ -1792,14 +1791,6 @@
+@@ -1792,14 +1794,6 @@
 -      // memtype: flags + limits (track memory64 when present)
 -      let flags = self.read_u8()
 -      let min = self.read_leb_u32()
@@ -1849,7 +1852,7 @@
 +      if min > 9223372036854775807UL ||
 +        (max is Some(n) && n > 9223372036854775807UL) {
 +        return None
-@@ -1808,7 +1799,3 @@
+@@ -1808,7 +1802,3 @@
 -        min: min.to_int64(),
 -        max: match max {
 -          Some(v) => Some(v.to_int64())
@@ -1860,33 +1863,33 @@
 +        min: min.reinterpret_as_int64(),
 +        max: max.map(n => n.reinterpret_as_int64()),
 +      }
-@@ -1818,3 +1805,3 @@
+@@ -1818,3 +1808,3 @@
 -          is_memory64,
 -          is_shared: (flags & 0x02) != 0,
 -          page_size_log2: 16,
 +          is_memory64: (flags & 4) != 0,
 +          is_shared: (flags & 2) != 0,
 +          page_size_log2: page,
-@@ -1828 +1815,4 @@
+@@ -1828 +1818,4 @@
 -      let mutable = mut_ != 0
 +      if (mut_ & 2) != 0 {
 +        return None
 +      }
 +      let mutable = (mut_ & 1) != 0
-@@ -1859,3 +1849,3 @@
+@@ -1859,3 +1852,3 @@
 -  max_outer_depth : Int,
 -  current_core_type_bound : Int,
 -  outer_core_type_bounds : Array[Int],
 +  max_outer_depth : Int32,
 +  current_core_type_bound : Int32,
 +  outer_core_type_bounds : Array[Int32],
-@@ -1864 +1854 @@
+@@ -1864 +1857 @@
 -  let seen_imports : Map[String, Int] = Map([])
 +  let seen_imports : Map[(String, String), Int32] = Map([])
-@@ -1883 +1873 @@
+@@ -1883 +1876 @@
 -        let key = "\{mod_s}:\{name_s}"
 +        let key = (mod_s, name_s)
-@@ -1919 +1909,3 @@
+@@ -1919 +1912,3 @@
 -                let bound = if depth <= 1 {
 +                let bound = if depth == 0 {
 +                  func_type_bound - 1
@@ -2042,33 +2045,34 @@
 -) -> (Int, Int) raise ComponentValidationError {
 +  next_resource_id : Int32,
 +) -> (Int32, Int32) raise ComponentValidationError {
-@@ -77,0 +81 @@
+@@ -77,0 +81,2 @@
 +    let mut ascribed_instance : InstanceMetadata? = None
-@@ -86,5 +89,0 @@
++    let mut ascribed_component : ScopedContractMetadata? = None
+@@ -86,5 +90,0 @@
 -    if is_root && e.sortidx.sort is Component {
 -      raise SectionParseError(
 -        11, "exporting a component from the root component is not supported",
 -      )
 -    }
-@@ -117,3 +115,0 @@
+@@ -117,3 +116,0 @@
 -    if is_root && e.sortidx.sort is Func && e.sortidx.idx < imported_funcs {
 -      raise ExportedImportedFunc(e.sortidx.idx)
 -    }
-@@ -121 +117 @@
+@@ -121 +118 @@
 -    let mut ascribed_resource_id : Int? = None
 +    let mut ascribed_resource_id : Int32? = None
-@@ -247,2 +243,2 @@
+@@ -247,2 +244,2 @@
 -          let exported_type_idxs : Array[Int] = []
 -          let seen : Map[Int, Int] = Map([])
 +          let exported_type_idxs : Array[Int32] = []
 +          let seen : Map[Int32, Int32] = Map([])
-@@ -295 +291 @@
+@@ -295 +292 @@
 -          let inst_named : Map[Int, Int] = Map([])
 +          let inst_named : Map[Int32, Int32] = Map([])
-@@ -447 +443 @@
+@@ -447 +444 @@
 -    // the actual export (we currently model instance-type compatibility).
 +    // the actual export. Functions require complete invariant signatures.
-@@ -449,4 +445,15 @@
+@@ -449,4 +446,15 @@
 -      (Instance, Some(InstanceType(tyidx))) =>
 -        if tyidx >= 0 && tyidx < type_table.length() {
 -          let expected = instancetype_sig_of_global_idx(
@@ -2088,12 +2092,12 @@
 +        let actual = if func_types.get(e.sortidx.idx) is Some(Some(actual)) {
 +          let signature = metadata_global_function(
 +            actual,
-@@ -454 +461,3 @@
+@@ -454 +462,3 @@
 -            Map([]),
 +            resource_ids,
 +            counts.type_metadata,
 +            counts.metadata_remaining,
-@@ -456,14 +465,91 @@
+@@ -456,14 +466,136 @@
 -          let actual = if e.sortidx.idx >= 0 &&
 -            e.sortidx.idx < instance_sigs.length() {
 -            instance_sigs[e.sortidx.idx]
@@ -2199,11 +2203,56 @@
 +          my_export_instance_func_sigs[name] = expected.nodes[0].functions
 +        }
 +      }
-@@ -487,0 +574,3 @@
++      (Component, Some(ComponentType(tyidx))) => {
++        guard type_table.get(tyidx) is Some(Some(td)) &&
++          counts.component_contracts.get(e.sortidx.idx) is Some(actual) else {
++          raise UnsupportedComponentAscription
++        }
++        let core_scope = match counts.core_contracts {
++          Some(graph) =>
++            match graph.scope(0) {
++              Some(root) =>
++                match root.binding(3, tyidx) {
++                  Some(Scope(id)) => Some(id)
++                  _ => None
++                }
++              None => None
++            }
++          None => None
++        }
++        let (expected, next, remaining) = scoped_contract_metadata(
++          td,
++          type_table,
++          resource_ids,
++          counts.type_metadata,
++          next_resource_id,
++          counts.metadata_remaining,
++          core_contracts=counts.core_contracts,
++          core_scope~,
++        )
++        counts.metadata_remaining = remaining
++        next_resource_id = next
++        guard expected is Some(expected) else {
++          if remaining == 0 {
++            raise SectionParseError(
++              11, "component contract exceeds the verification work limit",
++            )
++          }
++          raise UnsupportedComponentAscription
++        }
++        counts.ascription_remaining = check_scoped_contract(
++          actual,
++          expected,
++          counts.ascription_remaining,
++          core_contracts=counts.core_contracts,
++        )
++        ascribed_component = Some(expected)
++      }
+@@ -487,0 +620,3 @@
 +        if counts.type_metadata.get(idx) is Some(metadata) {
 +          counts.type_metadata[type_table.length()] = metadata
 +        }
-@@ -528 +617,9 @@
+@@ -528 +663,9 @@
 -            func_types.push(func_types[e.sortidx.idx])
 +            let exported = match e.desc {
 +              Some(FuncType(index)) =>
@@ -2214,7 +2263,7 @@
 +              _ => func_types[e.sortidx.idx]
 +            }
 +            func_types.push(exported)
-@@ -540,0 +638,11 @@
+@@ -540,0 +684,11 @@
 +            if ascribed_instance is Some(metadata) {
 +              instance_sigs[instance_sigs.length() - 1] = Some(
 +                metadata_instance_sig(metadata, 0),
@@ -2226,18 +2275,26 @@
 +              is Some(metadata) {
 +              counts.instance_metadata[instance_sigs.length() - 1] = metadata
 +            }
-@@ -580,0 +689,5 @@
+@@ -580,0 +735,5 @@
 +            if ascribed_instance is Some(metadata) {
 +              instance_export_func_sigs[instance_export_func_sigs.length() - 1] = Some(
 +                metadata.nodes[0].functions,
 +              )
 +            }
-@@ -602 +715,4 @@
+@@ -602 +761,4 @@
 -            interface_instance_idxs.set(instance_sigs.length() - 1, 1)
 +            interface_instance_idxs.set(
 +              instance_sigs.length() - 1,
 +              interface_instance_idxs.get(e.sortidx.idx).unwrap_or(1),
 +            )
+@@ -616,0 +779,7 @@
++          let metadata = match ascribed_component {
++            Some(metadata) => Some(metadata)
++            None => counts.component_contracts.get(src)
++          }
++          if metadata is Some(metadata) {
++            counts.component_contracts[counts.component - 1] = metadata
++          }
 --- a/section_import.mbt
 +++ b/section_import.mbt
 @@ -0,0 +1,3 @@
@@ -2380,7 +2437,37 @@
 -        interface_instance_idxs.set(instance_sigs.length() - 1, 1)
 +        // Bit 1 names exported types; bit 2 also permits using them in imports.
 +        interface_instance_idxs.set(instance_sigs.length() - 1, 3)
-@@ -360 +407 @@
+@@ -352,0 +400,29 @@
++      if type_table.get(tyidx) is Some(Some(td)) {
++        let core_scope = match counts.core_contracts {
++          Some(graph) =>
++            match graph.scope(0) {
++              Some(root) =>
++                match root.binding(3, tyidx) {
++                  Some(Scope(id)) => Some(id)
++                  _ => None
++                }
++              None => None
++            }
++          None => None
++        }
++        let (metadata, next, remaining) = scoped_contract_metadata(
++          td,
++          type_table,
++          resource_ids,
++          counts.type_metadata,
++          next_resource_id,
++          counts.metadata_remaining,
++          core_contracts=counts.core_contracts,
++          core_scope~,
++        )
++        next_resource_id = next
++        counts.metadata_remaining = remaining
++        if metadata is Some(metadata) {
++          counts.component_contracts[counts.component] = metadata
++        }
++      }
+@@ -360 +436 @@
 -      let mut import_core_module_exports : Map[String, Map[String, Int]]? = None
 +      let mut import_core_module_exports : Map[String, Map[String, Int32]]? = None
 --- a/section_instance.mbt

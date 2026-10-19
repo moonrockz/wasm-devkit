@@ -31,6 +31,7 @@ fn check_function_ascription(
   budget~ : Int32 = 1000000,
   expected_types~ : Array[@component.TypeDef?]? = None,
   expected_resources~ : Array[Int32?]? = None,
+  resource_equal~ : (Int32, Int32) -> Bool = (a, b) => a == b,
 ) -> Int32 raise ComponentValidationError {
   if actual.is_async != expected.is_async ||
     actual.params.length() != expected.params.length() {
@@ -56,6 +57,7 @@ fn check_function_ascription(
     budget - actual.params.length() - 1,
     expected_types~,
     expected_resources~,
+    resource_equal~,
   )
 }
 
@@ -67,6 +69,7 @@ fn check_value_ascriptions(
   budget : Int32,
   expected_types~ : Array[@component.TypeDef?]? = None,
   expected_resources~ : Array[Int32?]? = None,
+  resource_equal~ : (Int32, Int32) -> Bool = (a, b) => a == b,
 ) -> Int32 raise ComponentValidationError {
   let expected_types = expected_types.unwrap_or(types)
   let expected_resources = expected_resources.unwrap_or(resources)
@@ -119,7 +122,7 @@ fn check_value_ascriptions(
           expected_resources.get(b) is Some(Some(br)) else {
           raise UnsupportedFunctionAscription
         }
-        if ar != br {
+        if !resource_equal(ar, br) {
           raise AscribedExportTypeIncompatible
         }
       }

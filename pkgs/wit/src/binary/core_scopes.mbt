@@ -321,6 +321,22 @@ fn validate_core_definitions(
             }
             @core_types.ContractBinding::Scope(expected)
           }
+          (Scope(_), Some(ComponentType(original))) if kind == 4 => {
+            guard scope.lookup(3, original) is Scope(expected) else {
+              raise Failure(
+                None,
+                "WIT-B003",
+                "component annotation does not name a component scope",
+              )
+            }
+            @core_types.ContractBinding::Scope(expected)
+          }
+          (_, Some(ComponentType(_))) =>
+            raise Failure(
+              None,
+              "WIT-B003",
+              "component annotation has the wrong external sort",
+            )
           (_, Some(InstanceType(_))) =>
             raise Failure(
               None,
