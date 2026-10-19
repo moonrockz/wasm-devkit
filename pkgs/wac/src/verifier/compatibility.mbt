@@ -1,10 +1,20 @@
 ///|
+priv struct ResourceComparison {
+  actual : Int32
+  expected : Int32
+  bind : Bool
+  reverse : Bool
+  actual_binder : Bool
+  expected_binder : Bool
+}
+
+///|
 // Private evidence from a successful structural comparison. Resource binders
 // are separate from handles so implicit imports cannot unify captured values.
 priv struct CompatibilityTrace {
   types : Map[Int32, Int32]
   binders : Array[(Int32, Int32)]
-  resource_pairs : Array[(Int32, Int32, Bool)]
+  resource_pairs : Array[ResourceComparison]
   mut steps : Int32
 }
 
@@ -12,7 +22,7 @@ priv struct CompatibilityTrace {
 priv enum CompatibilityWork {
   CompareItem(ItemKind, ItemKind, Bool, String)
   CompareType(Int32, Int32, Bool, String)
-  CompareResource(Int32, Int32, Bool, String)
+  CompareResource(ResourceComparison, String)
 }
 
 ///|
@@ -260,12 +270,27 @@ fn Check::compatible(
               trace.binders.push((ai, bi))
             }
           }
-          work.push(CompareResource(ar, br, true, context))
+          work.push(
+            CompareResource(
+              {
+                actual: ar,
+                expected: br,
+                bind: true,
+                reverse,
+                actual_binder: self.types[ai].kind is Resource(None),
+                expected_binder: self.types[bi].kind is Resource(None),
+              },
+              context,
+            ),
+          )
         } else {
           work.push(CompareType(ai, bi, reverse, context))
         }
       }
-      CompareResource(a, b, bind, context) => {
+      CompareResource(pair, context) => {
+        let a = pair.actual
+        let b = pair.expected
+        let bind = pair.bind
         if trace is Some(trace) {
           trace.types[b] = a
         }
@@ -286,7 +311,7 @@ fn Check::compatible(
         }
         if trace is Some(trace) {
           trace.types[b] = a
-          trace.resource_pairs.push((a, b, bind))
+          trace.resource_pairs.push({ ..pair, actual: a, expected: b, })
         }
         if !nominal {
           continue
@@ -331,9 +356,33 @@ fn Check::compatible(
               mismatch = Some("expected `" + b + "`, found `" + a + "`")
             }
           (Resource(_), Resource(_)) =>
-            work.push(CompareResource(a, b, false, context))
+            work.push(
+              CompareResource(
+                {
+                  actual: a,
+                  expected: b,
+                  bind: false,
+                  reverse,
+                  actual_binder: false,
+                  expected_binder: false,
+                },
+                context,
+              ),
+            )
           (Own(a), Own(b)) | (Borrow(a), Borrow(b)) =>
-            work.push(CompareResource(a, b, false, context))
+            work.push(
+              CompareResource(
+                {
+                  actual: a,
+                  expected: b,
+                  bind: false,
+                  reverse,
+                  actual_binder: false,
+                  expected_binder: false,
+                },
+                context,
+              ),
+            )
           (List(a), List(b)) | (Option(a), Option(b)) =>
             work.push(CompareType(a, b, reverse, context))
           (FixedList(a, al), FixedList(b, bl)) => {

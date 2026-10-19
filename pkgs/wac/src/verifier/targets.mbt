@@ -55,6 +55,26 @@ fn Check::target_item(
   state : TargetResources,
   importing : Bool,
 ) -> Unit raise SemanticFailure {
+  let actual_context : Map[Int32, Int32] = Map([])
+  for binding in self.composition_nodes[value].resources {
+    actual_context[binding.ty] = binding.identity
+  }
+  let actual_kind = self.target_scoped_kind(
+    path,
+    actual.kind,
+    actual_context,
+    state,
+    true,
+    Map([]),
+  )
+  let expected_kind = self.target_scoped_kind(
+    path,
+    self.promote(expected.kind),
+    context,
+    state,
+    false,
+    variables,
+  )
   let trace : CompatibilityTrace = {
     types: Map([]),
     binders: [],
@@ -65,12 +85,12 @@ fn Check::target_item(
   self.compatible(
     path,
     {
-      kind: actual.kind,
+      kind: actual_kind,
       node: path,
       external_name: Some(actual.name),
       value: Some(value),
     },
-    self.promote(expected.kind),
+    expected_kind,
     Map([]),
     [],
     reverse=importing,
@@ -110,7 +130,7 @@ fn Check::target_item(
   self.target_resource_pairs(
     path,
     world,
-    value,
+    actual_context,
     actual.location,
     trace.resource_pairs,
     context,
@@ -137,6 +157,8 @@ fn Check::verify_target(self : Check) -> Unit raise SemanticFailure {
       self.problem(path, "WAC-T001", "target must name a world type"),
     )
   }
+  let saved_types = self.types.length()
+  let saved_resources = self.next_resource_identity
   let imports : Map[String, Extern] = Map([])
   self.target_uses(path, uses, imports)
   for imported in declared_imports {
@@ -242,4 +264,9 @@ fn Check::verify_target(self : Check) -> Unit raise SemanticFailure {
       )
     }
   }
+  while self.types.length() > saved_types {
+    self.types.pop() |> ignore
+    self.borrowed.pop() |> ignore
+  }
+  self.next_resource_identity = saved_resources
 }

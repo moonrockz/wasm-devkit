@@ -55,7 +55,7 @@ fn Check::target_import_contexts(
   // identity. Repeated instance templates introduce separate resource binders.
   for name in names {
     let item = imports[name]
-    let (resources, owned) = self.resource_parameters(path, item.kind)
+    let (resources, owned) = self.target_parameters(path, item.kind, state)
     parameters[name] = resources
     let context : Map[Int32, Int32] = Map([])
     let instance = match item.kind {
@@ -95,7 +95,7 @@ fn Check::target_export_context(
   kind : ItemKind,
   state : TargetResources,
 ) -> (Map[Int32, Int32], Map[Int32, Bool]) raise SemanticFailure {
-  let (resources, owned) = self.resource_parameters(path, kind)
+  let (resources, owned) = self.target_parameters(path, kind, state)
   let context : Map[Int32, Int32] = Map([])
   let variables : Map[Int32, Bool] = Map([])
   let instance = match kind {
@@ -122,17 +122,20 @@ fn Check::target_resource_pairs(
   self : Check,
   path : Int32,
   world : Int32,
-  value : Int32,
+  actual_context : Map[Int32, Int32],
   location : Location,
-  pairs : Array[(Int32, Int32, Bool)],
+  pairs : Array[ResourceComparison],
   context : Map[Int32, Int32],
   variables : Map[Int32, Bool],
   state : TargetResources,
   importing : Bool,
 ) -> Unit raise SemanticFailure {
-  for (actual, expected, bind) in pairs {
-    guard resource_binding(self.composition_nodes[value].resources, actual)
-      is Some(actual) &&
+  for pair in pairs {
+    let actual = pair.actual
+    let expected = pair.expected
+    let bind = pair.bind
+    self.target_step(path, state)
+    guard actual_context.get(actual) is Some(actual) &&
       context.get(expected) is Some(expected) else {
       raise Problem(
         self.target_error(
@@ -140,8 +143,15 @@ fn Check::target_resource_pairs(
         ),
       )
     }
+    if bind && pair.expected_binder {
+      if pair.reverse {
+        variables.remove(expected) |> ignore
+      } else if importing {
+        variables[expected] = true
+      }
+    }
     let variable = variables.contains(expected)
-    if importing && bind {
+    if pair.reverse && pair.actual_binder {
       if state.actual.get(actual) is Some(previous) && previous != expected {
         raise Problem(
           self.target_error(
@@ -151,7 +161,7 @@ fn Check::target_resource_pairs(
       }
       state.actual[actual] = expected
     }
-    if !importing {
+    if !pair.reverse {
       let provided = match state.actual.get(actual) {
         Some(id) => id
         None => {
@@ -160,7 +170,7 @@ fn Check::target_resource_pairs(
           id
         }
       }
-      if bind && variable {
+      if bind && pair.expected_binder && variable {
         if state.outputs.get(expected) is Some(previous) && previous != provided {
           raise Problem(
             self.target_error(

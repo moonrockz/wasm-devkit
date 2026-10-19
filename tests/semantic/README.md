@@ -350,3 +350,10 @@ source, hashes and separate resolve/aggregation/validating-compose outcomes.
 Library tests compare ordered aggregate models and binary/WAT equivalence; graph
 contracts cover 3,000 chained instantiations and captured resource identity.
 Reference panic and post-aggregation rejection cases are listed explicitly.
+
+The target witness directory also retains 49 nested-resource cases with a hashed
+acceptance table. They cover alternating component variance, imported/exported
+function captures and source-world implicit resource owners. Source resolution
+and independent binary subtype validation are recorded separately; the product
+follows the latter where nominal checks differ. See the
+[witness notes](wac-target-witnesses/README.md) for exact pins and exclusions.

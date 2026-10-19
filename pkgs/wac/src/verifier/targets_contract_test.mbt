@@ -106,3 +106,49 @@ test "target checking shares a work limit across all extern comparisons" {
   let errors = @verifier.verify(parsed, source~).unwrap_err()
   assert_eq(errors[0].code, "WAC-C006", msg=errors[0].render())
 }
+
+///|
+test "target generic scopes leave the returned arena and resource contexts unchanged" {
+  let body = "import c as c: lookup:target/provider;"
+  let source = "package test:app targets lookup:target/w;" + body
+  let unconstrained = "package test:app                        ;" + body
+  let dependencies : ReadOnlyArray[@verifier.PackageSource] = [
+    {
+      name: "lookup:target",
+      version: None,
+      source: "target.wasm",
+      bytes: b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x07\x7e\x04\x41\x03\x01\x42\x01\x04\x00\x06\x68\x61\x6e\x64\x6c\x65\x03\x01\x03\x00\x01\x61\x05\x00\x03\x00\x01\x62\x05\x00\x41\x05\x01\x42\x01\x04\x00\x06\x68\x61\x6e\x64\x6c\x65\x03\x01\x03\x00\x01\x61\x05\x00\x02\x03\x00\x00\x06\x68\x61\x6e\x64\x6c\x65\x01\x42\x02\x02\x03\x02\x01\x01\x04\x00\x06\x68\x61\x6e\x64\x6c\x65\x03\x00\x00\x03\x00\x01\x62\x05\x02\x41\x02\x02\x03\x02\x01\x00\x03\x00\x01\x63\x04\x00\x41\x02\x02\x03\x02\x01\x02\x04\x00\x0d\x74\x65\x73\x74\x3a\x74\x61\x72\x67\x65\x74\x2f\x77\x04\x00\x0b\x07\x01\x00\x01\x77\x03\x03\x00\x07\x21\x01\x41\x02\x02\x03\x02\x01\x01\x04\x00\x14\x74\x65\x73\x74\x3a\x74\x61\x72\x67\x65\x74\x2f\x70\x72\x6f\x76\x69\x64\x65\x72\x04\x00\x0b\x0e\x01\x00\x08\x70\x72\x6f\x76\x69\x64\x65\x72\x03\x05\x00\x00\x41\x0e\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x2d\x6e\x61\x6d\x65\x01\x30\x03\x05\x00\x08\x65\x78\x70\x65\x63\x74\x65\x64\x01\x08\x70\x72\x6f\x76\x69\x64\x65\x64\x02\x05\x77\x6f\x72\x6c\x64\x03\x07\x77\x72\x61\x70\x70\x65\x72\x05\x08\x70\x72\x6f\x76\x69\x64\x65\x72",
+    },
+  ]
+  let result = @verifier.verify(@parser.parse(source), source~, dependencies~)
+  assert_true(
+    result is Ok(_),
+    msg=match result {
+      Ok(_) => "accepted"
+      Err(errors) => errors[0].render()
+    },
+  )
+  let checked = result.unwrap()
+  let plain = @verifier.verify(
+    @parser.parse(unconstrained),
+    source=unconstrained,
+    dependencies~,
+  ).unwrap()
+  assert_eq(checked.types(), plain.types())
+  for i in 0..<plain.types().length() {
+    assert_eq(checked.types()[i].id, plain.types()[i].id)
+    assert_eq(checked.types()[i].name, plain.types()[i].name)
+  }
+  assert_eq(checked.composition().length(), plain.composition().length())
+  for i in 0..<plain.composition().length() {
+    assert_eq(checked.composition()[i].kind, plain.composition()[i].kind)
+    assert_eq(
+      checked.composition()[i].resources,
+      plain.composition()[i].resources,
+    )
+    assert_eq(
+      checked.composition()[i].operation,
+      plain.composition()[i].operation,
+    )
+  }
+}

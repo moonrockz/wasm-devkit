@@ -426,3 +426,12 @@ component-model subtype witness independently rejects the same resource mismatch
 the exact witness and control are recorded in the semantic fixture guide. Deep
 value types, 5,000 aliases, immutable results and deterministic provenance run on
 all four targets. WIT dependency adapters remain unfinished.
+
+Nested target component types bind resources per declaration scope. Comparison
+tracks variance through component imports and preserves captures in function
+parameters/results. Reusing a source interface for two nested instance parameters
+introduces distinct resource identities; an explicit alias retains its owner's
+identity. Nested source `use` declarations add their named owner imports before
+comparison. Temporary scoped type copies are removed before returning the model.
+The retained 49-case subtype-witness matrix distinguishes these checks from the
+pinned source resolver's weaker nominal comparisons.
