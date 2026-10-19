@@ -1,0 +1,11 @@
+import {
+  "Milky2018/wasm_component" @component,
+  "Milky2018/wasm_component/validator" @validation,
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/debug",
+}
+
+import {
+  "moonrockz/wit/binary",
+  "moonbitlang/core/quickcheck",
+} for "test"

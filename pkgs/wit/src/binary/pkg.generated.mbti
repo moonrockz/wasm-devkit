@@ -1,0 +1,31 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonrockz/wit/binary"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn validate_type_component(Bytes, source_id? : String) -> Result[ValidatedComponent, ReadOnlyArray[Diagnostic]]
+
+// Errors
+
+// Types and methods
+pub(all) struct Diagnostic {
+  source : String
+  offset : Int?
+  code : String
+  message : String
+} derive(Eq, @debug.Debug)
+pub fn Diagnostic::equal(Self, Self) -> Bool
+pub fn Diagnostic::not_equal(Self, Self) -> Bool
+pub fn Diagnostic::to_repr(Self) -> @debug.Repr
+
+pub struct ValidatedComponent {
+  bytes : Bytes
+}
+pub fn ValidatedComponent::bytes(Self) -> Bytes
+
+// Type aliases
+
+// Traits
