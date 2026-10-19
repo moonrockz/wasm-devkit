@@ -1,0 +1,1 @@
+(component (instance $i (export "i" (instance 0))))

@@ -1,0 +1,1 @@
+(component (type $c (component (type $p (component (type $i (instance)) (import "api" (implements "test:dep/api") (instance (type $i))))) (export "p" (component (type $p))))) (import "c" (component $c (type $c))) (instance $i (instantiate $c)) (export "i" (instance $i)))

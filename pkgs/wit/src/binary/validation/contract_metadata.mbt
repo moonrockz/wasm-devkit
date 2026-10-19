@@ -7,6 +7,7 @@ priv struct ContractMembers {
   functions : Map[String, FuncSigShape]
   children : Map[String, Int32]
   modules : Map[String, Int32]
+  direct_modules : Map[String, @core_types.Module]
   binders : Map[String, Bool]
 }
 
@@ -18,6 +19,7 @@ fn ContractMembers::new() -> ContractMembers {
     functions: Map([]),
     children: Map([]),
     modules: Map([]),
+    direct_modules: Map([]),
     binders: Map([]),
   }
 }

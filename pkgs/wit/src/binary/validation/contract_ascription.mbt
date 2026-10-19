@@ -13,9 +13,12 @@ fn check_scoped_contract(
   budget : Int32,
   core_contracts~ : @core_types.ContractGraph? = None,
   actual_node~ : Int32 = 0,
+  expected_node~ : Int32 = 0,
+  binders~ : Bool = false,
+  bindings~ : Map[Int32, Int32]? = None,
 ) -> Int32 raise ComponentValidationError {
   let graphs = [actual, expected]
-  let work = [(0, actual_node, 1, 0, false)]
+  let work = [(0, actual_node, 1, expected_node, binders)]
   let leaves : Array[ContractLeaf] = []
   let substitutions : Map[(Int32, Int32), (Int32, Int32)] = Map([])
   let mut remaining = budget
@@ -114,17 +117,24 @@ fn check_scoped_contract(
             work.push((left, ac, right, bc, binders))
           }
           Core(0x11) => {
-            guard core_contracts is Some(graph) &&
-              lc is Some(lc) &&
-              rc is Some(rc) &&
-              graph.scope(lc) is Some(ls) &&
-              graph.scope(rc) is Some(rs) &&
-              lm.modules.get(name) is Some(ai) &&
-              rm.modules.get(name) is Some(bi) &&
-              ls.definition(ai) is Some(Module(am)) &&
-              rs.definition(bi) is Some(Module(bm)) else {
-              raise UnsupportedComponentAscription
+            fn module_contract(
+              members : ContractMembers,
+              scope : Int32?,
+            ) -> @core_types.Module raise ComponentValidationError {
+              if members.direct_modules.get(name) is Some(contract) {
+                return contract
+              }
+              guard core_contracts is Some(graph) &&
+                scope is Some(scope) &&
+                graph.scope(scope) is Some(scope) &&
+                members.modules.get(name) is Some(index) &&
+                scope.definition(index) is Some(Module(contract)) else {
+                raise UnsupportedComponentAscription
+              }
+              contract
             }
+            let am = module_contract(lm, lc)
+            let bm = module_contract(rm, rc)
             match
               @core_types.check_module_subtype(am, bm, work_limit=remaining) {
               Ok(rest) => remaining = rest
@@ -173,6 +183,17 @@ fn check_scoped_contract(
     }
     charge(resource_work)
     resource_work = 0
+  }
+  if bindings is Some(bindings) {
+    for resource in expected.locals.keys() {
+      charge(1)
+      let (side, target) = resolve(resource_key(1, resource))
+      if side != 1 {
+        bindings[resource] = target
+      }
+      charge(resource_work)
+      resource_work = 0
+    }
   }
   remaining
 }

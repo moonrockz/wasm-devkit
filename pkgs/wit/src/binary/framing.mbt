@@ -471,6 +471,53 @@ fn preflight(
           }
         }
       }
+      5 if declarations => {
+        let count = payload.count()
+        for _ in 0..<count {
+          let tag = payload.byte()
+          if tag == 0 {
+            ignore(payload.unsigned())
+          } else if tag != 1 {
+            raise Failure(
+              Some(payload.position - 1),
+              "WIT-B001",
+              "invalid component instance tag",
+            )
+          }
+          let members = payload.count()
+          for _ in 0..<members {
+            if tag == 0 {
+              payload.string()
+            } else {
+              payload.external_name()
+            }
+            match payload.byte() {
+              0 =>
+                if payload.byte() != 0x11 {
+                  raise Failure(
+                    Some(payload.position - 1),
+                    "WIT-B003",
+                    "invalid core instance argument sort",
+                  )
+                }
+              1 | 3 | 4 | 5 => ()
+              2 =>
+                raise Failure(
+                  Some(payload.position - 1),
+                  "WIT-B002",
+                  "runtime value arguments require value-use validation",
+                )
+              _ =>
+                raise Failure(
+                  Some(payload.position - 1),
+                  "WIT-B003",
+                  "invalid component instance argument sort",
+                )
+            }
+            ignore(payload.unsigned())
+          }
+        }
+      }
       8 if declarations => {
         let count = payload.count()
         for _ in 0..<count {

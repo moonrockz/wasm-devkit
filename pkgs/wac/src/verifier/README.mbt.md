@@ -533,8 +533,9 @@ wasm-tools subtype witnesses in `tests/semantic/wac-core-modules/fill`.
 
 Both binary and WAT inputs support these contracts and flat concrete core module
 bodies. Core instantiation and synchronous canonical lift/lower are supported.
-Component instantiation, async canonical functions and other intrinsics, component starts, component
-values remain outside this profile.
+Imported component instantiation and inline instances are supported. Concrete
+component definitions, non-resource type arguments, async canonical functions
+and other intrinsics, component starts and values remain outside this profile.
 Concrete GC/reference types, supertypes and shared heap types remain
 unsupported. Nested component/instance core declarations with limits above u32
 or custom memory pages return `WAC-B002` before the pinned parser runs; root
@@ -613,3 +614,14 @@ while resource handles remain i32. Destructors must accept exactly the resource
 representation and return nothing. Export aliases preserve the original local
 identity. The 42 cases in `tests/semantic/wac-resource-intrinsics` compare both
 pinned validators and full binary/WAT models; four emitted compositions validate.
+
+Runtime component instances preserve supplied resource identities and freshen
+exported resources independently for each instantiation. Complete argument
+contracts include functions, nested instances/components and core modules.
+Binary and WAT models retain named uses and abstract component templates.
+Non-resource type arguments return `WAC-B002` until named-type origins survive
+signature normalization. The accepted named-record and rejected anonymous-record
+reference cases are retained in `tests/semantic/wac-runtime-instances`, alongside
+43 package probes and six source compositions. Four emitted compositions pass
+independent binary validation; two additional pinned encoder panics are recorded
+separately. Public APIs perform validation without executing components.

@@ -7,6 +7,7 @@ priv enum CoreDeclaration {
   Export(@component.Export)
   Module(Bytes)
   CoreInstance
+  RuntimeInstance(@component.Instance)
   Canonical(@component.Canon)
 }
 
@@ -157,6 +158,10 @@ fn validate_core_definitions(
           for _ in @component.parse_core_instance_section(section.payload) {
             root.push(CoreInstance)
           }
+        5 =>
+          for instance in @component.parse_instance_section(section.payload) {
+            root.push(RuntimeInstance(instance))
+          }
         8 =>
           for declaration in @component.parse_canon_section(section.payload) {
             root.push(Canonical(declaration))
@@ -227,6 +232,30 @@ fn validate_core_definitions(
     scope.position += 1
     match declaration {
       CoreInstance => scope.bind(0x112, Other)
+      RuntimeInstance(instance) =>
+        match instance.expr {
+          Instantiate(component, _) => scope.bind(5, scope.lookup(4, component))
+          InlineExports(exports) => {
+            let bindings : Map[String, @core_types.ContractBinding] = Map([])
+            for exported in exports {
+              step(1)
+              bindings[exported.name] = scope.lookup(
+                core_sort(exported.sortidx.sort),
+                exported.sortidx.idx,
+              )
+            }
+            let child = scopes.length()
+            scopes.push({
+              parent: None,
+              declarations: [],
+              definitions: [],
+              slots: Map([]),
+              exports: bindings,
+              position: 0,
+            })
+            scope.bind(5, Scope(child))
+          }
+        }
       Canonical(Lift(_, _, _)) => scope.bind(1, Other)
       Canonical(_) => scope.bind(0x100, Other)
       Nested(td) =>

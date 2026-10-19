@@ -1,0 +1,1 @@
+(component (instance (instantiate 0)) (type $c (component)) (import "c" (component (type $c))))

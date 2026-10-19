@@ -160,3 +160,9 @@ defined by the importing component. The audit follows complete function and
 value graphs with explicit stacks and the shared metadata budget; unused outer
 definitions and fresh abstract binders remain valid. Missing contract metadata
 fails closed when local resources need auditing.
+
+Runtime section-5 instances use complete scoped contracts under the shared
+metadata and comparison budgets. Imported resource binders substitute supplied
+identities; exported instance resources freshen independently. Inline instances
+retain complete functions, types, nested contracts and direct core module
+contracts. Non-resource type arguments fail closed pending nominal type origins.

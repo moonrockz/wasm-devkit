@@ -1,0 +1,1 @@
+(component (import "r" (type $r (sub resource))) (type $b (borrow $r)) (type $f (func (param "self" $b))) (import "[method]r.get" (func $f (type $f))) (instance $i (export "r" (type $r)) (export "[method]r.get" (func $f))) (export "i" (instance $i)))

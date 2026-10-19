@@ -1,0 +1,1 @@
+(component (type $c (component)) (import "c" (component $c (type $c))) (type $f (func)) (import "f" (func $f (type $f))) (instance $i (instantiate $c (with "extra" (func $f)))) (export "i" (instance $i)))

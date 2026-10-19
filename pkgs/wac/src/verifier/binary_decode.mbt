@@ -56,7 +56,7 @@ fn BinaryGraph::describe(
       Instance(self.instantiate_type(scope, binary_index(scope.types, index)))
     }
     ComponentType(index) =>
-      Component(self.instantiate_type(scope, binary_index(scope.types, index)))
+      Component(self.follow(binary_index(scope.types, index)))
     Value(_) =>
       raise Unsupported(
         "component values are outside the binary package profile",
@@ -147,7 +147,7 @@ fn BinaryGraph::export_entry(
     (Instance(_), Some(InstanceType(index))) =>
       Instance(self.instantiate_type(scope, binary_index(scope.types, index)))
     (Component(_), Some(ComponentType(index))) =>
-      Component(self.instantiate_type(scope, binary_index(scope.types, index)))
+      Component(self.follow(binary_index(scope.types, index)))
     (Module(_), Some(CoreModuleType(index))) => {
       guard scope.core_ids.get(index) is Some(Some(id)) else {
         raise Invalid("core module ascription index is invalid")
@@ -172,6 +172,10 @@ fn binary_root_declarations(
     for section in component.binary.sections {
       match section.id {
         0 | 2 => ()
+        5 =>
+          for instance in @component.parse_instance_section(section.payload) {
+            declarations.push(RuntimeInstance(instance))
+          }
         8 =>
           for declaration in @component.parse_canon_section(section.payload) {
             declarations.push(Canonical(declaration))
@@ -275,6 +279,7 @@ fn binary_decode(
       CoreDefine(bytes, section) =>
         graph.core_definition(scope_id, bytes, section)
       Alias(alias_entry) => graph.alias_entry(scope_id, alias_entry)
+      RuntimeInstance(instance) => graph.runtime_instance(scope, instance)
       Canonical(Lift(_, _, index)) =>
         scope.bind(Function(graph.follow(binary_index(scope.types, index))))
       Canonical(Lower(_, _) | ResourceNew(_) | ResourceDrop(_) | ResourceRep(_)) =>

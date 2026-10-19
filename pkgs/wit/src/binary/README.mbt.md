@@ -109,7 +109,10 @@ including aliases and re-exports. Instance annotations check functions, values,
 nominal resources, nested instances/components and core modules against the complete
 expected contract. Annotated aliases and re-exports
 retain the narrowed contract. The type-only WIT entry point continues to reject all
-root export ascriptions. Component values and runtime component sections remain unsupported.
+root export ascriptions. Component values and concrete runtime component definitions remain unsupported.
+Section 5 supports imported-component instantiation and inline instances, with
+complete argument contracts and nominal resource substitution. Non-resource type
+arguments remain unsupported until named-type origins are retained.
 
 Core declarations have separate lexical index validation and retain complete
 unsigned signatures through `moonrockz/wit/core_types`. Concrete GC/shared heap

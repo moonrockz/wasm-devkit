@@ -54,6 +54,39 @@ fn validate_component_section_instance(
     e => raise SectionParseError(5, "\{e}")
   }
   for inst in instances {
+    if counts.core_contracts is Some(_) {
+      let (graph, root, next) = runtime_component_instance(
+        inst, cfg, counts, type_table, resource_ids, func_sig_shapes, next_resource_id,
+      )
+      next_resource_id = next
+      let metadata = runtime_instance_metadata(graph, root, counts)
+      counts.instance_contracts[counts.instance] = (graph, root)
+      counts.instance_metadata[counts.instance] = (metadata, root)
+      instance_sigs.push(Some(metadata.signatures[root]))
+      instance_sizes.push(1)
+      instance_export_type_idxs.push(None)
+      instance_export_func_idxs.push(None)
+      instance_export_type_map.push(None)
+      let type_signatures : Map[String, TypeSig] = Map([])
+      for (name, index) in metadata.nodes[root].types {
+        let (signature, remaining) = metadata_function(
+          { is_async: false, params: [], result: Some(TypeIdx(index)), },
+          metadata.types,
+          metadata.resources,
+          counts.metadata_remaining,
+        ) catch {
+          _ => raise UnsupportedComponentAscription
+        }
+        counts.metadata_remaining = remaining
+        type_signatures[name] = signature.result.unwrap_or(Other)
+      }
+      instance_export_type_sigs.push(Some(type_signatures))
+      instance_export_func_sigs.push(Some(metadata.nodes[root].functions))
+      instance_nested_instance_type_sigs.push(None)
+      instance_nested_instance_func_sigs.push(None)
+      counts.instance += 1
+      continue
+    }
     let mut inst_sig : InstanceSig? = None
     let mut inst_size = 1
     let mut inst_type_idxs : Array[Int32]? = None

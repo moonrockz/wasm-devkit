@@ -1,0 +1,1 @@
+(component (import "r" (type $r (sub resource))) (instance $i (export "r" (type $r))) (export "r" (type $r)) (export "i" (instance $i)))

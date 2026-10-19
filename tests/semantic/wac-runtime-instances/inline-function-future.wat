@@ -1,0 +1,1 @@
+(component (instance (export "f" (func 0))) (type $f (func)) (import "f" (func (type $f))))

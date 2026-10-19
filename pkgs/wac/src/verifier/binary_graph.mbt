@@ -1,6 +1,7 @@
 ///|
 priv enum BinaryDeclaration {
   Canonical(@component.Canon)
+  RuntimeInstance(@component.Instance)
   Define(@component.TypeDef)
   CoreDefine(Bytes, Bool)
   CoreModule(Bytes)
