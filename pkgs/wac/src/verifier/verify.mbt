@@ -269,8 +269,11 @@ fn Check::add_type(
 ///|
 fn value_kind(kind : TypeKind) -> Bool {
   match kind {
-    Resource(_) | Function(_, _, _) | Interface(_, _, _) | World(_, _, _, _) =>
-      false
+    Module(_)
+    | Resource(_)
+    | Function(_, _, _)
+    | Interface(_, _, _)
+    | World(_, _, _, _) => false
     _ => true
   }
 }
@@ -283,6 +286,7 @@ fn Check::promote(self : Check, kind : ItemKind) -> ItemKind {
         Function(_, _, _) => Function(id)
         Interface(_, _, _) => Instance(id)
         World(_, _, _, _) => Component(id)
+        Module(_) => Module(id)
         _ => kind
       }
     _ => kind

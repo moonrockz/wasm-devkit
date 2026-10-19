@@ -81,6 +81,7 @@ pub fn validate_declarative_component(
     let component = @component.parse_component(bytes) catch {
       error => raise Failure(None, "WIT-B001", error.to_string())
     }
+    validate_core_definitions(component)
     @validation.validate_component_with_config(
       component,
       @validation.ComponentValidationConfig(

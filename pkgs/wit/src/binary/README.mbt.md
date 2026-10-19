@@ -60,7 +60,8 @@ payloads and 10,000 physical type scopes on all four targets.
 `validate_declarative_component` additionally admits root imports and component
 aliases. It returns a separate `ValidatedDeclarativeComponent` with immutable
 bytes. It supports imported functions, instances and components, type aliases,
-and re-exports. Core modules/types, nested concrete component definitions,
+and re-exports, plus declarative core module/function types and module externs.
+Concrete core module bodies, nested concrete component definitions,
 instantiation, canonical functions and start sections remain unsupported and
 return `WIT-B002`. Physical type-scope nesting has the same 256 limit.
 Component-value externs and non-function root export ascriptions also return `WIT-B002`:
@@ -103,3 +104,9 @@ Nested imported instances retain complete signatures, nominal resource binders
 and exported value-type aliases in private indexed graphs. The type-only WIT entry point continues to reject all
 root export ascriptions. This slice does not enable component values or runtime
 sections.
+
+Core declarations have separate lexical index validation and retain complete
+unsigned signatures through `moonrockz/wit/core_types`. Concrete GC/shared heap
+references and recursive groups remain unsupported. Nested core declarations
+with limits above u32 or custom memory pages return `WIT-B002` before the pinned
+parser runs; root core-type sections support those encodings.

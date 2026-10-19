@@ -36,3 +36,15 @@ Explicit named outer type aliases resolve against the saved parent bindings.
 Automatic aliases in an inline instance/component type cannot overwrite those
 parent indices. WAC Fill fixtures compare the resulting imported resource graph
 with the binary encoded by the pinned wasm-tools.
+
+The core-module contract patch retains named tag references and their required
+zero attribute byte, abstract/non-null references, memory64/table64 limits,
+shared globals and custom memory page annotations. Unsigned limits use bounded
+u32/u64 parsing with hexadecimal and separator support. Local core type names
+and aliases restore their parent bindings after inline type compilation.
+`core_limits.mbt` is original project code. Binary/WAT equivalence and negative
+cases are retained in `tests/semantic/wac-core-modules` under `.8.2.2`.
+
+Explicit core declarations preserve distinct numeric slots even when signatures
+are equal. Duplicate core type identifiers reject within their lexical scope;
+shadowing outer names remains valid. Name scans have a shared compilation budget.

@@ -61,10 +61,12 @@ fn BinaryGraph::describe(
       raise Unsupported(
         "component values are outside the binary package profile",
       )
-    CoreModuleType(_) =>
-      raise Unsupported(
-        "core module types are outside the declarative package profile",
-      )
+    CoreModuleType(index) => {
+      guard scope.core_ids.get(index) is Some(Some(id)) else {
+        raise Invalid("core module type index is invalid")
+      }
+      Module(id)
+    }
   }
   if desc is Type(SubResource) &&
     scope.parent is Some(_) &&
@@ -90,6 +92,16 @@ fn BinaryGraph::alias_entry(
           raise Invalid("outer alias exceeds lexical scopes")
         }
         outer = parent
+      }
+      if alias_entry.sort is Core(0x10) {
+        let source = self.scopes[outer]
+        guard source.core_types.get(index) is Some(definition) else {
+          raise Invalid("outer core type alias index is invalid")
+        }
+        let id = source.core_ids[index]
+        scope.core_types.push(definition)
+        scope.core_ids.push(id)
+        return
       }
       self.scopes[outer].lookup(alias_entry.sort, index)
     }
@@ -151,6 +163,7 @@ fn binary_root_declarations(
     for section in component.binary.sections {
       match section.id {
         0 => ()
+        3 => declarations.push(CoreDefine(section.payload, true))
         7 =>
           for definition in @component.parse_type_section(section.payload) {
             declarations.push(BinaryDeclaration::Define(definition))
@@ -238,6 +251,8 @@ fn binary_decode(
           }
           _ => scope.types.push(graph.definition(scope, definition))
         }
+      CoreDefine(bytes, section) =>
+        graph.core_definition(scope_id, bytes, section)
       Alias(alias_entry) => graph.alias_entry(scope_id, alias_entry)
       Describe(importing, name, attributes, desc) => {
         let kind = graph.describe(scope, importing, name, attributes, desc)

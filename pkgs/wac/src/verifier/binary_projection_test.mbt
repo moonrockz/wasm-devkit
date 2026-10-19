@@ -71,6 +71,7 @@ fn project_graph(
           Function(id) => ("func", id)
           Instance(id) => ("instance", id)
           Component(id) => ("component", id)
+          Module(id) => ("module", id)
         }
         output.push(sort)
         next.push(Type(id))
@@ -79,6 +80,7 @@ fn project_graph(
         guard id >= 0 && id < types.length() else { fail("dangling type") }
         let kind = types[id].kind
         match kind {
+          Module(core) => output.push(core.to_repr().to_string())
           Alias(id) => next.push(Type(id))
           Scalar(name) => {
             output.push("scalar")

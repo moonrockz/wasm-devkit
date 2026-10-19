@@ -6,6 +6,7 @@ import {
   "moonrockz/wac/ast",
   "moonrockz/wac/parser",
   "moonrockz/wac/span",
+  "moonrockz/wit/core_types",
 }
 
 // Values
@@ -111,6 +112,7 @@ pub(all) enum ItemKind {
   Function(Int)
   Instance(Int)
   Component(Int)
+  Module(Int)
 } derive(Eq, @debug.Debug)
 pub fn ItemKind::equal(Self, Self) -> Bool
 pub fn ItemKind::not_equal(Self, Self) -> Bool
@@ -201,6 +203,7 @@ pub fn TypeCase::not_equal(Self, Self) -> Bool
 pub fn TypeCase::to_repr(Self) -> @debug.Repr
 
 pub(all) enum TypeKind {
+  Module(@core_types.Module)
   Scalar(String)
   Alias(Int)
   Resource(Int?)

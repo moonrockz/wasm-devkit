@@ -1,0 +1,1 @@
+(component (core type $a (func)) (type (component (alias outer 1 $a (core type $a)) (alias outer 1 $a (core type $a)))))

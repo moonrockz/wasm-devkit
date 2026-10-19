@@ -1,4 +1,5 @@
 import {
+  "moonrockz/wit/core_types",
   "moonrockz/wac/ast",
   "moonrockz/wac/parser",
   "moonrockz/wac/span",

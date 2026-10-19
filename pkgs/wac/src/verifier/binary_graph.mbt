@@ -1,6 +1,7 @@
 ///|
 priv enum BinaryDeclaration {
   Define(@component.TypeDef)
+  CoreDefine(Bytes, Bool)
   Alias(@component.Alias)
   Describe(Bool, String, Array[@component.NameAttribute], @component.ExternDesc)
   Export(@component.Export)
@@ -16,6 +17,9 @@ priv struct BinaryScope {
   functions : Array[Int32]
   instances : Array[Int32]
   components : Array[Int32]
+  modules : Array[Int32]
+  core_types : Array[@core_types.Definition]
+  core_ids : Array[Int32?]
   imports : Array[Extern]
   exports : Array[Extern]
   uses : Array[UsedType]
@@ -87,7 +91,7 @@ fn BinaryGraph::follow(
 ///|
 fn binary_kind_id(kind : ItemKind) -> Int32 {
   match kind {
-    Type(id) | Function(id) | Instance(id) | Component(id) => id
+    Type(id) | Function(id) | Instance(id) | Component(id) | Module(id) => id
   }
 }
 
@@ -98,12 +102,15 @@ fn binary_kind_with_id(kind : ItemKind, id : Int32) -> ItemKind {
     Function(_) => Function(id)
     Instance(_) => Instance(id)
     Component(_) => Component(id)
+    Module(_) => Module(id)
   }
 }
 
 ///|
 fn binary_sort(kind : Int32) -> @component.Sort raise BinaryFailure {
   match kind {
+    0x110 => Core(0x10)
+    0x111 => Core(0x11)
     1 => Func
     2 => Value
     3 => Type
@@ -123,6 +130,7 @@ fn BinaryScope::bind(self : BinaryScope, kind : ItemKind) -> Unit {
     Function(id) => self.functions.push(id)
     Instance(id) => self.instances.push(id)
     Component(id) => self.components.push(id)
+    Module(id) => self.modules.push(id)
   }
 }
 
@@ -141,6 +149,7 @@ fn BinaryScope::lookup(
       raise Unsupported(
         "component values are outside the binary package profile",
       )
+    Core(0x11) => Module(binary_index(self.modules, index))
     Core(_) =>
       raise Unsupported(
         "core items are outside the declarative package profile",
@@ -206,10 +215,7 @@ fn binary_declarations(
           Alias({ sort: binary_sort(kind), target: Export(instance, name), })
         Import(name, attrs, desc) => Describe(true, name, attrs, desc)
         Export(name, attrs, desc) => Describe(false, name, attrs, desc)
-        CoreType(_) =>
-          raise Unsupported(
-            "core types are outside the declarative package profile",
-          )
+        CoreType(bytes) => CoreDefine(bytes, false)
       },
     )
   }
@@ -240,6 +246,9 @@ fn BinaryGraph::scope(
     functions: [],
     instances: [],
     components: [],
+    modules: [],
+    core_types: [],
+    core_ids: [],
     imports: [],
     exports: [],
     uses: [],

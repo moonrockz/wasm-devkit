@@ -10,7 +10,7 @@ fn parse_core_type_module_exports(
 ) -> Map[String, Int32] raise ComponentValidationError {
   let ndecls = r.read_leb_u32()
   let exports : Map[String, Int32] = Map([])
-  let seen_imports : Map[String, Int32] = Map([])
+  let seen_imports : Map[(String, String), Int32] = Map([])
   let mut func_type_bound = 0
   for _i in 0..<ndecls {
     let tag = r.read_u8()
@@ -26,7 +26,7 @@ fn parse_core_type_module_exports(
           Some(s) => s
           None => ""
         }
-        let key = "\{mod_s}:\{name_s}"
+        let key = (mod_s, name_s)
         if seen_imports.get(key) is Some(_) {
           raise SectionParseError(3, "duplicate import name")
         }
@@ -60,7 +60,9 @@ fn parse_core_type_module_exports(
                 raise SectionParseError(3, "outer alias depth out of bounds")
               }
               if sort == 0x10 {
-                let bound = if depth <= 1 {
+                let bound = if depth == 0 {
+                  func_type_bound - 1
+                } else if depth == 1 {
                   current_core_type_bound
                 } else if depth - 2 < outer_core_type_bounds.length() {
                   outer_core_type_bounds[depth - 2]

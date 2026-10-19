@@ -88,3 +88,11 @@ IDs from the existing allocator. Private graph definitions never shift binary
 type indices. Additional whitebox tests exercise 6,000-level scope/value graphs.
 The enclosing declarative framing profile admits only function ascriptions. The
 WIT type-only profile still rejects them all.
+
+Core module contracts use tuple import keys rather than concatenating names with
+`:`, decode names as UTF-8, and validate u32/u64 limits with address width and
+custom page size. Depth-zero aliases use preceding module-local function slots.
+The enclosing declarative codec retains complete unsigned/shared signatures.
+Legacy runtime metadata omits extern signatures it cannot represent, including
+limits above signed Int64 and shared globals/tables. Runtime sections and
+non-function ascriptions remain excluded by the public framing boundary.

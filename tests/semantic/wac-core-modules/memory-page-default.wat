@@ -1,0 +1,1 @@
+(component (core type $m (module (export "m" (memory 1 2 (pagesize 65536))))) (import "m" (core module $m (type $m))) (export "out" (core module $m)))

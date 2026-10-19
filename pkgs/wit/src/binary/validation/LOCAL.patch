@@ -351,8 +351,16 @@
 -  let exports : Map[String, Int] = Map([])
 -  let seen_imports : Map[String, Int] = Map([])
 +  let exports : Map[String, Int32] = Map([])
-+  let seen_imports : Map[String, Int32] = Map([])
-@@ -120,4 +123,4 @@
++  let seen_imports : Map[(String, String), Int32] = Map([])
+@@ -26 +29 @@
+-        let key = "\{mod_s}:\{name_s}"
++        let key = (mod_s, name_s)
+@@ -60 +63,3 @@
+-                let bound = if depth <= 1 {
++                let bound = if depth == 0 {
++                  func_type_bound - 1
++                } else if depth == 1 {
+@@ -120,4 +125,4 @@
 -  max_outer_depth : Int,
 -  base_core_type_bound : Int,
 -  outer_core_type_bounds : Array[Int],
@@ -361,49 +369,49 @@
 +  base_core_type_bound : Int32,
 +  outer_core_type_bounds : Array[Int32],
 +) -> Array[Map[String, Int32]?] raise ComponentValidationError {
-@@ -126 +129 @@
+@@ -126 +131 @@
 -  let out : Array[Map[String, Int]?] = []
 +  let out : Array[Map[String, Int32]?] = []
-@@ -159,3 +162,3 @@
+@@ -159,3 +164,3 @@
 -  max_outer_depth : Int,
 -  base_core_type_bound : Int,
 -  outer_core_type_bounds : Array[Int],
 +  max_outer_depth : Int32,
 +  base_core_type_bound : Int32,
 +  outer_core_type_bounds : Array[Int32],
-@@ -199,3 +202,3 @@
+@@ -199,3 +204,3 @@
 -  current_core_type_bound : Int,
 -  outer_core_type_bounds : Array[Int],
 -) -> Map[String, Int]? raise ComponentValidationError {
 +  current_core_type_bound : Int32,
 +  outer_core_type_bounds : Array[Int32],
 +) -> Map[String, Int32]? raise ComponentValidationError {
-@@ -313 +316 @@
+@@ -313 +318 @@
 -  section : Int,
 +  section : Int32,
-@@ -320 +323,2 @@
+@@ -320 +325,2 @@
 -  let mut has_version = false
 +  let mut suffix : Bytes? = None
 +  let mut interface_name = name
-@@ -322,0 +327,6 @@
+@@ -322,0 +329,6 @@
 +    let bytes = match attribute {
 +      Implements(bytes) | VersionSuffix(bytes) | ExternalId(bytes) => bytes
 +    }
 +    (@utf8.decode(bytes, ignore_bom=false) |> ignore) catch {
 +      _ => raise SectionParseError(section, "name attribute is not UTF-8")
 +    }
-@@ -324 +334 @@
+@@ -324 +336 @@
 -      Implements(interface_name) => {
 +      Implements(implemented) => {
-@@ -343,0 +354 @@
+@@ -343,0 +356 @@
 +        interface_name = implemented
-@@ -354 +365 @@
+@@ -354 +367 @@
 -        if has_version {
 +        if suffix is Some(_) {
-@@ -356 +367 @@
+@@ -356 +369 @@
 -            section, "duplicate `versionsuffix` attribute",
 +            section, "duplicate `version-suffix` attribute",
-@@ -359,22 +370,6 @@
+@@ -359,22 +372,6 @@
 -        has_version = true
 -        let mut at = -1
 -        for i in 0..<name.length() {
@@ -432,7 +440,7 @@
 +          )
 +        }
 +        suffix = Some(version)
-@@ -389,0 +385,71 @@
+@@ -389,0 +387,71 @@
 +  if !cfg.canonical_version_suffix && has_implements {
 +    return
 +  }
@@ -504,13 +512,13 @@
 +      raise SectionParseError(section, "invalid version suffix")
 +    }
 +  }
-@@ -394 +460 @@
+@@ -394 +462 @@
 -  section : Int,
 +  section : Int32,
-@@ -426 +492 @@
+@@ -426 +494 @@
 -  fn parse_resource_prefix(name : String, prefix_len : Int) -> String {
 +  fn parse_resource_prefix(name : String, prefix_len : Int32) -> String {
-@@ -541 +607,7 @@
+@@ -541 +609,7 @@
 -  let s = suffix.to_string()
 +  let raw_suffix = suffix.to_string()
 +  let s = if (p == "method" || p == "static") &&
@@ -519,32 +527,32 @@
 +  } else {
 +    raw_suffix
 +  }
-@@ -567 +639 @@
+@@ -567 +641 @@
 -) -> Int? {
 +) -> Int32? {
-@@ -586 +658 @@
+@@ -586 +660 @@
 -) -> Int? {
 +) -> Int32? {
-@@ -603 +675 @@
+@@ -603 +677 @@
 -  section : Int,
 +  section : Int32,
-@@ -607,2 +679,2 @@
+@@ -607,2 +681,2 @@
 -  resource_ids : Array[Int?],
 -  known_resources : Map[String, Int],
 +  resource_ids : Array[Int32?],
 +  known_resources : Map[String, Int32],
-@@ -609,0 +682 @@
+@@ -609,0 +684 @@
 +  validate_accessor_function(section, name, ft, type_table)
-@@ -610,0 +684,3 @@
+@@ -610,0 +686,3 @@
 +  if br is Some(info) && info.kind is Constructor && ft.is_async {
 +    raise SectionParseError(section, "constructor cannot be async")
 +  }
-@@ -702,2 +778,2 @@
+@@ -702,2 +780,2 @@
 -  allowed_resource_type_idxs : Map[Int, Int],
 -  visiting : Map[Int, Int],
 +  allowed_resource_type_idxs : Map[Int32, Int32],
 +  visiting : Map[Int32, Int32],
-@@ -705,23 +781,21 @@
+@@ -705,23 +783,21 @@
 -  match ty {
 -    Prim(_) => false
 -    TypeIdx(idx) =>
@@ -589,7 +597,7 @@
 +        for item in cases {
 +          if item.ty is Some(value) {
 +            work.push(value)
-@@ -729,71 +803,23 @@
+@@ -729,71 +805,23 @@
 -          Some(Record(fields)) => {
 -            let mut bad = false
 -            for f in fields {
@@ -684,53 +692,53 @@
 +    }
 +  }
 +  false
-@@ -806 +832 @@
+@@ -806 +834 @@
 -  allowed_resource_type_idxs : Map[Int, Int],
 +  allowed_resource_type_idxs : Map[Int32, Int32],
-@@ -808 +834 @@
+@@ -808 +836 @@
 -  let visiting : Map[Int, Int] = Map([])
 +  let visiting : Map[Int32, Int32] = Map([])
-@@ -832 +858 @@
+@@ -832 +860 @@
 -  resource_ids : Array[Int?],
 +  resource_ids : Array[Int32?],
-@@ -834 +860 @@
+@@ -834 +862 @@
 -  let visiting : Map[Int, Int] = Map([])
 +  let visiting : Map[Int32, Int32] = Map([])
-@@ -846 +872,5 @@
+@@ -846 +874,5 @@
 -  { params, result, }
 +  {
 +    params,
 +    result,
 +    complete: complete_function_signature(ft, [], [], type_table, resource_ids),
 +  }
-@@ -853 +883 @@
+@@ -853 +885 @@
 -  local_resource_ids : Array[Int?],
 +  local_resource_ids : Array[Int32?],
-@@ -855,2 +885,2 @@
+@@ -855,2 +887,2 @@
 -  global_resource_ids : Array[Int?],
 -  visiting : Map[Int, Int],
 +  global_resource_ids : Array[Int32?],
 +  visiting : Map[Int32, Int32],
-@@ -973 +1003 @@
+@@ -973 +1005 @@
 -  local_resource_ids : Array[Int?],
 +  local_resource_ids : Array[Int32?],
-@@ -975,2 +1005,2 @@
+@@ -975,2 +1007,2 @@
 -  global_resource_ids : Array[Int?],
 -  visiting : Map[Int, Int],
 +  global_resource_ids : Array[Int32?],
 +  visiting : Map[Int32, Int32],
-@@ -1024 +1054 @@
+@@ -1024 +1056 @@
 -  local_resource_ids : Array[Int?],
 +  local_resource_ids : Array[Int32?],
-@@ -1026 +1056,3 @@
+@@ -1026 +1058,3 @@
 -  global_resource_ids : Array[Int?],
 +  global_resource_ids : Array[Int32?],
 +  local_origins~ : Map[Int32, Int32] = Map([]),
 +  global_function~ : Bool = false,
-@@ -1028 +1060 @@
+@@ -1028 +1062 @@
 -  let visiting : Map[Int, Int] = Map([])
 +  let visiting : Map[Int32, Int32] = Map([])
-@@ -1053 +1085,13 @@
+@@ -1053 +1087,13 @@
 -  { params, result, }
 +  {
 +    params,
@@ -745,47 +753,47 @@
 +      global_function~,
 +    ),
 +  }
-@@ -1060,2 +1104,2 @@
+@@ -1060,2 +1106,2 @@
 -  resource_ids : Array[Int?],
 -  visiting : Map[Int, Int],
 +  resource_ids : Array[Int32?],
 +  visiting : Map[Int32, Int32],
-@@ -1140,2 +1184,2 @@
+@@ -1140,2 +1186,2 @@
 -  resource_ids : Array[Int?],
 -  visiting : Map[Int, Int],
 +  resource_ids : Array[Int32?],
 +  visiting : Map[Int32, Int32],
-@@ -1170,3 +1214,3 @@
+@@ -1170,3 +1216,3 @@
 -  idx : Int,
 -  type_table : Array[@component.TypeDef?],
 -  resource_ids : Array[Int?],
 +  idx : Int32,
 +  type_table : Array[@component.TypeDef?],
 +  resource_ids : Array[Int32?],
-@@ -1178 +1222,4 @@
+@@ -1178 +1224,4 @@
 -fn type_sig_subst_resources(sig : TypeSig, subst : Map[Int, Int]) -> TypeSig {
 +fn type_sig_subst_resources(
 +  sig : TypeSig,
 +  subst : Map[Int32, Int32],
 +) -> TypeSig {
-@@ -1307 +1354 @@
+@@ -1307 +1356 @@
 -  subst : Map[Int, Int],
 +  subst : Map[Int32, Int32],
-@@ -1317 +1364,5 @@
+@@ -1317 +1366,5 @@
 -  { params, result, }
 +  {
 +    params,
 +    result,
 +    complete: complete_signature_substitute(sig.complete, subst),
 +  }
-@@ -1355,3 +1406,3 @@
+@@ -1355,3 +1408,3 @@
 -  resource_ids : Array[Int?],
 -  named_types : Map[Int, Int],
 -  visiting : Map[Int, Int],
 +  _resource_ids : Array[Int32?],
 +  named_types : Map[Int32, Int32],
 +  _visiting : Map[Int32, Int32],
-@@ -1359,112 +1410 @@
+@@ -1359,112 +1412 @@
 -  match ty {
 -    Prim(_) => true
 -    TypeIdx(idx) =>
@@ -899,14 +907,14 @@
 -      }
 -  }
 +  interface_value_work(ty, type_table, named_types, false)
-@@ -1477,3 +1417,3 @@
+@@ -1477,3 +1419,3 @@
 -  resource_ids : Array[Int?],
 -  named_types : Map[Int, Int],
 -  visiting : Map[Int, Int],
 +  _resource_ids : Array[Int32?],
 +  named_types : Map[Int32, Int32],
 +  _visiting : Map[Int32, Int32],
-@@ -1481,7 +1421,7 @@
+@@ -1481,7 +1423,7 @@
 -  valtype_valid_for_type_import_export_inner(
 -    ty, type_table, resource_ids, named_types, visiting, false,
 -  )
@@ -921,14 +929,14 @@
 +// Type index chains are input-controlled even when physical scopes are shallow.
 +// Keep this check iterative, including fixed lists and maps from WAC packages.
 +fn interface_value_work(
-@@ -1490,4 +1430,2 @@
+@@ -1490,4 +1432,2 @@
 -  resource_ids : Array[Int?],
 -  named_types : Map[Int, Int],
 -  visiting : Map[Int, Int],
 -  nested : Bool,
 +  named_types : Map[Int32, Int32],
 +  type_external : Bool,
-@@ -1495,121 +1433,29 @@
+@@ -1495,121 +1435,29 @@
 -  match ty {
 -    Prim(_) => true
 -    TypeIdx(idx) =>
@@ -1079,7 +1087,7 @@
 +        for case in cases {
 +          if case.ty is Some(value) {
 +            work.push((value, false))
-@@ -1618,2 +1464,32 @@
+@@ -1618,2 +1466,32 @@
 -      }
 -  }
 +      Option(value) | List(value) | FixedList(value, _) =>
@@ -1114,47 +1122,47 @@
 +    }
 +  }
 +  true
-@@ -1626,2 +1502,2 @@
+@@ -1626,2 +1504,2 @@
 -  resource_ids : Array[Int?],
 -  named_types : Map[Int, Int],
 +  resource_ids : Array[Int32?],
 +  named_types : Map[Int32, Int32],
-@@ -1629 +1505 @@
+@@ -1629 +1507 @@
 -  let visiting : Map[Int, Int] = Map([])
 +  let visiting : Map[Int32, Int32] = Map([])
-@@ -1654 +1530 @@
+@@ -1654 +1532 @@
 -  visiting_global : Map[Int, Int],
 +  visiting_global : Map[Int32, Int32],
-@@ -1666,3 +1542,3 @@
+@@ -1666,3 +1544,3 @@
 -  tyidx : Int,
 -  type_table : Array[@component.TypeDef?],
 -  visiting_global : Map[Int, Int],
 +  tyidx : Int32,
 +  type_table : Array[@component.TypeDef?],
 +  visiting_global : Map[Int32, Int32],
-@@ -1687 +1563 @@
+@@ -1687 +1565 @@
 -  tyidx : Int,
 +  tyidx : Int32,
-@@ -1690,2 +1566,2 @@
+@@ -1690,2 +1568,2 @@
 -  visiting_local : Map[Int, Int],
 -  visiting_global : Map[Int, Int],
 +  visiting_local : Map[Int32, Int32],
 +  visiting_global : Map[Int32, Int32],
-@@ -1717 +1593 @@
+@@ -1717 +1595 @@
 -  visiting_global : Map[Int, Int],
 +  visiting_global : Map[Int32, Int32],
-@@ -1724 +1600 @@
+@@ -1724 +1602 @@
 -  let visiting_local : Map[Int, Int] = Map([])
 +  let visiting_local : Map[Int32, Int32] = Map([])
-@@ -1749 +1625 @@
+@@ -1749 +1627 @@
 -  tyidx : Int,
 +  tyidx : Int32,
-@@ -1760,2 +1636,2 @@
+@@ -1760,2 +1638,2 @@
 -      let local_resource_ids : Array[Int?] = []
 -      let local_named_types : Map[Int, Int] = Map([])
 +      let local_resource_ids : Array[Int32?] = []
 +      let local_named_types : Map[Int32, Int32] = Map([])
-@@ -1779,2 +1655,11 @@
+@@ -1779,2 +1657,11 @@
 -              let td = outer_type_of_alias(type_outers, count, idx) catch {
 -                _ => None
 +              let td = if count == 0 {
@@ -1168,21 +1176,21 @@
 +                local_resource_ids.get(idx).unwrap_or(None)
 +              } else {
 +                None
-@@ -1782,0 +1668,3 @@
+@@ -1782,0 +1670,3 @@
 +              if count == 0 {
 +                local_resource_ids[local_resource_ids.length() - 1] = rid
 +              }
-@@ -1853,2 +1741,2 @@
+@@ -1853,2 +1743,2 @@
 -  let visiting_local : Map[Int, Int] = Map([])
 -  let visiting_global : Map[Int, Int] = Map([])
 +  let visiting_local : Map[Int32, Int32] = Map([])
 +  let visiting_global : Map[Int32, Int32] = Map([])
-@@ -1935,2 +1823,2 @@
+@@ -1935,2 +1825,2 @@
 -  actual : Map[String, Int]?,
 -  expected : Map[String, Int],
 +  actual : Map[String, Int32]?,
 +  expected : Map[String, Int32],
-@@ -1950,0 +1839,85 @@
+@@ -1950,0 +1841,85 @@
 +
 +///|
 +fn validate_accessor_function(
@@ -1688,30 +1696,197 @@
 @@ -1554 +1522 @@
 -  n : Int,
 +  n : Int32,
-@@ -1627,2 +1595,2 @@
+@@ -1585,5 +1553,9 @@
+-  ascii_bytes_to_string(self.read_bytes(len))
+-}
+-
+-///|
+-fn CoreTypeReader::skip_limits(
++  Some(
++    @utf8.decode(self.read_bytes(len), ignore_bom=false) catch {
++      _ => raise SectionParseError(3, "invalid UTF-8 core name")
++    },
++  )
++}
++
++///|
++fn CoreTypeReader::read_limit(
+@@ -1591 +1563,23 @@
+-) -> Unit raise ComponentValidationError {
++  wide : Bool,
++) -> UInt64 raise ComponentValidationError {
++  let bits = if wide { 64 } else { 32 }
++  let mut value = 0UL
++  for i in 0..<((bits + 6) / 7) {
++    let byte = self.read_u8()
++    let remaining = bits - i * 7
++    if remaining < 7 && byte >= 1 << remaining {
++      raise SectionParseError(3, "core limit exceeds its unsigned width")
++    }
++    value = value | ((byte & 127).to_uint64() << (i * 7))
++    if byte < 128 {
++      return value
++    }
++  }
++  raise SectionParseError(3, "unterminated core limit")
++}
++
++///|
++fn CoreTypeReader::read_limits(
++  self : CoreTypeReader,
++  memory : Bool,
++) -> (Int32, UInt64, UInt64?, Int32) raise ComponentValidationError {
+@@ -1593,4 +1587,24 @@
+-  self.read_leb_u32() |> ignore
+-  if (flags & 0x01) != 0 {
+-    self.read_leb_u32() |> ignore
+-  }
++  if flags > (if memory { 15 } else { 7 }) {
++    raise SectionParseError(3, "invalid core limits flags")
++  }
++  let wide = (flags & 4) != 0
++  let min = self.read_limit(wide)
++  let max = if (flags & 1) != 0 { Some(self.read_limit(wide)) } else { None }
++  if max is Some(n) && n < min {
++    raise SectionParseError(3, "core limit maximum is below its minimum")
++  }
++  if (flags & 2) != 0 && max is None {
++    raise SectionParseError(3, "shared core limits require a maximum")
++  }
++  let page = if memory && (flags & 8) != 0 { self.read_leb_u32() } else { 16 }
++  if memory {
++    if page != 0 && page != 16 {
++      raise SectionParseError(3, "invalid custom page size")
++    }
++    let bits = (if wide { 64 } else { 32 }) - page
++    let bound = if bits == 64 { 18446744073709551615UL } else { 1UL << bits }
++    if min > bound || (max is Some(n) && n > bound) {
++      raise SectionParseError(3, "memory size out of bounds")
++    }
++  }
++  (flags, min, max, page)
+@@ -1627,2 +1641,2 @@
 -  kind : Int,
 -  func_type_bound : Int,
 +  kind : Int32,
 +  func_type_bound : Int32,
-@@ -1679 +1647 @@
+@@ -1639,17 +1653,3 @@
+-      self.skip_limits()
+-    }
+-    0x02 => {
+-      // Memory limits are bounded for 32-bit memories (wasm-tools expects this
+-      // validation in module types).
+-      let flags = self.read_u8()
+-      let min = self.read_leb_u32()
+-      if min > 65536 {
+-        raise SectionParseError(3, "memory size out of bounds")
+-      }
+-      if (flags & 0x01) != 0 {
+-        let max = self.read_leb_u32()
+-        if max > 65536 || max < min {
+-          raise SectionParseError(3, "memory size out of bounds")
+-        }
+-      }
+-    }
++      self.read_limits(false) |> ignore
++    }
++    0x02 => self.read_limits(true) |> ignore
+@@ -1679 +1679 @@
 -    heap : Int,
 +    heap : Int32,
-@@ -1748 +1716 @@
+@@ -1748 +1748 @@
 -  kind : Int,
 +  kind : Int32,
-@@ -1750 +1718 @@
+@@ -1750 +1750 @@
 -  func_type_bound : Int,
 +  func_type_bound : Int32,
-@@ -1859,3 +1827,3 @@
+@@ -1775,6 +1775,5 @@
+-      let flags = self.read_u8()
+-      let min = self.read_leb_u32()
+-      let max = if (flags & 0x01) != 0 {
+-        Some(self.read_leb_u32())
+-      } else {
+-        None
++      let (flags, min, max, _) = self.read_limits(false)
++      if min > 9223372036854775807UL ||
++        (max is Some(n) && n > 9223372036854775807UL) ||
++        (flags & 2) != 0 {
++        return None
+@@ -1783,7 +1782,4 @@
+-        min: min.to_int64(),
+-        max: match max {
+-          Some(v) => Some(v.to_int64())
+-          None => None
+-        },
+-      }
+-      Some(Table({ elem_type: elem_ty, limits, is_table64: false, }))
++        min: min.reinterpret_as_int64(),
++        max: max.map(n => n.reinterpret_as_int64()),
++      }
++      Some(Table({ elem_type: elem_ty, limits, is_table64: (flags & 4) != 0, }))
+@@ -1792,14 +1788,6 @@
+-      // memtype: flags + limits (track memory64 when present)
+-      let flags = self.read_u8()
+-      let min = self.read_leb_u32()
+-      if min > 65536 {
+-        raise SectionParseError(3, "memory size out of bounds")
+-      }
+-      let max = if (flags & 0x01) != 0 {
+-        let maxv = self.read_leb_u32()
+-        if maxv > 65536 || maxv < min {
+-          raise SectionParseError(3, "memory size out of bounds")
+-        }
+-        Some(maxv)
+-      } else {
+-        None
++      let (flags, min, max, page) = self.read_limits(true)
++      // The complete unsigned signature is retained by the declarative codec.
++      // Legacy runtime metadata has signed limits and cannot represent it.
++      if min > 9223372036854775807UL ||
++        (max is Some(n) && n > 9223372036854775807UL) {
++        return None
+@@ -1808,7 +1796,3 @@
+-        min: min.to_int64(),
+-        max: match max {
+-          Some(v) => Some(v.to_int64())
+-          None => None
+-        },
+-      }
+-      let is_memory64 = (flags & 0x04) != 0
++        min: min.reinterpret_as_int64(),
++        max: max.map(n => n.reinterpret_as_int64()),
++      }
+@@ -1818,3 +1802,3 @@
+-          is_memory64,
+-          is_shared: (flags & 0x02) != 0,
+-          page_size_log2: 16,
++          is_memory64: (flags & 4) != 0,
++          is_shared: (flags & 2) != 0,
++          page_size_log2: page,
+@@ -1828 +1812,4 @@
+-      let mutable = mut_ != 0
++      if (mut_ & 2) != 0 {
++        return None
++      }
++      let mutable = (mut_ & 1) != 0
+@@ -1859,3 +1846,3 @@
 -  max_outer_depth : Int,
 -  current_core_type_bound : Int,
 -  outer_core_type_bounds : Array[Int],
 +  max_outer_depth : Int32,
 +  current_core_type_bound : Int32,
 +  outer_core_type_bounds : Array[Int32],
-@@ -1864 +1832 @@
+@@ -1864 +1851 @@
 -  let seen_imports : Map[String, Int] = Map([])
-+  let seen_imports : Map[String, Int32] = Map([])
++  let seen_imports : Map[(String, String), Int32] = Map([])
+@@ -1883 +1870 @@
+-        let key = "\{mod_s}:\{name_s}"
++        let key = (mod_s, name_s)
+@@ -1919 +1906,3 @@
+-                let bound = if depth <= 1 {
++                let bound = if depth == 0 {
++                  func_type_bound - 1
++                } else if depth == 1 {
 --- a/prelude_wbtest.mbt
 +++ b/prelude_wbtest.mbt
 @@ -0,0 +1,2 @@

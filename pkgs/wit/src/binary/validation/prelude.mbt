@@ -1550,18 +1550,64 @@ fn CoreTypeReader::read_name_ascii(
   self : CoreTypeReader,
 ) -> String? raise ComponentValidationError {
   let len = self.read_leb_u32()
-  ascii_bytes_to_string(self.read_bytes(len))
+  Some(
+    @utf8.decode(self.read_bytes(len), ignore_bom=false) catch {
+      _ => raise SectionParseError(3, "invalid UTF-8 core name")
+    },
+  )
 }
 
 ///|
-fn CoreTypeReader::skip_limits(
+fn CoreTypeReader::read_limit(
   self : CoreTypeReader,
-) -> Unit raise ComponentValidationError {
-  let flags = self.read_u8()
-  self.read_leb_u32() |> ignore
-  if (flags & 0x01) != 0 {
-    self.read_leb_u32() |> ignore
+  wide : Bool,
+) -> UInt64 raise ComponentValidationError {
+  let bits = if wide { 64 } else { 32 }
+  let mut value = 0UL
+  for i in 0..<((bits + 6) / 7) {
+    let byte = self.read_u8()
+    let remaining = bits - i * 7
+    if remaining < 7 && byte >= 1 << remaining {
+      raise SectionParseError(3, "core limit exceeds its unsigned width")
+    }
+    value = value | ((byte & 127).to_uint64() << (i * 7))
+    if byte < 128 {
+      return value
+    }
   }
+  raise SectionParseError(3, "unterminated core limit")
+}
+
+///|
+fn CoreTypeReader::read_limits(
+  self : CoreTypeReader,
+  memory : Bool,
+) -> (Int32, UInt64, UInt64?, Int32) raise ComponentValidationError {
+  let flags = self.read_u8()
+  if flags > (if memory { 15 } else { 7 }) {
+    raise SectionParseError(3, "invalid core limits flags")
+  }
+  let wide = (flags & 4) != 0
+  let min = self.read_limit(wide)
+  let max = if (flags & 1) != 0 { Some(self.read_limit(wide)) } else { None }
+  if max is Some(n) && n < min {
+    raise SectionParseError(3, "core limit maximum is below its minimum")
+  }
+  if (flags & 2) != 0 && max is None {
+    raise SectionParseError(3, "shared core limits require a maximum")
+  }
+  let page = if memory && (flags & 8) != 0 { self.read_leb_u32() } else { 16 }
+  if memory {
+    if page != 0 && page != 16 {
+      raise SectionParseError(3, "invalid custom page size")
+    }
+    let bits = (if wide { 64 } else { 32 }) - page
+    let bound = if bits == 64 { 18446744073709551615UL } else { 1UL << bits }
+    if min > bound || (max is Some(n) && n > bound) {
+      raise SectionParseError(3, "memory size out of bounds")
+    }
+  }
+  (flags, min, max, page)
 }
 
 ///|
@@ -1604,23 +1650,9 @@ fn CoreTypeReader::validate_extern_type(
     }
     0x01 => {
       self.read_core_valtype() |> ignore
-      self.skip_limits()
+      self.read_limits(false) |> ignore
     }
-    0x02 => {
-      // Memory limits are bounded for 32-bit memories (wasm-tools expects this
-      // validation in module types).
-      let flags = self.read_u8()
-      let min = self.read_leb_u32()
-      if min > 65536 {
-        raise SectionParseError(3, "memory size out of bounds")
-      }
-      if (flags & 0x01) != 0 {
-        let max = self.read_leb_u32()
-        if max > 65536 || max < min {
-          raise SectionParseError(3, "memory size out of bounds")
-        }
-      }
-    }
+    0x02 => self.read_limits(true) |> ignore
     0x03 => {
       self.read_core_valtype() |> ignore
       self.read_u8() |> ignore // mut
@@ -1740,52 +1772,36 @@ fn CoreTypeReader::read_extern_type_sig(
           raise SectionParseError(3, "table element type must be a reference")
         _ => ()
       }
-      let flags = self.read_u8()
-      let min = self.read_leb_u32()
-      let max = if (flags & 0x01) != 0 {
-        Some(self.read_leb_u32())
-      } else {
-        None
+      let (flags, min, max, _) = self.read_limits(false)
+      if min > 9223372036854775807UL ||
+        (max is Some(n) && n > 9223372036854775807UL) ||
+        (flags & 2) != 0 {
+        return None
       }
       let limits : @types.Limits = {
-        min: min.to_int64(),
-        max: match max {
-          Some(v) => Some(v.to_int64())
-          None => None
-        },
+        min: min.reinterpret_as_int64(),
+        max: max.map(n => n.reinterpret_as_int64()),
       }
-      Some(Table({ elem_type: elem_ty, limits, is_table64: false, }))
+      Some(Table({ elem_type: elem_ty, limits, is_table64: (flags & 4) != 0, }))
     }
     0x02 => {
-      // memtype: flags + limits (track memory64 when present)
-      let flags = self.read_u8()
-      let min = self.read_leb_u32()
-      if min > 65536 {
-        raise SectionParseError(3, "memory size out of bounds")
-      }
-      let max = if (flags & 0x01) != 0 {
-        let maxv = self.read_leb_u32()
-        if maxv > 65536 || maxv < min {
-          raise SectionParseError(3, "memory size out of bounds")
-        }
-        Some(maxv)
-      } else {
-        None
+      let (flags, min, max, page) = self.read_limits(true)
+      // The complete unsigned signature is retained by the declarative codec.
+      // Legacy runtime metadata has signed limits and cannot represent it.
+      if min > 9223372036854775807UL ||
+        (max is Some(n) && n > 9223372036854775807UL) {
+        return None
       }
       let limits : @types.Limits = {
-        min: min.to_int64(),
-        max: match max {
-          Some(v) => Some(v.to_int64())
-          None => None
-        },
+        min: min.reinterpret_as_int64(),
+        max: max.map(n => n.reinterpret_as_int64()),
       }
-      let is_memory64 = (flags & 0x04) != 0
       Some(
         Memory({
           limits,
-          is_memory64,
-          is_shared: (flags & 0x02) != 0,
-          page_size_log2: 16,
+          is_memory64: (flags & 4) != 0,
+          is_shared: (flags & 2) != 0,
+          page_size_log2: page,
         }),
       )
     }
@@ -1793,7 +1809,10 @@ fn CoreTypeReader::read_extern_type_sig(
       // globaltype: valtype + mut
       let vt = self.read_core_valtype()
       let mut_ = self.read_u8()
-      let mutable = mut_ != 0
+      if (mut_ & 2) != 0 {
+        return None
+      }
+      let mutable = (mut_ & 1) != 0
       Some(Global({ value_type: vt, mutable, }))
     }
     0x04 => {
@@ -1829,7 +1848,7 @@ fn parse_core_type_module_sig(
   outer_core_type_bounds : Array[Int32],
 ) -> (Array[CoreModuleTypeImport], Map[String, CoreExternType]) raise ComponentValidationError {
   let ndecls = r.read_leb_u32()
-  let seen_imports : Map[String, Int32] = Map([])
+  let seen_imports : Map[(String, String), Int32] = Map([])
   let imports : Array[CoreModuleTypeImport] = []
   let export_types : Map[String, CoreExternType] = Map([])
   let func_types : Array[@types.FuncType?] = []
@@ -1848,7 +1867,7 @@ fn parse_core_type_module_sig(
           Some(s) => s
           None => ""
         }
-        let key = "\{mod_s}:\{name_s}"
+        let key = (mod_s, name_s)
         if seen_imports.get(key) is Some(_) {
           raise SectionParseError(3, "duplicate import name")
         }
@@ -1884,7 +1903,9 @@ fn parse_core_type_module_sig(
               // wasm-tools expects out-of-bounds outer indices to be rejected
               // even when we don't fully resolve the aliased core type.
               if sort == 0x10 {
-                let bound = if depth <= 1 {
+                let bound = if depth == 0 {
+                  func_type_bound - 1
+                } else if depth == 1 {
                   current_core_type_bound
                 } else if depth - 2 < outer_core_type_bounds.length() {
                   outer_core_type_bounds[depth - 2]

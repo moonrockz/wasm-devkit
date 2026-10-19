@@ -5,6 +5,7 @@ pub(all) enum ItemKind {
   Function(Int32)
   Instance(Int32)
   Component(Int32)
+  Module(Int32)
 } derive(Eq, Debug)
 
 ///|
@@ -42,6 +43,7 @@ pub(all) struct UsedType {
 /// A Resource with no alias introduces a new identity; Own and Borrow retain
 /// the referenced resource declaration even when it is an alias.
 pub(all) enum TypeKind {
+  Module(@core_types.Module)
   Scalar(String)
   Alias(Int32)
   Resource(Int32?)

@@ -1,0 +1,41 @@
+# Core module contracts
+
+Original Apache-2.0 fixtures compare WAC 0.12.0, commit
+`5a7480c69ae7a4dc9eb161f485cbcb8c95e372c9`, and wasm-tools 1.262.0,
+commit `e22db44da4eaf17a0e46ec55b911c7539589a3cc`, with all features.
+`packages.tsv` records 35 package acceptance probes. Accepted binary and WAT
+models retain ordered module signatures. Cases include UTF-8 names, distinct
+colon-containing import tuples, equal-shape numeric type slots, memory/table widths, full UInt64 limits, custom
+pages, shared globals, tags, abstract references and lexical aliases.
+
+`composition.tsv` records 22 source typing cases. `witness.wat` independently
+checks each module subtype by instantiating a component with the supplied core
+module. Those witnesses match pinned Document::resolve acceptance. The pinned
+WAC encoder panics on all nine accepted composition cases at
+`crates/wac-graph/src/encoding.rs:909`, with `expected only types, functions, and
+instance types`. These encoder panics are explicit exclusions, not semantic
+rejections. Product verification never runs the encoder.
+
+`fill.tsv` records 22 TypeAggregator comparisons. The following eight reference
+successes produce a merged module that fails an original consumer's subtype
+requirement: `import-width`, `extra-import`, `memory-narrow`, `memory-wide`,
+`memory-import-narrow`, `memory-import-wide`, `table-narrow`, and `tuple-imports`.
+Their independent `witness.wat` files reconstruct the reference's merged module
+and fail wasm-tools validation. The product revalidates consumers and rejects
+these cases. Valid merged models compare exactly with the reference.
+
+`typed-ref.wat` validates with wasm-tools but makes the pinned WAC loader panic
+while converting a concrete heap type in `wac-types/src/core.rs`. The product
+returns `WAC-B002`. Concrete/shared heap references and recursive groups remain
+unsupported. Nested declarations with limits above u32 or custom memory pages
+are also explicitly unsupported because the pinned component parser cannot
+consume them. Root core-type sections retain these encodings without loss.
+
+The separate deep fixture traverses 41 component type scopes. Unit contracts
+also exercise 50,000 function parameters, truncated limits, overflowing u64 LEBs
+and immutable module graphs. `SHA256SUMS` covers all retained sources and tables.
+These exclusions and remaining runtime/core-body/value/ascription work stay
+tracked on `wasm-devkit-p5m.8.2.2` and `.8.2.7`.
+
+Eight text-only cases reject duplicate type identifiers/aliases, invalid global
+syntax and malformed/overflowing limits against the pinned text parser.

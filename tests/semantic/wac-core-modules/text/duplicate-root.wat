@@ -1,0 +1,1 @@
+(component (core type $a (func)) (core type $a (func)))

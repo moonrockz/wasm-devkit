@@ -1,0 +1,1 @@
+(component (core type (module (export "m" (memory 1__0)))))

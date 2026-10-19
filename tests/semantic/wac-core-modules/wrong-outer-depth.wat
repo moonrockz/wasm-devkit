@@ -1,0 +1,1 @@
+(component (core type $m (module (alias outer 2 0 (type $a)) (export "f" (func (type $a))))) (import "m" (core module (type $m))))

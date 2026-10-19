@@ -83,7 +83,7 @@ fn binary_problem(
 
 ///|
 /// Decode the declarative WAC component profile without executing code or
-/// resolving dependencies. Runtime/core sections fail explicitly. Type scopes
+/// resolving dependencies. Concrete runtime sections fail explicitly. Type scopes
 /// and graph expansion have bounded work; diagnostics use binary provenance.
 pub fn decode_component_package(
   bytes : Bytes,

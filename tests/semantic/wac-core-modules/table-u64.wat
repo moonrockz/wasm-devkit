@@ -1,0 +1,1 @@
+(component (core type $m (module (export "t" (table i64 18446744073709551615 18446744073709551615 funcref)))) (import "m" (core module $m (type $m))) (export "out" (core module $m)))

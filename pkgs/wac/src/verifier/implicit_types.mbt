@@ -299,7 +299,8 @@ fn Check::merge_import_type(
     (Type(_), Type(_))
     | (Function(_), Function(_))
     | (Instance(_), Instance(_))
-    | (Component(_), Component(_)) => true
+    | (Component(_), Component(_))
+    | (Module(_), Module(_)) => true
     _ => false
   }
   if !sorts_match {
@@ -310,6 +311,11 @@ fn Check::merge_import_type(
     )
   }
   match (self.types[target].kind, self.types[source].kind) {
+    (Module(a), Module(b)) => {
+      let merged = self.merge_core_modules(state, node, a, b)
+      self.types[target] = { ..self.types[target], kind: Module(merged), }
+      state.redirects[source] = target
+    }
     (Interface(name, au, ae), Interface(_, bu, be)) => {
       let uses = self.merge_import_uses(state, node, au, bu)
       let exports = self.merge_import_externs(state, node, ae, be, false)

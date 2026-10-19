@@ -36,6 +36,7 @@ priv struct ResourceConstraint {
 ///|
 fn type_description(kind : TypeKind) -> String {
   match kind {
+    Module(_) => "core module"
     Scalar(name) => name
     Alias(_) => "alias"
     Resource(_) => "resource"
@@ -248,7 +249,8 @@ fn Check::compatible(
           (Type(_), Type(_))
           | (Function(_), Function(_))
           | (Instance(_), Instance(_))
-          | (Component(_), Component(_)) => true
+          | (Component(_), Component(_))
+          | (Module(_), Module(_)) => true
           _ => false
         }
         let ai = binary_kind_id(a)
@@ -351,6 +353,23 @@ fn Check::compatible(
         let bk = self.types[b].kind
         let mut mismatch : String? = None
         match (ak, bk) {
+          (Module(a), Module(b)) => {
+            let charge = fn(count : Int32) raise SemanticFailure {
+              if count > remaining ||
+                trace.map(t => count > 1000000 - t.steps).unwrap_or(false) {
+                raise Problem(
+                  self.problem(
+                    node, "WAC-C006", "core module compatibility exceeds the verification work limit",
+                  ),
+                )
+              }
+              remaining -= count
+              if trace is Some(t) {
+                t.steps += count
+              }
+            }
+            mismatch = core_compatible(a, b, reverse, charge)
+          }
           (Scalar(a), Scalar(b)) =>
             if a != b {
               mismatch = Some("expected `" + b + "`, found `" + a + "`")

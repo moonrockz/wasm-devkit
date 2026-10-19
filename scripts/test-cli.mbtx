@@ -905,5 +905,44 @@ async fn main {
     wit,
   )
   assert_true(invalid_deps_error.contains("WAC-P006"))
+  for extension in ["wasm", "wat"] {
+    for
+      (name, status) in [
+        ("memory-narrow", 0),
+        ("memory-wide", 1),
+        ("function-equal", 0),
+        ("tag-equal", 0),
+      ] {
+      let root = "tests/semantic/wac-core-modules/composition/" + name
+      let (_, diagnostic) = run(
+        [
+          "verify",
+          root + "/input.wac",
+          "--dep",
+          "test:actual=actual." + extension,
+          "--dep",
+          "test:expected=expected." + extension,
+        ],
+        status,
+        wit,
+      )
+      if status == 1 {
+        assert_true(diagnostic.contains("WAC-C005"))
+      }
+    }
+    let (_, diagnostic) = run(
+      [
+        "verify",
+        "tests/semantic/wac-core-modules/fill/memory-narrow/input.wac",
+        "--dep",
+        "test:a=a." + extension,
+        "--dep",
+        "test:b=b." + extension,
+      ],
+      1,
+      wit,
+    )
+    assert_true(diagnostic.contains("WAC-C005"))
+  }
   println("CLI smoke checks passed")
 }

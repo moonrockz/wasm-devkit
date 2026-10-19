@@ -414,6 +414,7 @@ priv struct ComponentBuildState {
   outer_core_module_scopes : Array[Array[NamedBinding]]
   mut next_type_idx : Int32
   mut next_func_idx : Int32
+  mut core_name_work : Int32
   mut next_core_type_idx : Int32
   mut next_core_module_idx : Int32
   mut next_core_instance_idx : Int32
@@ -459,6 +460,7 @@ fn ComponentBuildState::ComponentBuildState(
     outer_core_module_scopes,
     next_type_idx: 0,
     next_func_idx: 0,
+    core_name_work: 1000000,
     next_core_type_idx: 0,
     next_core_module_idx: 0,
     next_core_instance_idx: 0,
@@ -2128,6 +2130,7 @@ fn parse_inline_externdesc_from_type_desc(
   local_type_count : Int32,
   local_core_type_count : Int32,
   local_type_names : Array[NamedBinding],
+  core_name_start : Int32,
 ) -> (Bytes, Int32, Int32, Int32) raise ComponentTextError {
   if desc.length() == 0 {
     raise Unsupported("empty type descriptor")
@@ -2265,15 +2268,25 @@ fn parse_inline_externdesc_from_type_desc(
           raise Unsupported("core type use must be `(type <index-or-id>)`")
         }
         if type_field[1] is Atom(name) && name.has_prefix("$") {
-          let outer_type_idx = parse_core_type_use(type_field, state)
-          decls.push_u8(0x02)
-          decls.push_bytes(
-            encode_alias_outer_decl(0x00, Some(0x05), 1, outer_type_idx),
-          )
-          decl_count += 1
-          let idx = core_type_count
-          core_type_count += 1
-          idx
+          let mut local_index : Int32? = None
+          for i in core_name_start..<state.core_type_names.length() {
+            if state.core_type_names[i].name == name {
+              local_index = Some(state.core_type_names[i].idx)
+            }
+          }
+          if local_index is Some(idx) {
+            idx
+          } else {
+            let outer_type_idx = parse_core_type_use(type_field, state)
+            decls.push_u8(0x02)
+            decls.push_bytes(
+              encode_alias_outer_decl(0x00, Some(0x05), 1, outer_type_idx),
+            )
+            decl_count += 1
+            let idx = core_type_count
+            core_type_count += 1
+            idx
+          }
         } else {
           parse_core_type_use(type_field, state)
         }
@@ -2331,6 +2344,7 @@ fn parse_inline_alias_decl(
   local_type_count : Int32,
   local_core_type_count : Int32,
   local_instance_count : Int32,
+  core_name_start : Int32,
 ) -> (Bytes, Int32, Int32, Int32) raise ComponentTextError {
   if field.length() == 5 && field[1] is Atom("export") {
     let instance_idx = resolve_reference(
@@ -2560,7 +2574,18 @@ fn parse_inline_alias_decl(
         next_local_type_count,
       )
       next_local_type_count += 1
-    } else {
+    } else if is_core_type_alias {
+      core_unique_name(
+        state,
+        state.core_type_names,
+        sort_spec.name_opt,
+        core_name_start,
+      )
+      bind_named_index(
+        state.core_type_names,
+        sort_spec.name_opt,
+        next_local_core_type_count,
+      )
       next_local_core_type_count += 1
     }
     let alias_decl = encode_alias_outer_decl(
@@ -2584,6 +2609,7 @@ fn build_inline_instance_type_bytes_with_ambient(
   ambient_type_names : Array[NamedBinding],
 ) -> Bytes raise ComponentTextError {
   let saved_type_name_len = state.type_names.length()
+  let saved_core_name_len = state.core_type_names.length()
   let ref_names = collect_inline_ref_names(desc, start)
   let decls = ByteBuf::ByteBuf()
   let mut count = 0
@@ -2647,6 +2673,12 @@ fn build_inline_instance_type_bytes_with_ambient(
         )
       }
       let core_name_opt = parse_optional_identifier(field, 2)
+      core_unique_name(
+        state,
+        state.core_type_names,
+        core_name_opt,
+        saved_core_name_len,
+      )
       let body_index = if core_name_opt is Some(_) { 3 } else { 2 }
       if body_index >= field.length() || body_index + 1 != field.length() {
         raise Unsupported("inline core type declaration must define one body")
@@ -2669,6 +2701,11 @@ fn build_inline_instance_type_bytes_with_ambient(
       decls.push_u8(0x00)
       decls.push_bytes(core_type_bytes)
       count += 1
+      bind_named_index(
+        state.core_type_names,
+        core_name_opt,
+        local_core_type_count,
+      )
       local_core_type_count += 1
       continue
     }
@@ -2680,7 +2717,7 @@ fn build_inline_instance_type_bytes_with_ambient(
         next_local_instance_count,
       ) = parse_inline_alias_decl(
         field, state, ambient_type_names, local_type_names, local_instance_names,
-        local_type_count, local_core_type_count, local_instance_count,
+        local_type_count, local_core_type_count, local_instance_count, saved_core_name_len,
       )
       local_type_count = next_local_type_count
       local_core_type_count = next_local_core_type_count
@@ -2717,6 +2754,7 @@ fn build_inline_instance_type_bytes_with_ambient(
       local_decl_count,
     ) = parse_inline_externdesc_from_type_desc(
       export_desc, state, decls, local_type_count, local_core_type_count, local_type_names,
+      saved_core_name_len,
     )
     local_type_count = next_local_type_count
     local_core_type_count = next_local_core_type_count
@@ -2737,6 +2775,9 @@ fn build_inline_instance_type_bytes_with_ambient(
   payload.push_uleb_u32(count)
   payload.push_bytes(decls.to_bytes())
   let result = payload.to_bytes()
+  while state.core_type_names.length() > saved_core_name_len {
+    state.core_type_names.pop() |> ignore
+  }
   while state.type_names.length() > saved_type_name_len {
     state.type_names.pop() |> ignore
   }
@@ -2763,6 +2804,7 @@ fn build_inline_component_type_bytes_with_ambient(
   ambient_type_names : Array[NamedBinding],
 ) -> Bytes raise ComponentTextError {
   let saved_type_name_len = state.type_names.length()
+  let saved_core_name_len = state.core_type_names.length()
   let ref_names = collect_inline_ref_names(desc, start)
   let decls = ByteBuf::ByteBuf()
   let mut count = 0
@@ -2824,6 +2866,12 @@ fn build_inline_component_type_bytes_with_ambient(
         raise Unsupported("unsupported inline component declaration")
       }
       let core_name_opt = parse_optional_identifier(field, 2)
+      core_unique_name(
+        state,
+        state.core_type_names,
+        core_name_opt,
+        saved_core_name_len,
+      )
       let body_index = if core_name_opt is Some(_) { 3 } else { 2 }
       if body_index >= field.length() || body_index + 1 != field.length() {
         raise Unsupported("inline core type declaration must define one body")
@@ -2846,6 +2894,11 @@ fn build_inline_component_type_bytes_with_ambient(
       decls.push_u8(0x00)
       decls.push_bytes(core_type_bytes)
       count += 1
+      bind_named_index(
+        state.core_type_names,
+        core_name_opt,
+        local_core_type_count,
+      )
       local_core_type_count += 1
       continue
     }
@@ -2857,7 +2910,7 @@ fn build_inline_component_type_bytes_with_ambient(
         next_local_instance_count,
       ) = parse_inline_alias_decl(
         field, state, ambient_type_names, local_type_names, local_instance_names,
-        local_type_count, local_core_type_count, local_instance_count,
+        local_type_count, local_core_type_count, local_instance_count, saved_core_name_len,
       )
       local_type_count = next_local_type_count
       local_core_type_count = next_local_core_type_count
@@ -2908,6 +2961,7 @@ fn build_inline_component_type_bytes_with_ambient(
       local_decl_count,
     ) = parse_inline_externdesc_from_type_desc(
       field_desc, state, decls, local_type_count, local_core_type_count, local_type_names,
+      saved_core_name_len,
     )
     local_type_count = next_local_type_count
     local_core_type_count = next_local_core_type_count
@@ -2928,6 +2982,9 @@ fn build_inline_component_type_bytes_with_ambient(
   payload.push_uleb_u32(count)
   payload.push_bytes(decls.to_bytes())
   let result = payload.to_bytes()
+  while state.core_type_names.length() > saved_core_name_len {
+    state.core_type_names.pop() |> ignore
+  }
   while state.type_names.length() > saved_type_name_len {
     state.type_names.pop() |> ignore
   }
@@ -3937,7 +3994,10 @@ fn bind_alias_name(
       0x02 => bind_named_index(state.core_memory_names, name_opt, idx)
       0x03 => bind_named_index(state.core_global_names, name_opt, idx)
       0x04 => bind_named_index(state.core_tag_names, name_opt, idx)
-      0x05 => bind_named_index(state.core_type_names, name_opt, idx)
+      0x05 => {
+        core_unique_name(state, state.core_type_names, name_opt, 0)
+        bind_named_index(state.core_type_names, name_opt, idx)
+      }
       0x11 => bind_named_index(state.core_module_names, name_opt, idx)
       0x12 => bind_named_index(state.core_instance_names, name_opt, idx)
       _ => ()
@@ -5567,6 +5627,8 @@ fn parse_core_heap_type_sleb(
       "noextern" => return -14
       "exn" => return -23
       "noexn" => return -12
+      "cont" => return -24
+      "nocont" => return -11
       _ => raise Unsupported("unsupported core heap type '\{name}'")
     }
   }
@@ -5588,6 +5650,18 @@ fn push_core_valtype_encoding(
       "v128" => payload.push_u8(0x7b)
       "funcref" => payload.push_u8(0x70)
       "externref" => payload.push_u8(0x6f)
+      "anyref" => payload.push_u8(0x6e)
+      "eqref" => payload.push_u8(0x6d)
+      "i31ref" => payload.push_u8(0x6c)
+      "structref" => payload.push_u8(0x6b)
+      "arrayref" => payload.push_u8(0x6a)
+      "exnref" => payload.push_u8(0x69)
+      "contref" => payload.push_u8(0x68)
+      "nullref" => payload.push_u8(0x71)
+      "nullfuncref" => payload.push_u8(0x73)
+      "nullexternref" => payload.push_u8(0x72)
+      "nullexnref" => payload.push_u8(0x74)
+      "nullcontref" => payload.push_u8(0x75)
       _ => raise Unsupported("unsupported core value type '\{name}'")
     }
     return
@@ -5764,74 +5838,75 @@ fn parse_core_extern_type_for_module_type(
     return (b.to_bytes(), next_func_type_count, decl_count)
   }
 
-  if head == "table" {
-    let mut start = 1
-    if parse_optional_identifier(desc, 1) is Some(_) {
-      start = 2
-    }
-    if start + 1 >= desc.length() {
-      raise Unsupported(
-        "core table type must be `(table <min> [<max>] <elemtype>)`",
-      )
-    }
-    let elem_ty = parse_core_valtype_opcode(desc[desc.length() - 1])
-    if elem_ty != 0x70 && elem_ty != 0x6f {
-      raise Unsupported("core table elemtype must be `funcref` or `externref`")
-    }
-    let nlimits = desc.length() - start - 1
-    let min = parse_u32_literal(desc[start], "table minimum")
-    let max_opt = if nlimits == 2 {
-      Some(parse_u32_literal(desc[start + 1], "table maximum"))
-    } else if nlimits == 1 {
-      None
+  if head == "table" || head == "memory" {
+    let mut start = if parse_optional_identifier(desc, 1) is Some(_) {
+      2
     } else {
-      raise Unsupported(
-        "core table type must be `(table <min> [<max>] <elemtype>)`",
-      )
+      1
     }
-    b.push_u8(0x01)
-    b.push_u8(elem_ty)
-    b.push_u8(if max_opt is Some(_) { 0x01 } else { 0x00 })
-    b.push_uleb_u32(min)
-    if max_opt is Some(max) {
-      b.push_uleb_u32(max)
-    }
-    return (b.to_bytes(), next_func_type_count, decl_count)
-  }
-
-  if head == "memory" {
-    let mut start = 1
-    if parse_optional_identifier(desc, 1) is Some(_) {
-      start = 2
-    }
-    if start >= desc.length() {
-      raise Unsupported("core memory type must be `(memory <min> [<max>])`")
+    let wide = if start < desc.length() && desc[start] is Atom("i64") {
+      start += 1
+      true
+    } else {
+      if start < desc.length() && desc[start] is Atom("i32") {
+        start += 1
+      }
+      false
     }
     let mut end = desc.length()
+    let table = head == "table"
+    b.push_u8(if table { 1 } else { 2 })
+    if table {
+      if end <= start {
+        raise Unsupported("missing table element type")
+      }
+      end -= 1
+      push_core_valtype_encoding(b, desc[end], func_type_names)
+    }
+    let mut page : Int32? = None
+    if !table &&
+      end > start &&
+      desc[end - 1] is List(items) &&
+      items.length() == 2 &&
+      items[0] is Atom("pagesize") {
+      let size = parse_core_unsigned(items[1], false)
+      page = Some(
+        if size == 1UL {
+          0
+        } else if size == 65536UL {
+          16
+        } else {
+          raise Unsupported("unsupported memory page size")
+        },
+      )
+      end -= 1
+    }
     let shared = if end > start && desc[end - 1] is Atom("shared") {
       end -= 1
       true
     } else {
       false
     }
-    let nlimits = end - start
-    let min = parse_u32_literal(desc[start], "memory minimum")
-    let max_opt = if nlimits == 2 {
-      Some(parse_u32_literal(desc[start + 1], "memory maximum"))
-    } else if nlimits == 1 {
-      None
+    guard end - start == 1 || end - start == 2 else {
+      raise Unsupported("core limits require a minimum and optional maximum")
+    }
+    let min = parse_core_unsigned(desc[start], wide)
+    let max = if end - start == 2 {
+      Some(parse_core_unsigned(desc[start + 1], wide))
     } else {
-      raise Unsupported("core memory type must be `(memory <min> [<max>])`")
+      None
     }
-    b.push_u8(0x02)
-    let mut flags = if max_opt is Some(_) { 0x01 } else { 0x00 }
-    if shared {
-      flags = flags | 0x02
-    }
+    let flags = (if max is Some(_) { 1 } else { 0 }) |
+      (if shared { 2 } else { 0 }) |
+      (if wide { 4 } else { 0 }) |
+      (if page is Some(_) { 8 } else { 0 })
     b.push_u8(flags)
-    b.push_uleb_u32(min)
-    if max_opt is Some(max) {
-      b.push_uleb_u32(max)
+    b.push_core_unsigned(min)
+    if max is Some(value) {
+      b.push_core_unsigned(value)
+    }
+    if page is Some(value) {
+      b.push_uleb_u32(value)
     }
     return (b.to_bytes(), next_func_type_count, decl_count)
   }
@@ -5844,23 +5919,31 @@ fn parse_core_extern_type_for_module_type(
     if start >= desc.length() {
       raise Unsupported("core global type must be `(global <valtype>)`")
     }
-    let (val_opcode, mutability) = if desc[start] is List(items) {
-      if items.length() == 2 && items[0] is Atom("mut") {
-        (parse_core_valtype_opcode(items[1]), 0x01)
-      } else {
-        raise Unsupported(
-          "core global mutability must be `(global (mut <valtype>))`",
-        )
+    let mut value = desc[start]
+    let mut flags = 0
+    if value is List(items) &&
+      items.length() > 0 &&
+      (items[0] is Atom("shared") || items[0] is Atom("mut")) {
+      let mut cursor = 0
+      if items[cursor] is Atom("shared") {
+        flags = 2
+        cursor += 1
       }
-    } else {
-      (parse_core_valtype_opcode(desc[start]), 0x00)
+      if cursor < items.length() && items[cursor] is Atom("mut") {
+        flags = flags | 1
+        cursor += 1
+      }
+      if cursor + 1 != items.length() {
+        raise Unsupported("invalid shared or mutable global type")
+      }
+      value = items[cursor]
     }
     if start + 1 != desc.length() {
-      raise Unsupported("core global type must be `(global <valtype>)`")
+      raise Unsupported("core global requires one value type")
     }
     b.push_u8(0x03)
-    b.push_u8(val_opcode)
-    b.push_u8(mutability)
+    push_core_valtype_encoding(b, value, func_type_names)
+    b.push_u8(flags)
     return (b.to_bytes(), next_func_type_count, decl_count)
   }
 
@@ -5876,7 +5959,7 @@ fn parse_core_extern_type_for_module_type(
       if items.length() != 2 {
         raise Unsupported("core tag type use must be `(type <index>)`")
       }
-      parse_u32_literal(items[1], "core tag type index")
+      resolve_reference(items[1], func_type_names, "core tag type")
     } else {
       let func_items : Array[SExpr] = [Atom("func")]
       for i in start..<desc.length() {
@@ -5893,6 +5976,7 @@ fn parse_core_extern_type_for_module_type(
       idx
     }
     b.push_u8(0x04)
+    b.push_u8(0x00)
     b.push_uleb_u32(type_idx)
     return (b.to_bytes(), next_func_type_count, decl_count)
   }
@@ -5994,6 +6078,7 @@ fn parse_core_module_type_bytes(
           encode_module_type_alias_outer_core_type_decl(count, target_idx),
         )
         decl_count += 1
+        core_unique_name(state, func_type_names, sort_spec.name_opt, 0)
         bind_named_index(func_type_names, sort_spec.name_opt, func_type_count)
         func_type_count += 1
         continue
@@ -6050,6 +6135,7 @@ fn parse_core_module_type_bytes(
       decl_count += 1
       let type_idx = func_type_count
       func_type_count += 1
+      core_unique_name(state, func_type_names, name_opt, 0)
       bind_named_index(func_type_names, name_opt, type_idx)
       continue
     }
@@ -6118,7 +6204,11 @@ fn parse_core_type_field(
     raise Unsupported("unsupported core type declaration")
   }
 
-  let idx = ensure_core_type_bytes(state, bytes)
+  core_unique_name(state, state.core_type_names, name_opt, 0)
+  let idx = state.next_core_type_idx
+  state.next_core_type_idx += 1
+  state.core_types.push({ idx, bytes, })
+  push_ordered_section(state, 3, bytes)
   bind_named_index(state.core_type_names, name_opt, idx)
 }
 

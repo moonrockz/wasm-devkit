@@ -1,0 +1,1 @@
+(component (core type $m (module (export "memory" (memory 0)))) (type $c (component (alias outer 1 $m (core type $copy)) (import "m" (core module (type $copy))))) (export "component" (type $c)))

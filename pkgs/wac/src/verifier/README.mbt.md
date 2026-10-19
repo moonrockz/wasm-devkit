@@ -513,3 +513,32 @@ imports, argument/member edges and the resolver export-name map. Four-target
 laws check deterministic results, independent provider ordering, formatting
 preservation/idempotence and returned model immutability. Host-reference CI checks
 all 128 actual provider/CLI/API outcomes and validates the accepted compositions.
+
+## Core module contracts
+
+Declarative packages can import, export and alias core modules. `ItemKind::Module`
+refers to `TypeKind::Module`, whose immutable signature retains ordered core
+imports/exports, function and tag signatures, globals, tables, memory limits,
+address widths, shared flags and custom page sizes. Core function/module type
+indices remain separate from the component type arena. Lexical aliases preserve
+those index spaces; core signatures contain no component resource identities.
+
+Module arguments permit fewer imports and more exports than required. Core
+functions/tags and global types match exactly; table elements and memory/table
+flags match exactly, with minimum/maximum subtyping. Targets apply the same
+rules with import variance reversed. Fill merges ordered module contracts and
+rechecks every original consumer. Eight pinned TypeAggregator successes produce
+incompatible module contracts; the product rejects them, backed by independent
+wasm-tools subtype witnesses in `tests/semantic/wac-core-modules/fill`.
+
+Both binary and WAT inputs support these declarative contracts. Concrete module
+bodies, core/component instantiation, canonical functions, starts, component
+values and non-function root export ascriptions remain outside this profile.
+Concrete GC/reference types, recursive groups and shared heap types remain
+unsupported. Nested component/instance core declarations with limits above u32
+or custom memory pages return `WAC-B002` before the pinned parser runs; root
+core-type sections support full UInt64 limits. The pinned WAC encoder panics
+when composing the accepted core-module instance-export cases, so independent
+validator witnesses establish their subtype behavior. No public API executes a
+module or component. Remaining binary/runtime scope stays tracked on
+`wasm-devkit-p5m.8.2.2`.

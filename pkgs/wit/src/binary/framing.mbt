@@ -150,8 +150,21 @@ fn Reader::sort(self : Reader) -> Unit raise Boundary {
 }
 
 ///|
-fn Reader::description(self : Reader) -> Unit raise Boundary {
+fn Reader::description(
+  self : Reader,
+  core~ : Bool = false,
+) -> Unit raise Boundary {
   match self.byte() {
+    0 if core => {
+      if self.byte() != 0x11 {
+        raise Failure(
+          Some(self.position - 1),
+          "WIT-B001",
+          "invalid core external description",
+        )
+      }
+      ignore(self.unsigned())
+    }
     0 =>
       raise Failure(
         Some(self.position - 1),
@@ -194,7 +207,7 @@ priv enum Frame {
 ///|
 /// Bound physical scope nesting before invoking the maintained recursive parser.
 /// Type references remain flat indices; vector work is bounded by input bytes.
-fn type_framing(reader : Reader) -> Unit raise Boundary {
+fn type_framing(reader : Reader, core~ : Bool = false) -> Unit raise Boundary {
   let work : Array[Frame] = []
   let count = reader.count()
   for _ in 0..<count {
@@ -335,6 +348,7 @@ fn type_framing(reader : Reader) -> Unit raise Boundary {
       Declaration(depth, component) => {
         let offset = reader.position
         match reader.byte() {
+          0 if core => reader.core_type(legacy_nested=true)
           0 =>
             raise Failure(
               Some(offset),
@@ -363,11 +377,11 @@ fn type_framing(reader : Reader) -> Unit raise Boundary {
           }
           3 if component => {
             reader.external_name()
-            reader.description()
+            reader.description(core~)
           }
           4 => {
             reader.external_name()
-            reader.description()
+            reader.description(core~)
           }
           _ =>
             raise Failure(
@@ -403,12 +417,27 @@ fn preflight(
         payload.string()
         payload.position = end
       }
+      3 if declarations => {
+        let count = payload.count()
+        for _ in 0..<count {
+          payload.core_type()
+        }
+      }
       6 if declarations => {
         let count = payload.count()
         for _ in 0..<count {
           let offset = payload.position
           let sort = payload.byte()
-          if sort < 1 || sort > 5 {
+          if sort == 0 {
+            let core_sort = payload.byte()
+            if core_sort != 0x10 && core_sort != 0x11 {
+              raise Failure(
+                Some(offset),
+                "WIT-B002",
+                "core runtime aliases are outside this profile",
+              )
+            }
+          } else if sort < 1 || sort > 5 {
             raise Failure(
               Some(offset),
               "WIT-B002",
@@ -433,12 +462,12 @@ fn preflight(
           }
         }
       }
-      7 => type_framing(payload)
+      7 => type_framing(payload, core=declarations)
       10 if declarations => {
         let count = payload.count()
         for _ in 0..<count {
           payload.external_name()
-          payload.description()
+          payload.description(core=declarations)
         }
       }
       11 => {
@@ -452,7 +481,7 @@ fn preflight(
             1 if declarations &&
               payload.position < payload.end &&
               payload.bytes[payload.position] == b'\x01' =>
-              payload.description()
+              payload.description(core=declarations)
             1 =>
               raise Failure(
                 Some(payload.position - 1),
@@ -489,5 +518,26 @@ fn preflight(
       )
     }
     reader.position = end
+  }
+}
+
+///|
+fn Reader::core_type(
+  self : Reader,
+  legacy_nested~ : Bool = false,
+) -> Unit raise Boundary {
+  match
+    @core_types.scan_type(self.bytes, self.position, self.end, legacy_nested~) {
+    Ok(end) => self.position = end
+    Err(error) =>
+      raise Failure(
+        Some(error.offset),
+        match error.kind {
+          Malformed => "WIT-B001"
+          Invalid => "WIT-B003"
+          Unsupported => "WIT-B002"
+        },
+        error.message,
+      )
   }
 }

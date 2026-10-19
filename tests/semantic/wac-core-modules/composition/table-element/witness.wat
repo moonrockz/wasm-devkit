@@ -1,0 +1,1 @@
+(component (core type $a (module (export "t" (table 1 3 externref)))) (core type $b (module (export "t" (table 1 3 funcref)))) (import "m" (core module $m (type $a))) (type $c (component (alias outer 1 $b (core type $b)) (import "m" (core module (type $b))))) (import "c" (component $c (type $c))) (instance (instantiate $c (with "m" (core module $m)))))

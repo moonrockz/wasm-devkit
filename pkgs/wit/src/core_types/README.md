@@ -1,0 +1,33 @@
+# Core module signatures
+
+This pure codec reads core function and module type definitions into immutable
+models. Module imports retain ordered `(module_name, name)` pairs; exports retain
+ordered names. Function and tag signatures retain all parameters/results.
+Tables and memories retain unsigned 64-bit limits, address-width and shared flags.
+Memory page sizes preserve the distinction between an absent annotation and an
+explicit `pagesize 65536`. Globals retain value type, mutability and shared status.
+
+`External::Table` fields are element, minimum, maximum, table64 and shared.
+`External::Memory` fields are minimum, maximum, memory64, shared and optional
+page-size logarithm. `External::Global` fields are value, mutable and shared.
+`Value::Reference` fields are nullable and abstract heap name.
+
+`decode_type` reads one definition; `decode_section` reads a vector and returns
+only newly declared definitions. Caller-supplied `current` and `outers` retain
+lexical index spaces. Outer scopes are ordered nearest first. Module-local
+function aliases use depth zero, the enclosing component uses depth one.
+Aliases resolve only against preceding definitions. No operation performs I/O.
+
+`scan_type` returns the end offset of one definition within an enclosing range.
+It checks byte framing and values before the retained component parser runs.
+`legacy_nested=true` rejects limits above u32 and custom memory page sizes in
+nested component/instance type declarations, whose pinned dependency parser
+cannot consume those encodings. Root core-type sections support full u64 limits.
+The enclosing component validator checks external type indices separately.
+
+Concrete GC references, recursive/subtype groups and shared heap references
+return `Unsupported`. The pinned WAC loader panics on concrete reference types;
+this codec returns a diagnostic. Abstract references, including non-null forms,
+are retained. Tables with shared limits and unshared element references reject.
+Counts are bounded by remaining input bytes; lexical traversal and graph copying
+have a shared work budget in the enclosing binary and WAC decoders.
