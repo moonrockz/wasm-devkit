@@ -71,3 +71,8 @@ Value imports, instance aliases, export projections and annotations use modern
 direct value descriptors. Their dedicated index space remains separate from
 functions and types. `LOCAL.patch` retains these compiler changes; the binary
 boundary adapts only validated descriptor positions for the older parser.
+
+Concrete child component compilation uses suspended frames and an explicit
+driver stack. Parent name bindings become visible only after a child completes.
+The existing 256-parenthesis source limit also bounds concrete scopes; binary
+validation separately permits 256 nested component envelopes.

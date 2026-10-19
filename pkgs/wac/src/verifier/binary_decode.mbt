@@ -164,11 +164,11 @@ fn BinaryGraph::export_entry(
 
 ///|
 fn binary_root_declarations(
-  component : @component.Component,
+  component : @component.ComponentBinary,
 ) -> Array[BinaryDeclaration] raise BinaryFailure {
   try {
     let declarations = []
-    for section in component.binary.sections {
+    for section in component.sections {
       match section.id {
         0 | 2 => ()
         5 =>
@@ -179,6 +179,7 @@ fn binary_root_declarations(
           for declaration in @component.parse_canon_section(section.payload) {
             declarations.push(Canonical(declaration))
           }
+        4 => declarations.push(ConcreteComponent(section.payload))
         1 => declarations.push(CoreModule(section.payload))
         3 => declarations.push(CoreDefine(section.payload, true))
         7 =>
@@ -220,7 +221,7 @@ fn binary_root_declarations(
 
 ///|
 fn binary_decode(
-  component : @component.Component,
+  component : @component.ComponentBinary,
   bytes : Bytes,
   source_id : String,
 ) -> Result[BinaryPackage, ReadOnlyArray[Diagnostic]] raise BinaryFailure {
@@ -250,7 +251,11 @@ fn binary_decode(
       graph.types[scope.owner] = { ..graph.types[scope.owner], kind, }
       graph.bound_resources[scope.owner] = scope.resources.copy()
       if scope.parent is Some(parent) {
-        graph.scopes[parent].types.push(scope.owner)
+        if scope.concrete {
+          graph.scopes[parent].components.push(scope.owner)
+        } else {
+          graph.scopes[parent].types.push(scope.owner)
+        }
       }
       continue
     }
@@ -268,6 +273,18 @@ fn binary_decode(
           }
           _ => scope.types.push(graph.definition(scope, definition))
         }
+      ConcreteComponent(bytes) => {
+        let component = @component.parse_component_binary(bytes) catch {
+          error => raise Invalid(error.to_string())
+        }
+        let child = graph.scope(
+          Some(scope_id),
+          binary_root_declarations(component),
+          false,
+          concrete=true,
+        )
+        work.push((child, 0))
+      }
       CoreModule(bytes) => {
         graph.step()
         match @core_types.decode_module(bytes) {

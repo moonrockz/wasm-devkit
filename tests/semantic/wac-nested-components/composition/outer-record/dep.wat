@@ -1,0 +1,1 @@
+(component (type $u u32) (type $t (record (field "x" $u))) (component $c (alias outer 1 $t (type $t)) (export "t" (type $t))) (instance $i (instantiate $c)) (export "i" (instance $i)))

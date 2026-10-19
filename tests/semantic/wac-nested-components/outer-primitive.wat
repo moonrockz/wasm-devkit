@@ -1,0 +1,1 @@
+(component (type $t u32) (component $c (alias outer 1 $t (type $t)) (export "t" (type $t))) (instance $i (instantiate $c)) (export "i" (instance $i)))

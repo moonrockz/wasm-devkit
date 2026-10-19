@@ -109,6 +109,17 @@ fn validate_component_section_alias(
         }
       }
     }
+    if a.sort is Component && a.target is Outer(ct, idx) {
+      let source = if ct == 0 {
+        Some(counts)
+      } else {
+        counts.outer_counts.get(ct - 1)
+      }
+      if source is Some(source) &&
+        source.component_contracts.get(idx) is Some(contract) {
+        counts.component_contracts[counts.component] = contract
+      }
+    }
     // If we are aliasing an instance export that has a known ascribed
     // instance type, propagate its export signature into the new
     // instance index-space entry.
@@ -346,6 +357,47 @@ fn validate_component_section_alias(
           new_rid = Some(resource)
         } else if metadata.types.get(ty) is Some(Some(DefValType(primitive))) {
           new_td = Some(DefValType(primitive))
+        }
+      }
+      if a.target is Outer(ct, original) &&
+        ct > 0 &&
+        counts.outer_counts.get(ct - 1) is Some(source) &&
+        type_outers.get(ct - 1) is Some(source_types) {
+        if source_types.length() > counts.metadata_remaining {
+          raise UnsupportedComponentAscription
+        }
+        counts.metadata_remaining -= source_types.length()
+        let origins : Array[TypeOrigin?] = []
+        let (types, resources, remaining) = metadata_global_types(
+          source_types,
+          [],
+          source.type_metadata,
+          counts.metadata_remaining,
+          origins=Some(origins),
+          global_origins=Array::makei(source_types.length(), i => {
+            source.type_origin(i)
+          }),
+        ) catch {
+          _ => raise UnsupportedComponentAscription
+        }
+        counts.metadata_remaining = remaining
+        if source.type_metadata.contains(original) {
+          counts.check_outer_value_resources(types, original)
+        }
+        let metadata : InstanceMetadata = {
+          nodes: [],
+          signatures: [],
+          types,
+          resources,
+          origins,
+        }
+        counts.type_metadata[type_table.length()] = (metadata, original)
+        if source.type_origin(original) is Some(origin) {
+          counts.type_origins[type_table.length()] = origin
+        }
+        new_td = match types.get(original) {
+          Some(Some(DefValType(p))) => Some(DefValType(p))
+          _ => None
         }
       }
       if a.target is Outer(0, original) &&

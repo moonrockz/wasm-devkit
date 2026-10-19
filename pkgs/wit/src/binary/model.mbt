@@ -51,10 +51,9 @@ pub extend Diagnostic with Eq::{equal, not_equal}
 pub extend Diagnostic with @debug.Debug::{to_repr}
 
 ///|
-/// A component containing types, imports, aliases, exports, flat core modules,
-/// core instances, imported-component instantiation, inline instances and supported
-/// synchronous canonical operations. Concrete nested component definitions remain
-/// outside this boundary.
+/// A component containing types, imports, aliases, exports, core modules,
+/// core instances, concrete nested components, component instantiation, inline
+/// instances and supported synchronous canonical operations.
 /// The immutable bytes are the validated snapshot.
 pub struct ValidatedDeclarativeComponent {
   bytes : Bytes
@@ -83,7 +82,7 @@ pub fn validate_declarative_component(
     let value_offsets : Array[Int32] = []
     preflight(bytes, declarations=true, value_offsets~)
     let parser_bytes = legacy_value_encoding(bytes, value_offsets)
-    let component = @component.parse_component(parser_bytes) catch {
+    let component = @component.parse_component_binary(parser_bytes) catch {
       error => raise Failure(None, "WIT-B001", error.to_string())
     }
     let (core_ascriptions, core_contracts) = validate_core_definitions(
@@ -107,7 +106,7 @@ pub fn validate_declarative_component(
           )
       }
     }
-    @validation.validate_component_with_config(
+    @validation.validate_component_binary_with_config(
       component,
       @validation.ComponentValidationConfig(
         true,
@@ -128,6 +127,12 @@ pub fn validate_declarative_component(
           None,
           "WIT-B002",
           "instance ascription requires complete supported export contracts",
+        )
+      @validation.ComponentScopeBudgetExceeded =>
+        raise Failure(
+          None,
+          "WIT-B002",
+          "component validation scope work limit exceeded",
         )
       @validation.CoreContractBudgetExceeded =>
         raise Failure(

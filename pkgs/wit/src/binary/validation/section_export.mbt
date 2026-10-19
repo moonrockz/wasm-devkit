@@ -82,6 +82,18 @@ fn validate_component_section_export(
     let mut ascribed_instance_contract : ScopedContractMetadata? = None
     let mut ascribed_component : ScopedContractMetadata? = None
     validate_export_name(e.name, cfg)
+    if counts.collect_contract && exportname_to_string(e.name) is Some(name) {
+      counts.contract_exports.push(
+        (
+          name,
+          {
+            sort: e.sortidx.sort,
+            idx: counts.contract_index(e.sortidx.sort, type_table.length()),
+          },
+          false,
+        ),
+      )
+    }
     validate_name_attributes(
       11,
       exportname_to_bytes(e.name),
@@ -567,7 +579,7 @@ fn validate_component_section_export(
         }
         let core_scopes = match counts.core_contracts {
           Some(graph) =>
-            match graph.scope(0) {
+            match graph.scope(counts.core_scope) {
               Some(root) =>
                 match (root.binding(5, e.sortidx.idx), root.binding(3, tyidx)) {
                   (Some(Scope(a)), Some(Scope(b))) => Some((a, b))
@@ -625,7 +637,7 @@ fn validate_component_section_export(
         }
         let core_scope = match counts.core_contracts {
           Some(graph) =>
-            match graph.scope(0) {
+            match graph.scope(counts.core_scope) {
               Some(root) =>
                 match root.binding(3, tyidx) {
                   Some(Scope(id)) => Some(id)
@@ -680,7 +692,10 @@ fn validate_component_section_export(
     if e.sortidx.sort is Type {
       let idx = e.sortidx.idx
       let created = type_table.length()
-      counts.type_origins[created] = { scope: 0, index: created, }
+      counts.type_origins[created] = {
+        scope: counts.origin_scope,
+        index: created,
+      }
       if ascribed_resource_id is Some(rid) {
         type_table.push(Some(ResourceType(-1, 0x7f, None, HostDefined)))
         local_resource_types.push(false)

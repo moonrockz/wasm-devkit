@@ -83,6 +83,16 @@ fn validate_component_section_import(
     e => raise SectionParseError(10, "\{e}")
   }
   for i in imports {
+    if counts.collect_contract && importname_to_string(i.name) is Some(name) {
+      let sort = sort_of_externdesc(i.desc)
+      counts.contract_imports.push(
+        (
+          name,
+          { sort, idx: counts.contract_index(sort, type_table.length()), },
+          i.desc is Type(SubResource),
+        ),
+      )
+    }
     validate_import_name(i.name, cfg)
     validate_name_attributes(
       10,
@@ -153,6 +163,12 @@ fn validate_component_section_import(
         raise SectionParseError(10, "value not valid to be used as import")
       }
       let signature = counts.value_signature(value, type_table, resource_ids)
+      counts.check_function_origins(
+        signature,
+        import_named_types,
+        resource_ids,
+        visible=false,
+      )
       counts.values.push({ signature, used: false, })
     }
     if i.desc is FuncType(tyidx) {
@@ -163,6 +179,14 @@ fn validate_component_section_import(
             complete: Some(
               counts.function_signature(ft, type_table, resource_ids),
             ),
+          }
+          if sig.complete is Some(signature) {
+            counts.check_function_origins(
+              signature,
+              import_named_types,
+              resource_ids,
+              visible=false,
+            )
           }
           if importname_to_string(i.name) is Some(name) {
             validate_bracketed_func_name(
@@ -407,7 +431,7 @@ fn validate_component_section_import(
             counts.instance_metadata[instance_sigs.length() - 1] = (metadata, 0)
             let core_scope = match counts.core_contracts {
               Some(graph) =>
-                match graph.scope(0) {
+                match graph.scope(counts.core_scope) {
                   Some(root) =>
                     match root.binding(3, tyidx) {
                       Some(Scope(id)) => Some(id)
@@ -474,7 +498,7 @@ fn validate_component_section_import(
       if type_table.get(tyidx) is Some(Some(td)) {
         let core_scope = match counts.core_contracts {
           Some(graph) =>
-            match graph.scope(0) {
+            match graph.scope(counts.core_scope) {
               Some(root) =>
                 match root.binding(3, tyidx) {
                   Some(Scope(id)) => Some(id)
@@ -591,7 +615,10 @@ fn validate_component_section_import(
         Eq(tyidx) =>
           if tyidx >= 0 && tyidx < type_table.length() {
             let created = type_table.length()
-            counts.type_origins[created] = { scope: 0, index: created, }
+            counts.type_origins[created] = {
+              scope: counts.origin_scope,
+              index: created,
+            }
             if counts.type_metadata.get(tyidx) is Some(metadata) {
               counts.type_metadata[created] = metadata
             }

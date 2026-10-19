@@ -1,0 +1,1 @@
+(component (component $c (type $r (resource (rep i32))) (export "r" (type $r))) (instance $a (instantiate $c)) (instance $b (instantiate $c)) (export "a" (instance $a)) (export "b" (instance $b)))

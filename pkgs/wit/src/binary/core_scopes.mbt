@@ -6,6 +6,7 @@ priv enum CoreDeclaration {
   Describe(Bool, String, @component.ExternDesc)
   Export(@component.Export)
   Module(Bytes)
+  ConcreteComponent(Bytes)
   CoreInstance
   RuntimeInstance(@component.Instance)
   Canonical(@component.Canon)
@@ -14,6 +15,7 @@ priv enum CoreDeclaration {
 ///|
 priv struct CoreScope {
   parent : Int32?
+  completion_sort : Int32
   declarations : Array[CoreDeclaration]
   definitions : Array[@core_types.Definition]
   slots : Map[Int32, Array[@core_types.ContractBinding]]
@@ -146,13 +148,14 @@ fn core_decl_sort(kind : Int32) -> @component.Sort {
 }
 
 ///|
-fn validate_core_definitions(
-  component : @component.Component,
-) -> (ReadOnlyArray[CoreAscription], @core_types.ContractGraph) raise Boundary {
+fn core_root_declarations(
+  component : @component.ComponentBinary,
+) -> Array[CoreDeclaration] raise Boundary {
   let root : Array[CoreDeclaration] = []
-  for section in component.binary.sections {
+  for section in component.sections {
     try {
       match section.id {
+        4 => root.push(ConcreteComponent(section.payload))
         1 => root.push(Module(section.payload))
         2 =>
           for _ in @component.parse_core_instance_section(section.payload) {
@@ -195,9 +198,18 @@ fn validate_core_definitions(
       error => raise Failure(None, "WIT-B001", error.to_string())
     }
   }
+  root
+}
+
+///|
+fn validate_core_definitions(
+  component : @component.ComponentBinary,
+) -> (ReadOnlyArray[CoreAscription], @core_types.ContractGraph) raise Boundary {
+  let root = core_root_declarations(component)
   let scopes : Array[CoreScope] = [
     {
       parent: None,
+      completion_sort: 3,
       declarations: root,
       definitions: [],
       slots: Map([]),
@@ -224,13 +236,31 @@ fn validate_core_definitions(
     if scope.position >= scope.declarations.length() {
       ignore(stack.pop())
       if scope.parent is Some(parent) {
-        scopes[parent].bind(3, Scope(index))
+        scopes[parent].bind(scope.completion_sort, Scope(index))
       }
       continue
     }
     let declaration = scope.declarations[scope.position]
     scope.position += 1
     match declaration {
+      ConcreteComponent(bytes) => {
+        let component = @component.parse_component_binary(bytes) catch {
+          error => raise Failure(None, "WIT-B001", error.to_string())
+        }
+        let declarations = core_root_declarations(component)
+        step(declarations.length())
+        let child = scopes.length()
+        scopes.push({
+          parent: Some(index),
+          completion_sort: 4,
+          declarations,
+          definitions: [],
+          slots: Map([]),
+          exports: Map([]),
+          position: 0,
+        })
+        stack.push(child)
+      }
       CoreInstance => scope.bind(0x112, Other)
       RuntimeInstance(instance) =>
         match instance.expr {
@@ -247,6 +277,7 @@ fn validate_core_definitions(
             let child = scopes.length()
             scopes.push({
               parent: None,
+              completion_sort: 3,
               declarations: [],
               definitions: [],
               slots: Map([]),
@@ -266,6 +297,7 @@ fn validate_core_definitions(
             step(declarations.length())
             scopes.push({
               parent: Some(index),
+              completion_sort: 3,
               declarations,
               definitions: [],
               slots: Map([]),
@@ -392,6 +424,12 @@ fn validate_core_definitions(
           _ => actual
         }
         scope.bind(kind, exported)
+        let name = match entry.name {
+          Plain(bytes) => core_text(bytes)
+          WithVersion(name, version) =>
+            core_text(name) + "@" + core_text(version)
+        }
+        scope.exports[name] = exported
       }
       Module(bytes) =>
         match @core_types.decode_module(bytes) {

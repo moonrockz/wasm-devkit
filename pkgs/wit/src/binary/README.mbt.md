@@ -64,9 +64,11 @@ and re-exports, plus declarative core module/function types and module externs.
 Core instances and synchronous canonical lift/lower validate full core contracts
 and canonical signatures. Imported-component instantiation and inline instances
 validate complete argument contracts, including named type arguments and runtime
-values. Concrete nested component definitions, async canonical functions, other
-intrinsics and component start sections return `WIT-B002`. Physical type-scope
-nesting has the same 256 limit.
+values. Concrete nested components validate through explicit frames with shared
+work budgets and complete scoped contracts. Async canonical functions, other
+intrinsics and component start sections return `WIT-B002`. Combined concrete/type
+scope nesting is limited to 256. Value descriptor adaptation permits at most
+16,777,216 copied bytes across enclosing sections.
 Component-value externs use a framing-guided adapter for the retained parser's
 legacy descriptor tags while preserving the original bytes. Supported export annotations are described below; missing
 complete contracts produce explicit unsupported diagnostics.
@@ -110,8 +112,8 @@ including aliases and re-exports. Instance annotations check functions, values,
 nominal resources, nested instances/components and core modules against the complete
 expected contract. Annotated aliases and re-exports
 retain the narrowed contract. The type-only WIT entry point continues to reject all
-root export ascriptions. Concrete nested component definitions remain unsupported.
-Section 5 supports imported-component instantiation and inline instances, with
+root export ascriptions. Section 4 validates concrete nested component definitions.
+Section 5 supports imported and concrete component instantiation and inline instances, with
 complete argument contracts and nominal resource substitution. Named type
 arguments retain declaration origins; private anonymous arguments remain valid,
 while escaping signatures require visible names.

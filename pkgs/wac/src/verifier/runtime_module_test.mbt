@@ -826,13 +826,12 @@ test "concrete module nested-component" {
   )
   assert_eq(
     result is Ok(_),
-    false,
+    true,
     msg=match result {
       Ok(_) => "accepted"
       Err(e) => e[0].render()
     },
   )
-  assert_eq(result.unwrap_err()[0].code, "WAC-B002")
 }
 
 ///|

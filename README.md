@@ -237,4 +237,7 @@ ordered models with the pinned loader; one loader projection panic is recorded
 separately. Runtime value arguments and outputs retain complete substituted
 contracts, exact consuming uses and escaping-type visibility. Their fixtures also
 compare public composition resource contexts with the pinned reference models.
-Concrete nested component definitions remain a tracked binary-profile gap.
+Concrete nested definitions preserve scoped contracts and generative resource
+identities through explicit validation and reconstruction stacks. Both pinned
+WASI HTTP production components pass binary/WAT package and composition model
+comparisons, with independently validated emitted compositions.

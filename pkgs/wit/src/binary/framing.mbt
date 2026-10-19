@@ -214,13 +214,14 @@ priv enum Frame {
 /// Type references remain flat indices; vector work is bounded by input bytes.
 fn type_framing(
   reader : Reader,
+  base_depth~ : Int32 = 0,
   core~ : Bool = false,
   value_offsets~ : Array[Int32] = [],
 ) -> Unit raise Boundary {
   let work : Array[Frame] = []
   let count = reader.count()
   for _ in 0..<count {
-    work.push(Type(0))
+    work.push(Type(base_depth))
   }
   while work.pop() is Some(frame) {
     match frame {
@@ -418,259 +419,291 @@ fn preflight(
   }
   let reader : Reader = { bytes, position: 8, end: bytes.length(), }
   let mut core_work = 0
-  while reader.position < reader.end {
-    let section = reader.byte()
-    let length = reader.count()
-    let end = reader.position + length
-    let payload : Reader = { bytes, position: reader.position, end, }
-    match section {
-      0 => {
-        payload.string()
-        payload.position = end
-      }
-      1 if declarations =>
-        match
-          @core_types.inspect_module(bytes[payload.position:end].to_owned()) {
-          Ok(metadata) => {
-            core_work += metadata.validation_work
-            if core_work > 1000000 {
-              raise Failure(
-                Some(payload.position),
-                "WIT-B002",
-                "component core validation work estimate exceeds 1000000",
-              )
-            }
-            payload.position = end
-          }
-          Err(error) =>
-            raise Failure(
-              Some(payload.position + error.offset),
-              match error.kind {
-                Malformed => "WIT-B001"
-                Invalid => "WIT-B003"
-                Unsupported => "WIT-B002"
-              },
-              error.message,
-            )
+  let scopes = [(reader, 0)]
+  while scopes.pop() is Some((reader, depth)) {
+    while reader.position < reader.end {
+      let section = reader.byte()
+      let length = reader.count()
+      let end = reader.position + length
+      let payload : Reader = { bytes, position: reader.position, end, }
+      match section {
+        0 => {
+          payload.string()
+          payload.position = end
         }
-      2 if declarations => {
-        let count = payload.count()
-        for _ in 0..<count {
-          let tag = payload.byte()
-          if tag == 0 {
-            ignore(payload.unsigned())
-          } else if tag != 1 {
+        4 if declarations => {
+          if depth >= 256 {
             raise Failure(
-              Some(payload.position - 1),
-              "WIT-B001",
-              "invalid core instance tag",
+              Some(payload.position),
+              "WIT-B002",
+              "component nesting exceeds 256",
             )
           }
-          let members = payload.count()
-          for _ in 0..<members {
-            payload.string()
-            let kind = payload.byte()
-            if (tag == 0 && kind != 0x12) || (tag == 1 && kind > 4) {
+          if end - payload.position < 8 ||
+            bytes[payload.position:payload.position + 8] !=
+            b"\x00asm\x0d\x00\x01\x00".exact_view() {
+            raise Failure(
+              Some(payload.position),
+              "WIT-B001",
+              "invalid nested component header",
+            )
+          }
+          scopes.push(
+            ({ bytes, position: payload.position + 8, end, }, depth + 1),
+          )
+          payload.position = end
+        }
+        1 if declarations =>
+          match
+            @core_types.inspect_module(bytes[payload.position:end].to_owned()) {
+            Ok(metadata) => {
+              core_work += metadata.validation_work
+              if core_work > 1000000 {
+                raise Failure(
+                  Some(payload.position),
+                  "WIT-B002",
+                  "component core validation work estimate exceeds 1000000",
+                )
+              }
+              payload.position = end
+            }
+            Err(error) =>
+              raise Failure(
+                Some(payload.position + error.offset),
+                match error.kind {
+                  Malformed => "WIT-B001"
+                  Invalid => "WIT-B003"
+                  Unsupported => "WIT-B002"
+                },
+                error.message,
+              )
+          }
+        2 if declarations => {
+          let count = payload.count()
+          for _ in 0..<count {
+            let tag = payload.byte()
+            if tag == 0 {
+              ignore(payload.unsigned())
+            } else if tag != 1 {
               raise Failure(
                 Some(payload.position - 1),
-                "WIT-B003",
-                "invalid core instance member sort",
+                "WIT-B001",
+                "invalid core instance tag",
               )
             }
-            ignore(payload.unsigned())
-          }
-        }
-      }
-      5 if declarations => {
-        let count = payload.count()
-        for _ in 0..<count {
-          let tag = payload.byte()
-          if tag == 0 {
-            ignore(payload.unsigned())
-          } else if tag != 1 {
-            raise Failure(
-              Some(payload.position - 1),
-              "WIT-B001",
-              "invalid component instance tag",
-            )
-          }
-          let members = payload.count()
-          for _ in 0..<members {
-            if tag == 0 {
+            let members = payload.count()
+            for _ in 0..<members {
               payload.string()
-            } else {
-              payload.external_name()
-            }
-            match payload.byte() {
-              0 =>
-                if payload.byte() != 0x11 {
-                  raise Failure(
-                    Some(payload.position - 1),
-                    "WIT-B003",
-                    "invalid core instance argument sort",
-                  )
-                }
-              1 | 2 | 3 | 4 | 5 => ()
-              _ =>
+              let kind = payload.byte()
+              if (tag == 0 && kind != 0x12) || (tag == 1 && kind > 4) {
                 raise Failure(
                   Some(payload.position - 1),
                   "WIT-B003",
-                  "invalid component instance argument sort",
+                  "invalid core instance member sort",
                 )
+              }
+              ignore(payload.unsigned())
             }
-            ignore(payload.unsigned())
           }
         }
-      }
-      8 if declarations => {
-        let count = payload.count()
-        for _ in 0..<count {
-          let tag = payload.byte()
-          if tag >= 2 && tag <= 4 {
+        5 if declarations => {
+          let count = payload.count()
+          for _ in 0..<count {
+            let tag = payload.byte()
+            if tag == 0 {
+              ignore(payload.unsigned())
+            } else if tag != 1 {
+              raise Failure(
+                Some(payload.position - 1),
+                "WIT-B001",
+                "invalid component instance tag",
+              )
+            }
+            let members = payload.count()
+            for _ in 0..<members {
+              if tag == 0 {
+                payload.string()
+              } else {
+                payload.external_name()
+              }
+              match payload.byte() {
+                0 =>
+                  if payload.byte() != 0x11 {
+                    raise Failure(
+                      Some(payload.position - 1),
+                      "WIT-B003",
+                      "invalid core instance argument sort",
+                    )
+                  }
+                1 | 2 | 3 | 4 | 5 => ()
+                _ =>
+                  raise Failure(
+                    Some(payload.position - 1),
+                    "WIT-B003",
+                    "invalid component instance argument sort",
+                  )
+              }
+              ignore(payload.unsigned())
+            }
+          }
+        }
+        8 if declarations => {
+          let count = payload.count()
+          for _ in 0..<count {
+            let tag = payload.byte()
+            if tag >= 2 && tag <= 4 {
+              ignore(payload.unsigned())
+              continue
+            }
+            if tag != 0 && tag != 1 {
+              raise Failure(
+                Some(payload.position - 1),
+                "WIT-B002",
+                "canonical intrinsic is outside the synchronous lift/lower profile",
+              )
+            }
+            if payload.byte() != 0 {
+              raise Failure(
+                Some(payload.position - 1),
+                "WIT-B001",
+                "invalid canonical function tag",
+              )
+            }
             ignore(payload.unsigned())
-            continue
+            let options = payload.count()
+            for _ in 0..<options {
+              match payload.byte() {
+                0 | 1 | 2 => ()
+                3 | 4 | 5 => ignore(payload.unsigned())
+                _ =>
+                  raise Failure(
+                    Some(payload.position - 1),
+                    "WIT-B002",
+                    "canonical option is outside the synchronous ABI profile",
+                  )
+              }
+            }
+            if tag == 0 {
+              ignore(payload.unsigned())
+            }
           }
-          if tag != 0 && tag != 1 {
-            raise Failure(
-              Some(payload.position - 1),
-              "WIT-B002",
-              "canonical intrinsic is outside the synchronous lift/lower profile",
-            )
+        }
+        3 if declarations => {
+          let count = payload.count()
+          for _ in 0..<count {
+            payload.core_type()
           }
-          if payload.byte() != 0 {
-            raise Failure(
-              Some(payload.position - 1),
-              "WIT-B001",
-              "invalid canonical function tag",
-            )
-          }
-          ignore(payload.unsigned())
-          let options = payload.count()
-          for _ in 0..<options {
+        }
+        6 if declarations => {
+          let count = payload.count()
+          for _ in 0..<count {
+            let offset = payload.position
+            let sort = payload.byte()
+            if sort == 0 {
+              let core_sort = payload.byte()
+              if core_sort > 4 && core_sort != 0x10 && core_sort != 0x11 {
+                raise Failure(
+                  Some(offset),
+                  "WIT-B002",
+                  "core runtime aliases are outside this profile",
+                )
+              }
+            } else if sort < 1 || sort > 5 {
+              raise Failure(
+                Some(offset),
+                "WIT-B002",
+                "core aliases are outside the declarative component boundary",
+              )
+            }
             match payload.byte() {
-              0 | 1 | 2 => ()
-              3 | 4 | 5 => ignore(payload.unsigned())
+              0 | 1 => {
+                ignore(payload.unsigned())
+                payload.string()
+              }
+              2 => {
+                ignore(payload.unsigned())
+                ignore(payload.unsigned())
+              }
               _ =>
+                raise Failure(
+                  Some(offset),
+                  "WIT-B001",
+                  "invalid component alias target",
+                )
+            }
+          }
+        }
+        7 =>
+          type_framing(
+            payload,
+            core=declarations,
+            base_depth=depth,
+            value_offsets~,
+          )
+        10 if declarations => {
+          let count = payload.count()
+          for _ in 0..<count {
+            payload.external_name()
+            payload.description(core=declarations, value_offsets~)
+          }
+        }
+        11 => {
+          let count = payload.count()
+          for _ in 0..<count {
+            payload.external_name()
+            payload.sort()
+            ignore(payload.unsigned())
+            match payload.byte() {
+              0 => ()
+              1 if declarations &&
+                payload.position < payload.end &&
+                (
+                  payload.bytes[payload.position] == b'\x00' ||
+                  payload.bytes[payload.position] == b'\x01' ||
+                  payload.bytes[payload.position] == b'\x02' ||
+                  payload.bytes[payload.position] == b'\x03' ||
+                  payload.bytes[payload.position] == b'\x04' ||
+                  payload.bytes[payload.position] == b'\x05'
+                ) => payload.description(core=declarations, value_offsets~)
+              1 =>
                 raise Failure(
                   Some(payload.position - 1),
                   "WIT-B002",
-                  "canonical option is outside the synchronous ABI profile",
+                  "root export ascriptions are outside the supported binary profile",
+                )
+              _ =>
+                raise Failure(
+                  Some(payload.position - 1),
+                  "WIT-B001",
+                  "invalid export ascription tag",
                 )
             }
           }
-          if tag == 0 {
-            ignore(payload.unsigned())
-          }
         }
+        1..<=10 =>
+          raise Failure(
+            Some(reader.position),
+            "WIT-B002",
+            "section is outside the WIT type-component encoding boundary",
+          )
+        _ =>
+          raise Failure(
+            Some(reader.position - 1),
+            "WIT-B001",
+            "invalid component section identifier",
+          )
       }
-      3 if declarations => {
-        let count = payload.count()
-        for _ in 0..<count {
-          payload.core_type()
-        }
-      }
-      6 if declarations => {
-        let count = payload.count()
-        for _ in 0..<count {
-          let offset = payload.position
-          let sort = payload.byte()
-          if sort == 0 {
-            let core_sort = payload.byte()
-            if core_sort > 4 && core_sort != 0x10 && core_sort != 0x11 {
-              raise Failure(
-                Some(offset),
-                "WIT-B002",
-                "core runtime aliases are outside this profile",
-              )
-            }
-          } else if sort < 1 || sort > 5 {
-            raise Failure(
-              Some(offset),
-              "WIT-B002",
-              "core aliases are outside the declarative component boundary",
-            )
-          }
-          match payload.byte() {
-            0 | 1 => {
-              ignore(payload.unsigned())
-              payload.string()
-            }
-            2 => {
-              ignore(payload.unsigned())
-              ignore(payload.unsigned())
-            }
-            _ =>
-              raise Failure(
-                Some(offset),
-                "WIT-B001",
-                "invalid component alias target",
-              )
-          }
-        }
-      }
-      7 => type_framing(payload, core=declarations, value_offsets~)
-      10 if declarations => {
-        let count = payload.count()
-        for _ in 0..<count {
-          payload.external_name()
-          payload.description(core=declarations, value_offsets~)
-        }
-      }
-      11 => {
-        let count = payload.count()
-        for _ in 0..<count {
-          payload.external_name()
-          payload.sort()
-          ignore(payload.unsigned())
-          match payload.byte() {
-            0 => ()
-            1 if declarations &&
-              payload.position < payload.end &&
-              (
-                payload.bytes[payload.position] == b'\x00' ||
-                payload.bytes[payload.position] == b'\x01' ||
-                payload.bytes[payload.position] == b'\x02' ||
-                payload.bytes[payload.position] == b'\x03' ||
-                payload.bytes[payload.position] == b'\x04' ||
-                payload.bytes[payload.position] == b'\x05'
-              ) => payload.description(core=declarations, value_offsets~)
-            1 =>
-              raise Failure(
-                Some(payload.position - 1),
-                "WIT-B002",
-                "root export ascriptions are outside the supported binary profile",
-              )
-            _ =>
-              raise Failure(
-                Some(payload.position - 1),
-                "WIT-B001",
-                "invalid export ascription tag",
-              )
-          }
-        }
-      }
-      1..<=10 =>
+      if payload.position != end {
         raise Failure(
-          Some(reader.position),
-          "WIT-B002",
-          "section is outside the WIT type-component encoding boundary",
-        )
-      _ =>
-        raise Failure(
-          Some(reader.position - 1),
+          Some(payload.position),
           "WIT-B001",
-          "invalid component section identifier",
+          "trailing bytes in component section",
         )
+      }
+      reader.position = end
     }
-    if payload.position != end {
-      raise Failure(
-        Some(payload.position),
-        "WIT-B001",
-        "trailing bytes in component section",
-      )
-    }
-    reader.position = end
   }
+  value_offsets.sort()
 }
 
 ///|

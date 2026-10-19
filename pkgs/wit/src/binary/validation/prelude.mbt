@@ -39,6 +39,7 @@ pub(all) suberror ComponentValidationError {
   CanonMemoryNot32Bit(Int32)
   CanonCoreFuncTypeMismatch(String)
   CanonOptionNotAllowed(String)
+  ComponentScopeBudgetExceeded
   CoreContractBudgetExceeded
   CanonicalBudgetExceeded
   UnsupportedCanonical
@@ -132,6 +133,13 @@ pub fn ValidatedComponent::component_bytes(self : ValidatedComponent) -> Bytes {
 
 ///|
 priv struct Counts {
+  mut core_scope : Int32
+  mut outer_counts : Array[Counts]
+  mut origin_scope : Int32
+  mut collect_contract : Bool
+  owned_resources : Map[Int32, Bool]
+  contract_imports : Array[(String, @component.SortIdx, Bool)]
+  contract_exports : Array[(String, @component.SortIdx, Bool)]
   mut core_contracts : @core_types.ContractGraph?
   type_metadata : Map[Int32, (InstanceMetadata, Int32)]
   type_origins : Map[Int32, TypeOrigin]
@@ -766,6 +774,13 @@ fn check_core_module_import_subtype(
 ///|
 fn Counts::Counts() -> Counts {
   {
+    core_scope: 0,
+    outer_counts: [],
+    origin_scope: 0,
+    collect_contract: false,
+    owned_resources: Map([]),
+    contract_imports: [],
+    contract_exports: [],
     type_metadata: Map([]),
     type_origins: Map([]),
     visible_origins: Map([]),

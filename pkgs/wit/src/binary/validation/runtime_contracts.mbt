@@ -185,7 +185,7 @@ fn runtime_contract_builder(
         imports: ContractMembers::new(),
         exports: ContractMembers::new(),
         component: false,
-        core_scope: Some(0),
+        core_scope: Some(counts.core_scope),
       },
     ],
     locals: Map([]),
@@ -200,6 +200,7 @@ fn runtime_argument(
   name : String,
   argument : @component.SortIdx,
   functions : Array[FuncSigShape?],
+  consume~ : Bool = true,
 ) -> Unit raise ComponentValidationError {
   builder.charge(1)
   check_sortidx(argument, builder.counts, builder.type_bound)
@@ -210,7 +211,11 @@ fn runtime_argument(
   match argument.sort {
     Type => members.types[name] = argument.idx
     Value =>
-      members.values[name] = builder.counts.consume_value(argument.idx, 5)
+      members.values[name] = if consume {
+        builder.counts.consume_value(argument.idx, 5)
+      } else {
+        builder.counts.values[argument.idx].signature
+      }
     Func => {
       guard functions.get(argument.idx) is Some(Some(function)) &&
         function.complete is Some(_) else {
@@ -230,7 +235,7 @@ fn runtime_argument(
     }
     Core(0x11) => {
       guard builder.counts.core_contracts is Some(graph) &&
-        graph.scope(0) is Some(scope) &&
+        graph.scope(builder.counts.core_scope) is Some(scope) &&
         scope.binding(0x111, argument.idx) is Some(Module(contract)) else {
         raise UnsupportedComponentAscription
       }
@@ -527,4 +532,80 @@ fn runtime_component_instance(
       (result, root, next)
     }
   }
+}
+
+///|
+fn Counts::contract_index(
+  self : Counts,
+  sort : @component.Sort,
+  types : Int32,
+) -> Int32 raise ComponentValidationError {
+  match sort {
+    Type => types
+    Func => self.func
+    Value => self.value
+    Component => self.component
+    Instance => self.instance
+    Core(0x11) => self.core_module
+    Core(kind) => raise UnsupportedCoreSort(kind)
+  }
+}
+
+///|
+fn concrete_component_contract(
+  counts : Counts,
+  types : Array[@component.TypeDef?],
+  resources : Array[Int32?],
+  functions : Array[FuncSigShape?],
+) -> ScopedContractMetadata raise ComponentValidationError {
+  let builder = runtime_contract_builder(counts, types, resources)
+  let node = builder.nodes[0]
+  for side in 0..<2 {
+    let entries = if side == 0 {
+      counts.contract_imports
+    } else {
+      counts.contract_exports
+    }
+    let members = if side == 0 { node.imports } else { node.exports }
+    for (name, index, binder) in entries {
+      runtime_argument(builder, members, name, index, functions, consume=false)
+      if binder {
+        members.binders[name] = true
+        if members.types.get(name) is Some(ty) &&
+          builder.resources.get(ty) is Some(Some(resource)) {
+          builder.locals[resource] = true
+        }
+      }
+    }
+  }
+  let work = [0]
+  let seen : Map[Int32, Bool] = Map([])
+  while work.pop() is Some(index) {
+    builder.charge(1)
+    if seen.contains(index) {
+      continue
+    }
+    seen[index] = true
+    let exports = builder.nodes[index].exports
+    let names = exports.sorts.keys().to_array()
+    names.sort()
+    for name in names {
+      builder.charge(1)
+      if exports.types.get(name) is Some(ty) &&
+        builder.resources.get(ty) is Some(Some(resource)) {
+        if counts.owned_resources.contains(resource) {
+          exports.binders[name] = true
+          builder.locals[resource] = true
+        } else {
+          exports.binders.remove(name) |> ignore
+        }
+      }
+      if exports.sorts[name] is Instance &&
+        exports.children.get(name) is Some(child) {
+        work.push(child)
+      }
+    }
+  }
+  builder.nodes[0] = { ..node, component: true, }
+  builder.graph()
 }

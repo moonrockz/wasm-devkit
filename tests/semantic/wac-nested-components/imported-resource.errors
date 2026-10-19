@@ -1,0 +1,4 @@
+
+thread 'main' (256321828) panicked at /Users/damian/.cargo/git/checkouts/wac-3beaeb5c194f5763/5a7480c/crates/wac-types/src/package.rs:621:9:
+assertion failed: prev.is_none()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

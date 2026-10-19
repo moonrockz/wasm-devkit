@@ -1,0 +1,1 @@
+(component (component $c (type $f (func)) (import "f" (func $f (type $f))) (export "f" (func $f))) (type $f (func (param "x" u32))) (import "f" (func $f (type $f))) (instance $i (instantiate $c (with "f" (func $f)))) (export "i" (instance $i)))

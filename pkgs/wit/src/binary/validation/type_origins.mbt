@@ -6,7 +6,7 @@ fn Counts::type_origin(self : Counts, index : Int32) -> TypeOrigin? {
   if self.type_metadata.get(index) is Some((metadata, root)) {
     return metadata.origins.get(root).bind(x => x)
   }
-  Some({ scope: 0, index, })
+  Some({ scope: self.origin_scope, index, })
 }
 
 ///|
@@ -258,14 +258,15 @@ fn Counts::check_function_origins(
   signature : CompleteFunctionSignature,
   root_names : Map[Int32, Int32],
   root_resources : Array[Int32?],
+  visible~ : Bool = true,
 ) -> Unit raise ComponentValidationError {
   let cost = self.visible_origins.length() + self.visible_resources.length()
   if cost > self.metadata_remaining {
     raise UnsupportedComponentAscription
   }
   self.metadata_remaining -= cost
-  let named = self.visible_origins.copy()
-  let resources = self.visible_resources.copy()
+  let named = if visible { self.visible_origins.copy() } else { Map([]) }
+  let resources = if visible { self.visible_resources.copy() } else { Map([]) }
   if root_names.length() + signature.function.params.length() + 1 >
     self.metadata_remaining {
     raise UnsupportedComponentAscription
@@ -352,4 +353,59 @@ fn Counts::contract_origin_scope(
   let scope = self.new_origin_scope()
   self.origin_scopes[key] = scope
   scope
+}
+
+///|
+fn Counts::check_outer_value_resources(
+  self : Counts,
+  types : Array[@component.TypeDef?],
+  root : Int32,
+) -> Unit raise ComponentValidationError {
+  let work = [root]
+  let seen : Map[Int32, Bool] = Map([])
+  fn value(
+    v : @component.ValType,
+  ) -> @component.ValType raise IncompleteFunctionSignature {
+    if self.metadata_remaining <= 0 {
+      raise SignatureBudgetExceeded
+    }
+    self.metadata_remaining -= 1
+    if v is TypeIdx(index) {
+      work.push(index)
+    }
+    v
+  }
+  while work.pop() is Some(index) {
+    if self.metadata_remaining <= 0 {
+      raise UnsupportedComponentAscription
+    }
+    self.metadata_remaining -= 1
+    if seen.contains(index) {
+      continue
+    }
+    seen[index] = true
+    guard types.get(index) is Some(Some(td)) else {
+      raise UnsupportedComponentAscription
+    }
+    if td is ResourceType(_, _, _, _) || td is Own(_) || td is Borrow(_) {
+      raise SectionParseError(
+        6, "refers to resources not defined in the current component",
+      )
+    }
+    try {
+      match td {
+        FuncType(ft) => {
+          for parameter in ft.params {
+            ignore(value(parameter.ty))
+          }
+          if ft.result is Some(result) {
+            ignore(value(result))
+          }
+        }
+        _ => ignore(signature_definition(td, value))
+      }
+    } catch {
+      _ => raise UnsupportedComponentAscription
+    }
+  }
 }

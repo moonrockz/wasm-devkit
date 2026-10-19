@@ -187,3 +187,12 @@ from instance values create separately tracked uses. Substitution preserves both
 resource identities and ordinary type origins. Root and instance exports check
 value type visibility after explicit ascriptions, without applying function-result
 borrow rules to the synthetic value signatures.
+
+Concrete nested component definitions suspend their lexical state in validation
+frames. One explicit driver stack advances them; resource/origin allocation and
+metadata, ascription, core-contract and canonical budgets span all frames. Complete
+child contracts preserve imports, exports, values, captured outer definitions and
+local resource binders. Nested aliases normalize ordinary graphs before naming
+checks. Imported functions and values cannot acquire names only from exports.
+The binary entry point reads flat component sections and never invokes the
+upstream parser's recursive child construction.

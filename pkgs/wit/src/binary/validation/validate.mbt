@@ -94,6 +94,7 @@ fn effective_typedef_depth(
 ///|
 priv struct ValidatedComponentInfo {
   size : Int32
+  contract : ScopedContractMetadata?
   import_sorts : Map[String, @component.Sort]
   import_instance_sigs : Map[String, InstanceSig]
   import_func_sigs : Map[String, FuncSigShape]
@@ -111,9 +112,33 @@ priv struct ValidatedComponentInfo {
 }
 
 ///|
+priv struct ComponentValidationState {
+  mut resource : Int32
+  mut origin : Int32
+  mut metadata : Int32
+  mut ascriptions : Int32
+  mut frames : Int32
+  core_work : CoreContractWork
+  canonical_work : CanonicalBudget
+}
+
+///|
+// Suspended lexical state lives in a continuation. The driver owns the only
+// nesting stack; advancing a frame never advances a child frame.
+priv struct ComponentValidationFrame {
+  advance : (ValidatedComponentInfo?) -> ComponentValidationStep raise ComponentValidationError
+}
+
+///|
+priv enum ComponentValidationStep {
+  Descend(ComponentValidationFrame)
+  Complete(ValidatedComponentInfo)
+}
+
+///|
 /// Validate a parsed component (partial).
-fn validate_component_inner(
-  component : @component.Component,
+fn component_validation_frame(
+  component : @component.ComponentBinary,
   is_root : Bool,
   cfg : ComponentValidationConfig,
   depth : Int32,
@@ -121,21 +146,26 @@ fn validate_component_inner(
   type_outer_depths : Array[Int32],
   core_type_bound_outers : Array[Int32],
   component_size_outers : Array[Array[Int32]],
+  shared : ComponentValidationState,
+  core_scope : Int32,
+  outer_counts : Array[Counts],
   core_contracts~ : @core_types.ContractGraph? = None,
-) -> ValidatedComponentInfo raise ComponentValidationError {
+) -> ComponentValidationFrame {
   let counts = Counts::Counts()
   counts.core_contracts = core_contracts
-  if counts.core_contracts is Some(graph) && graph.scope(0) is None {
-    raise SectionParseError(0, "core contract metadata has no root scope")
-  }
+  counts.core_scope = core_scope
+  counts.outer_counts = outer_counts
+  counts.origin_scope = shared.origin
+  shared.origin += 1
+  counts.collect_contract = !is_root
   let contract_scope = match counts.core_contracts {
-    Some(graph) => graph.scope(0)
+    Some(graph) => graph.scope(core_scope)
     None => None
   }
-  let contract_work : CoreContractWork = { remaining: 1000000, }
+  let contract_work = shared.core_work
   let instance_contracts : Array[Map[String, @core_types.External]] = []
   let external_contracts : Map[(Int32, Int32), @core_types.External] = Map([])
-  let canonical_budget : CanonicalBudget = { remaining: 1000000, }
+  let canonical_budget = shared.canonical_work
   let type_table : Array[@component.TypeDef?] = []
   // Track which type indices correspond to resource types defined in the
   // current concrete component (as opposed to imported/aliased resource types).
@@ -143,7 +173,7 @@ fn validate_component_inner(
   // Nominal identity ids for resource types (both defined and imported via `sub resource`).
   // These are local to this validation run, but used to detect mismatches across instantiation.
   let resource_ids : Array[Int32?] = []
-  let mut next_resource_id = 0
+  let mut next_resource_id = shared.resource
   let type_sizes : Array[Int32] = []
   let type_depths : Array[Int32] = []
   // Approximate export-signature size (used for wasm-tools' very-nested.wast).
@@ -230,764 +260,832 @@ fn validate_component_inner(
   )
   let my_export_type_sigs : Map[String, TypeSig] = Map([])
   let my_export_func_sigs : Map[String, FuncSigShape] = Map([])
-  for s in component.binary.sections {
-    match s.id {
-      // Core module/instance/type sections each declare a single core item.
-      1 => {
-        // Validate embedded core modules using the existing core validator.
-        if @component.sniff_binary_kind(s.payload) != Some(CoreModule) {
-          raise CoreModuleError("unknown binary version")
-        }
-        let core_mod = @parser.parse_module(s.payload) catch {
-          e => raise CoreModuleError("parse core module: \{e}")
-        }
-        // wasm-tools expects duplicate import names in core modules to be invalid.
-        let seen_imports : Map[(String, String), Int32] = Map([])
-        for imp in core_mod.imports {
-          let key = (imp.mod_name, imp.name)
-          if seen_imports.get(key) is Some(_) {
-            raise CoreModuleError(
-              "duplicate import name `\{imp.mod_name}:\{imp.name}`",
-            )
-          }
-          seen_imports.set(key, 1)
-        }
-        @core_validator.validate_module(core_mod) catch {
-          e => raise CoreModuleError("validate core module: \{e}")
-        }
-        let exports : Map[String, Int32] = Map([])
-        let export_types : Map[String, CoreExternType] = Map([])
-        for ex in core_mod.exports {
-          match ex.desc {
-            Func(_) => exports.set(ex.name, 0x00)
-            Table(_) => exports.set(ex.name, 0x01)
-            Memory(_) => exports.set(ex.name, 0x02)
-            Global(_) => exports.set(ex.name, 0x03)
-            Tag(_) => exports.set(ex.name, 0x04)
-          }
-          match core_export_type_of_module(core_mod, ex) {
-            Some(t) => export_types.set(ex.name, t)
-            None => ()
-          }
-        }
-        core_module_exports.push(Some(exports))
-        core_module_export_types.push(Some(export_types))
-        core_module_type_imports.push(None)
-        core_module_defs.push(Some(core_mod))
-        counts.core_module += 1
+  let mut section_position = 0
+  let advance = fn(
+    completed : ValidatedComponentInfo?,
+  ) -> ComponentValidationStep raise ComponentValidationError {
+    counts.next_origin_scope = shared.origin
+    counts.metadata_remaining = shared.metadata
+    counts.ascription_remaining = shared.ascriptions
+    next_resource_id = shared.resource
+    shared.frames -= depth + 1
+    if shared.frames < 0 || depth > 256 {
+      raise ComponentScopeBudgetExceeded
+    }
+    if counts.core_contracts is Some(graph) && graph.scope(core_scope) is None {
+      raise SectionParseError(0, "core contract metadata has no root scope")
+    }
+    if completed is Some(nested_info) {
+      if nested_info.contract is Some(contract) {
+        counts.component_contracts[counts.component] = (contract, 0)
       }
-      2 => {
-        let core_instances = @component.parse_core_instance_section(s.payload) catch {
-          e => raise SectionParseError(2, "\{e}")
-        }
-        for inst in core_instances {
-          if contract_scope is Some(scope) {
-            instance_contracts.push(
-              core_contract_instance(
-                inst, scope, instance_contracts, external_contracts, contract_work,
-              ),
-            )
+      component_import_sorts.push(Some(nested_info.import_sorts))
+      component_import_instance_sigs.push(
+        Some(nested_info.import_instance_sigs),
+      )
+      component_import_func_sigs.push(Some(nested_info.import_func_sigs))
+      component_import_instance_resource_exports.push(
+        Some(nested_info.import_instance_resource_exports),
+      )
+      component_import_core_module_exports.push(
+        Some(nested_info.import_core_module_exports),
+      )
+      component_import_core_module_import_sigs.push(
+        Some(nested_info.import_core_module_import_sigs),
+      )
+      component_import_type_bounds.push(Some(nested_info.import_type_bounds))
+      component_import_type_sigs.push(Some(nested_info.import_type_sigs))
+      component_export_sorts.push(Some(nested_info.export_sorts))
+      component_export_instance_sigs.push(
+        Some(nested_info.export_instance_sigs),
+      )
+      component_export_instance_type_sigs.push(
+        Some(nested_info.export_instance_type_sigs),
+      )
+      component_export_instance_func_sigs.push(
+        Some(nested_info.export_instance_func_sigs),
+      )
+      component_export_type_sigs.push(Some(nested_info.export_type_sigs))
+      component_export_func_sigs.push(Some(nested_info.export_func_sigs))
+      component_sizes.push(nested_info.size)
+      // Nested component definitions contribute to the overall effective
+      // size of the component graph (wasm-tools/very-nested.wast).
+      export_size = add_type_size(export_size, nested_info.size)
+      counts.component += 1
+    }
+    while section_position < component.sections.length() {
+      let s = component.sections[section_position]
+      section_position += 1
+
+      match s.id {
+        // Core module/instance/type sections each declare a single core item.
+        1 => {
+          // Validate embedded core modules using the existing core validator.
+          if @component.sniff_binary_kind(s.payload) != Some(CoreModule) {
+            raise CoreModuleError("unknown binary version")
           }
-          let mut export_map : Map[String, Int32]? = None
-          let mut export_types : Map[String, CoreExternType]? = None
-          match inst.expr {
-            Instantiate(module_idx, args) => {
-              if module_idx < 0 || module_idx >= counts.core_module {
-                raise InvalidCoreModuleIndex(module_idx)
-              }
-              if module_idx >= 0 && module_idx < core_module_exports.length() {
-                export_map = core_module_exports[module_idx]
-              }
-              if module_idx >= 0 &&
-                module_idx < core_module_export_types.length() {
-                export_types = core_module_export_types[module_idx]
-              }
-              // Validate that instantiation args satisfy the core module's
-              // imports when we have enough type information (either a full
-              // core module body, or a core module type signature).
-              let providers : Map[String, Int32] = Map([])
-              let seen_arg_names : Map[String, Int32] = Map([])
-              for a in args {
-                check_sortidx(a.sortidx, counts, type_table.length())
-                if seen_arg_names.get(a.name) is Some(_) {
-                  raise CoreModuleError(
-                    "duplicate module instantiation argument named `\{a.name}`",
-                  )
+          let core_mod = @parser.parse_module(s.payload) catch {
+            e => raise CoreModuleError("parse core module: \{e}")
+          }
+          // wasm-tools expects duplicate import names in core modules to be invalid.
+          let seen_imports : Map[(String, String), Int32] = Map([])
+          for imp in core_mod.imports {
+            let key = (imp.mod_name, imp.name)
+            if seen_imports.get(key) is Some(_) {
+              raise CoreModuleError(
+                "duplicate import name `\{imp.mod_name}:\{imp.name}`",
+              )
+            }
+            seen_imports.set(key, 1)
+          }
+          @core_validator.validate_module(core_mod) catch {
+            e => raise CoreModuleError("validate core module: \{e}")
+          }
+          let exports : Map[String, Int32] = Map([])
+          let export_types : Map[String, CoreExternType] = Map([])
+          for ex in core_mod.exports {
+            match ex.desc {
+              Func(_) => exports.set(ex.name, 0x00)
+              Table(_) => exports.set(ex.name, 0x01)
+              Memory(_) => exports.set(ex.name, 0x02)
+              Global(_) => exports.set(ex.name, 0x03)
+              Tag(_) => exports.set(ex.name, 0x04)
+            }
+            match core_export_type_of_module(core_mod, ex) {
+              Some(t) => export_types.set(ex.name, t)
+              None => ()
+            }
+          }
+          core_module_exports.push(Some(exports))
+          core_module_export_types.push(Some(export_types))
+          core_module_type_imports.push(None)
+          core_module_defs.push(Some(core_mod))
+          counts.core_module += 1
+        }
+        2 => {
+          let core_instances = @component.parse_core_instance_section(s.payload) catch {
+            e => raise SectionParseError(2, "\{e}")
+          }
+          for inst in core_instances {
+            if contract_scope is Some(scope) {
+              instance_contracts.push(
+                core_contract_instance(
+                  inst, scope, instance_contracts, external_contracts, contract_work,
+                ),
+              )
+            }
+            let mut export_map : Map[String, Int32]? = None
+            let mut export_types : Map[String, CoreExternType]? = None
+            match inst.expr {
+              Instantiate(module_idx, args) => {
+                if module_idx < 0 || module_idx >= counts.core_module {
+                  raise InvalidCoreModuleIndex(module_idx)
                 }
-                seen_arg_names.set(a.name, 1)
-                match a.sortidx.sort {
-                  Core(0x12) => providers.set(a.name, a.sortidx.idx)
-                  _ => ()
+                if module_idx >= 0 && module_idx < core_module_exports.length() {
+                  export_map = core_module_exports[module_idx]
                 }
-              }
-              let mod_def = if module_idx >= 0 &&
-                module_idx < core_module_defs.length() {
-                core_module_defs[module_idx]
-              } else {
-                None
-              }
-              if contract_scope is None {
-                match mod_def {
-                  Some(mod_) =>
-                    for imp in mod_.imports {
-                      match providers.get(imp.mod_name) {
-                        None =>
-                          raise CoreModuleError(
-                            "module import `\{imp.mod_name}::\{imp.name}` not defined",
-                          )
-                        Some(provider_idx) => {
-                          if provider_idx < 0 ||
-                            provider_idx >= core_instance_export_types.length() {
-                            raise InvalidCoreInstanceIndex(provider_idx)
-                          }
-                          let expected = core_import_type_of_module(
-                            mod_,
-                            imp.desc,
-                          )
-                          match expected {
-                            None => ()
-                            Some(exp_ty) => {
-                              let expected_kind = core_kind_of_extern_type(
-                                exp_ty,
-                              )
-                              // Check presence/kind first (even if we don't have full type info).
-                              if provider_idx < 0 ||
-                                provider_idx >= core_instance_exports.length() {
-                                raise InvalidCoreInstanceIndex(provider_idx)
-                              }
-                              match core_instance_exports[provider_idx] {
-                                Some(kinds) =>
-                                  match kinds.get(imp.name) {
-                                    None =>
-                                      raise CoreModuleError(
-                                        "module import `\{imp.mod_name}::\{imp.name}` not defined",
-                                      )
-                                    Some(actual_kind) =>
-                                      if actual_kind != expected_kind {
+                if module_idx >= 0 &&
+                  module_idx < core_module_export_types.length() {
+                  export_types = core_module_export_types[module_idx]
+                }
+                // Validate that instantiation args satisfy the core module's
+                // imports when we have enough type information (either a full
+                // core module body, or a core module type signature).
+                let providers : Map[String, Int32] = Map([])
+                let seen_arg_names : Map[String, Int32] = Map([])
+                for a in args {
+                  check_sortidx(a.sortidx, counts, type_table.length())
+                  if seen_arg_names.get(a.name) is Some(_) {
+                    raise CoreModuleError(
+                      "duplicate module instantiation argument named `\{a.name}`",
+                    )
+                  }
+                  seen_arg_names.set(a.name, 1)
+                  match a.sortidx.sort {
+                    Core(0x12) => providers.set(a.name, a.sortidx.idx)
+                    _ => ()
+                  }
+                }
+                let mod_def = if module_idx >= 0 &&
+                  module_idx < core_module_defs.length() {
+                  core_module_defs[module_idx]
+                } else {
+                  None
+                }
+                if contract_scope is None {
+                  match mod_def {
+                    Some(mod_) =>
+                      for imp in mod_.imports {
+                        match providers.get(imp.mod_name) {
+                          None =>
+                            raise CoreModuleError(
+                              "module import `\{imp.mod_name}::\{imp.name}` not defined",
+                            )
+                          Some(provider_idx) => {
+                            if provider_idx < 0 ||
+                              provider_idx >=
+                              core_instance_export_types.length() {
+                              raise InvalidCoreInstanceIndex(provider_idx)
+                            }
+                            let expected = core_import_type_of_module(
+                              mod_,
+                              imp.desc,
+                            )
+                            match expected {
+                              None => ()
+                              Some(exp_ty) => {
+                                let expected_kind = core_kind_of_extern_type(
+                                  exp_ty,
+                                )
+                                // Check presence/kind first (even if we don't have full type info).
+                                if provider_idx < 0 ||
+                                  provider_idx >= core_instance_exports.length() {
+                                  raise InvalidCoreInstanceIndex(provider_idx)
+                                }
+                                match core_instance_exports[provider_idx] {
+                                  Some(kinds) =>
+                                    match kinds.get(imp.name) {
+                                      None =>
                                         raise CoreModuleError(
-                                          "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
+                                          "module import `\{imp.mod_name}::\{imp.name}` not defined",
                                         )
-                                      }
-                                  }
-                                None => ()
-                              }
-                              // If we also know full types, enforce type compatibility.
-                              match core_instance_export_types[provider_idx] {
-                                Some(map) =>
-                                  match map.get(imp.name) {
-                                    Some(prov_ty) =>
-                                      if !core_import_compatible(
-                                          exp_ty, prov_ty,
-                                        ) {
-                                        raise CoreModuleError(
-                                          "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
-                                        )
-                                      }
-                                    None => ()
-                                  }
-                                None => ()
+                                      Some(actual_kind) =>
+                                        if actual_kind != expected_kind {
+                                          raise CoreModuleError(
+                                            "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
+                                          )
+                                        }
+                                    }
+                                  None => ()
+                                }
+                                // If we also know full types, enforce type compatibility.
+                                match core_instance_export_types[provider_idx] {
+                                  Some(map) =>
+                                    match map.get(imp.name) {
+                                      Some(prov_ty) =>
+                                        if !core_import_compatible(
+                                            exp_ty, prov_ty,
+                                          ) {
+                                          raise CoreModuleError(
+                                            "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
+                                          )
+                                        }
+                                      None => ()
+                                    }
+                                  None => ()
+                                }
                               }
                             }
                           }
                         }
                       }
-                    }
-                  None =>
-                    match
-                      (if module_idx >= 0 &&
-                        module_idx < core_module_type_imports.length() {
-                        core_module_type_imports[module_idx]
-                      } else {
-                        None
-                      }) {
-                      Some(sigs) =>
-                        for imp in sigs {
-                          match providers.get(imp.mod_name) {
-                            None =>
-                              raise CoreModuleError(
-                                "module import `\{imp.mod_name}::\{imp.name}` not defined",
-                              )
-                            Some(provider_idx) => {
-                              if provider_idx < 0 ||
-                                provider_idx >=
-                                core_instance_export_types.length() {
-                                raise InvalidCoreInstanceIndex(provider_idx)
-                              }
-                              let expected_kind = core_kind_of_extern_type(
-                                imp.ty,
-                              )
-                              if provider_idx < 0 ||
-                                provider_idx >= core_instance_exports.length() {
-                                raise InvalidCoreInstanceIndex(provider_idx)
-                              }
-                              match core_instance_exports[provider_idx] {
-                                Some(kinds) =>
-                                  match kinds.get(imp.name) {
-                                    None =>
-                                      raise CoreModuleError(
-                                        "module import `\{imp.mod_name}::\{imp.name}` not defined",
-                                      )
-                                    Some(actual_kind) =>
-                                      if actual_kind != expected_kind {
+                    None =>
+                      match
+                        (if module_idx >= 0 &&
+                          module_idx < core_module_type_imports.length() {
+                          core_module_type_imports[module_idx]
+                        } else {
+                          None
+                        }) {
+                        Some(sigs) =>
+                          for imp in sigs {
+                            match providers.get(imp.mod_name) {
+                              None =>
+                                raise CoreModuleError(
+                                  "module import `\{imp.mod_name}::\{imp.name}` not defined",
+                                )
+                              Some(provider_idx) => {
+                                if provider_idx < 0 ||
+                                  provider_idx >=
+                                  core_instance_export_types.length() {
+                                  raise InvalidCoreInstanceIndex(provider_idx)
+                                }
+                                let expected_kind = core_kind_of_extern_type(
+                                  imp.ty,
+                                )
+                                if provider_idx < 0 ||
+                                  provider_idx >= core_instance_exports.length() {
+                                  raise InvalidCoreInstanceIndex(provider_idx)
+                                }
+                                match core_instance_exports[provider_idx] {
+                                  Some(kinds) =>
+                                    match kinds.get(imp.name) {
+                                      None =>
                                         raise CoreModuleError(
-                                          "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
+                                          "module import `\{imp.mod_name}::\{imp.name}` not defined",
                                         )
-                                      }
-                                  }
-                                None => ()
-                              }
-                              match core_instance_export_types[provider_idx] {
-                                Some(map) =>
-                                  match map.get(imp.name) {
-                                    Some(prov_ty) =>
-                                      if !core_import_compatible(
-                                          imp.ty,
-                                          prov_ty,
-                                        ) {
-                                        raise CoreModuleError(
-                                          "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
-                                        )
-                                      }
-                                    None => ()
-                                  }
-                                None => ()
+                                      Some(actual_kind) =>
+                                        if actual_kind != expected_kind {
+                                          raise CoreModuleError(
+                                            "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
+                                          )
+                                        }
+                                    }
+                                  None => ()
+                                }
+                                match core_instance_export_types[provider_idx] {
+                                  Some(map) =>
+                                    match map.get(imp.name) {
+                                      Some(prov_ty) =>
+                                        if !core_import_compatible(
+                                            imp.ty,
+                                            prov_ty,
+                                          ) {
+                                          raise CoreModuleError(
+                                            "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
+                                          )
+                                        }
+                                      None => ()
+                                    }
+                                  None => ()
+                                }
                               }
                             }
                           }
-                        }
-                      None => ()
-                    }
-                }
-              }
-            }
-            InlineExports(inline_exports) => {
-              let map : Map[String, Int32] = Map([])
-              let type_map : Map[String, CoreExternType] = Map([])
-              for ex in inline_exports {
-                check_sortidx(ex.sortidx, counts, type_table.length())
-                if map.get(ex.name) is Some(_) {
-                  raise DuplicateExportName(ex.name)
-                }
-                match ex.sortidx.sort {
-                  Core(core_sort) => {
-                    map.set(ex.name, core_sort)
-                    match core_sort {
-                      0x00 =>
-                        if ex.sortidx.idx >= 0 &&
-                          ex.sortidx.idx < core_func_types.length() {
-                          match core_func_types[ex.sortidx.idx] {
-                            Some(ft) => type_map.set(ex.name, Func(ft))
-                            None => ()
-                          }
-                        }
-                      0x02 =>
-                        if ex.sortidx.idx >= 0 &&
-                          ex.sortidx.idx < core_memory_types.length() {
-                          match core_memory_types[ex.sortidx.idx] {
-                            Some(mt) => type_map.set(ex.name, Memory(mt))
-                            None => ()
-                          }
-                        }
-                      _ => ()
-                    }
+                        None => ()
+                      }
                   }
-                  _ => ()
                 }
               }
-              export_map = Some(map)
-              export_types = Some(type_map)
-            }
-          }
-          core_instance_exports.push(export_map)
-          core_instance_export_types.push(export_types)
-          counts.core_instance += 1
-        }
-      }
-      3 => {
-        // Validate core module type signatures, including `alias outer` bounds.
-        // The `outer` depth counts enclosing component scopes.
-        let max_outer_depth = depth + 1
-        let base_core_type_bound = counts.core_type
-        let exports = parse_core_type_section(
-          s.payload,
-          max_outer_depth,
-          base_core_type_bound,
-          core_type_bound_outers,
-        )
-        let (module_imports, module_export_types) = parse_core_type_section_module_sigs(
-          s.payload,
-          max_outer_depth,
-          base_core_type_bound,
-          core_type_bound_outers,
-        )
-        for e in exports {
-          core_type_exports.push(e)
-        }
-        for m in module_imports {
-          core_type_module_imports.push(m)
-        }
-        for t in module_export_types {
-          core_type_module_export_types.push(t)
-        }
-        counts.core_type += exports.length()
-      }
-      4 => {
-        // Nested component payloads are also component binaries.
-        let nested = @component.parse_component(s.payload) catch {
-          e => raise SectionParseError(4, "parse nested component: \{e}")
-        }
-        let nested_info = validate_component_inner(
-          nested,
-          false,
-          cfg,
-          depth + 1,
-          [type_table] + type_outers,
-          [depth] + type_outer_depths,
-          [counts.core_type] + core_type_bound_outers,
-          [component_sizes] + component_size_outers,
-        )
-        component_import_sorts.push(Some(nested_info.import_sorts))
-        component_import_instance_sigs.push(
-          Some(nested_info.import_instance_sigs),
-        )
-        component_import_func_sigs.push(Some(nested_info.import_func_sigs))
-        component_import_instance_resource_exports.push(
-          Some(nested_info.import_instance_resource_exports),
-        )
-        component_import_core_module_exports.push(
-          Some(nested_info.import_core_module_exports),
-        )
-        component_import_core_module_import_sigs.push(
-          Some(nested_info.import_core_module_import_sigs),
-        )
-        component_import_type_bounds.push(Some(nested_info.import_type_bounds))
-        component_import_type_sigs.push(Some(nested_info.import_type_sigs))
-        component_export_sorts.push(Some(nested_info.export_sorts))
-        component_export_instance_sigs.push(
-          Some(nested_info.export_instance_sigs),
-        )
-        component_export_instance_type_sigs.push(
-          Some(nested_info.export_instance_type_sigs),
-        )
-        component_export_instance_func_sigs.push(
-          Some(nested_info.export_instance_func_sigs),
-        )
-        component_export_type_sigs.push(Some(nested_info.export_type_sigs))
-        component_export_func_sigs.push(Some(nested_info.export_func_sigs))
-        component_sizes.push(nested_info.size)
-        // Nested component definitions contribute to the overall effective
-        // size of the component graph (wasm-tools/very-nested.wast).
-        export_size = add_type_size(export_size, nested_info.size)
-        counts.component += 1
-      }
-      7 => {
-        // Definitions extend the type index space.
-        let defs = @component.parse_type_section(s.payload) catch {
-          e => raise SectionParseError(7, "\{e}")
-        }
-        for d in defs {
-          // This is still a subset: we only allow referencing earlier types.
-          validate_typedef(
-            d,
-            cfg,
-            [type_table] + type_outers,
-            [depth] + type_outer_depths,
-            depth,
-            [core_type_exports],
-            true,
-          )
-          // Resource types refer to the core-func index space for their dtor.
-          // Validate bounds/signature here where we have access to the current
-          // core-func types.
-          match d {
-            ResourceType(_, rep, dtor_idx, _kind) =>
-              match dtor_idx {
-                Some(idx) =>
-                  if idx < 0 || idx >= counts.core_func {
-                    raise SectionParseError(7, "function index out of bounds")
-                  } else {
-                    let expected : @types.FuncType = {
-                      params: [if rep == 0x7e { I64 } else { I32 }],
-                      results: [],
-                    }
-                    if contract_scope is Some(_) {
-                      check_canonical_core_function(
-                        idx, expected, external_contracts, contract_work,
-                      )
-                    } else {
-                      match core_func_types.get(idx) {
-                        Some(Some(ft)) =>
-                          if ft != expected {
-                            raise SectionParseError(
-                              7, "wrong signature for a destructor",
-                            )
+              InlineExports(inline_exports) => {
+                let map : Map[String, Int32] = Map([])
+                let type_map : Map[String, CoreExternType] = Map([])
+                for ex in inline_exports {
+                  check_sortidx(ex.sortidx, counts, type_table.length())
+                  if map.get(ex.name) is Some(_) {
+                    raise DuplicateExportName(ex.name)
+                  }
+                  match ex.sortidx.sort {
+                    Core(core_sort) => {
+                      map.set(ex.name, core_sort)
+                      match core_sort {
+                        0x00 =>
+                          if ex.sortidx.idx >= 0 &&
+                            ex.sortidx.idx < core_func_types.length() {
+                            match core_func_types[ex.sortidx.idx] {
+                              Some(ft) => type_map.set(ex.name, Func(ft))
+                              None => ()
+                            }
+                          }
+                        0x02 =>
+                          if ex.sortidx.idx >= 0 &&
+                            ex.sortidx.idx < core_memory_types.length() {
+                            match core_memory_types[ex.sortidx.idx] {
+                              Some(mt) => type_map.set(ex.name, Memory(mt))
+                              None => ()
+                            }
                           }
                         _ => ()
                       }
                     }
+                    _ => ()
                   }
-                None => ()
+                }
+                export_map = Some(map)
+                export_types = Some(type_map)
               }
-            _ => ()
-          }
-          let size = effective_typedef_size(d, type_sizes)
-          if size > 100000 {
-            raise SectionParseError(7, "effective type size exceeds the limit")
-          }
-          let depth = effective_typedef_depth(d, type_depths)
-          if depth > 100 {
-            raise SectionParseError(7, "type nesting is too deep")
-          }
-          type_table.push(Some(d))
-          local_resource_types.push(d is ResourceType(_, _, _, _))
-          match d {
-            ResourceType(_, _, _, _) => {
-              resource_ids.push(Some(next_resource_id))
-              next_resource_id += 1
             }
-            _ => resource_ids.push(None)
+            core_instance_exports.push(export_map)
+            core_instance_export_types.push(export_types)
+            counts.core_instance += 1
           }
-          type_sizes.push(size)
-          type_depths.push(depth)
         }
-      }
-      10 => {
-        let (new_next_resource_id, new_imported_funcs) = validate_component_section_import(
-          s.payload,
-          cfg,
-          is_root,
-          counts,
-          type_table,
-          local_resource_types,
-          resource_ids,
-          type_sizes,
-          type_depths,
-          component_sizes,
-          instance_sizes,
-          named_types,
-          import_named_types,
-          core_type_exports,
-          core_type_module_imports,
-          core_type_module_export_types,
-          core_module_exports,
-          core_module_defs,
-          core_module_export_types,
-          core_module_type_imports,
-          component_import_sorts,
-          component_import_instance_sigs,
-          component_import_func_sigs,
-          component_import_instance_resource_exports,
-          component_import_core_module_exports,
-          component_import_core_module_import_sigs,
-          component_import_type_bounds,
-          component_import_type_sigs,
-          component_export_sorts,
-          component_export_instance_sigs,
-          component_export_instance_type_sigs,
-          component_export_instance_func_sigs,
-          component_export_type_sigs,
-          component_export_func_sigs,
-          instance_sigs,
-          interface_instance_idxs,
-          instance_export_type_idxs,
-          instance_export_func_idxs,
-          instance_export_type_map,
-          instance_export_type_sigs,
-          instance_export_func_sigs,
-          instance_nested_instance_type_sigs,
-          instance_nested_instance_func_sigs,
-          func_types,
-          func_sig_shapes,
-          seen_import_names,
-          import_resource_names,
-          my_import_sorts,
-          my_import_instance_sigs,
-          my_import_func_sigs,
-          my_import_instance_resource_exports,
-          my_import_type_bounds,
-          my_import_type_sigs,
-          type_outers,
-          next_resource_id,
-          imported_funcs,
-        )
-        next_resource_id = new_next_resource_id
-        imported_funcs = new_imported_funcs
-      }
-      11 => {
-        let (new_export_size, new_next_resource_id) = validate_component_section_export(
-          s.payload,
-          cfg,
-          is_root,
-          counts,
-          type_table,
-          local_resource_types,
-          resource_ids,
-          type_sizes,
-          type_depths,
-          component_sizes,
-          instance_sizes,
-          export_size,
-          named_types,
-          core_module_exports,
-          core_module_defs,
-          core_func_types,
-          core_module_export_types,
-          core_module_type_imports,
-          core_instance_exports,
-          core_instance_export_types,
-          core_memory_types,
-          component_import_sorts,
-          component_import_instance_sigs,
-          component_import_func_sigs,
-          component_import_instance_resource_exports,
-          component_import_core_module_exports,
-          component_import_core_module_import_sigs,
-          component_import_type_bounds,
-          component_import_type_sigs,
-          component_export_sorts,
-          component_export_instance_sigs,
-          component_export_instance_type_sigs,
-          component_export_instance_func_sigs,
-          component_export_type_sigs,
-          component_export_func_sigs,
-          instance_sigs,
-          interface_instance_idxs,
-          instance_export_type_idxs,
-          instance_export_func_idxs,
-          instance_export_type_map,
-          instance_export_type_sigs,
-          instance_export_func_sigs,
-          instance_nested_instance_type_sigs,
-          instance_nested_instance_func_sigs,
-          func_types,
-          func_sig_shapes,
-          imported_funcs,
-          seen_export_names,
-          export_resource_names,
-          my_export_sorts,
-          my_export_instance_sigs,
-          my_export_instance_type_sigs,
-          my_export_instance_func_sigs,
-          my_export_type_sigs,
-          my_export_func_sigs,
-          type_outers,
-          next_resource_id,
-        )
-        export_size = new_export_size
-        next_resource_id = new_next_resource_id
-      }
-      5 =>
-        next_resource_id = validate_component_section_instance(
-          s.payload,
-          cfg,
-          counts,
-          type_table,
-          resource_ids,
-          component_sizes,
-          instance_sizes,
-          core_module_exports,
-          core_module_defs,
-          core_module_type_imports,
-          component_import_sorts,
-          component_import_instance_sigs,
-          component_import_func_sigs,
-          component_import_instance_resource_exports,
-          component_import_core_module_exports,
-          component_import_core_module_import_sigs,
-          component_import_type_bounds,
-          component_import_type_sigs,
-          component_export_sorts,
-          component_export_instance_sigs,
-          component_export_instance_type_sigs,
-          component_export_instance_func_sigs,
-          component_export_type_sigs,
-          component_export_func_sigs,
-          instance_sigs,
-          instance_export_type_idxs,
-          instance_export_func_idxs,
-          instance_export_type_map,
-          instance_export_type_sigs,
-          instance_export_func_sigs,
-          instance_nested_instance_type_sigs,
-          instance_nested_instance_func_sigs,
-          func_types,
-          func_sig_shapes,
-          next_resource_id,
-        )
-      6 => {
-        if contract_scope is Some(_) {
-          core_contract_aliases(
+        3 => {
+          // Validate core module type signatures, including `alias outer` bounds.
+          // The `outer` depth counts enclosing component scopes.
+          let max_outer_depth = depth + 1
+          let base_core_type_bound = counts.core_type
+          let exports = parse_core_type_section(
             s.payload,
-            counts,
-            instance_contracts,
-            external_contracts,
-            contract_work,
+            max_outer_depth,
+            base_core_type_bound,
+            core_type_bound_outers,
+          )
+          let (module_imports, module_export_types) = parse_core_type_section_module_sigs(
+            s.payload,
+            max_outer_depth,
+            base_core_type_bound,
+            core_type_bound_outers,
+          )
+          for e in exports {
+            core_type_exports.push(e)
+          }
+          for m in module_imports {
+            core_type_module_imports.push(m)
+          }
+          for t in module_export_types {
+            core_type_module_export_types.push(t)
+          }
+          counts.core_type += exports.length()
+        }
+        4 => {
+          // Nested component payloads are also component binaries.
+          let nested = @component.parse_component_binary(s.payload) catch {
+            e => raise SectionParseError(4, "parse nested component: \{e}")
+          }
+          shared.resource = next_resource_id
+          shared.origin = counts.next_origin_scope
+          shared.metadata = counts.metadata_remaining
+          shared.ascriptions = counts.ascription_remaining
+          let child_scope = match contract_scope {
+            Some(scope) =>
+              match scope.binding(4, counts.component) {
+                Some(Scope(child)) => child
+                _ => raise UnsupportedComponentAscription
+              }
+            None => 0
+          }
+          return Descend(
+            component_validation_frame(
+              nested,
+              false,
+              cfg,
+              depth + 1,
+              [type_table] + type_outers,
+              [depth] + type_outer_depths,
+              [counts.core_type] + core_type_bound_outers,
+              [component_sizes] + component_size_outers,
+              shared,
+              child_scope,
+              [counts] + outer_counts,
+              core_contracts~,
+            ),
           )
         }
-        validate_component_section_alias(
-          s.payload,
-          counts,
-          type_table,
-          local_resource_types,
-          resource_ids,
-          type_sizes,
-          type_depths,
-          component_sizes,
-          instance_sizes,
-          named_types,
-          import_named_types,
-          core_module_exports,
-          core_module_defs,
-          core_func_types,
-          core_module_export_types,
-          core_module_type_imports,
-          core_instance_exports,
-          core_instance_export_types,
-          core_memory_types,
-          component_import_sorts,
-          component_import_instance_sigs,
-          component_import_func_sigs,
-          component_import_instance_resource_exports,
-          component_import_core_module_exports,
-          component_import_core_module_import_sigs,
-          component_import_type_bounds,
-          component_import_type_sigs,
-          component_export_sorts,
-          component_export_instance_sigs,
-          component_export_instance_type_sigs,
-          component_export_instance_func_sigs,
-          component_export_type_sigs,
-          component_export_func_sigs,
-          instance_sigs,
-          interface_instance_idxs,
-          instance_export_type_idxs,
-          instance_export_func_idxs,
-          instance_export_type_map,
-          instance_export_type_sigs,
-          instance_export_func_sigs,
-          instance_nested_instance_type_sigs,
-          instance_nested_instance_func_sigs,
-          func_types,
-          func_sig_shapes,
-          type_outers,
-          component_size_outers,
-        )
-      }
-      8 => {
-        let canons = @component.parse_canon_section(s.payload) catch {
-          e => raise SectionParseError(8, "\{e}")
-        }
-        for c in canons {
-          let complete_lower = if contract_scope is Some(_) {
-            match c {
-              ResourceNew(_) | ResourceDrop(_) | ResourceRep(_) =>
-                Some(
-                  canonical_resource_function(
-                    c, type_table, local_resource_types, resource_ids, contract_work,
-                  ),
-                )
-              _ =>
-                check_canonical_contract(
-                  c, type_table, func_types, func_sig_shapes, external_contracts,
-                  canonical_budget, contract_work,
-                )
-            }
-          } else {
-            validate_canon(
-              c,
-              type_table,
-              local_resource_types,
-              type_table.length(),
-              core_memory_types,
-              core_func_types,
-              func_types,
-              budget=canonical_budget,
-            )
-            None
+        7 => {
+          // Definitions extend the type index space.
+          let defs = @component.parse_type_section(s.payload) catch {
+            e => raise SectionParseError(7, "\{e}")
           }
-          count_canon(c, counts)
-          match c {
-            Lift(_, _, tyidx) =>
-              match type_table[tyidx] {
-                Some(FuncType(ft)) => {
-                  func_types.push(Some(ft))
-                  func_sig_shapes.push(
-                    Some({
-                      ..funcsig_of_functype(ft, type_table, resource_ids),
-                      complete: Some(
-                        counts.function_signature(ft, type_table, resource_ids),
-                      ),
-                    }),
+          for d in defs {
+            // This is still a subset: we only allow referencing earlier types.
+            validate_typedef(
+              d,
+              cfg,
+              [type_table] + type_outers,
+              [depth] + type_outer_depths,
+              depth,
+              [core_type_exports],
+              true,
+            )
+            // Resource types refer to the core-func index space for their dtor.
+            // Validate bounds/signature here where we have access to the current
+            // core-func types.
+            match d {
+              ResourceType(_, rep, dtor_idx, _kind) =>
+                match dtor_idx {
+                  Some(idx) =>
+                    if idx < 0 || idx >= counts.core_func {
+                      raise SectionParseError(7, "function index out of bounds")
+                    } else {
+                      let expected : @types.FuncType = {
+                        params: [if rep == 0x7e { I64 } else { I32 }],
+                        results: [],
+                      }
+                      if contract_scope is Some(_) {
+                        check_canonical_core_function(
+                          idx, expected, external_contracts, contract_work,
+                        )
+                      } else {
+                        match core_func_types.get(idx) {
+                          Some(Some(ft)) =>
+                            if ft != expected {
+                              raise SectionParseError(
+                                7, "wrong signature for a destructor",
+                              )
+                            }
+                          _ => ()
+                        }
+                      }
+                    }
+                  None => ()
+                }
+              _ => ()
+            }
+            let size = effective_typedef_size(d, type_sizes)
+            if size > 100000 {
+              raise SectionParseError(
+                7, "effective type size exceeds the limit",
+              )
+            }
+            let depth = effective_typedef_depth(d, type_depths)
+            if depth > 100 {
+              raise SectionParseError(7, "type nesting is too deep")
+            }
+            type_table.push(Some(d))
+            local_resource_types.push(d is ResourceType(_, _, _, _))
+            match d {
+              ResourceType(_, _, _, _) => {
+                counts.owned_resources[next_resource_id] = true
+                resource_ids.push(Some(next_resource_id))
+                next_resource_id += 1
+              }
+              _ => resource_ids.push(None)
+            }
+            type_sizes.push(size)
+            type_depths.push(depth)
+          }
+        }
+        10 => {
+          let (new_next_resource_id, new_imported_funcs) = validate_component_section_import(
+            s.payload,
+            cfg,
+            is_root,
+            counts,
+            type_table,
+            local_resource_types,
+            resource_ids,
+            type_sizes,
+            type_depths,
+            component_sizes,
+            instance_sizes,
+            named_types,
+            import_named_types,
+            core_type_exports,
+            core_type_module_imports,
+            core_type_module_export_types,
+            core_module_exports,
+            core_module_defs,
+            core_module_export_types,
+            core_module_type_imports,
+            component_import_sorts,
+            component_import_instance_sigs,
+            component_import_func_sigs,
+            component_import_instance_resource_exports,
+            component_import_core_module_exports,
+            component_import_core_module_import_sigs,
+            component_import_type_bounds,
+            component_import_type_sigs,
+            component_export_sorts,
+            component_export_instance_sigs,
+            component_export_instance_type_sigs,
+            component_export_instance_func_sigs,
+            component_export_type_sigs,
+            component_export_func_sigs,
+            instance_sigs,
+            interface_instance_idxs,
+            instance_export_type_idxs,
+            instance_export_func_idxs,
+            instance_export_type_map,
+            instance_export_type_sigs,
+            instance_export_func_sigs,
+            instance_nested_instance_type_sigs,
+            instance_nested_instance_func_sigs,
+            func_types,
+            func_sig_shapes,
+            seen_import_names,
+            import_resource_names,
+            my_import_sorts,
+            my_import_instance_sigs,
+            my_import_func_sigs,
+            my_import_instance_resource_exports,
+            my_import_type_bounds,
+            my_import_type_sigs,
+            type_outers,
+            next_resource_id,
+            imported_funcs,
+          )
+          next_resource_id = new_next_resource_id
+          imported_funcs = new_imported_funcs
+        }
+        11 => {
+          let (new_export_size, new_next_resource_id) = validate_component_section_export(
+            s.payload,
+            cfg,
+            is_root,
+            counts,
+            type_table,
+            local_resource_types,
+            resource_ids,
+            type_sizes,
+            type_depths,
+            component_sizes,
+            instance_sizes,
+            export_size,
+            named_types,
+            core_module_exports,
+            core_module_defs,
+            core_func_types,
+            core_module_export_types,
+            core_module_type_imports,
+            core_instance_exports,
+            core_instance_export_types,
+            core_memory_types,
+            component_import_sorts,
+            component_import_instance_sigs,
+            component_import_func_sigs,
+            component_import_instance_resource_exports,
+            component_import_core_module_exports,
+            component_import_core_module_import_sigs,
+            component_import_type_bounds,
+            component_import_type_sigs,
+            component_export_sorts,
+            component_export_instance_sigs,
+            component_export_instance_type_sigs,
+            component_export_instance_func_sigs,
+            component_export_type_sigs,
+            component_export_func_sigs,
+            instance_sigs,
+            interface_instance_idxs,
+            instance_export_type_idxs,
+            instance_export_func_idxs,
+            instance_export_type_map,
+            instance_export_type_sigs,
+            instance_export_func_sigs,
+            instance_nested_instance_type_sigs,
+            instance_nested_instance_func_sigs,
+            func_types,
+            func_sig_shapes,
+            imported_funcs,
+            seen_export_names,
+            export_resource_names,
+            my_export_sorts,
+            my_export_instance_sigs,
+            my_export_instance_type_sigs,
+            my_export_instance_func_sigs,
+            my_export_type_sigs,
+            my_export_func_sigs,
+            type_outers,
+            next_resource_id,
+          )
+          export_size = new_export_size
+          next_resource_id = new_next_resource_id
+        }
+        5 => {
+          let resource_start = next_resource_id
+          next_resource_id = validate_component_section_instance(
+            s.payload,
+            cfg,
+            counts,
+            type_table,
+            resource_ids,
+            component_sizes,
+            instance_sizes,
+            core_module_exports,
+            core_module_defs,
+            core_module_type_imports,
+            component_import_sorts,
+            component_import_instance_sigs,
+            component_import_func_sigs,
+            component_import_instance_resource_exports,
+            component_import_core_module_exports,
+            component_import_core_module_import_sigs,
+            component_import_type_bounds,
+            component_import_type_sigs,
+            component_export_sorts,
+            component_export_instance_sigs,
+            component_export_instance_type_sigs,
+            component_export_instance_func_sigs,
+            component_export_type_sigs,
+            component_export_func_sigs,
+            instance_sigs,
+            instance_export_type_idxs,
+            instance_export_func_idxs,
+            instance_export_type_map,
+            instance_export_type_sigs,
+            instance_export_func_sigs,
+            instance_nested_instance_type_sigs,
+            instance_nested_instance_func_sigs,
+            func_types,
+            func_sig_shapes,
+            next_resource_id,
+          )
+          for resource in resource_start..<next_resource_id {
+            counts.owned_resources[resource] = true
+          }
+        }
+        6 => {
+          if contract_scope is Some(_) {
+            core_contract_aliases(
+              s.payload,
+              counts,
+              instance_contracts,
+              external_contracts,
+              contract_work,
+            )
+          }
+          validate_component_section_alias(
+            s.payload,
+            counts,
+            type_table,
+            local_resource_types,
+            resource_ids,
+            type_sizes,
+            type_depths,
+            component_sizes,
+            instance_sizes,
+            named_types,
+            import_named_types,
+            core_module_exports,
+            core_module_defs,
+            core_func_types,
+            core_module_export_types,
+            core_module_type_imports,
+            core_instance_exports,
+            core_instance_export_types,
+            core_memory_types,
+            component_import_sorts,
+            component_import_instance_sigs,
+            component_import_func_sigs,
+            component_import_instance_resource_exports,
+            component_import_core_module_exports,
+            component_import_core_module_import_sigs,
+            component_import_type_bounds,
+            component_import_type_sigs,
+            component_export_sorts,
+            component_export_instance_sigs,
+            component_export_instance_type_sigs,
+            component_export_instance_func_sigs,
+            component_export_type_sigs,
+            component_export_func_sigs,
+            instance_sigs,
+            interface_instance_idxs,
+            instance_export_type_idxs,
+            instance_export_func_idxs,
+            instance_export_type_map,
+            instance_export_type_sigs,
+            instance_export_func_sigs,
+            instance_nested_instance_type_sigs,
+            instance_nested_instance_func_sigs,
+            func_types,
+            func_sig_shapes,
+            type_outers,
+            component_size_outers,
+          )
+        }
+        8 => {
+          let canons = @component.parse_canon_section(s.payload) catch {
+            e => raise SectionParseError(8, "\{e}")
+          }
+          for c in canons {
+            let complete_lower = if contract_scope is Some(_) {
+              match c {
+                ResourceNew(_) | ResourceDrop(_) | ResourceRep(_) =>
+                  Some(
+                    canonical_resource_function(
+                      c, type_table, local_resource_types, resource_ids, contract_work,
+                    ),
+                  )
+                _ =>
+                  check_canonical_contract(
+                    c, type_table, func_types, func_sig_shapes, external_contracts,
+                    canonical_budget, contract_work,
+                  )
+              }
+            } else {
+              validate_canon(
+                c,
+                type_table,
+                local_resource_types,
+                type_table.length(),
+                core_memory_types,
+                core_func_types,
+                func_types,
+                budget=canonical_budget,
+              )
+              None
+            }
+            count_canon(c, counts)
+            match c {
+              Lift(_, _, tyidx) =>
+                match type_table[tyidx] {
+                  Some(FuncType(ft)) => {
+                    func_types.push(Some(ft))
+                    func_sig_shapes.push(
+                      Some({
+                        ..funcsig_of_functype(ft, type_table, resource_ids),
+                        complete: Some(
+                          counts.function_signature(
+                            ft, type_table, resource_ids,
+                          ),
+                        ),
+                      }),
+                    )
+                  }
+                  _ => {
+                    func_types.push(None)
+                    func_sig_shapes.push(None)
+                  }
+                }
+              // All non-lift canonical items append a core function to the core-func
+              // index space. Model known intrinsic signatures so core module
+              // instantiation validates imports against canonical builtins.
+              _ => {
+                let signature = if contract_scope is Some(_) {
+                  complete_lower
+                } else {
+                  core_functype_for_canon(
+                    c, type_table, core_memory_types, func_types, canonical_budget,
                   )
                 }
-                _ => {
-                  func_types.push(None)
-                  func_sig_shapes.push(None)
+                if contract_scope is Some(_) && signature is Some(ft) {
+                  external_contracts[(0, core_func_types.length())] = Func(
+                    canonical_contract_function(ft),
+                  )
                 }
+                core_func_types.push(signature)
               }
-            // All non-lift canonical items append a core function to the core-func
-            // index space. Model known intrinsic signatures so core module
-            // instantiation validates imports against canonical builtins.
-            _ => {
-              let signature = if contract_scope is Some(_) {
-                complete_lower
-              } else {
-                core_functype_for_canon(
-                  c, type_table, core_memory_types, func_types, canonical_budget,
-                )
-              }
-              if contract_scope is Some(_) && signature is Some(ft) {
-                external_contracts[(0, core_func_types.length())] = Func(
-                  canonical_contract_function(ft),
-                )
-              }
-              core_func_types.push(signature)
             }
           }
         }
-      }
-      9 => {
-        let start = @component.parse_start_section(s.payload) catch {
-          e => raise SectionParseError(9, "\{e}")
+        9 => {
+          let start = @component.parse_start_section(s.payload) catch {
+            e => raise SectionParseError(9, "\{e}")
+          }
+          if start.func_idx < 0 || start.func_idx >= counts.func {
+            raise InvalidFuncIndex(start.func_idx)
+          }
         }
-        if start.func_idx < 0 || start.func_idx >= counts.func {
-          raise InvalidFuncIndex(start.func_idx)
-        }
+        _ => ()
       }
-      _ => ()
     }
-  }
-  for value in counts.values {
-    if !value.used {
-      raise SectionParseError(
-        10, "value was not used as part of an instantiation, start function, or export",
+    for value in counts.values {
+      if !value.used {
+        raise SectionParseError(
+          10, "value was not used as part of an instantiation, start function, or export",
+        )
+      }
+    }
+    if export_size > 100000 {
+      raise SectionParseError(11, "effective type size exceeds the limit")
+    }
+    let contract = if is_root {
+      None
+    } else {
+      Some(
+        concrete_component_contract(
+          counts, type_table, resource_ids, func_sig_shapes,
+        ),
       )
     }
+    shared.resource = next_resource_id
+    shared.origin = counts.next_origin_scope
+    shared.metadata = counts.metadata_remaining
+    shared.ascriptions = counts.ascription_remaining
+    Complete({
+      size: export_size,
+      contract,
+      import_sorts: my_import_sorts,
+      import_instance_sigs: my_import_instance_sigs,
+      import_func_sigs: my_import_func_sigs,
+      import_instance_resource_exports: my_import_instance_resource_exports,
+      import_type_bounds: my_import_type_bounds,
+      import_type_sigs: my_import_type_sigs,
+      import_core_module_exports: component_import_core_module_exports_of(
+        component,
+      ),
+      import_core_module_import_sigs: component_import_core_module_import_sigs_of(
+        component,
+      ),
+      export_sorts: my_export_sorts,
+      export_instance_sigs: my_export_instance_sigs,
+      export_instance_type_sigs: my_export_instance_type_sigs,
+      export_instance_func_sigs: my_export_instance_func_sigs,
+      export_type_sigs: my_export_type_sigs,
+      export_func_sigs: my_export_func_sigs,
+    })
   }
-  if export_size > 100000 {
-    raise SectionParseError(11, "effective type size exceeds the limit")
-  }
-  {
-    size: export_size,
-    import_sorts: my_import_sorts,
-    import_instance_sigs: my_import_instance_sigs,
-    import_func_sigs: my_import_func_sigs,
-    import_instance_resource_exports: my_import_instance_resource_exports,
-    import_type_bounds: my_import_type_bounds,
-    import_type_sigs: my_import_type_sigs,
-    import_core_module_exports: component_import_core_module_exports_of(
-      component,
-    ),
-    import_core_module_import_sigs: component_import_core_module_import_sigs_of(
-      component,
-    ),
-    export_sorts: my_export_sorts,
-    export_instance_sigs: my_export_instance_sigs,
-    export_instance_type_sigs: my_export_instance_type_sigs,
-    export_instance_func_sigs: my_export_instance_func_sigs,
-    export_type_sigs: my_export_type_sigs,
-    export_func_sigs: my_export_func_sigs,
-  }
+  { advance, }
 }
 
 ///|
@@ -1006,7 +1104,27 @@ pub fn validate_component_with_config(
   cfg : ComponentValidationConfig,
   core_contracts~ : @core_types.ContractGraph? = None,
 ) -> Unit raise ComponentValidationError {
-  validate_component_inner(
+  validate_component_binary_with_config(component.binary, cfg, core_contracts~)
+}
+
+///|
+/// Validate binary sections with an explicit stack for nested components.
+/// The caller must apply its framing/depth profile before parsing type sections.
+pub fn validate_component_binary_with_config(
+  component : @component.ComponentBinary,
+  cfg : ComponentValidationConfig,
+  core_contracts~ : @core_types.ContractGraph? = None,
+) -> Unit raise ComponentValidationError {
+  let shared : ComponentValidationState = {
+    resource: 0,
+    origin: 0,
+    metadata: 1000000,
+    ascriptions: 1000000,
+    frames: 1000000,
+    core_work: { remaining: 1000000, },
+    canonical_work: { remaining: 1000000, },
+  }
+  let root = component_validation_frame(
     component,
     true,
     cfg,
@@ -1015,9 +1133,24 @@ pub fn validate_component_with_config(
     [],
     [],
     [],
+    shared,
+    0,
+    [],
     core_contracts~,
   )
-  |> ignore
+  let work = [root]
+  let mut completed : ValidatedComponentInfo? = None
+  while work.last() is Some(frame) {
+    let step = (frame.advance)(completed)
+    completed = None
+    match step {
+      Descend(child) => work.push(child)
+      Complete(info) => {
+        ignore(work.pop())
+        completed = Some(info)
+      }
+    }
+  }
 }
 
 ///|
@@ -1044,9 +1177,9 @@ pub fn validate_component_for_instantiation_with_config(
   cfg : ComponentValidationConfig,
 ) -> ValidatedComponent raise ComponentValidationError {
   let component_bytes = component.snapshot_bytes()
-  let snapshot = @component.parse_component(component_bytes) catch {
+  let snapshot = @component.parse_component_binary(component_bytes) catch {
     e => raise SectionParseError(0, "component snapshot: \{e}")
   }
-  validate_component_with_config(snapshot, cfg)
+  validate_component_binary_with_config(snapshot, cfg)
   { component_bytes, }
 }

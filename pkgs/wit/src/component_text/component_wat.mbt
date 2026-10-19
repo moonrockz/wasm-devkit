@@ -7520,13 +7520,24 @@ fn append_section(
 }
 
 ///|
-fn compile_component_expr_with_outer(
+priv struct ComponentCompileFrame {
+  advance : (Bytes?) -> ComponentCompileStep raise ComponentTextError
+}
+
+///|
+priv enum ComponentCompileStep {
+  Descend(ComponentCompileFrame)
+  Complete(Bytes)
+}
+
+///|
+fn component_compile_frame(
   expr : Array[SExpr],
   outer_type_scopes : Array[Array[NamedBinding]],
   outer_core_type_scopes : Array[Array[NamedBinding]],
   outer_component_scopes : Array[Array[NamedBinding]],
   outer_core_module_scopes : Array[Array[NamedBinding]],
-) -> Bytes raise ComponentTextError {
+) -> ComponentCompileFrame raise ComponentTextError {
   if expr.length() == 0 {
     raise ParseError("empty list is not a component")
   }
@@ -7545,89 +7556,15 @@ fn compile_component_expr_with_outer(
     outer_type_scopes, outer_core_type_scopes, outer_component_scopes, outer_core_module_scopes,
   )
 
-  for index in field_index..<expr.length() {
-    let field_expr = expr[index]
-    let field = if field_expr is List(items) {
-      items
-    } else {
-      raise ParseError("component fields must be lists")
-    }
-    if field.length() == 0 {
-      raise ParseError("empty component field")
-    }
-    if field[0] is Atom("import") {
-      parse_import(field, state)
-      continue
-    }
-    if field[0] is Atom("component") {
-      let name_opt = parse_optional_identifier(field, 1)
-      let body_start = if name_opt is Some(_) { 2 } else { 1 }
-      let export_names : Array[String] = []
-      let mut nested_start = body_start
-      while nested_start < field.length() {
-        let export_item = if field[nested_start] is List(items) {
-          items
-        } else {
-          break
-        }
-        if export_item.length() == 2 && export_item[0] is Atom("export") {
-          export_names.push(
-            parse_name_text(export_item[1], "component export name"),
-          )
-          nested_start += 1
-          continue
-        }
-        break
+  let mut pending : (String?, Array[String])? = None
+  let advance = fn(
+    completed : Bytes?,
+  ) -> ComponentCompileStep raise ComponentTextError {
+    if completed is Some(nested) {
+      guard pending is Some((name_opt, export_names)) else {
+        raise ParseError("missing component continuation")
       }
-      if nested_start < field.length() &&
-        export_names.length() == 0 &&
-        nested_start + 1 == field.length() {
-        if field[nested_start] is List(items) &&
-          items.length() == 2 &&
-          items[0] is Atom("import") {
-          let desc : Array[SExpr] = [Atom("component")]
-          if name_opt is Some(name) {
-            desc.push(Atom(name))
-          }
-          parse_import([Atom("import"), items[1], List(desc)], state)
-          continue
-        }
-      }
-      let next_outer_type_scopes : Array[Array[NamedBinding]] = [
-        state.type_names,
-      ]
-      for scope in state.outer_type_scopes {
-        next_outer_type_scopes.push(scope)
-      }
-      let next_outer_core_type_scopes : Array[Array[NamedBinding]] = [
-        state.core_type_names,
-      ]
-      for scope in state.outer_core_type_scopes {
-        next_outer_core_type_scopes.push(scope)
-      }
-      let next_outer_component_scopes : Array[Array[NamedBinding]] = [
-        state.component_names,
-      ]
-      for scope in state.outer_component_scopes {
-        next_outer_component_scopes.push(scope)
-      }
-      let next_outer_core_module_scopes : Array[Array[NamedBinding]] = [
-        state.core_module_names,
-      ]
-      for scope in state.outer_core_module_scopes {
-        next_outer_core_module_scopes.push(scope)
-      }
-      let nested_expr : Array[SExpr] = [Atom("component")]
-      if name_opt is Some(name) {
-        nested_expr.push(Atom(name))
-      }
-      for i in nested_start..<field.length() {
-        nested_expr.push(field[i])
-      }
-      let nested = compile_component_expr_with_outer(
-        nested_expr, next_outer_type_scopes, next_outer_core_type_scopes, next_outer_component_scopes,
-        next_outer_core_module_scopes,
-      )
+      pending = None
       state.nested_components.push(nested)
       state.sections_ordered.push({ section_id: 4, payload: nested, })
       let component_idx = state.next_component_idx
@@ -7644,65 +7581,197 @@ fn compile_component_expr_with_outer(
         })
         finalize_export(state, 0x04, None, None)
       }
-      continue
     }
-    if field[0] is Atom("type") {
-      parse_type_field(field, state)
-      continue
+    while field_index < expr.length() {
+      let index = field_index
+      field_index += 1
+      let field_expr = expr[index]
+      let field = if field_expr is List(items) {
+        items
+      } else {
+        raise ParseError("component fields must be lists")
+      }
+      if field.length() == 0 {
+        raise ParseError("empty component field")
+      }
+      if field[0] is Atom("@custom") {
+        guard field.length() >= 2 && field[1] is Str(name) else {
+          raise ParseError("custom section name must be UTF-8")
+        }
+        let payload = ByteBuf::ByteBuf()
+        payload.push_utf8_name(name)
+        for index in 2..<field.length() {
+          let bytes = match field[index] {
+            Str(text) => @utf8.encode(text)
+            ByteStr(bytes) => bytes
+            _ =>
+              raise ParseError("custom component section expects byte strings")
+          }
+          payload.push_bytes(bytes)
+        }
+        state.sections_ordered.push({
+          section_id: 0,
+          payload: payload.to_bytes(),
+        })
+        continue
+      }
+      if field[0] is Atom("import") {
+        parse_import(field, state)
+        continue
+      }
+      if field[0] is Atom("component") {
+        let name_opt = parse_optional_identifier(field, 1)
+        let body_start = if name_opt is Some(_) { 2 } else { 1 }
+        let export_names : Array[String] = []
+        let mut nested_start = body_start
+        while nested_start < field.length() {
+          let export_item = if field[nested_start] is List(items) {
+            items
+          } else {
+            break
+          }
+          if export_item.length() == 2 && export_item[0] is Atom("export") {
+            export_names.push(
+              parse_name_text(export_item[1], "component export name"),
+            )
+            nested_start += 1
+            continue
+          }
+          break
+        }
+        if nested_start < field.length() &&
+          export_names.length() == 0 &&
+          nested_start + 1 == field.length() {
+          if field[nested_start] is List(items) &&
+            items.length() == 2 &&
+            items[0] is Atom("import") {
+            let desc : Array[SExpr] = [Atom("component")]
+            if name_opt is Some(name) {
+              desc.push(Atom(name))
+            }
+            parse_import([Atom("import"), items[1], List(desc)], state)
+            continue
+          }
+        }
+        let next_outer_type_scopes : Array[Array[NamedBinding]] = [
+          state.type_names,
+        ]
+        for scope in state.outer_type_scopes {
+          next_outer_type_scopes.push(scope)
+        }
+        let next_outer_core_type_scopes : Array[Array[NamedBinding]] = [
+          state.core_type_names,
+        ]
+        for scope in state.outer_core_type_scopes {
+          next_outer_core_type_scopes.push(scope)
+        }
+        let next_outer_component_scopes : Array[Array[NamedBinding]] = [
+          state.component_names,
+        ]
+        for scope in state.outer_component_scopes {
+          next_outer_component_scopes.push(scope)
+        }
+        let next_outer_core_module_scopes : Array[Array[NamedBinding]] = [
+          state.core_module_names,
+        ]
+        for scope in state.outer_core_module_scopes {
+          next_outer_core_module_scopes.push(scope)
+        }
+        let nested_expr : Array[SExpr] = [Atom("component")]
+        if name_opt is Some(name) {
+          nested_expr.push(Atom(name))
+        }
+        for i in nested_start..<field.length() {
+          nested_expr.push(field[i])
+        }
+        pending = Some((name_opt, export_names))
+        return Descend(
+          component_compile_frame(
+            nested_expr, next_outer_type_scopes, next_outer_core_type_scopes, next_outer_component_scopes,
+            next_outer_core_module_scopes,
+          ),
+        )
+      }
+      if field[0] is Atom("type") {
+        parse_type_field(field, state)
+        continue
+      }
+      if field[0] is Atom("core") {
+        parse_core_field(field, state)
+        continue
+      }
+      if field[0] is Atom("instance") {
+        parse_instance_field(field, state)
+        continue
+      }
+      if field[0] is Atom("alias") {
+        parse_alias_field(field, state)
+        continue
+      }
+      if field[0] is Atom("func") {
+        parse_func_field(field, state)
+        continue
+      }
+      if field[0] is Atom("canon") {
+        parse_canon_field(field, state)
+        continue
+      }
+      if field[0] is Atom("export") {
+        parse_export_field(field, state)
+        continue
+      }
+      let head_name = match expr_head_atom(field_expr) {
+        Some(name) => name
+        None => "<unknown>"
+      }
+      raise Unsupported("unsupported component field '\{head_name}'")
     }
-    if field[0] is Atom("core") {
-      parse_core_field(field, state)
-      continue
+
+    let out = ByteBuf::ByteBuf()
+    out.push_u8(0x00)
+    out.push_u8(0x61)
+    out.push_u8(0x73)
+    out.push_u8(0x6d)
+    out.push_u8(0x0d)
+    out.push_u8(0x00)
+    out.push_u8(0x01)
+    out.push_u8(0x00)
+
+    for section in state.sections_ordered {
+      append_section(out, section.section_id, section.payload)
     }
-    if field[0] is Atom("instance") {
-      parse_instance_field(field, state)
-      continue
-    }
-    if field[0] is Atom("alias") {
-      parse_alias_field(field, state)
-      continue
-    }
-    if field[0] is Atom("func") {
-      parse_func_field(field, state)
-      continue
-    }
-    if field[0] is Atom("canon") {
-      parse_canon_field(field, state)
-      continue
-    }
-    if field[0] is Atom("export") {
-      parse_export_field(field, state)
-      continue
-    }
-    let head_name = match expr_head_atom(field_expr) {
-      Some(name) => name
-      None => "<unknown>"
-    }
-    raise Unsupported("unsupported component field '\{head_name}'")
+
+    Complete(out.to_bytes())
   }
-
-  let out = ByteBuf::ByteBuf()
-  out.push_u8(0x00)
-  out.push_u8(0x61)
-  out.push_u8(0x73)
-  out.push_u8(0x6d)
-  out.push_u8(0x0d)
-  out.push_u8(0x00)
-  out.push_u8(0x01)
-  out.push_u8(0x00)
-
-  for section in state.sections_ordered {
-    append_section(out, section.section_id, section.payload)
-  }
-
-  out.to_bytes()
+  { advance, }
 }
 
 ///|
 fn compile_component_expr(
   expr : Array[SExpr],
 ) -> Bytes raise ComponentTextError {
-  compile_component_expr_with_outer(expr, [], [], [], [])
+  let work = [component_compile_frame(expr, [], [], [], [])]
+  let mut completed : Bytes? = None
+  let mut remaining = 1000000
+  while work.last() is Some(frame) {
+    remaining -= work.length()
+    if remaining < 0 || work.length() > 257 {
+      raise Unsupported("component text scope work limit exceeded")
+    }
+    let step = (frame.advance)(completed)
+    completed = None
+    match step {
+      Descend(child) => work.push(child)
+      Complete(bytes) => {
+        ignore(work.pop())
+        completed = Some(bytes)
+      }
+    }
+  }
+  match completed {
+    Some(bytes) => bytes
+    None => raise ParseError("missing component result")
+  }
 }
 
 ///|

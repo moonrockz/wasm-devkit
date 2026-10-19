@@ -1,0 +1,6 @@
+{
+  "wac": 0,
+  "wasm": 0,
+  "product": 1,
+  "error": "/Users/damian/orca/workspaces/wasm-devkit/feat-verify-wit-and-wac-semantics-and-resolve-im/.dev/runtime-profile-audit/dummy_wasi_http-0.2.0/minimal-nested.wasm:[byte 11]: error WAC-B002: section is outside the WIT type-component encoding boundary\n/Users/damian/orca/workspaces/wasm-devkit/feat-verify-wit-and-wac-semantics-and-resolve-im/.dev/runtime-profile-audit/dummy_wasi_http-0.2.0/nested-input.wac:[30,39): package `test:dep` requested here\n"
+}

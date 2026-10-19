@@ -1,0 +1,1 @@
+(component (component $c (type $f (func)) (import "f" (func $f (type $f))) (export "f" (func $f))) (type $expected (component (type $f (func)) (import "f" (func (type $f))))) (export $narrow "c" (component $c) (component (type $expected))) (type $f (func)) (import "f" (func $f (type $f))) (instance $i (instantiate $narrow (with "f" (func $f)))) (alias export $i "f" (func $bad)))

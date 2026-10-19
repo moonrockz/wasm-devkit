@@ -5,6 +5,7 @@ priv enum BinaryDeclaration {
   Define(@component.TypeDef)
   CoreDefine(Bytes, Bool)
   CoreModule(Bytes)
+  ConcreteComponent(Bytes)
   Alias(@component.Alias)
   Describe(Bool, String, Array[@component.NameAttribute], @component.ExternDesc)
   Export(@component.Export)
@@ -15,6 +16,7 @@ priv struct BinaryScope {
   parent : Int32?
   owner : Int32
   interface_scope : Bool
+  concrete : Bool
   declarations : Array[BinaryDeclaration]
   types : Array[Int32]
   functions : Array[Int32]
@@ -236,6 +238,7 @@ fn BinaryGraph::scope(
   parent : Int32?,
   declarations : Array[BinaryDeclaration],
   interface_scope : Bool,
+  concrete~ : Bool = false,
 ) -> Int32 raise BinaryFailure {
   let owner = self.add(
     if interface_scope {
@@ -249,6 +252,7 @@ fn BinaryGraph::scope(
     parent,
     owner,
     interface_scope,
+    concrete,
     declarations,
     types: [],
     functions: [],

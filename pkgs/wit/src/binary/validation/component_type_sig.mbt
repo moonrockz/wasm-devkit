@@ -408,17 +408,32 @@ fn componenttype_export_func_sigs_of_decls(
 /// For a given component, extract the expected export-kinds of any core-module
 /// imports, keyed by the component import name.
 fn component_import_core_module_exports_of(
-  c : @component.Component,
+  c : @component.ComponentBinary,
 ) -> Map[String, Map[String, Int32]] raise ComponentValidationError {
+  let core_types : Array[Bytes] = []
+  let imports : Array[@component.Import] = []
+  for section in c.sections {
+    if section.id == 3 {
+      core_types.push(section.payload)
+    }
+    if section.id == 10 {
+      let parsed = @component.parse_import_section(section.payload) catch {
+        error => raise SectionParseError(10, error.to_string())
+      }
+      for item in parsed {
+        imports.push(item)
+      }
+    }
+  }
   let core_type_exports : Array[Map[String, Int32]?] = []
-  for payload in c.core_types {
+  for payload in core_types {
     let exports = parse_core_type_section(payload, -1, 0, [])
     for e in exports {
       core_type_exports.push(e)
     }
   }
   let result : Map[String, Map[String, Int32]] = Map([])
-  for i in c.imports {
+  for i in imports {
     if (importname_to_string(i.name), i.desc)
       is (Some(name), CoreModuleType(tyidx)) &&
       tyidx >= 0 &&
@@ -432,11 +447,26 @@ fn component_import_core_module_exports_of(
 
 ///|
 fn component_import_core_module_import_sigs_of(
-  c : @component.Component,
+  c : @component.ComponentBinary,
 ) -> Map[String, Map[String, CoreExternType]] raise ComponentValidationError {
+  let core_types : Array[Bytes] = []
+  let imports : Array[@component.Import] = []
+  for section in c.sections {
+    if section.id == 3 {
+      core_types.push(section.payload)
+    }
+    if section.id == 10 {
+      let parsed = @component.parse_import_section(section.payload) catch {
+        error => raise SectionParseError(10, error.to_string())
+      }
+      for item in parsed {
+        imports.push(item)
+      }
+    }
+  }
   let core_type_imports : Array[Array[CoreModuleTypeImport]?] = []
   let mut base_bound = 0
-  for payload in c.core_types {
+  for payload in core_types {
     let (imports, _export_types) = parse_core_type_section_module_sigs(
       payload,
       -1,
@@ -449,7 +479,7 @@ fn component_import_core_module_import_sigs_of(
     base_bound += imports.length()
   }
   let result : Map[String, Map[String, CoreExternType]] = Map([])
-  for i in c.imports {
+  for i in imports {
     if (importname_to_string(i.name), i.desc)
       is (Some(name), CoreModuleType(tyidx)) &&
       tyidx >= 0 &&

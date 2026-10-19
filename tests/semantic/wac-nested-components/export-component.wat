@@ -1,0 +1,1 @@
+(component (component $c) (export "c" (component $c)))

@@ -114,7 +114,7 @@ pub fn decode_component_package(
     Ok(validated) => validated.parser_bytes()
   }
   try {
-    let component = @component.parse_component(parser_bytes) catch {
+    let component = @component.parse_component_binary(parser_bytes) catch {
       _ => raise Invalid("validated component could not be read")
     }
     binary_decode(component, bytes, source_id)

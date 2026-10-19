@@ -20,9 +20,9 @@ They are not ordinary acceptance-equivalence cases. The `padded-heap` binary
 uses a padded negative abstract heap code. Both references reject that encoding;
 its WAT file describes the canonical form before the deliberate byte mutation.
 
-`shared-global`, `concrete-heap-index` and
-`nested-component` are
-reference-accepted boundaries that still return `WAC-B002`. Concrete and shared
+`shared-global` and `concrete-heap-index` are reference-accepted boundaries
+that still return `WAC-B002`. `nested-component` now accepts with complete
+scoped child contracts. Concrete and shared
 heap references, GC types and supertypes also remain outside this slice.
 Function-only recursive groups without recursive references are supported.
 

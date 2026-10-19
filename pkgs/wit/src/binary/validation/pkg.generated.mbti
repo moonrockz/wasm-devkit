@@ -10,6 +10,8 @@ import {
 // Values
 pub fn validate_component(@wasm_component.Component) -> Unit raise ComponentValidationError
 
+pub fn validate_component_binary_with_config(@wasm_component.ComponentBinary, ComponentValidationConfig, core_contracts? : @core_types.ContractGraph?) -> Unit raise ComponentValidationError
+
 pub fn validate_component_for_instantiation(@wasm_component.Component) -> ValidatedComponent raise ComponentValidationError
 
 pub fn validate_component_for_instantiation_with_config(@wasm_component.Component, ComponentValidationConfig) -> ValidatedComponent raise ComponentValidationError
@@ -44,6 +46,7 @@ pub(all) suberror ComponentValidationError {
   CanonMemoryNot32Bit(Int)
   CanonCoreFuncTypeMismatch(String)
   CanonOptionNotAllowed(String)
+  ComponentScopeBudgetExceeded
   CoreContractBudgetExceeded
   CanonicalBudgetExceeded
   UnsupportedCanonical

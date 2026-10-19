@@ -478,13 +478,14 @@ pub fn parse_normalized_component_wat(
     }
   }
   let normalized = StringBuilder()
-  let customs : Array[(Bytes, Bytes)] = []
+  let scopes : Array[Bool] = []
   let identifiers : Map[String, String] = Map([])
-  let mut depth = 0
   let mut position = 0
   while position < tokens.length() {
     let token = tokens[position]
-    if token is Open && depth == 1 && position + 1 < tokens.length() {
+    if token is Open &&
+      scopes.last() == Some(true) &&
+      position + 1 < tokens.length() {
       let (annotation, first) = match tokens[position + 1] {
         TokenAtom(name) =>
           if name == "@" && position + 2 < tokens.length() {
@@ -503,9 +504,19 @@ pub fn parse_normalized_component_wat(
           for i in (first + 1)..<end {
             data.append(wat_string(tokens, i).to_array())
           }
-          customs.push((name, Bytes::from_array(data)))
+          normalized.write_string(
+            "(@custom " +
+            wat_literal(name) +
+            " " +
+            wat_literal(Bytes::from_array(data)) +
+            ") ",
+          )
         } else {
-          customs.push((b"producers", wat_producers(tokens, first, end)))
+          normalized.write_string(
+            "(@custom \"producers\" " +
+            wat_literal(wat_producers(tokens, first, end)) +
+            ") ",
+          )
         }
         position = end + 1
         continue
@@ -513,11 +524,13 @@ pub fn parse_normalized_component_wat(
     }
     match token {
       Open => {
-        depth += 1
+        let concrete = (scopes.is_empty() || scopes.last() == Some(true)) &&
+          tokens.get(position + 1) is Some(TokenAtom("component"))
+        scopes.push(concrete)
         normalized.write_string("( ")
       }
       Close => {
-        depth -= 1
+        ignore(scopes.pop())
         normalized.write_string(") ")
       }
       TokenAtom(atom) => normalized.write_string(atom + " ")
@@ -531,15 +544,5 @@ pub fn parse_normalized_component_wat(
     }
     position += 1
   }
-  let bytes = parse_component_wat(normalized.to_string())
-  let out = bytes.to_array()
-  for (name, data) in customs {
-    let payload : Array[Byte] = []
-    wat_bytes(payload, name)
-    payload.append(data.to_array())
-    out.push(0)
-    wat_unsigned(out, payload.length())
-    out.append(payload)
-  }
-  Bytes::from_array(out)
+  parse_component_wat(normalized.to_string())
 }
