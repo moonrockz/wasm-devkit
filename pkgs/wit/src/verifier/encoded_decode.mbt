@@ -411,8 +411,8 @@ fn encoded_qualified(
 ///|
 fn encoded_world(
   definition : @component.TypeDef,
-  identity : PackageIdentity,
   interfaces : Map[String, String],
+  interface_names : Map[String, String],
 ) -> String raise EncodedFailure {
   guard definition is ComponentType(declarations) else {
     raise Invalid("WIT world is not a component type")
@@ -438,8 +438,7 @@ fn encoded_world(
           InstanceType(index) => {
             let body = encoded_interface(encoded_definition(slots, index))
             if name.contains("/") {
-              let (owner, member_name) = encoded_qualified(name)
-              guard owner == identity &&
+              guard interface_names.get(name) is Some(member_name) &&
                 interfaces.get(member_name) == Some(body) else {
                 raise Unsupported(
                   "world interface requires foreign or nonidentical interface reconstruction",
@@ -470,14 +469,17 @@ fn encoded_world(
 }
 
 ///|
-// The first supported package profile is the v2 type-wrapper encoding. Every
-// export is consumed; unsupported identities, metadata and edges fail closed.
+// Consume v1 package wrappers and v2 member wrappers. Root export names identify
+// the encoding; v2 member names come from each wrapper's qualified inner export.
 fn lower_encoded(
   component : @component.Component,
 ) -> (String, Bytes?) raise EncodedFailure {
   let slots : Array[@component.TypeDef] = []
   let members : Array[(String, String, @component.TypeDef)] = []
   let mut metadata : Bytes? = None
+  let mut package_identity : PackageIdentity? = None
+  let mut v1 = false
+  let mut export_count = 0
   for section in component.binary.sections {
     match section.id {
       0 => {
@@ -537,6 +539,23 @@ fn lower_encoded(
               }
             _ => raise Unsupported("versioned package export name")
           }
+          if export_count == 0 {
+            if name.contains("/") {
+              let (identity, member_name) = encoded_qualified(name)
+              guard member_name == "wit" else {
+                raise Invalid("unrecognized WIT package export name")
+              }
+              package_identity = Some(identity)
+              v1 = true
+            } else {
+              guard identifier(name) else {
+                raise Invalid("expected a bare v2 package export name")
+              }
+            }
+          } else if v1 {
+            raise Invalid("v1 package requires exactly one root export")
+          }
+          export_count += 1
           let definition = encoded_definition(slots, item.sortidx.idx)
           guard definition is ComponentType(declarations) else {
             raise Invalid("package member lacks a component type wrapper")
@@ -547,20 +566,29 @@ fn lower_encoded(
             match declaration {
               Type(definition) => nested.push(definition)
               Export(full_name, attributes, description) => {
-                guard !exported && attributes.is_empty() else {
+                guard (v1 || !exported) && attributes.is_empty() else {
                   raise Unsupported(
                     "wrapper must have exactly one unannotated export",
                   )
                 }
                 exported = true
+                let (_, member_name) = encoded_qualified(full_name)
                 match description {
                   InstanceType(index) =>
                     members.push(
-                      (name, full_name, encoded_definition(nested, index)),
+                      (
+                        member_name,
+                        full_name,
+                        encoded_definition(nested, index),
+                      ),
                     )
                   ComponentType(index) =>
                     members.push(
-                      (name, full_name, encoded_definition(nested, index)),
+                      (
+                        member_name,
+                        full_name,
+                        encoded_definition(nested, index),
+                      ),
                     )
                   _ =>
                     raise Invalid("wrapper export is not an interface or world")
@@ -569,7 +597,7 @@ fn lower_encoded(
               _ => raise Unsupported("wrapper imports or aliases")
             }
           }
-          guard exported else {
+          guard v1 || exported else {
             raise Invalid("empty WIT package member wrapper")
           }
           // Root type exports introduce a new alias in the component type space.
@@ -579,20 +607,27 @@ fn lower_encoded(
       _ => raise Unsupported("non-type package section")
     }
   }
-  guard !members.is_empty() else {
+  guard package_identity is Some(_) || !members.is_empty() else {
     raise Invalid("component contains no WIT package exports")
   }
-  let (identity, _) = encoded_qualified(members[0].1)
+  let identity = match package_identity {
+    Some(identity) => identity
+    None => encoded_qualified(members[0].1).0
+  }
   let interfaces : Map[String, String] = Map([])
+  let interface_names : Map[String, String] = Map([])
   let names : Map[String, Bool] = Map([])
   for (name, full_name, definition) in members {
     let (owner, member_name) = encoded_qualified(full_name)
-    guard identity == owner && name == member_name && !names.contains(name) else {
+    guard (v1 || identity == owner) &&
+      name == member_name &&
+      !names.contains(name) else {
       raise Invalid("conflicting WIT package member identity")
     }
     names[name] = true
     if definition is InstanceType(_) || definition is InstanceTypeEmpty {
       interfaces[name] = encoded_interface(definition)
+      interface_names[full_name] = name
     }
   }
   let out = StringBuilder()
@@ -614,7 +649,7 @@ fn lower_encoded(
         "world " +
         encoded_name(name) +
         "{" +
-        encoded_world(definition, identity, interfaces) +
+        encoded_world(definition, interfaces, interface_names) +
         "}",
       )
     }

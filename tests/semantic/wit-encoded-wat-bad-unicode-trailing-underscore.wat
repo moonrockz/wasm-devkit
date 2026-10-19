@@ -1,0 +1,1 @@
+(component (type (component (type (instance (export "r" (type (sub resource))))) (export "example:dep/api@1.0.0" (instance (type 0))))) (export "other-name" (type 0))(@custom "x" "\u{f_}"))

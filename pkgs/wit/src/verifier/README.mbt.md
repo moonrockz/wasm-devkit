@@ -65,7 +65,7 @@ gates, while a foreign imported type retains its first selector's annotation.
 Foreign interface/world kind checks occur before selection. Source order can
 therefore affect which foreign gates and anonymous type annotations take precedence.
 
-Encoded package loading has an initial, strict v2 type-wrapper profile. Use
+Encoded package loading has a strict v1/v2 type-wrapper profile. Use
 `decode_package` for bytes or `decode_wat_package` for component WAT, then pass
 `PackageInput::Encoded` to `resolve_packages`. Source packages use
 `PackageInput::Source`. These operations perform no I/O. Supported encoded
@@ -76,7 +76,9 @@ instance imports/exports; qualified instances must match a supplied interface in
 the same encoded package. An instance with an ordinary name becomes an inline
 interface. Component type indices include aliases introduced by type exports.
 
-The initial profile rejects v1 packages, outer/instance aliases, wrapper imports,
+V1 uses its outer package identity, including empty packages and multiple members.
+V2 derives member names from qualified inner exports. The profile rejects
+outer/instance aliases, wrapper imports,
 foreign or structurally different world instances, world-owned resource members,
 anonymous structural types, name attributes and export ascriptions.
 `package-docs` metadata versions 0 and 1 retain release/feature/deprecation
@@ -97,10 +99,12 @@ retain unknown stability. Source annotations keep the source rules above.
 Metadata parsing uses explicit byte/object frames, including ignored extension
 values and deeply nested JSON; it never turns an ignored number into a float.
 
-WAT uses the portable
-frontend from `Milky2018/wasm_component@0.16.0`; its unsupported `@custom` and
-`@producers` forms return errors. Physical WAT nesting is limited to 256 before
-that frontend runs. Expanded value types have a one-million-step decoding limit.
+WAT supports root `@custom` and `@producers` annotations, quoted identifiers,
+byte/Unicode string escapes and the component `binary` form. Custom payload bytes
+are preserved, including non-UTF-8 data; custom names and producer strings require
+UTF-8. Package metadata applies identically to WAT and binary inputs. Type syntax
+uses the portable frontend from `Milky2018/wasm_component@0.16.0`. Physical WAT
+nesting is limited to 256 before that frontend runs. Expanded value types have a one-million-step decoding limit.
 Binary resource signatures retain their encoded nominal identities and implicit
 receivers. Constructors return an owned handle or a result containing that handle;
 aliases are transparent to the binary constructor and setter result contracts.

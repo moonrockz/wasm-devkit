@@ -87,8 +87,7 @@ named composites, async functions, nominal resource aliases, inline world interf
 local encoded dependencies, truncated bytes, invalid component type indices,
 fixed-list bounds and memory64 layout overflow including aggregate padding.
 Binary fixtures were generated from the original sources with the pinned
-`wasm-tools component wit --wasm` encoder. The WAT case contains the same type
-sections without custom metadata, within the portable frontend's current profile.
+`wasm-tools component wit --wasm` encoder. WAT cases include custom metadata and producers annotations.
 The runner passes `.wasm` and `.wat` inputs unchanged to both reference tools and
 the product CLI, and compares world/resource summaries. World-owned resource members and cross-package encoded aliases remain outside this initial
 profile; their implementation remains on `wasm-devkit-p5m.8.1.5`.
@@ -114,3 +113,12 @@ Sequence-form metadata cases compare serde struct arrays for packages, interface
 worlds, types and stable/unstable payloads, including omitted default fields.
 Extra elements, array dictionaries, array function metadata and array enum tags
 remain invalid. The same exact bytes run through the pinned Resolve API and CLI.
+
+Original v1 fixtures cover outer identity normalization, empty packages, worlds,
+function metadata and invalid root exports. WAT fixtures cover raw custom bytes,
+producer groups, quoted names, binary strings and strict lexical rejection.
+These fixtures use this repository's Apache-2.0 license and the reference pins above.
+The v2 duplicate-member case is intentionally excluded from the differential
+manifest: wit-parser 0.262.0 panics at decoding.rs:799 (`prev.is_none()`) instead
+of returning an error. The product regression requires an ordinary diagnostic.
+Tracked exclusions: `wasm-devkit-p5m.8.1.5` and `wasm-devkit-p5m.8.1.7`.

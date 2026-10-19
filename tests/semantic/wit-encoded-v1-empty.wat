@@ -1,0 +1,1 @@
+(component (type (component)) (export "example:dep/wit@1.0.0" (type 0)))

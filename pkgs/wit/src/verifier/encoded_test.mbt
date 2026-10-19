@@ -209,7 +209,7 @@ test "WAT and binary package loading produce the same model without fictitious W
     @verifier.decode_wat_package(
       "(component (@custom \"package-docs\" \"\\01{}\"))",
     ).unwrap_err()[0].code,
-    "WIT-B002",
+    "WIT-B004",
   )
   let deep = "(component" + " (".repeat(10000) + ")".repeat(10001)
   assert_eq(@verifier.decode_wat_package(deep).unwrap_err()[0].code, "WIT-B002")

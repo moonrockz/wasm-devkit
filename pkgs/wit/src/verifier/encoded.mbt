@@ -251,6 +251,17 @@ fn encoded_wat_preflight(text : String) -> Unit raise EncodedFailure {
     } else {
       -1
     }
+    if unit >= 0xd800 && unit <= 0xdbff {
+      guard next >= 0xdc00 && next <= 0xdfff else {
+        raise Invalid("unpaired WAT surrogate")
+      }
+    } else if unit >= 0xdc00 && unit <= 0xdfff {
+      guard index > 0 &&
+        text.code_unit_at(index - 1).to_int() >= 0xd800 &&
+        text.code_unit_at(index - 1).to_int() <= 0xdbff else {
+        raise Invalid("unpaired WAT surrogate")
+      }
+    }
     if line {
       if unit == 10 || unit == 13 {
         line = false
@@ -305,10 +316,7 @@ pub fn decode_wat_package(
 ) -> Result[EncodedPackage, ReadOnlyArray[Diagnostic]] {
   try {
     encoded_wat_preflight(text)
-    let bytes = @component_text.parse_component_wat(text) catch {
-      @component_text.Unsupported(message) => raise Unsupported(message)
-      @component_text.ParseError(message) => raise Invalid(message)
-    }
+    let bytes = compile_encoded_wat(text)
     let binaries : Map[String, Bool] = Map([(source_id, true)])
     decode_package(bytes, source_id~).map_err(diagnostics => {
       diagnostics.map(diagnostic => encoded_diagnostic(diagnostic, binaries))
