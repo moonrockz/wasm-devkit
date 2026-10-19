@@ -1,0 +1,8 @@
+{
+  "reference": 1,
+  "compose": 1,
+  "product": 1,
+  "error": "import `v` has a mismatched type for target world `test:dep/w`\n",
+  "compose_error": "error: failed to resolve document\n\n  \u00d7 import `v` has a mismatched type for target world `test:dep/w`\n  \u2570\u2500\u25b6 expected u64, found u32\n\n",
+  "product_error": "/Users/damian/orca/workspaces/wasm-devkit/feat-verify-wit-and-wac-semantics-and-resolve-im/.dev/wac-conformance/worktree/.dev/value-targets/target-value-import-mismatch/input.wac:1:60: error WAC-T003: target import `v`: instantiation argument: expected `u64`, found `u32`\n/Users/damian/orca/workspaces/wasm-devkit/feat-verify-wit-and-wac-semantics-and-resolve-im/.dev/wac-conformance/worktree/.dev/value-targets/target-value-import-mismatch/input.wac:[25,35): target selected here\n/Users/damian/orca/workspaces/wasm-devkit/feat-verify-wit-and-wac-semantics-and-resolve-im/.dev/wac-conformance/worktree/.dev/value-targets/target-value-import-mismatch/dep.wasm:[binary]: target world declared here\n/Users/damian/orca/workspaces/wasm-devkit/feat-verify-wit-and-wac-semantics-and-resolve-im/.dev/wac-conformance/worktree/.dev/value-targets/target-value-import-mismatch/dep.wasm:[binary]: expected type declared here\n/Users/damian/orca/workspaces/wasm-devkit/feat-verify-wit-and-wac-semantics-and-resolve-im/.dev/wac-conformance/worktree/.dev/value-targets/target-value-import-mismatch/dep.wasm:[binary]: provided type declared here\n"
+}

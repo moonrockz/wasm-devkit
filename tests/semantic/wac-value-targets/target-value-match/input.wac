@@ -1,0 +1,1 @@
+package test:app targets test:dep/w; let i = new test:dep {...}; export i.v;
