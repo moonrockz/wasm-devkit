@@ -389,6 +389,28 @@ async fn main {
   assert_true(accessor_error.contains("WIT-S007"))
   assert_true(accessor_error.contains(invalid_accessor + ":1:"))
   assert_eq(@fs.read_file(invalid_accessor).text(), invalid_accessor_source)
+  let extended_grammar = dir + "/extended-grammar.wit"
+  let extended_source = "package a:b:c;"
+  @fs.write_file(extended_grammar, extended_source)
+  for flags in [[], ["--all-semantic-features"], ["--semantic-feature", "foo"]] {
+    let (_, error) = run(["verify", extended_grammar, ..flags], 1, wit)
+    assert_true(error.contains("WIT-P005"))
+    let (_, error) = run(
+      ["verify", extended_grammar, "--all-features", ..flags],
+      1,
+      wit,
+    )
+    assert_false(error.contains("WIT-P005"))
+    assert_true(error.contains("WIT-S001"))
+  }
+  let (_, extended_stdin_error) = run(
+    ["verify", "--language", "wit", "--base", dir, "--all-features"],
+    1,
+    extended_grammar,
+  )
+  assert_false(extended_stdin_error.contains("WIT-P005"))
+  assert_true(extended_stdin_error.contains("WIT-S001"))
+  assert_eq(@fs.read_file(extended_grammar).text(), extended_source)
   let gated = dir + "/gated.wit"
   let gated_source = "package example:features;interface api{@unstable(feature=foo)resource r;f:func(x:r);}"
   @fs.write_file(gated, gated_source)

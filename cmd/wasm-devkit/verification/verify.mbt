@@ -83,7 +83,11 @@ async fn load_package(
 
 ///|
 async fn wit(options : @cli.Options) -> @cli.Output {
-  let features = @parser.Features::reference()
+  let features = if options.all_features {
+    @parser.Features::all()
+  } else {
+    @parser.Features::reference()
+  }
   let is_directory = options.path != "-" && @fs.kind(options.path) is Directory
   let base = options.base.unwrap_or(
     if is_directory {

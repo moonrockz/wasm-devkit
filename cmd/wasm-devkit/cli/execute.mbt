@@ -76,10 +76,10 @@ fn wit_execute(options : Options, source : String, label : String) -> Output {
       },
     )
   }
-  let features = if options.command == Verify {
-    @wit_parser.Features::reference()
-  } else if options.all_features {
+  let features = if options.all_features {
     @wit_parser.Features::all()
+  } else if options.command == Verify {
+    @wit_parser.Features::reference()
   } else {
     @wit_parser.Features::default()
   }

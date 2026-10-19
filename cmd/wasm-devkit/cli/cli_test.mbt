@@ -313,3 +313,20 @@ test "registry flags require explicit WAC registry and preserve offline lock set
     assert_true(@cli.arguments(args[:]) is Err(_))
   }
 }
+
+///|
+test "WIT verification grammar extensions require all-features independently" {
+  let source = "package a:b:c;"
+  for flags in [[], ["--all-semantic-features"], ["--semantic-feature", "foo"]] {
+    let output = @cli.execute(options(["verify", "a.wit", ..flags]), source)
+    assert_eq(output.exit_code, 1)
+    assert_true(output.stderr.contains("WIT-P005"))
+    let output = @cli.execute(
+      options(["verify", "a.wit", "--all-features", ..flags]),
+      source,
+    )
+    assert_eq(output.exit_code, 1)
+    assert_false(output.stderr.contains("WIT-P005"))
+    assert_true(output.stderr.contains("WIT-S001"))
+  }
+}
