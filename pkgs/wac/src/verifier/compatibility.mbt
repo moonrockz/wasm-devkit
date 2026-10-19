@@ -354,21 +354,32 @@ fn Check::compatible(
         let mut mismatch : String? = None
         match (ak, bk) {
           (Module(a), Module(b)) => {
-            let charge = fn(count : Int32) raise SemanticFailure {
-              if count > remaining ||
-                trace.map(t => count > 1000000 - t.steps).unwrap_or(false) {
+            let limit = match trace {
+              Some(t) => Int32::min(remaining, 1000000 - t.steps)
+              None => remaining
+            }
+            let (actual, expected) = if reverse { (b, a) } else { (a, b) }
+            match
+              @core_types.check_module_subtype(
+                actual,
+                expected,
+                work_limit=limit,
+              ) {
+              Ok(rest) => {
+                let used = limit - rest
+                remaining -= used
+                if trace is Some(t) {
+                  t.steps += used
+                }
+              }
+              Err(Mismatch(message)) => mismatch = Some(message)
+              Err(WorkLimit) =>
                 raise Problem(
                   self.problem(
                     node, "WAC-C006", "core module compatibility exceeds the verification work limit",
                   ),
                 )
-              }
-              remaining -= count
-              if trace is Some(t) {
-                t.steps += count
-              }
             }
-            mismatch = core_compatible(a, b, reverse, charge)
           }
           (Scalar(a), Scalar(b)) =>
             if a != b {

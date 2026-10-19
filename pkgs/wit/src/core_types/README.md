@@ -44,3 +44,17 @@ references, GC types, supertypes and unimplemented proposals reject before the
 retained recursive parser runs. Function-only groups are supported when no
 concrete references occur. Shared globals and limits above signed Int64 remain
 outside the concrete-module profile because of the retained parser/validator.
+
+
+`check_external_subtype` and `check_module_subtype` compare already validated
+contracts without I/O. Module imports are contravariant and exports covariant;
+function/tag signatures and value/width/shared flags are invariant. Minimum and
+maximum limits use unsigned comparisons, and optional page sizes remain distinct.
+Import keys are `(module_name, name)` pairs; duplicate contract keys reject.
+These operations do not certify caller-built types or executable instructions.
+
+Both operations accept an optional work allowance and return its unused balance
+on success. Signature widths and all map/traversal steps consume that allowance.
+`CompatibilityError::Mismatch` carries the incompatible contract context;
+`WorkLimit` distinguishes exhausted work from a type mismatch. WAC compatibility
+and binary/runtime consumers use this same contract comparison.

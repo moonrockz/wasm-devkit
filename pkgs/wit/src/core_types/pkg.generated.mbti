@@ -6,6 +6,10 @@ import {
 }
 
 // Values
+pub fn check_external_subtype(External, External, work_limit? : Int) -> Result[Int, CompatibilityError]
+
+pub fn check_module_subtype(Module, Module, work_limit? : Int) -> Result[Int, CompatibilityError]
+
 pub fn decode_module(Bytes) -> Result[Module, Diagnostic]
 
 pub fn decode_section(Bytes, current? : ReadOnlyArray[Definition], outers? : ReadOnlyArray[ReadOnlyArray[Definition]]) -> Result[ReadOnlyArray[Definition], Diagnostic]
@@ -19,6 +23,14 @@ pub fn scan_type(Bytes, Int, Int, legacy_nested? : Bool) -> Result[Int, Diagnost
 // Errors
 
 // Types and methods
+pub(all) enum CompatibilityError {
+  Mismatch(String)
+  WorkLimit
+} derive(Eq, @debug.Debug)
+pub fn CompatibilityError::equal(Self, Self) -> Bool
+pub fn CompatibilityError::not_equal(Self, Self) -> Bool
+pub fn CompatibilityError::to_repr(Self) -> @debug.Repr
+
 pub(all) enum Definition {
   Function(Function)
   Module(Module)
