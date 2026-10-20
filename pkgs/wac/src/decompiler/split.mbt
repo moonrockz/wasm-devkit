@@ -590,6 +590,15 @@ fn lift(
                   ReadOnlyArray::from_array(inputs.map(i => item_id(i.kind))),
                 ),
               )
+              for i, input in inputs {
+                let parameter = helper_parameter(
+                  input.name,
+                  ReadOnlyArray::from_array(captured.map(c => c.0)),
+                )
+                args[i] = quote(parameter) +
+                  args[i][input.name.length():].to_owned()
+                inputs[i] = { ..input, name: parameter, }
+              }
               for (item, value) in captured {
                 args.push(quote(item.name) + ": " + value)
               }
@@ -655,7 +664,16 @@ fn lift(
                   text,
                 })
                 let args = captured.map(c => quote(c.0.name) + ": " + c.1)
-                args.push("source: " + lookup(refs, 5, instance))
+                args.push(
+                  quote(
+                    helper_parameter(
+                      "source",
+                      ReadOnlyArray::from_array(captured.map(c => c.0)),
+                    ),
+                  ) +
+                  ": " +
+                  lookup(refs, 5, instance),
+                )
                 out.write_string(
                   "let valuealias\{n} = new " +
                   package_key(helper_id) +
@@ -729,7 +747,16 @@ fn lift(
               roots=Some([item_id(actual), item_id(expected)]),
             )
             let args = captured.map(c => quote(c.0.name) + ": " + c.1)
-            args.push("input: " + value)
+            args.push(
+              quote(
+                helper_parameter(
+                  "input",
+                  ReadOnlyArray::from_array(captured.map(c => c.0)),
+                ),
+              ) +
+              ": " +
+              value,
+            )
             let text = ascribe_component(
               types,
               actual,

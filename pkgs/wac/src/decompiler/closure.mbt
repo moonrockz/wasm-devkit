@@ -392,7 +392,7 @@ fn ascribe_component(
       captured.iter().to_array() +
       [
         {
-          name: "input",
+          name: helper_parameter("input", captured),
           kind: actual,
           location: @verifier.Location::binary("<ascription>"),
         },
@@ -452,7 +452,7 @@ fn instance_value_component(
 ) -> String raise Failure {
   let inputs = captured.iter().to_array()
   inputs.push({
-    name: "source",
+    name: helper_parameter("source", captured),
     kind: @verifier.Instance(instance),
     location: @verifier.Location::binary("<value-alias>"),
   })
@@ -469,4 +469,16 @@ fn instance_value_component(
   "(alias export $i\{captured.length()} " +
   wat_quote(name) +
   " (value $value))\n(export \"value\" (value $value)))\n"
+}
+
+///|
+fn helper_parameter(
+  base : String,
+  captured : ReadOnlyArray[@verifier.Extern],
+) -> String {
+  let mut name = base
+  while captured.any(c => c.name == name) {
+    name += "-input"
+  }
+  name
 }

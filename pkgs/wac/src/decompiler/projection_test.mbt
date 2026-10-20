@@ -702,3 +702,10 @@ test "anonymous runtime resource declarations match named invocation arguments" 
     #|    (with "r" (type $ra)) (with "f" (func $fa)))))
   assert_split_contract(source)
 }
+
+///|
+test "ascription parameters avoid captured resource import names" {
+  assert_split_contract(
+    "(component (import \"input\" (type $r (sub resource))) (type $o (own $r)) (type $f (func (param \"x\" $o))) (import \"f\" (func (type $f))) (export \"input\" (type $r)) (export \"f\" (func 0) (func (type $f))))",
+  )
+}
