@@ -332,7 +332,7 @@ pub fn execute(options : Options, source : String) -> Output {
 /// document for the executable to write; failures never carry a document.
 pub fn decompile(options : DecompileOptions, bytes : Bytes) -> Output {
   let label = if options.path == "-" { "<stdin>" } else { options.path }
-  match @wit_decompiler.print_core_module(bytes, source_id=label) {
+  match @wit_decompiler.print_binary(bytes, source_id=label) {
     Ok(printed) => {
       let text = printed.root().text
       match options.output {

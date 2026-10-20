@@ -3,7 +3,7 @@
 Syntax tools for WIT and WAC. The CLI parses and diagnoses source, inspects tokens and
 immutable AST/CST arenas, prints canonical AST source and formats while retaining comments.
 It performs no package resolution or composition evaluation.
-`decompile` prints a flat core-module `.wasm` binary as one WAT document.
+`decompile` prints a core-module or component `.wasm` binary as one WAT document.
 
 ## Install
 
@@ -133,14 +133,14 @@ type callback = func() -> (value: u8);
 See the [WIT parser profile](../../pkgs/wit/src/parser/README.mbt.md) and
 [WAC parser profile](../../pkgs/wac/src/parser/README.mbt.md) for the exact syntax covered.
 
-### Print a core-module binary as WAT
+### Print a Wasm binary as WAT
 
 Release `0.2.0` does not include this command. Run it from local sources with
 `mise run cli -- decompile ...` until the next release.
 
 ```shell
 wasm-devkit decompile module.wasm
-wasm-devkit decompile module.wasm --output module.wat
+wasm-devkit decompile component.wasm --output component.wat
 cat module.wasm | wasm-devkit decompile -o module.wat
 ```
 
@@ -160,17 +160,26 @@ or to the `--output`/`-o` file. The output path must differ from the input path.
 output file already holds the input's bytes, the command exits with status 2 and does not write it.
 The command never executes the binary and accepts no `--language` or formatting options.
 
-The input must be a flat core module inside the profile that component verification uses.
-Components, GC types, threads, exceptions, SIMD instructions other than `v128.const`,
-shared globals and f32 signaling NaN constants fail explicitly. Custom sections are
-omitted, and the document starts with one `;; custom section omitted: "NAME"` line for each.
+The binary preamble selects the profile. A core module must be flat and inside the
+profile that component verification uses. GC types, threads, exceptions, SIMD
+instructions other than `v128.const`, shared globals and f32 signaling NaN constants
+fail explicitly. Custom sections of core modules are omitted, and one
+`;; custom section omitted: "NAME"` line names each.
+
+A component must be inside the declarative component profile that verification uses.
+Encoded WIT packages and runtime components both print. Sections print in binary order:
+core modules print inline as `(core module (;N;) ...)`, nested components as
+`(component (;N;) ...)`, and component custom sections as `(@custom "NAME" "BYTES")`.
+The printed text compiles back through the same component text path, so `verify` on
+the printed `.wat` of an encoded WIT package gives the same model as `verify` on the
+binary. Values of type `error-context` are outside the profile.
 
 Diagnostics go to stderr as `FILE:[byte N]: error CODE: message`, or `FILE:[binary]` when the
 retained parser or validator supplies no offset. A failure prints no document and does not
-create or change the output file. The text follows the retained wasm_core printer: index
-comments without identifiers. It is not wasm-tools `print` or WABT `wasm2wat` output.
-Components, nested modules, split documents, module selection and API-shape inventories are
-later work. See the [decompiler guide](../../pkgs/wit/src/decompiler/README.mbt.md).
+create or change the output file. The text uses index comments without identifiers. It is
+not wasm-tools `print` or WABT `wasm2wat` output. Split documents, module selection and
+API-shape inventories are later work. See the
+[decompiler guide](../../pkgs/wit/src/decompiler/README.mbt.md).
 
 ## Command reference
 
@@ -185,6 +194,7 @@ wasm-devkit format --check example.wit
 wasm-devkit format --write example.wac
 cat example.wit | wasm-devkit parse --language wit
 wasm-devkit decompile module.wasm --output module.wat
+wasm-devkit decompile component.wasm
 ```
 
 One input is accepted per invocation. The CLI infers the language from `.wit` or `.wac`;
