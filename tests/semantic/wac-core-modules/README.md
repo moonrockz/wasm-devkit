@@ -37,8 +37,7 @@ The separate deep fixture traverses 41 component type scopes. Unit contracts
 also exercise 50,000 function parameters, truncated limits, overflowing u64 LEBs
 and immutable module graphs. `SHA256SUMS` covers all retained sources and tables.
 Separate suites cover runtime core bodies, values and export annotations.
-Concrete GC and reference types, exception instructions and shared concrete
-globals stay outside the documented profile.
+Concrete GC and reference types and exception instructions stay outside the documented profile.
 
 Eight text-only cases reject duplicate type identifiers/aliases, invalid global
 syntax and malformed/overflowing limits against the pinned text parser.

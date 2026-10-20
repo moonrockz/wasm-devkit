@@ -1,0 +1,1 @@
+(component (core module $m (global $g (shared mut i32) (i32.const 0)) (func (export "get") (result i32) global.get $g) (func (export "set") (param i32) local.get 0 global.set $g) (export "g" (global $g))) (export "m" (core module $m)))

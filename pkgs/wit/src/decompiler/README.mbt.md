@@ -103,8 +103,9 @@ The input profile is the core-module profile that component verification uses.
 nesting up to 256 and validation work. The retained core parser and validator
 then check the module. The profile includes MVP instructions, multi-value,
 reference types, bulk memory, tail calls, memory64, multiple memories and
-`v128.const`. It rejects GC types, threads, exceptions, other SIMD instructions
-and shared globals.
+`v128.const`. Scalar/vector globals retain mutability and shared flags.
+It rejects GC types, thread instructions, exceptions and other SIMD instructions.
+WABT compatibility rejects shared globals explicitly.
 
 `f32.const` immediates that are signaling NaNs are also rejected. The JavaScript
 target cannot represent their payloads as `Float` values, so no target prints them.

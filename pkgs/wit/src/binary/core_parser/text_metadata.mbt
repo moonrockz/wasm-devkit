@@ -17,6 +17,10 @@ pub struct ModuleTextMetadata {
   explicit_rec_groups : ReadOnlyArray[(Int32, Int32)]
   subtype_encodings : ReadOnlyArray[Bool]
   type_values : ReadOnlyArray[FunctionTextTypes]
+  // Absolute flag-byte offsets and original flags, aligned with imports/globals.
+  // Non-global imports use offset -1.
+  import_global_flags : ReadOnlyArray[(Int32, Int32)]
+  global_flags : ReadOnlyArray[(Int32, Int32)]
   import_values : ReadOnlyArray[String]
   explicit_memory_pages : ReadOnlyArray[Bool]
   table_values : ReadOnlyArray[String]
@@ -56,6 +60,8 @@ pub fn module_text_metadata(
   let groups : Array[(Int32, Int32)] = []
   let subtype_encodings : Array[Bool] = []
   let type_values : Array[FunctionTextTypes] = []
+  let import_global_flags : Array[(Int32, Int32)] = []
+  let global_flags : Array[(Int32, Int32)] = []
   let import_values : Array[String] = []
   let explicit_memory_pages : Array[Bool] = []
   let table_values : Array[String] = []
@@ -66,6 +72,7 @@ pub fn module_text_metadata(
   while !parser.is_eof() {
     let id = parser.read_byte()
     let size = parser.read_u32()
+    let section_start = parser.pos
     let section = Parser(parser.read_bytes(size))
     section.capture_text = true
     match id {
@@ -108,6 +115,7 @@ pub fn module_text_metadata(
         for _ in 0..<count {
           ignore(section.read_string())
           ignore(section.read_string())
+          let mut global_flags = (-1, 0)
           match section.read_byte() {
             0 => ignore(section.read_u32())
             1 => ignore(section.read_table_type())
@@ -115,13 +123,20 @@ pub fn module_text_metadata(
               explicit_memory_pages.push((section.peek_byte() & 0x08) != 0)
               ignore(section.read_memory_type())
             }
-            3 => ignore(section.read_global_type())
+            3 => {
+              ignore(section.read_global_type())
+              global_flags = (
+                section_start + section.pos - 1,
+                section.data[section.pos - 1].to_int(),
+              )
+            }
             4 => {
               ignore(section.read_byte())
               ignore(section.read_u32())
             }
             kind => raise InvalidImportKind(kind)
           }
+          import_global_flags.push(global_flags)
           import_values.push(section.take_text().get(0).unwrap_or(""))
         }
       }
@@ -143,6 +158,12 @@ pub fn module_text_metadata(
         let count = section.read_u32()
         for _ in 0..<count {
           ignore(section.read_global_type())
+          global_flags.push(
+            (
+              section_start + section.pos - 1,
+              section.data[section.pos - 1].to_int(),
+            ),
+          )
           ignore(section.read_expr())
           global_values.push(section.take_text().get(0).unwrap_or(""))
         }
@@ -224,6 +245,8 @@ pub fn module_text_metadata(
     explicit_rec_groups: ReadOnlyArray::from_array(groups),
     subtype_encodings: ReadOnlyArray::from_array(subtype_encodings),
     type_values: ReadOnlyArray::from_array(type_values),
+    import_global_flags: ReadOnlyArray::from_array(import_global_flags),
+    global_flags: ReadOnlyArray::from_array(global_flags),
     import_values: ReadOnlyArray::from_array(import_values),
     explicit_memory_pages: ReadOnlyArray::from_array(explicit_memory_pages),
     table_values: ReadOnlyArray::from_array(table_values),

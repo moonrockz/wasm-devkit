@@ -456,7 +456,7 @@
   },
   {
     "name": "concrete-global-shared",
-    "accepts": false,
+    "accepts": true,
     "parse": 0,
     "validator": 0,
     "reference": 0

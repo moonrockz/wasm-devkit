@@ -188,17 +188,7 @@ fn Reader::module_external(
   functions : Array[Function],
 ) -> External raise Failure {
   match raw {
-    Value(value) => {
-      match value {
-        Global(_, _, true) =>
-          self.fail(
-            Unsupported,
-            "shared globals exceed the retained core module parser",
-          )
-        _ => ()
-      }
-      value
-    }
+    Value(value) => value
     Func(index) | Tag(index) => {
       guard functions.get(index) is Some(function) else {
         self.fail(Invalid, "core function type index is out of bounds")

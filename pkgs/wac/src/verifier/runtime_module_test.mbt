@@ -653,15 +653,7 @@ test "concrete module shared-global" {
     bytes,
     source_id="shared-global.wasm",
   )
-  assert_eq(
-    result is Ok(_),
-    false,
-    msg=match result {
-      Ok(_) => "accepted"
-      Err(e) => e[0].render()
-    },
-  )
-  assert_eq(result.unwrap_err()[0].code, "WAC-B002")
+  assert_true(result is Ok(_))
 }
 
 ///|

@@ -350,6 +350,13 @@ pub fn render(
       }
       Global(global_type) => {
         sb.write_string("(global ")
+        let shared = metadata
+          .bind(m => m.import_global_flags.get(import_index))
+          .map(pair => (pair.1 & 2) != 0)
+          .unwrap_or(false)
+        if shared {
+          sb.write_string("(shared ")
+        }
         if global_type.mutable {
           sb.write_string("(mut ")
           sb.write_string(
@@ -366,6 +373,9 @@ pub fn render(
               metadata.bind(m => m.import_values.get(import_index)),
             ),
           )
+        }
+        if shared {
+          sb.write_string(")")
         }
         sb.write_string(")")
       }
@@ -429,6 +439,13 @@ pub fn render(
     sb.write_string("  (global (;")
     sb.write_string((import_globals + i).to_string())
     sb.write_string(";) ")
+    let shared = metadata
+      .bind(m => m.global_flags.get(i))
+      .map(pair => (pair.1 & 2) != 0)
+      .unwrap_or(false)
+    if shared {
+      sb.write_string("(shared ")
+    }
     if global.type_.mutable {
       sb.write_string("(mut ")
       sb.write_string(
@@ -445,6 +462,9 @@ pub fn render(
           metadata.bind(m => m.global_values.get(i)),
         ),
       )
+    }
+    if shared {
+      sb.write_string(")")
     }
     sb.write_string(" ")
     sb.write_string(instrs_to_wat_inline(global.init))

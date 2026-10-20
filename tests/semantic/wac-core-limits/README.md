@@ -22,8 +22,10 @@ LEBs, invalid flags and invalid page sizes always fail without a model.
 Cases cross the u32 and signed Int64 boundaries, exercise UInt64 maximum, absent
 maximums, shared memory, imported and defined memories, lexical aliases, nested
 concrete modules and unsigned minimum/maximum import matching. Global contracts
-retain scalar type, mutability and declarative shared flags. Shared concrete
-globals remain explicitly unsupported, including imported globals.
+retain scalar type, mutability and shared flags. Concrete shared globals,
+including imports, now accept under `wasm-devkit-p5m.12.3`; the
+[shared-global suite](../wac-shared-globals/README.md) supplies the full regression
+profile.
 
 Accepted package snapshots retain every ordered reachable module signature,
 world, interface, import, export and definition. The four-target product tests

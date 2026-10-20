@@ -126,8 +126,8 @@ and shared heap types remain unsupported. Concrete modules support function-only
 recursive groups without concrete references. Root, nested and concrete core
 declarations retain full UInt64 limits with the same address-width checks.
 Custom memory pages support 1 and 65536 bytes; an explicit default annotation
-remains distinct from an absent annotation. Shared concrete globals still
-return `WIT-B002`.
+remains distinct from an absent annotation. Concrete scalar and vector globals
+retain mutability and shared flags through imports, definitions and ascriptions.
 
 
 The declarative entry point also validates concrete core modules. The
@@ -135,8 +135,7 @@ The declarative entry point also validates concrete core modules. The
 conservative work estimate before the original bytes reach the core validator.
 The sum across modules is limited to 1,000,000. Block, loop and if instructions
 use explicit parser/validator stacks, with binary control depth limited to 256.
-Concrete/shared heap references, supertypes and shared globals reject before
-parsing. Function-only groups without recursive references are valid.
+Concrete/shared heap references and supertypes reject before parsing. Function-only groups without recursive references are valid.
 The type-only WIT entry point continues to reject concrete core modules.
 
 Core module export annotations use the ordered lexical module/type bindings and

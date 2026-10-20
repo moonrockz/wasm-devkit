@@ -1273,6 +1273,35 @@ async fn main {
       }
     }
   }
+  for extension in ["wasm", "wat"] {
+    for
+      (name, status) in [
+        ("i32", 0),
+        ("i64-mut", 0),
+        ("mixed-index", 0),
+        ("ascribe-11", 0),
+        ("ascribe-10", 1),
+        ("instantiate-11", 0),
+        ("instantiate-01", 1),
+        ("wrong-init", 1),
+        ("malformed-flags", 1),
+        ("exception", 1),
+      ] {
+      let (_, diagnostic) = run(
+        [
+          "verify",
+          "tests/semantic/wac-shared-globals/package.wac",
+          "--dep",
+          "test:globals=" + name + "." + extension,
+        ],
+        status,
+        wit,
+      )
+      if status == 1 {
+        assert_true(diagnostic.contains("WAC-B"))
+      }
+    }
+  }
   for name in ["concrete-memory-u64", "concrete-table-u64"] {
     let (printed, _) = run(
       ["decompile", "tests/semantic/wac-core-limits/" + name + ".wasm"],
@@ -1293,7 +1322,7 @@ async fn main {
         ("concrete-page-default", 0),
         ("instantiate-memory-equal", 0),
         ("instantiate-table-min-mismatch", 1),
-        ("concrete-global-shared", 1),
+        ("concrete-global-shared", 0),
         ("malformed-nested-u64-overflow", 1),
         ("malformed-concrete-page-invalid", 1),
       ] {

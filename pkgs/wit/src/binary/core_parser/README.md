@@ -25,3 +25,9 @@ collapses several non-null bottom and exception reference types, so printers use
 these immutable metadata snapshots to preserve their original meaning. Ordinary
 parsing still returns the same AST. Metadata and instruction walks use explicit
 stacks and retain the parser's existing limits.
+
+Shared global flag bytes now parse without changing the pinned legacy AST.
+The enclosing complete core codec validates shared value types and retains
+sharedness. Immutable text metadata records absolute flag offsets and values
+for imports and definitions, so printing and WAT compilation preserve them.
+The retained validator still checks original initializer/instruction bytes.

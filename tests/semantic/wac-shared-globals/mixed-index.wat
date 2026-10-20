@@ -1,0 +1,1 @@
+(component (core module $m (import "env" "a" (global $a (shared i32))) (global $b (export "b") (mut i64) (i64.const 2)) (global $c (export "c") (shared i32) (i32.const 3)) (export "a" (global $a))) (export "m" (core module $m)))

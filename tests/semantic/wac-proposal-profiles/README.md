@@ -15,7 +15,9 @@ argument checks and the remaining exclusions are library tests.
 The later [canonical handle/scalar GC profile](../wac-canonical-intrinsics/README.md)
 admits selected intrinsics and scalar `gc`/`core-type` options. Remaining
 intrinsics, GC reference shapes, concrete GC and reference types, exception
-instructions and shared concrete globals still return `WAC-B002`.
+instructions still return `WAC-B002`. The
+[shared-global suite](../wac-shared-globals/README.md) covers admitted concrete
+scalar/vector globals and shared-flag matching.
 The [core limits suite](../wac-core-limits/README.md) covers full UInt64 limits
 and custom memory pages in nested declarations and concrete modules.
 

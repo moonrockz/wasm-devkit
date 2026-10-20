@@ -1,5 +1,6 @@
 import {
   "moonrockz/wit/core_types",
+  "moonrockz/wit/binary/core_parser",
   "moonbitlang/core/encoding/utf8",
   "Milky2018/wasm_core/encoder",
   "Milky2018/wasm_component" @component,

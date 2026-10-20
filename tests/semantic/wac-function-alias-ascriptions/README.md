@@ -18,6 +18,6 @@ Accepted binary and WAT package projections match the pinned oracle.
 extend it with deeper scopes, resource captures, alias chains and transitive
 value-type captures. Separate suites cover the other supported binary forms.
 Async lift/lower and component start are in `wac-proposal-profiles/`. Concrete
-GC and reference types, exception instructions and shared concrete globals
+GC and reference types and exception instructions
 stay outside the profile. Full UInt64 limits and custom memory pages are covered
 in the [core limits suite](../wac-core-limits/README.md).

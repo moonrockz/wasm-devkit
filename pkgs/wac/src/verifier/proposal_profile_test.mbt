@@ -98,9 +98,7 @@ test "malformed start and excluded proposals keep explicit diagnostics" {
     b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x01\x17" + shared_module,
     source_id="shared-global.wasm",
   )
-  guard shared is Err(errors) else { fail("shared global accepted") }
-  assert_eq(errors[0].code, "WAC-B002")
-  assert_true(errors[0].message.contains("shared"))
+  assert_true(shared is Ok(_))
   let wide_module = b"\x00\x61\x73\x6d\x01\x00\x00\x00\x05\x0d\x01\x0c\x80\x80\x80\x80\x80\x80\x80\x80\x80\x01\x00\x07\x05\x01\x01\x6d\x02\x00"
   let limit = @verifier.decode_component_package(
     b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x01\x1e" + wide_module,

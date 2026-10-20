@@ -29,6 +29,10 @@ fn check_flat_core_module(
         raise Unsupported(
           "core exception instructions are outside the module profile",
         )
+      Atom(opcode) if opcode.has_prefix("global.atomic.") =>
+        raise Unsupported(
+          "core atomic global instructions are outside the module profile",
+        )
       List(children) => {
         work.push((items, index + 1, depth, base, byte_strings))
         let folded = children.get(0) is Some(Atom("block" | "loop" | "if"))

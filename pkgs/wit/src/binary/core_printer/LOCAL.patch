@@ -237,7 +237,15 @@
 +            metadata.bind(m => m.import_values.get(import_index)),
 +          ),
 +        )
-@@ -284 +355,6 @@
+@@ -281,0 +353,7 @@
++        let shared = metadata
++          .bind(m => m.import_global_flags.get(import_index))
++          .map(pair => (pair.1 & 2) != 0)
++          .unwrap_or(false)
++        if shared {
++          sb.write_string("(shared ")
++        }
+@@ -284 +362,6 @@
 -          sb.write_string(value_type_to_wat(global_type.value_type))
 +          sb.write_string(
 +            own_value_type(
@@ -245,7 +253,7 @@
 +              metadata.bind(m => m.import_values.get(import_index)),
 +            ),
 +          )
-@@ -287 +363,6 @@
+@@ -287 +370,9 @@
 -          sb.write_string(value_type_to_wat(global_type.value_type))
 +          sb.write_string(
 +            own_value_type(
@@ -253,14 +261,17 @@
 +              metadata.bind(m => m.import_values.get(import_index)),
 +            ),
 +          )
-@@ -301,0 +383,3 @@
++        }
++        if shared {
++          sb.write_string(")")
+@@ -301,0 +393,3 @@
 +  let (import_tables, import_memories, import_globals, import_tags) = imported_counts(
 +    mod_,
 +  )
-@@ -306 +390 @@
+@@ -306 +400 @@
 -    sb.write_string(i.to_string())
 +    sb.write_string((import_tables + i).to_string())
-@@ -313 +397,6 @@
+@@ -313 +407,6 @@
 -    sb.write_string(value_type_to_wat(table.type_.elem_type))
 +    sb.write_string(
 +      own_value_type(
@@ -268,13 +279,21 @@
 +        metadata.bind(m => m.table_values.get(i)),
 +      ),
 +    )
-@@ -325 +414 @@
+@@ -325 +424 @@
 -    sb.write_string(i.to_string())
 +    sb.write_string((import_memories + i).to_string())
-@@ -341 +430 @@
+@@ -341 +440 @@
 -    sb.write_string(i.to_string())
 +    sb.write_string((import_globals + i).to_string())
-@@ -345 +434,6 @@
+@@ -342,0 +442,7 @@
++    let shared = metadata
++      .bind(m => m.global_flags.get(i))
++      .map(pair => (pair.1 & 2) != 0)
++      .unwrap_or(false)
++    if shared {
++      sb.write_string("(shared ")
++    }
+@@ -345 +451,6 @@
 -      sb.write_string(value_type_to_wat(global.type_.value_type))
 +      sb.write_string(
 +        own_value_type(
@@ -282,7 +301,7 @@
 +          metadata.bind(m => m.global_values.get(i)),
 +        ),
 +      )
-@@ -348,3 +442,8 @@
+@@ -348,3 +459,11 @@
 -      sb.write_string(value_type_to_wat(global.type_.value_type))
 -    }
 -    sb.write_string(" (")
@@ -293,34 +312,37 @@
 +        ),
 +      )
 +    }
++    if shared {
++      sb.write_string(")")
++    }
 +    sb.write_string(" ")
-@@ -352 +451 @@
+@@ -352 +471 @@
 -    sb.write_string("))\n")
 +    sb.write_string(")\n")
-@@ -394 +493 @@
+@@ -394 +513 @@
 -    sb.write_string("  (tag (;\{i};) (type \{tag.type_idx}))\n")
 +    sb.write_string("  (tag (;\{import_tags + i};) (type \{tag.type_idx}))\n")
-@@ -416 +515,3 @@
+@@ -416 +535,3 @@
 -    sb.write_string(value_type_to_wat(elem.type_))
 +    sb.write_string(
 +      own_value_type(elem.type_, metadata.bind(m => m.element_values.get(i))),
 +    )
-@@ -429 +530 @@
+@@ -429 +550 @@
 -      render_defined_function(mod_, func_idx, import_func_count, 1),
 +      render_defined_function(mod_, func_idx, import_func_count, 1, metadata~),
-@@ -522,2 +623,3 @@
+@@ -522,2 +643,3 @@
 -    Some(max) => "\{limits.min} \{max}"
 -    None => limits.min.to_string()
 +    Some(max) =>
 +      "\{limits.min.reinterpret_as_uint64()} \{max.reinterpret_as_uint64()}"
 +    None => limits.min.reinterpret_as_uint64().to_string()
-@@ -537 +639,4 @@
+@@ -537 +659,4 @@
 -fn composite_type_to_wat(composite : @types.CompositeType) -> String {
 +fn composite_type_to_wat(
 +  composite : @types.CompositeType,
 +  text~ : @core_parser.FunctionTextTypes? = None,
 +) -> String {
-@@ -543,5 +648,9 @@
+@@ -543,5 +668,9 @@
 -      for param in func_type.params {
 -        sb.write_string(" (param \{value_type_to_wat(param)})")
 -      }
@@ -335,19 +357,19 @@
 +        sb.write_string(
 +          " (result \{own_value_type(result, text.bind(t => t.results.get(i)))})",
 +        )
-@@ -582 +691,4 @@
+@@ -582 +711,4 @@
 -fn subtype_to_wat(subtype : @types.SubType) -> String {
 +fn subtype_to_wat(
 +  subtype : @types.SubType,
 +  text~ : @core_parser.FunctionTextTypes? = None,
 +) -> String {
-@@ -584 +696 @@
+@@ -584 +716 @@
 -    return composite_type_to_wat(subtype.composite)
 +    return composite_type_to_wat(subtype.composite, text~)
-@@ -595 +707 @@
+@@ -595 +727 @@
 -  sb.write_string(composite_type_to_wat(subtype.composite))
 +  sb.write_string(composite_type_to_wat(subtype.composite, text~))
-@@ -601,2 +713,7 @@
+@@ -601,2 +733,7 @@
 -fn type_to_wat(index : Int, subtype : @types.SubType, indent : Int) -> String {
 -  "\{"  ".repeat(indent)}(type (;\{index};) \{subtype_to_wat(subtype)})\n"
 +fn type_to_wat(
@@ -357,24 +379,24 @@
 +  text~ : @core_parser.FunctionTextTypes? = None,
 +) -> String {
 +  "\{"  ".repeat(indent)}(type (;\{index};) \{subtype_to_wat(subtype, text~)})\n"
-@@ -667 +784,4 @@
+@@ -667 +804,4 @@
 -fn block_type_to_wat(bt : @types.BlockType) -> String {
 +fn block_type_to_wat(
 +  bt : @types.BlockType,
 +  spellings~ : ReadOnlyArray[String] = [],
 +) -> String {
-@@ -670 +790 @@
+@@ -670 +810 @@
 -    Value(t) => " (result \{value_type_to_wat(t)})"
 +    Value(t) => " (result \{own_value_type(t, spellings.get(0))})"
-@@ -760,2 +880,2 @@
+@@ -760,2 +900,2 @@
 -  mem : Int,
 -  align : Int,
 +  mem : Int32,
 +  align : Int32,
-@@ -763 +883 @@
+@@ -763 +903 @@
 -  _natural_align : Int,
 +  _natural_align : Int32,
-@@ -789 +909,13 @@
+@@ -789 +929,13 @@
 -fn instrs_to_wat(instrs : Array[@types.Instruction], indent : Int) -> String {
 +priv enum RenderTask {
 +  Body(Array[@types.Instruction], Int32, Int32)
@@ -389,7 +411,7 @@
 +  values~ : Map[Int32, ReadOnlyArray[String]] = Map([]),
 +  elses~ : ReadOnlyArray[Int32] = [],
 +) -> String {
-@@ -791,8 +923,17 @@
+@@ -791,8 +943,17 @@
 -  let indent_str = "  ".repeat(indent)
 -  for instr in instrs {
 -    sb.write_string(indent_str)
@@ -415,7 +437,7 @@
 +        }
 +        let instr = body[index]
 +        let indent_str = "  ".repeat(depth)
-@@ -800,8 +941,25 @@
+@@ -800,8 +961,25 @@
 -        sb.write_string("end\n")
 -      }
 -      If(_, then_body, else_body) => {
@@ -449,7 +471,7 @@
 +            tasks.push(Body(then_body, 0, depth + 1))
 +          }
 +          _ => ()
-@@ -809,9 +967 @@
+@@ -809,9 +987 @@
 -        sb.write_string(indent_str)
 -        sb.write_string("end\n")
 -      }
@@ -460,35 +482,35 @@
 -      }
 -      _ => ()
 +      }
-@@ -824 +974,4 @@
+@@ -824 +994,4 @@
 -fn instr_to_wat(instr : @types.Instruction) -> String {
 +fn instr_to_wat(
 +  instr : @types.Instruction,
 +  spellings~ : ReadOnlyArray[String] = [],
 +) -> String {
-@@ -826,3 +979,3 @@
+@@ -826,3 +999,3 @@
 -    subop : Int,
 -    mem : Int,
 -    align : Int,
 +    subop : Int32,
 +    mem : Int32,
 +    align : Int32,
-@@ -954,3 +1107,3 @@
+@@ -954,3 +1127,3 @@
 -    Block(bt, _) => "block\{block_type_to_wat(bt)}"
 -    Loop(bt, _) => "loop\{block_type_to_wat(bt)}"
 -    If(bt, _, _) => "if\{block_type_to_wat(bt)}"
 +    Block(bt, _) => "block\{block_type_to_wat(bt, spellings~)}"
 +    Loop(bt, _) => "loop\{block_type_to_wat(bt, spellings~)}"
 +    If(bt, _, _) => "if\{block_type_to_wat(bt, spellings~)}"
-@@ -994 +1147 @@
+@@ -994 +1167 @@
 -      sb.write_string("try_table\{block_type_to_wat(bt)}")
 +      sb.write_string("try_table\{block_type_to_wat(bt, spellings~)}")
-@@ -1003 +1156,3 @@
+@@ -1003 +1176,3 @@
 -      let types_str = types.map(fn(t) { value_type_to_wat(t) }).join(" ")
 +      let types_str = types
 +        .mapi((i, t) => own_value_type(t, spellings.get(i)))
 +        .join(" ")
-@@ -1583,0 +1739,11 @@
+@@ -1583,0 +1759,11 @@
 +
 +///|
 +// Preserve nullability where the retained enum has a single variant for both
