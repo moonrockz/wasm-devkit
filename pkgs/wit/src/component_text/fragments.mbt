@@ -131,7 +131,11 @@ fn fragment_aliases(
       }
     }
   }
-  let rendered = sexpr_to_wat(output[0]) + "\n"
+  let rendered = if bindings is Some(_) {
+    fragment_wat(output[0]) + "\n"
+  } else {
+    ""
+  }
   (references, rendered)
 }
 
@@ -153,4 +157,31 @@ pub fn relocate_outer_references(
   bindings : ReadOnlyArray[OuterBinding],
 ) -> String raise ComponentTextError {
   fragment_aliases(source, Some(bindings)).1
+}
+
+///|
+// Literal bytes must stay escaped when the reader decoded a string containing
+// controls or a custom-section payload. This renderer never emits them raw.
+fn fragment_wat(expr : SExpr) -> String {
+  let out = StringBuilder()
+  let work : Array[RenderSExpr] = [Expression(expr)]
+  while work.pop() is Some(task) {
+    match task {
+      Text(text) => out.write_string(text)
+      Expression(Atom(text)) => out.write_string(text)
+      Expression(Str(text)) => out.write_string(wat_literal(@utf8.encode(text)))
+      Expression(ByteStr(bytes)) => out.write_string(wat_literal(bytes))
+      Expression(List(items)) => {
+        out.write_char('(')
+        work.push(Text(")"))
+        for i = items.length() - 1; i >= 0; i = i - 1 {
+          work.push(Expression(items[i]))
+          if i > 0 {
+            work.push(Text(" "))
+          }
+        }
+      }
+    }
+  }
+  out.to_string()
 }

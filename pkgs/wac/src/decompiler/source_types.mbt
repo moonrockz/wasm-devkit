@@ -33,29 +33,15 @@ fn source_type(
         match types[id].kind {
           Scalar(value) => out.write_string(value)
           Alias(next) | Resource(Some(next)) => children.push(Type(next))
-          Own(next) | Borrow(next) | List(next) | Option(next) => {
+          Own(next) => children.push(Type(next))
+          Borrow(next) | List(next) | Option(next) => {
             let tag = match types[id].kind {
-              Own(_) => "own"
               Borrow(_) => "borrow"
               List(_) => "list"
               _ => "option"
             }
             children.append([Text(tag + "<"), Type(next), Text(">")])
           }
-          FixedList(next, size) =>
-            children.append([
-              Text("list<"),
-              Type(next),
-              Text(", " + size.to_string() + ">"),
-            ])
-          Map(a, b) =>
-            children.append([
-              Text("map<"),
-              Type(a),
-              Text(", "),
-              Type(b),
-              Text(">"),
-            ])
           Tuple(ids) => {
             children.push(Text("tuple<"))
             for i, id in ids {
@@ -119,4 +105,113 @@ fn source_type(
     }
   }
   out.to_string()
+}
+
+///|
+fn capturable_type(
+  types : ReadOnlyArray[@verifier.ResolvedType],
+  initial : Int32,
+) -> Bool {
+  let mut id = initial
+  for _ in 0..<types.length() {
+    match types[id].kind {
+      Alias(next) | Resource(Some(next)) => id = next
+      Function(_) | Interface(_) | World(_) | Module(_) => return false
+      _ => return true
+    }
+  }
+  false
+}
+
+///|
+fn type_captures(
+  types : ReadOnlyArray[@verifier.ResolvedType],
+  names : Map[Int32, String],
+  source : String,
+  roots~ : ReadOnlyArray[Int32]? = None,
+) -> Array[(@verifier.Extern, String)] {
+  let reachable : Map[Int32, Bool] = Map([])
+  if roots is Some(values) {
+    let work = values.iter().to_array()
+    while work.pop() is Some(id) {
+      if reachable.contains(id) {
+        continue
+      }
+      reachable[id] = true
+      work.append(type_edges(types[id].kind))
+    }
+  }
+  let ids = names.keys().to_array()
+  ids.sort()
+  let captures : Array[(@verifier.Extern, String)] = []
+  let resources : Map[Int32, Bool] = Map([])
+  let used_names : Map[String, Bool] = Map([])
+  let data : Array[(@verifier.Extern, String)] = []
+  for id in ids {
+    if roots is Some(_) && !reachable.contains(id) {
+      continue
+    }
+    if !capturable_type(types, id) {
+      continue
+    }
+    let mut root = id
+    for _ in 0..<types.length() {
+      match types[root].kind {
+        Alias(next) | Resource(Some(next)) => root = next
+        _ => break
+      }
+    }
+    if types[root].kind is Resource(None) {
+      if resources.contains(root) {
+        continue
+      }
+      resources[root] = true
+      let original = types[root].name.unwrap_or("resource")
+      let name = if used_names.contains(original) {
+        "capture-resource-n\{root}"
+      } else {
+        original
+      }
+      used_names[name] = true
+      captures.push(
+        (
+          {
+            name,
+            kind: @verifier.Type(root),
+            location: @verifier.Location::binary(source),
+          },
+          names[id],
+        ),
+      )
+    } else {
+      data.push(
+        (
+          {
+            name: "capture-type-n\{id}",
+            kind: @verifier.Type(id),
+            location: @verifier.Location::binary(source),
+          },
+          names[id],
+        ),
+      )
+    }
+  }
+  captures.append(data)
+  captures
+}
+
+///|
+fn resource_base(
+  types : ReadOnlyArray[@verifier.ResolvedType],
+  initial : Int32,
+) -> Int32? {
+  let mut id = initial
+  for _ in 0..<types.length() {
+    match types[id].kind {
+      Alias(next) | Resource(Some(next)) => id = next
+      Resource(None) => return Some(id)
+      _ => return None
+    }
+  }
+  None
 }

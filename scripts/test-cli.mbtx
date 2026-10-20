@@ -125,6 +125,19 @@ async fn main {
     wit,
   )
   assert_eq(verified_split_error, "")
+  // Production components exercise resources shared across named interfaces.
+  for version in ["0.2.0", "0.2.3"] {
+    let input = "tests/semantic/wac-nested-components/composition/http-" +
+      version +
+      "/composed.wasm"
+    let output = dir + "/http-" + version
+    if @fs.exists(output) {
+      @fs.rmdir(output, recursive=true)
+    }
+    let _ = run(["decompile", input, "--split", output], 0, wit)
+    let (_, errors) = run(["verify", output + "/root.wac"], 0, wit)
+    assert_eq(errors, "")
+  }
   let sentinel = split_dir + "/sentinel"
   @fs.write_file(sentinel, "keep")
   let _ = run(["decompile", nested, "--split", split_dir], 2, wit)

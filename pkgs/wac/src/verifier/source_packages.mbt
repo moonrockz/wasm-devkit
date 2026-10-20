@@ -86,6 +86,7 @@ fn Check::append_composition(self : Check, model : Verified) -> LoadedPackage {
 /// and duplicate lookup keys fail before a partial package list can escape.
 pub fn resolve_composition_packages(
   inputs : ReadOnlyArray[SourcePackage],
+  features~ : @parser.Features = @parser.Features::default(),
   dependencies~ : ReadOnlyArray[PackageSource] = [],
   wit_dependencies~ : ReadOnlyArray[WitPackageSource] = [],
 ) -> Result[ReadOnlyArray[CompositionPackage], ReadOnlyArray[Diagnostic]] {
@@ -112,7 +113,7 @@ pub fn resolve_composition_packages(
       ])
     }
     indexed[key] = i
-    let syntax = @parser.parse(input.text)
+    let syntax = @parser.parse(input.text, features~)
     parsed.push(syntax)
     match package_requests(syntax, source=input.text, source_id=input.source) {
       Ok(value) => requests.push(value)

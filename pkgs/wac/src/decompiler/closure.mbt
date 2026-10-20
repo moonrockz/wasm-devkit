@@ -320,15 +320,28 @@ fn invoke_component(
   types : ReadOnlyArray[@verifier.ResolvedType],
   target : Int32,
   arguments : ReadOnlyArray[@verifier.Extern],
+  captured~ : ReadOnlyArray[@verifier.Extern] = [],
 ) -> String raise Failure {
-  let inputs : Array[@verifier.Extern] = [
-    {
-      name: "target",
-      kind: @verifier.Component(target),
-      location: @verifier.Location::binary("<invoke>"),
-    },
-  ]
-  inputs.append(arguments.iter().to_array())
+  let inputs = captured.iter().to_array()
+  let positions : Map[Int32, Int32] = Map([])
+  for i, argument in arguments {
+    if argument.kind is Type(_) {
+      positions[i] = inputs.length()
+      inputs.push(argument)
+    }
+  }
+  let target_index = inputs.length()
+  inputs.push({
+    name: invocation_target(arguments, captured),
+    kind: @verifier.Component(target),
+    location: @verifier.Location::binary("<invoke>"),
+  })
+  for i, argument in arguments {
+    if !(argument.kind is Type(_)) {
+      positions[i] = inputs.length()
+      inputs.push(argument)
+    }
+  }
   let prelude = render_contract(
     types,
     ReadOnlyArray::from_array(inputs),
@@ -338,14 +351,16 @@ fn invoke_component(
     preserve_names=true,
   )
   let out = StringBuilder()
-  out.write_string("(component\n" + prelude + "(instance $run (instantiate $i0")
+  out.write_string(
+    "(component\n" + prelude + "(instance $run (instantiate $i\{target_index}",
+  )
   for i, argument in arguments {
     out.write_string(
       " (with " +
       wat_quote(argument.name) +
       " (" +
       kind_name(argument.kind) +
-      " $i\{i + 1}))",
+      " $i\{positions[i]}))",
     )
   }
   out.write_string("))\n(export \"value\" (instance $run)))\n")
@@ -358,6 +373,7 @@ fn ascribe_component(
   actual : @verifier.ItemKind,
   expected : @verifier.ItemKind,
   identity~ : String? = None,
+  captured~ : ReadOnlyArray[@verifier.Extern] = [],
 ) -> String raise Failure {
   let names : Map[Int32, String] = Map([])
   let original_id = item_id(expected)
@@ -372,13 +388,16 @@ fn ascribe_component(
   let types = ReadOnlyArray::from_array(graph)
   let prelude = render_contract(
     types,
-    [
-      {
-        name: "input",
-        kind: actual,
-        location: @verifier.Location::binary("<ascription>"),
-      },
-    ],
+    ReadOnlyArray::from_array(
+      captured.iter().to_array() +
+      [
+        {
+          name: "input",
+          kind: actual,
+          location: @verifier.Location::binary("<ascription>"),
+        },
+      ],
+    ),
     [],
     false,
     prelude=true,
@@ -389,7 +408,7 @@ fn ascribe_component(
   let name = names[id]
   let desc = match expected {
     Type(_) => "(type (eq " + name + "))"
-    Value(_) => "(value " + name + ")"
+    Value(_) => "(value " + contract_value_name(types, names, id) + ")"
     _ => "(" + kind_name(expected) + " (type " + name + "))"
   }
   "(component\n" +
@@ -398,7 +417,7 @@ fn ascribe_component(
   wat_quote(identity.unwrap_or("value")) +
   " (" +
   kind_name(actual) +
-  " $i0) " +
+  " $i\{captured.length()}) " +
   desc +
   "))\n"
 }
@@ -410,4 +429,44 @@ fn capture_name(origin : String, sort : Int32, index : Int32) -> String {
   "-h" +
   @crypto.bytes_to_hex_string(@crypto.sha256(@utf8.encode(origin))) +
   "-n\{index}"
+}
+
+///|
+fn invocation_target(
+  arguments : ReadOnlyArray[@verifier.Extern],
+  captured : ReadOnlyArray[@verifier.Extern],
+) -> String {
+  let mut name = "invoke-target"
+  while arguments.any(a => a.name == name) || captured.any(a => a.name == name) {
+    name += "-target"
+  }
+  name
+}
+
+///|
+fn instance_value_component(
+  types : ReadOnlyArray[@verifier.ResolvedType],
+  instance : Int32,
+  name : String,
+  captured : ReadOnlyArray[@verifier.Extern],
+) -> String raise Failure {
+  let inputs = captured.iter().to_array()
+  inputs.push({
+    name: "source",
+    kind: @verifier.Instance(instance),
+    location: @verifier.Location::binary("<value-alias>"),
+  })
+  let prelude = render_contract(
+    types,
+    ReadOnlyArray::from_array(inputs),
+    [],
+    false,
+    prelude=true,
+    preserve_names=true,
+  )
+  "(component\n" +
+  prelude +
+  "(alias export $i\{captured.length()} " +
+  wat_quote(name) +
+  " (value $value))\n(export \"value\" (value $value)))\n"
 }

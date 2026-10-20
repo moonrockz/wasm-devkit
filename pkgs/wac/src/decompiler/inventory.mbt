@@ -352,6 +352,14 @@ fn inspect(bytes : Bytes, source : String) -> Inspection raise Failure {
             exported[(key.0, next)] = names
           }
         }
+        7 => {
+          let definitions = @component.parse_type_section(section.payload) catch {
+            error => raise Failure("WAC-D001", error.to_string())
+          }
+          if definitions.any(definition => definition is ResourceType(_)) {
+            pure = false
+          }
+        }
         2 | 3 | 8 | 9 => pure = false
         _ => ()
       }

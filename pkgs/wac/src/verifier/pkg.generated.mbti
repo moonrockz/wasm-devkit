@@ -18,7 +18,7 @@ pub fn decode_wat_component_package(String, source_id? : String) -> Result[Binar
 
 pub fn package_requests(@parser.Parse, source~ : String, source_id? : String) -> Result[ReadOnlyArray[PackageRequest], ReadOnlyArray[Diagnostic]]
 
-pub fn resolve_composition_packages(ReadOnlyArray[SourcePackage], dependencies? : ReadOnlyArray[PackageSource], wit_dependencies? : ReadOnlyArray[WitPackageSource]) -> Result[ReadOnlyArray[CompositionPackage], ReadOnlyArray[Diagnostic]]
+pub fn resolve_composition_packages(ReadOnlyArray[SourcePackage], features? : @parser.Features, dependencies? : ReadOnlyArray[PackageSource], wit_dependencies? : ReadOnlyArray[WitPackageSource]) -> Result[ReadOnlyArray[CompositionPackage], ReadOnlyArray[Diagnostic]]
 
 pub fn resolve_wit_package(@moonrockz/wit/verifier.PackageInput, dependencies? : ReadOnlyArray[@moonrockz/wit/verifier.PackageInput]) -> Result[WitPackage, ReadOnlyArray[Diagnostic]]
 

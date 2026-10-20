@@ -48,7 +48,7 @@ test "imports preserve function signatures without executable carrier bodies" {
       #|  (export "g" (func 1)))
     ),
   )
-  assert_eq(split.documents.length(), 4)
+  assert_eq(split.documents.length(), 2)
 }
 
 ///|
@@ -123,8 +123,8 @@ test "inline instances lift through forwarding components without copying bodies
     #|  (instance (export "run" (func 0)))
     #|  (export "api" (instance 0)))
   let split = split_source(source)
-  assert_eq(split.documents.length(), 3)
-  assert_true(split.documents[2].text.contains("(export \"run\" (func $i0))"))
+  assert_eq(split.documents.length(), 2)
+  assert_true(split.documents[1].text.contains("(export \"run\" (func $i0))"))
 }
 
 ///|

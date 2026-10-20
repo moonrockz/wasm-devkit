@@ -45,3 +45,22 @@ test "source package dependency cycles and lookup collisions fail explicitly" {
     "WAC-P002",
   )
 }
+
+///|
+test "source package resolution retains the caller grammar profile" {
+  let source : @verifier.SourcePackage = {
+    name: "test:dependency",
+    version: None,
+    source: "dependency.wac",
+    text: "package test:dependency; import f: func() -> (x: u8);",
+  }
+  let default_errors = @verifier.resolve_composition_packages([source]).unwrap_err()
+  assert_eq(default_errors[0].code, "WAC-P005")
+  let extended_errors = @verifier.resolve_composition_packages(
+    [source],
+    features=@parser.Features::all(),
+  ).unwrap_err()
+  // The selected grammar reaches semantic checking, which still explicitly
+  // rejects named results under the pinned semantic profile.
+  assert_eq(extended_errors[0].code, "WAC-S003")
+}

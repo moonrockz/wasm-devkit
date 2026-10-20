@@ -306,6 +306,12 @@ The published composition is topologically ordered and uses the aggregate's type
 and resource identities. Aggregation uses explicit work stacks and a shared
 one-million-step limit, reported as `WAC-C006`.
 
+An explicit interface import retains used-resource identity when its named owner
+was imported earlier, including when the two contracts come from different
+provider packages. Resource names constrain compatibility when both declarations
+have names; an anonymous resource adds no name constraint. Nominal identity still
+has to agree.
+
 Function parameters, names, result types and async markers must agree. Aggregate
 fields/cases retain their order. Instance arguments may provide extra exports;
 component arguments may require fewer imports and provide extra exports. Nested

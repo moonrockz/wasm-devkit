@@ -53,9 +53,11 @@ test "split: an empty composition becomes a WAC root" {
 
 A pure composition becomes WAC. Its nested components become dependencies,
 recursively split by the same rule. Any core module, core instance, core type,
-core alias, canonical definition or start section makes a component a WAT leaf.
-A leaf keeps its core modules and nested components inline. A core-module input
-also stays one WAT document. Core modules never become separate split targets.
+core alias, runtime resource definition, canonical definition or start section
+makes a component a WAT leaf. A leaf keeps its core modules and nested components
+inline. A core-module input also stays one WAT document. Core modules never become
+separate split targets. Type-only packages use a WAT metadata carrier to retain
+encoded name attributes exactly.
 
 WAC package dependencies can be WAC source as well as WAT/binary components. The
 CLI resolves that dependency DAG with the verifier, without running a composer.
@@ -109,6 +111,11 @@ collection. `WAC-D001` reports invalid inventory input, `WAC-D003` reports selec
 or closure constraints, and `WAC-D004` reports a print, compilation or generated
 composition failure. Unsupported proposals follow the existing verifier and text
 compiler profiles. This operation does not claim wasm-tools/WABT print compatibility.
+
+Splitting uses the retained WAT compiler's existing limits, including 64 levels
+of core control/expression nesting. Inputs beyond those text limits return a
+diagnostic and no documents, even when inventory and single-document printing
+accept the binary.
 
 Tests cover immutable contracts, arbitrary bytes and prefixes, nominal resource
 relationships, imported and concrete component values, outer aliases, ascriptions,

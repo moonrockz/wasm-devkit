@@ -305,7 +305,9 @@ fn Check::compatible(
             ),
           )
         }
-        if self.types[a].name != self.types[b].name {
+        if self.types[a].name is Some(actual_name) &&
+          self.types[b].name is Some(expected_name) &&
+          actual_name != expected_name {
           raise Problem(
             self.compatibility_problem(
               node, a, b, context, "resource names do not match",

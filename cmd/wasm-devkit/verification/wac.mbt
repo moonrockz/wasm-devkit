@@ -142,7 +142,7 @@ async fn wac(options : @cli.Options) -> @cli.Output {
       })
       match
         @wac_verifier.package_requests(
-          @wac_parser.parse(text),
+          @wac_parser.parse(text, features~),
           source=text,
           source_id=path,
         ) {
@@ -295,6 +295,7 @@ async fn wac(options : @cli.Options) -> @cli.Output {
   let compositions = match
     @wac_verifier.resolve_composition_packages(
       ReadOnlyArray::from_array(source_packages),
+      features~,
       dependencies=ReadOnlyArray::from_array(dependencies),
       wit_dependencies=ReadOnlyArray::from_array(wit_dependencies),
     ) {

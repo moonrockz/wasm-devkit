@@ -552,3 +552,153 @@ test "binary relay composition keeps complete ordered instantiation and access e
   assert_eq(model.composition_exports()[0].name, "run")
   assert_eq(model.composition_exports()[0].value, 4)
 }
+
+///|
+test "owned imported resources use WAC resource names in function signatures" {
+  let source =
+    #|(component
+    #|  (type (instance (export "r" (type (sub resource)))))
+    #|  (import "api" (instance (type 0)))
+    #|  (alias export 0 "r" (type))
+    #|  (type (own 1))
+    #|  (type (func (param "x" 2)))
+    #|  (import "consume" (func (type 3)))
+    #|  (export "api" (instance 0))
+    #|  (export "consume" (func 0)))
+  assert_split_contract(source)
+}
+
+///|
+test "component factories retain escaped custom-section bytes" {
+  assert_split_contract(
+    "(component (component (@custom \"payload\" \"\\00\\0a\\ff\")) (export \"child\" (component 0)))",
+  )
+}
+
+///|
+test "function ascriptions receive their named data-type environment" {
+  let source =
+    #|(component
+    #|  (type (record (field "x" u32)))
+    #|  (import "a" (type (eq 0)))
+    #|  (type (record (field "x" u32)))
+    #|  (import "b" (type (eq 2)))
+    #|  (type (func (param "x" 1)))
+    #|  (type (func (param "x" 3)))
+    #|  (import "f" (func (type 4)))
+    #|  (export "out" (func 0) (func (type 5))))
+  assert_split_contract(source)
+}
+
+///|
+test "private map and fixed-list signatures use named binary type adapters" {
+  for type_ in ["(map string u32)", "(list u32 4)"] {
+    assert_split_contract(
+      "(component (type " +
+      type_ +
+      ") (type (func (param \"x\" 0))) (import \"f\" (func (type 1))))",
+    )
+  }
+}
+
+///|
+test "named interface providers retain shared used resource origins" {
+  let source =
+    #|(component
+    #|  (type $a (instance (export "r" (type (sub resource)))))
+    #|  (import "test:pkg/a" (instance $a (type $a)))
+    #|  (alias export $a "r" (type $r))
+    #|  (type $b (instance
+    #|    (alias outer 1 $r (type $r))
+    #|    (export "r" (type (eq $r)))
+    #|    (type $borrow (borrow $r))
+    #|    (type $f (func (param "x" $borrow)))
+    #|    (export "use" (func (type $f)))))
+    #|  (import "test:pkg/b" (instance $b (type $b)))
+    #|  (export "test:pkg/a" (instance $a))
+    #|  (export "test:pkg/b" (instance $b)))
+  assert_split_contract(source)
+}
+
+///|
+test "dynamic component invocation shares type arguments with functions" {
+  let source =
+    #|(component
+    #|  (import "r" (type $r (sub resource)))
+    #|  (type $own (own $r))
+    #|  (type $f (func (param "x" $own)))
+    #|  (import "invoke-target" (func $f (type $f)))
+    #|  (type $c (component
+    #|    (import "r" (type $r (sub resource)))
+    #|    (type $own (own $r))
+    #|    (type $f (func (param "x" $own)))
+    #|    (import "invoke-target" (func (type $f)))
+    #|    (export "r" (type (eq $r)))
+    #|    (export "f" (func (type $f)))))
+    #|  (import "c" (component $c (type $c)))
+    #|  (instance $i (instantiate $c (with "r" (type $r))
+    #|    (with "invoke-target" (func $f))))
+    #|  (export "r" (type $r))
+    #|  (export "i" (instance $i)))
+  assert_split_contract(source)
+}
+
+///|
+test "repeated value aliases remain distinct consuming edges" {
+  assert_split_contract(
+    "(component (type (instance (export \"v\" (value u32)))) (import \"i\" (instance (type 0))) (alias export 0 \"v\" (value)) (alias export 0 \"v\" (value)) (export \"a\" (value 0)) (export \"b\" (value 1)))",
+  )
+}
+
+///|
+test "value ascription adapters retain scalar and named record contracts" {
+  for
+    source in [
+      "(component (import \"v\" (value u32)) (export \"v\" (value 0) (value u32)))",
+      "(component (type $r (record (field \"x\" u32))) (import \"r\" (type $named (eq $r))) (import \"v\" (value (type $named))) (export \"r\" (type $named)) (export \"v\" (value 0) (value $named)))",
+    ] {
+    assert_split_contract(source)
+  }
+}
+
+///|
+test "type metadata carriers preserve raw version suffix attributes" {
+  assert_split_contract(
+    "(component (type (component (type (component (type (instance)) (import \"test:dep/base@1\" (version-suffix \".2.3\") (instance (type 0))))) (export \"test:root/app\" (component (type 0))))) (export \"app\" (type 0)))",
+  )
+}
+
+///|
+test "core module contracts retain shared global syntax" {
+  assert_split_contract(
+    "(component (type $c (component (core type $m (module (export \"g\" (global (shared i64))))) (import \"m\" (core module (type $m))))) (import \"c\" (component $c (type $c))) (export \"c\" (component $c)))",
+  )
+}
+
+///|
+test "anonymous runtime resource declarations match named invocation arguments" {
+  let source =
+    #|(component
+    #|  (component $c
+    #|    (type $r (resource (rep i32)))
+    #|    (export $named "r" (type $r))
+    #|    (type $o (own $named))
+    #|    (type $f (func (param "x" $o)))
+    #|    (core module $m (func (export "f") (param i32)))
+    #|    (core instance $m (instantiate $m))
+    #|    (func $f (type $f) (canon lift (core func $m "f")))
+    #|    (export "f" (func $f)))
+    #|  (type $consumer (component
+    #|    (import "r" (type $r (sub resource)))
+    #|    (type $o (own $r))
+    #|    (type $f (func (param "x" $o)))
+    #|    (import "f" (func (type $f)))))
+    #|  (import "consumer" (component $consumer (type $consumer)))
+    #|  (instance $a (instantiate $c))
+    #|  (instance $b (instantiate $c))
+    #|  (alias export $a "r" (type $ra))
+    #|  (alias export $a "f" (func $fa))
+    #|  (instance (instantiate $consumer
+    #|    (with "r" (type $ra)) (with "f" (func $fa)))))
+  assert_split_contract(source)
+}

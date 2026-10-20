@@ -110,6 +110,37 @@ fn lift(
   let scope = snapshot.scope.unwrap()
   let types = inspection.inventory.types
   let original_imports = component_imports(types, scope)
+  // Preserve encoded type metadata, including name attributes, without
+  // reconstructing type-only packages through a less detailed semantic graph.
+  if original_imports.is_empty() &&
+    closures[snapshot.entry.id].captures.is_empty() &&
+    snapshot.parsed.unwrap().sections.all(s => {
+      s.id == 0 || s.id == 7 || s.id == 11
+    }) &&
+    types[scope.world].kind is World(_, _, _, exports) &&
+    exports.all(e => e.kind is Type(_)) &&
+    !exports.is_empty() {
+    let helper_id = snapshot.entry.id + "/types"
+    let helper = wat_document(helper_id, snapshot.bytes)
+    let out = StringBuilder()
+    out.write_string(
+      "package " +
+      package_key(snapshot.entry.id) +
+      ";\nlet metadata = new " +
+      helper.package_name +
+      " {};\n",
+    )
+    for item in exports {
+      out.write_string(
+        "export metadata[" +
+        quote(item.name) +
+        "] as " +
+        quote(item.name) +
+        ";\n",
+      )
+    }
+    return { text: out.to_string(), helpers: [helper], }
+  }
   let captures = closures[snapshot.entry.id].captures
   let imports = ReadOnlyArray::from_array(
     captures + original_imports.iter().to_array(),
@@ -118,18 +149,7 @@ fn lift(
   let id = snapshot.entry.id
   out.write_string("package " + package_key(id) + ";\n")
   let helpers : Array[Document] = []
-  if !imports.is_empty() {
-    let contract_id = id + "/imports"
-    let text = import_contract(types, imports)
-    helpers.push({
-      id: contract_id,
-      path: document_path(contract_id, Wat),
-      package_name: package_key(contract_id),
-      bodies: [],
-      kind: Wat,
-      text,
-    })
-  }
+  let carrier_needed : Array[Int32] = []
   let refs : Map[(Int32, Int32), String] = Map([])
   let packages : Map[Int32, Snapshot] = Map([])
   let unnamed_values : Map[(Int32, Int32), Bool] = Map([])
@@ -153,16 +173,15 @@ fn lift(
     }
     let inputs : Array[@verifier.Extern] = []
     let args : Array[String] = []
-    let captured = source_names.keys().to_array()
-    captured.sort()
-    for captured_id in captured {
-      let n = inputs.length()
-      inputs.push({
-        name: "i\{n}",
-        kind: @verifier.Type(captured_id),
-        location: @verifier.Location::binary(id),
-      })
-      args.push("i\{n}: " + source_names[captured_id])
+    for
+      (item, value) in type_captures(
+        types,
+        source_names,
+        id,
+        roots=Some([type_id]),
+      ) {
+      inputs.push(item)
+      args.push(quote(item.name) + ": " + value)
     }
     let helper_id = id + "/type-id-n\{type_id}"
     let text = definition_component(
@@ -232,7 +251,27 @@ fn lift(
           }
           _ => package_key(id + "/imports") + "/imports/i\{import_index}"
         }
+      Type(type_id) => {
+        let mut current = type_id
+        let mut known : String? = None
+        for _ in 0..<types.length() {
+          if source_names.get(current) is Some(value) {
+            known = Some(value)
+            break
+          }
+          match types[current].kind {
+            Alias(next) | Resource(Some(next)) => current = next
+            _ => break
+          }
+        }
+        known.unwrap_or(
+          package_key(id + "/imports") + "/imports/i\{import_index}",
+        )
+      }
       _ => package_key(id + "/imports") + "/imports/i\{import_index}"
+    }
+    if target.has_prefix(package_key(id + "/imports") + "/") {
+      carrier_needed.push(import_index)
     }
     out.write_string(
       "import " + binding + " as " + quote(name) + ": " + target + ";\n",
@@ -447,9 +486,7 @@ fn lift(
               } else {
                 let helper_id = id + "/invoke-n\{n}"
                 let kinds : Array[@verifier.Extern] = []
-                let supplied : Array[String] = [
-                  "target: " + component_value(component),
-                ]
+                let supplied : Array[String] = []
                 for argument in arguments {
                   kinds.push({
                     name: argument.name,
@@ -466,10 +503,43 @@ fn lift(
                     reference(sort(argument.sortidx.sort), argument.sortidx.idx),
                   )
                 }
+                let roots = [scope.components[component]] +
+                  kinds.map(k => item_id(k.kind))
+                let captured = type_captures(
+                  types,
+                  source_names,
+                  id,
+                  roots=Some(ReadOnlyArray::from_array(roots)),
+                ).filter(c => {
+                  !kinds.any(k => {
+                    k.name == c.0.name &&
+                    (
+                      item_id(k.kind) == item_id(c.0.kind) ||
+                      (
+                        resource_base(types, item_id(k.kind)) is Some(root) &&
+                        resource_base(types, item_id(c.0.kind)) == Some(root)
+                      )
+                    )
+                  })
+                })
+                supplied.push(
+                  quote(
+                    invocation_target(
+                      ReadOnlyArray::from_array(kinds),
+                      ReadOnlyArray::from_array(captured.map(c => c.0)),
+                    ),
+                  ) +
+                  ": " +
+                  component_value(component),
+                )
+                for (item, value) in captured {
+                  supplied.push(quote(item.name) + ": " + value)
+                }
                 let text = invoke_component(
                   types,
                   scope.components[component],
                   ReadOnlyArray::from_array(kinds),
+                  captured=ReadOnlyArray::from_array(captured.map(c => c.0)),
                 )
                 helpers.push({
                   id: helper_id,
@@ -512,10 +582,22 @@ fn lift(
                 )
               }
               let helper_id = id + "/inline-n\{n}"
+              let captured = type_captures(
+                types,
+                source_names,
+                id,
+                roots=Some(
+                  ReadOnlyArray::from_array(inputs.map(i => item_id(i.kind))),
+                ),
+              )
+              for (item, value) in captured {
+                args.push(quote(item.name) + ": " + value)
+              }
               let text = forwarding_component(
                 types,
                 ReadOnlyArray::from_array(inputs),
                 ReadOnlyArray::from_array(names),
+                captured=ReadOnlyArray::from_array(captured.map(c => c.0)),
               )
 
               helpers.push({
@@ -550,15 +632,50 @@ fn lift(
           match entry.target {
             Export(instance, name) => {
               let binding = "a\{kind}n\{n}"
-              out.write_string(
-                "let " +
-                binding +
-                " = " +
-                lookup(refs, 5, instance) +
-                "[" +
-                quote(name) +
-                "];\n",
-              )
+              if kind == 2 {
+                let helper_id = id + "/value-alias-n\{n}"
+                let captured = type_captures(
+                  types,
+                  source_names,
+                  id,
+                  roots=Some([scope.instances[instance]]),
+                )
+                let text = instance_value_component(
+                  types,
+                  scope.instances[instance],
+                  name,
+                  ReadOnlyArray::from_array(captured.map(c => c.0)),
+                )
+                helpers.push({
+                  id: helper_id,
+                  path: document_path(helper_id, Wat),
+                  package_name: package_key(helper_id),
+                  bodies: [],
+                  kind: Wat,
+                  text,
+                })
+                let args = captured.map(c => quote(c.0.name) + ": " + c.1)
+                args.push("source: " + lookup(refs, 5, instance))
+                out.write_string(
+                  "let valuealias\{n} = new " +
+                  package_key(helper_id) +
+                  " {" +
+                  args.join(", ") +
+                  "};\nlet " +
+                  binding +
+                  " = valuealias\{n}[\"value\"];\n",
+                )
+              } else {
+                out.write_string(
+                  "let " +
+                  binding +
+                  " = " +
+                  lookup(refs, 5, instance) +
+                  "[" +
+                  quote(name) +
+                  "];\n",
+                )
+              }
               refs[(kind, n)] = binding
               if kind == 4 || kind == 0x111 {
                 captured_values[capture_name(id, kind, n)] = binding
@@ -605,7 +722,21 @@ fn lift(
               exported.sortidx.idx,
             )
             let helper_id = id + "/ascribe-" + kind.to_string() + "-n\{n}"
-            let text = ascribe_component(types, actual, expected, identity~)
+            let captured = type_captures(
+              types,
+              source_names,
+              id,
+              roots=Some([item_id(actual), item_id(expected)]),
+            )
+            let args = captured.map(c => quote(c.0.name) + ": " + c.1)
+            args.push("input: " + value)
+            let text = ascribe_component(
+              types,
+              actual,
+              expected,
+              identity~,
+              captured=ReadOnlyArray::from_array(captured.map(c => c.0)),
+            )
             helpers.push({
               id: helper_id,
               path: document_path(helper_id, Wat),
@@ -617,8 +748,8 @@ fn lift(
             out.write_string(
               "let ascription\{kind}n\{n} = new " +
               package_key(helper_id) +
-              " {input: " +
-              value +
+              " {" +
+              args.join(", ") +
               "};\nlet ascribed\{kind}n\{n} = ascription\{kind}n\{n}[" +
               quote(identity.unwrap_or("value")) +
               "];\n",
@@ -643,6 +774,21 @@ fn lift(
       }
       _ => reject("core content cannot be lifted to WAC")
     }
+  }
+  if !carrier_needed.is_empty() {
+    let contract_id = id + "/imports"
+    helpers.push({
+      id: contract_id,
+      path: document_path(contract_id, Wat),
+      package_name: package_key(contract_id),
+      bodies: [],
+      kind: Wat,
+      text: import_contract(
+        types,
+        imports,
+        ReadOnlyArray::from_array(carrier_needed),
+      ),
+    })
   }
   { text: out.to_string(), helpers, }
 }

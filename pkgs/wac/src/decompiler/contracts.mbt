@@ -106,8 +106,12 @@ fn core_external(
     Func(function) => core_function(function)
     Global(value, mutable_, shared) =>
       "(global " +
-      (if shared { "shared " } else { "" }) +
-      (if mutable_ {
+      (if shared {
+        "(shared " +
+        (if mutable_ { "mut " } else { "" }) +
+        core_value(value) +
+        ")"
+      } else if mutable_ {
         "(mut " + core_value(value) + ")"
       } else {
         core_value(value)
@@ -190,6 +194,8 @@ fn render_contract(
   preserve_names~ : Bool = false,
   ensure~ : ReadOnlyArray[Int32] = [],
   out_names~ : Map[Int32, String]? = None,
+  carrier_selected~ : ReadOnlyArray[Int32]? = None,
+  private_imports~ : ReadOnlyArray[String] = [],
 ) -> String raise Failure {
   let scopes : Array[ContractScope] = [
     { instances: 0, parent: None, names: Map([]), out: StringBuilder(), },
@@ -203,6 +209,9 @@ fn render_contract(
     tasks.push(Extern(0, definitions[i], false, "$d\{i}"))
   }
   for i = imports.length() - 1; i >= 0; i = i - 1 {
+    if carrier && carrier_selected is Some(selected) && !selected.contains(i) {
+      continue
+    }
     tasks.push(
       Extern(
         if carrier {
@@ -223,9 +232,30 @@ fn render_contract(
       ),
     )
   }
+  if carrier && named is Some(_) {
+    let dependencies = contract_dependencies(types, item_id(imports[0].kind))
+    for i = dependencies.length() - 1; i >= 0; i = i - 1 {
+      let id = dependencies[i]
+      guard types[id].kind is Interface(Some(identity), _, _) else {
+        reject("used interface has no external identity")
+      }
+      tasks.push(
+        Extern(
+          1,
+          {
+            name: identity,
+            kind: @verifier.Instance(id),
+            location: @verifier.Location::binary("<signature>"),
+          },
+          true,
+          "$dependency-n\{i}",
+        ),
+      )
+    }
+  }
   let renamed : Map[String, String] = Map([])
   for i, name in export_names {
-    renamed["i\{i}"] = name
+    renamed[if preserve_names { imports[i].name } else { "i\{i}" }] = name
   }
   let mut remaining = 1000000
   while tasks.pop() is Some(task) {
@@ -237,6 +267,10 @@ fn render_contract(
       Ensure(scope_id, id) => {
         let scope = scopes[scope_id]
         if scope.names.contains(id) {
+          continue
+        }
+        if carrier && scope_id == 1 && types[id].kind is Resource(None) {
+          carrier_resource(scope, id, types[id].name.unwrap_or("resource"))
           continue
         }
         let mut parent = scope.parent
@@ -302,7 +336,9 @@ fn render_contract(
         if scope.names.contains(id) {
           continue
         }
-        let name = fn(id : Int32) { scope.names[id] }
+        let name = fn(id : Int32) {
+          contract_value_name(types, scope.names, id)
+        }
         let optional = fn(id : Int32?, label : String) {
           id.map(id => " (" + label + " " + name(id) + ")").unwrap_or("")
         }
@@ -386,31 +422,46 @@ fn render_contract(
         let id = item_id(item.kind)
         if (scope_id != 0 || importing) &&
           item.kind is Type(_) &&
-          types[id].kind is Resource(None) {
+          resource_base(types, id) is Some(root) {
           let scope = scopes[scope_id]
           let mut parent = scope.parent
           let mut inherited = false
           while parent is Some(p) {
-            if scopes[p].names.contains(id) {
+            if scopes[p].names.contains(root) {
               inherited = true
               break
             }
             parent = scopes[p].parent
           }
-          if !scope.names.contains(id) && !inherited {
+          if carrier &&
+            scope_id == 1 &&
+            !scope.names.contains(root) &&
+            !inherited {
+            carrier_resource(
+              scope,
+              root,
+              types[root].name.unwrap_or("resource"),
+            )
+          }
+          if !scope.names.contains(root) && !inherited {
             scope.out.write_string(
               "(" +
               (if importing { "import" } else { "export" }) +
               " " +
               wat_quote(item.name) +
-              " (type $t\{id} (sub resource)))\n",
+              " (type " +
+              binding +
+              " (sub resource)))\n",
             )
-            scope.names[id] = "$t\{id}"
-            if scope_id == 0 && !prelude {
+            scope.names[root] = binding
+            scope.names[id] = binding
+            if scope_id == 0 && !prelude && !private_imports.contains(item.name) {
               scope.out.write_string(
                 "(export " +
                 wat_quote(renamed.get(item.name).unwrap_or(item.name)) +
-                " (type $t\{id}))\n",
+                " (type " +
+                binding +
+                "))\n",
               )
             }
             continue
@@ -429,7 +480,7 @@ fn render_contract(
           Instance(_) => ("instance", "(type " + name + ")")
           Component(_) => ("component", "(type " + name + ")")
           Module(_) => ("core module", "(type " + name + ")")
-          Value(_) => ("value", name)
+          Value(_) => ("value", contract_value_name(types, scope.names, id))
         }
         if scope_id == 0 && !importing {
           scope.out.write_string(
@@ -451,11 +502,17 @@ fn render_contract(
           " (" +
           kind +
           " " +
-          (if importing { binding + " " } else { "" }) +
+          (if (importing && !(scope_id != 0 && item.kind is Function(_))) ||
+            item.kind is Value(_) ||
+            item.kind is Type(_) {
+            binding + " "
+          } else {
+            ""
+          }) +
           desc +
           "))\n",
         )
-        if scope_id == 0 && !prelude {
+        if scope_id == 0 && !prelude && !private_imports.contains(item.name) {
           scope.out.write_string(
             "(export " +
             wat_quote(renamed.get(item.name).unwrap_or(item.name)) +
@@ -465,6 +522,9 @@ fn render_contract(
             binding +
             "))\n",
           )
+        }
+        if item.kind is Type(_) {
+          scope.names[id] = binding
         }
         // Make the imported instance's named types available to later imports,
         // preserving shared resources instead of copying their declarations.
@@ -480,6 +540,10 @@ fn render_contract(
                 " (type $a\{id}))\n",
               )
               scope.names[id] = "$a\{id}"
+              if resource_base(types, id) is Some(root) &&
+                !scope.names.contains(root) {
+                scope.names[root] = "$a\{id}"
+              }
             }
           }
         }
@@ -514,8 +578,9 @@ fn render_contract(
 fn import_contract(
   types : ReadOnlyArray[@verifier.ResolvedType],
   imports : ReadOnlyArray[@verifier.Extern],
+  selected : ReadOnlyArray[Int32],
 ) -> String raise Failure {
-  render_contract(types, imports, [], true)
+  render_contract(types, imports, [], true, carrier_selected=Some(selected))
 }
 
 ///|
@@ -523,8 +588,19 @@ fn forwarding_component(
   types : ReadOnlyArray[@verifier.ResolvedType],
   imports : ReadOnlyArray[@verifier.Extern],
   export_names : ReadOnlyArray[String],
+  captured~ : ReadOnlyArray[@verifier.Extern] = [],
 ) -> String raise Failure {
-  render_contract(types, imports, export_names, false)
+  let inputs = captured.iter().to_array() + imports.iter().to_array()
+  let names = Array::make(captured.length(), "") +
+    export_names.iter().to_array()
+  render_contract(
+    types,
+    ReadOnlyArray::from_array(inputs),
+    ReadOnlyArray::from_array(names),
+    false,
+    preserve_names=true,
+    private_imports=captured.map(c => c.name),
+  )
 }
 
 ///|
@@ -533,13 +609,21 @@ fn definition_component(
   captured : ReadOnlyArray[@verifier.Extern],
   id : Int32,
 ) -> String raise Failure {
-  render_contract(types, captured, [], false, definitions=[
-    {
-      name: "value",
-      kind: @verifier.Type(id),
-      location: @verifier.Location::binary("<signature>"),
-    },
-  ])
+  render_contract(
+    types,
+    captured,
+    [],
+    false,
+    preserve_names=true,
+    private_imports=captured.map(c => c.name),
+    definitions=[
+      {
+        name: "value",
+        kind: @verifier.Type(id),
+        location: @verifier.Location::binary("<signature>"),
+      },
+    ],
+  )
 }
 
 ///|
@@ -549,4 +633,80 @@ fn named_instance_contract(
   identity : String,
 ) -> String raise Failure {
   render_contract(types, [item], [], true, named=Some(identity))
+}
+
+///|
+// Keep the resource's declared name while using stable synthetic lookup keys.
+// A namespace instance avoids collisions between equal names of distinct roots.
+fn carrier_resource(scope : ContractScope, id : Int32, name : String) -> Unit {
+  let instance = scope.instances
+  scope.instances += 1
+  scope.out.write_string(
+    "(type $resource-type-n\{id} (instance (export " +
+    wat_quote(name) +
+    " (type (sub resource)))))\n(export \"resource-n\{id}\" (instance (type $resource-type-n\{id})))\n(alias export \{instance} " +
+    wat_quote(name) +
+    " (type $resource-n\{id}))\n",
+  )
+  scope.names[id] = "$resource-n\{id}"
+}
+
+///|
+// Render scalar aliases as primitive value types. Composite and nominal values
+// keep their named type references.
+fn contract_value_name(
+  types : ReadOnlyArray[@verifier.ResolvedType],
+  names : Map[Int32, String],
+  initial : Int32,
+) -> String {
+  let mut id = initial
+  for _ in 0..<types.length() {
+    match types[id].kind {
+      Scalar(name) => return name
+      Alias(next) => id = next
+      _ => return names[initial]
+    }
+  }
+  names[initial]
+}
+
+///|
+// A named interface's used types belong to other named interfaces. Import those
+// owners before rendering the interface so aliases retain their original owners.
+fn contract_dependencies(
+  types : ReadOnlyArray[@verifier.ResolvedType],
+  root : Int32,
+) -> Array[Int32] {
+  let required : Map[Int32, Bool] = Map([])
+  let seen : Map[Int32, Bool] = Map([])
+  let order : Array[Int32] = []
+  let work = [(root, false)]
+  while work.pop() is Some((id, finish)) {
+    if finish {
+      order.push(id)
+      continue
+    }
+    if seen.contains(id) {
+      continue
+    }
+    seen[id] = true
+    match types[id].kind {
+      Interface(_, uses, _) | World(_, uses, _, _) =>
+        for used in uses {
+          required[used.interface] = true
+        }
+      _ => ()
+    }
+    work.push((id, true))
+    let children = type_edges(types[id].kind)
+    match types[id].kind {
+      Interface(_, uses, _) | World(_, uses, _, _) =>
+        children.append(uses.map(u => u.interface).iter().to_array())
+      _ => ()
+    }
+    for i = children.length() - 1; i >= 0; i = i - 1 {
+      work.push((children[i], false))
+    }
+  }
+  order.filter(id => id != root && required.contains(id))
 }
