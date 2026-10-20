@@ -348,15 +348,21 @@ test "WIT verification defaults to the semantic reference grammar" {
 test "decompile arguments accept one binary and an optional output file" {
   assert_eq(
     @cli.arguments(["decompile", "app.wasm"]),
-    Ok(Decompile({ path: "app.wasm", output: None, })),
+    Ok(Decompile({ path: "app.wasm", output: None, compatibility: None, })),
   )
   assert_eq(
     @cli.arguments(["decompile", "-o", "app.wat", "--", "-app.wasm"]),
-    Ok(Decompile({ path: "-app.wasm", output: Some("app.wat"), })),
+    Ok(
+      Decompile({
+        path: "-app.wasm",
+        output: Some("app.wat"),
+        compatibility: None,
+      }),
+    ),
   )
   assert_eq(
     @cli.arguments(["decompile", "--output", "app.wat"]),
-    Ok(Decompile({ path: "-", output: Some("app.wat"), })),
+    Ok(Decompile({ path: "-", output: Some("app.wat"), compatibility: None, })),
   )
   assert_true(@cli.arguments(["decompile", "--help"]) is Ok(Help))
   for
@@ -378,14 +384,20 @@ test "decompile prints one document or explicit diagnostics without a document" 
   // (module (func (export "run")))
   let bytes = b"\x00asm\x01\x00\x00\x00\x01\x04\x01\x60\x00\x00\x03\x02\x01\x00\x07\x07\x01\x03run\x00\x00\x0a\x04\x01\x02\x00\x0b"
   let expected = "(module\n  (type (;0;) (func))\n  (export \"run\" (func 0))\n  (func (;0;) (type 0)\n  )\n)\n"
-  let printed = @cli.decompile({ path: "app.wasm", output: None, }, bytes)
+  let printed = @cli.decompile(
+    { path: "app.wasm", output: None, compatibility: None, },
+    bytes,
+  )
   assert_eq(printed, {
     stdout: expected,
     stderr: "",
     exit_code: 0,
     write_text: None,
   })
-  let written = @cli.decompile({ path: "-", output: Some("app.wat"), }, bytes)
+  let written = @cli.decompile(
+    { path: "-", output: Some("app.wat"), compatibility: None, },
+    bytes,
+  )
   assert_eq(written, {
     stdout: "",
     stderr: "",
@@ -393,14 +405,14 @@ test "decompile prints one document or explicit diagnostics without a document" 
     write_text: Some(expected),
   })
   let component = @cli.decompile(
-    { path: "c.wasm", output: Some("c.wat"), },
+    { path: "c.wasm", output: Some("c.wat"), compatibility: None, },
     b"\x00asm\x0d\x00\x01\x00",
   )
   assert_eq(component.exit_code, 0)
   assert_eq(component.write_text, Some("(component\n)\n"))
   // A type section that declares one entry but holds none.
   let truncated = @cli.decompile(
-    { path: "c.wasm", output: Some("c.wat"), },
+    { path: "c.wasm", output: Some("c.wat"), compatibility: None, },
     b"\x00asm\x0d\x00\x01\x00\x07\x01\x01",
   )
   assert_eq(truncated.exit_code, 1)
@@ -412,7 +424,7 @@ test "decompile prints one document or explicit diagnostics without a document" 
   )
   // A function declared to return i32 has an empty body.
   let invalid = @cli.decompile(
-    { path: "-", output: None, },
+    { path: "-", output: None, compatibility: None, },
     b"\x00asm\x01\x00\x00\x00\x01\x05\x01\x60\x00\x01\x7f\x03\x02\x01\x00\x0a\x04\x01\x02\x00\x0b",
   )
   assert_eq(invalid.exit_code, 1)
@@ -440,4 +452,57 @@ test "inventory and component selection arguments are unambiguous" {
     ] {
     assert_true(@cli.arguments(args[:]) is Err(_))
   }
+}
+
+///|
+test "compatibility selects a pinned printer and rejects split and selection in either order" {
+  for mode in ["wasm-tools", "wabt"] {
+    guard @cli.arguments(["decompile", "--compatibility", mode, "app.wasm"])
+      is Ok(Decompile(options)) else {
+      fail("compatibility option rejected")
+    }
+    assert_true(options.compatibility is Some(_))
+    for extra in [["--split", "out"], ["--select", "root"], ["--select-none"]] {
+      assert_true(
+        @cli.arguments(
+          (["decompile", "--compatibility", mode] + extra).exact_view(),
+        )
+        is Err(_),
+      )
+      assert_true(
+        @cli.arguments(
+          (["decompile"] + extra + ["--compatibility", mode]).exact_view(),
+        )
+        is Err(_),
+      )
+    }
+  }
+  for
+    args in [
+      ["decompile", "--compatibility"],
+      ["decompile", "--compatibility", "other"],
+      ["decompile", "--compatibility", "wabt", "--compatibility", "wasm-tools"],
+      ["inventory", "--compatibility", "wasm-tools"],
+    ] {
+    assert_true(@cli.arguments(args.exact_view()) is Err(_))
+  }
+}
+
+///|
+test "compatibility CLI failures carry no stdout or output-file content" {
+  guard @cli.arguments([
+      "decompile", "app.wasm", "-o", "app.wat", "--compatibility", "wabt",
+    ])
+    is Ok(Decompile(options)) else {
+    fail("arguments rejected")
+  }
+  let failed = @cli.decompile(options, b"\x00asm\x0d\x00\x01\x00")
+  assert_eq(failed.exit_code, 1)
+  assert_eq(failed.stdout, "")
+  assert_eq(failed.write_text, None)
+  assert_true(failed.stderr.contains("WIT-D003"))
+  let printed = @cli.decompile(options, b"\x00asm\x01\x00\x00\x00")
+  assert_eq(printed.exit_code, 0)
+  assert_eq(printed.stdout, "")
+  assert_eq(printed.write_text, Some("(module)\n"))
 }

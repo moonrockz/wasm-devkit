@@ -1,0 +1,116 @@
+///|
+test "pinned wasm-tools rejection: component-unknown-dylink" {
+  let result = @decompiler.print_binary(
+    b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x00\x0b\x08\x64\x79\x6c\x69\x6e\x6b\x2e\x30\x07\x00",
+    compatibility=Some(@decompiler.Compatibility::WasmTools),
+  )
+  assert_true(result is Err(_))
+}
+
+///|
+test "pinned wabt rejection: early-name" {
+  let result = @decompiler.print_binary(
+    b"\x00\x61\x73\x6d\x01\x00\x00\x00\x00\x05\x04\x6e\x61\x6d\x65\x01\x04\x01\x60\x00\x00\x03\x02\x01\x00\x0a\x05\x01\x03\x00\x01\x0b",
+    compatibility=Some(@decompiler.Compatibility::Wabt),
+  )
+  assert_true(result is Err(_))
+}
+
+///|
+test "pinned wabt rejection: empty-groups" {
+  let result = @decompiler.print_binary(
+    b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x0a\x04\x4e\x00\x60\x00\x00\x4e\x00\x4e\x00",
+    compatibility=Some(@decompiler.Compatibility::Wabt),
+  )
+  assert_true(result is Err(_))
+}
+
+///|
+test "pinned wabt rejection: groups" {
+  let result = @decompiler.print_binary(
+    b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x16\x03\x4e\x01\x60\x00\x00\x60\x02\x7f\x7e\x02\x7f\x7e\x4e\x02\x60\x00\x00\x60\x00\x01\x7f",
+    compatibility=Some(@decompiler.Compatibility::Wabt),
+  )
+  assert_true(result is Err(_))
+}
+
+///|
+test "pinned wabt rejection: malformed-dylink" {
+  let result = @decompiler.print_binary(
+    b"\x00\x61\x73\x6d\x01\x00\x00\x00\x00\x0c\x08\x64\x79\x6c\x69\x6e\x6b\x2e\x30\x01\x01\x00",
+    compatibility=Some(@decompiler.Compatibility::Wabt),
+  )
+  assert_true(result is Err(_))
+}
+
+///|
+test "pinned wabt rejection: malformed-linking" {
+  let result = @decompiler.print_binary(
+    b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x04\x01\x60\x00\x00\x03\x02\x01\x00\x0a\x05\x01\x03\x00\x01\x0b\x00\x09\x07\x6c\x69\x6e\x6b\x69\x6e\x67\x03",
+    compatibility=Some(@decompiler.Compatibility::Wabt),
+  )
+  assert_true(result is Err(_))
+}
+
+///|
+test "pinned wabt rejection: malformed-name" {
+  let result = @decompiler.print_binary(
+    b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x04\x01\x60\x00\x00\x03\x02\x01\x00\x0a\x04\x01\x02\x00\x0b\x00\x09\x04\x6e\x61\x6d\x65\x00\x02\x00\xff",
+    compatibility=Some(@decompiler.Compatibility::Wabt),
+  )
+  assert_true(result is Err(_))
+}
+
+///|
+test "pinned wabt rejection: malformed-target-features" {
+  let result = @decompiler.print_binary(
+    b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x04\x01\x60\x00\x00\x03\x02\x01\x00\x0a\x05\x01\x03\x00\x01\x0b\x00\x11\x0f\x74\x61\x72\x67\x65\x74\x5f\x66\x65\x61\x74\x75\x72\x65\x73\x01",
+    compatibility=Some(@decompiler.Compatibility::Wabt),
+  )
+  assert_true(result is Err(_))
+}
+
+///|
+test "pinned wabt rejection: name-index" {
+  let result = @decompiler.print_binary(
+    b"\x00\x61\x73\x6d\x01\x00\x00\x00\x00\x0b\x04\x6e\x61\x6d\x65\x01\x04\x01\x00\x01\x78",
+    compatibility=Some(@decompiler.Compatibility::Wabt),
+  )
+  assert_true(result is Err(_))
+}
+
+///|
+test "pinned wabt rejection: reference-nullability" {
+  let result = @decompiler.print_binary(
+    b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x18\x03\x60\x04\x64\x69\x64\x73\x64\x72\x64\x74\x00\x60\x01\x64\x69\x01\x64\x69\x60\x00\x01\x64\x69\x02\x0b\x01\x03\x65\x6e\x76\x01\x67\x03\x64\x69\x00\x03\x03\x02\x01\x02\x04\x0a\x01\x40\x00\x64\x69\x00\x00\x23\x00\x0b\x06\x07\x01\x64\x69\x00\x23\x00\x0b\x0a\x12\x02\x07\x01\x01\x64\x73\x20\x00\x0b\x08\x00\x00\x02\x64\x69\x00\x0b\x0b",
+    compatibility=Some(@decompiler.Compatibility::Wabt),
+  )
+  assert_true(result is Err(_))
+}
+
+///|
+test "pinned wabt rejection: references" {
+  let result = @decompiler.print_binary(
+    b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x12\x01\x60\x0c\x70\x6f\x64\x70\x64\x6f\x73\x72\x6e\x6d\x6c\x6b\x6a\x69\x00\x04\x07\x02\x70\x00\x01\x6f\x00\x01",
+    compatibility=Some(@decompiler.Compatibility::Wabt),
+  )
+  assert_true(result is Err(_))
+}
+
+///|
+test "pinned wabt rejection: subtyping" {
+  let result = @decompiler.print_binary(
+    b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x0a\x02\x50\x00\x60\x01\x7f\x00\x60\x00\x00",
+    compatibility=Some(@decompiler.Compatibility::Wabt),
+  )
+  assert_true(result is Err(_))
+}
+
+///|
+test "pinned wasm-tools rejection: unknown-dylink" {
+  let result = @decompiler.print_binary(
+    b"\x00\x61\x73\x6d\x01\x00\x00\x00\x00\x0b\x08\x64\x79\x6c\x69\x6e\x6b\x2e\x30\x07\x00",
+    compatibility=Some(@decompiler.Compatibility::WasmTools),
+  )
+  assert_true(result is Err(_))
+}

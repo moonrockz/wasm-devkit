@@ -1,0 +1,5 @@
+error: invalid value for branch hint
+     --> tests/decompiler/compatibility/branch-hint-raw.wabt.wat:4:37
+      |
+    4 |     (@metadata.code.branch_hint "ab") nop)
+      |                                     ^

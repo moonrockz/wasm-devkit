@@ -1,0 +1,10 @@
+{
+  "base_wat": "(component)",
+  "custom_sections": [
+    {
+      "name": "dylink.0",
+      "data_hex": "0700",
+      "before_section": null
+    }
+  ]
+}

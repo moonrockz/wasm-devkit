@@ -4,6 +4,7 @@ package "moonrockz/wasm-devkit/cli"
 import {
   "moonbitlang/core/debug",
   "moonrockz/wac/decompiler",
+  "moonrockz/wit/binary/core_printer",
 }
 
 // Values
@@ -56,6 +57,7 @@ pub fn Command::not_equal(Self, Self) -> Bool
 pub fn Command::to_repr(Self) -> @debug.Repr
 
 pub(all) struct DecompileOptions {
+  compatibility : @core_printer.Compatibility?
   path : String
   output : String?
 } derive(Eq, @debug.Debug)

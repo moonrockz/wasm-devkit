@@ -17,4 +17,7 @@ import {
   "moonrockz/wac/verifier",
   "moonrockz/wit/component_text",
   "moonbitlang/core/quickcheck",
+  "moonrockz/wit/binary/core_parser",
+  "Milky2018/wasm_component" @component,
+  "moonrockz/wit/decompiler" @wat,
 } for "test"

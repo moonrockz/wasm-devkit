@@ -1,0 +1,1 @@
+(module (type (func (param (ref exn) (ref nofunc) (ref noextern) (ref noexn)))) (import "env" "g" (global (ref exn))) (table 0 (ref exn) (global.get 0)) (global (ref exn) (global.get 0)) (func (param (ref exn)) (result (ref exn)) (local (ref nofunc)) local.get 0) (func (result (ref exn)) unreachable block (result (ref exn)) unreachable end))

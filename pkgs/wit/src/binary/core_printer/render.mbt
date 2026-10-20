@@ -5,6 +5,8 @@
 /// meets shapes a validated module cannot have. It used to abort on them,
 /// which killed the process on the way to a diagnostic (ISS-396).
 pub(all) suberror WatPrintError {
+  ReferenceUnsupported(String)
+  BinaryMetadata(String)
   NotAFunctionType(Int32)
   FunctionCodeCountMismatch(declarations~ : Int32, bodies~ : Int32)
   FunctionIndexOutOfBounds(Int32)
@@ -20,6 +22,8 @@ pub(all) suberror WatPrintError {
 ///|
 pub fn WatPrintError::to_string(self : WatPrintError) -> String {
   match self {
+    ReferenceUnsupported(message) => message
+    BinaryMetadata(message) => message
     NotAFunctionType(idx) => "type \{idx} is not a function type"
     FunctionCodeCountMismatch(declarations~, bodies~) =>
       "function declaration count \{declarations} does not match code body count \{bodies}"
@@ -185,6 +189,7 @@ fn render_defined_function(
   function_index : Int32,
   imported : Int32,
   indent : Int32,
+  metadata~ : @core_parser.ModuleTextMetadata? = None,
 ) -> String raise WatPrintError {
   if function_index < 0 || function_index >= imported + mod_.funcs.length() {
     raise FunctionIndexOutOfBounds(function_index)
@@ -202,18 +207,37 @@ fn render_defined_function(
   let sb = StringBuilder::StringBuilder()
   sb.write_string(outer_indent)
   sb.write_string("(func (;\{function_index};) (type \{type_index})")
-  for param in func_type.params {
-    sb.write_string(" (param \{value_type_to_wat(param)})")
+  for i, param in func_type.params {
+    sb.write_string(
+      " (param \{own_value_type(param, metadata.bind(m => m.type_values.get(type_index)).bind(t => t.params.get(i)))})",
+    )
   }
-  for result in func_type.results {
-    sb.write_string(" (result \{value_type_to_wat(result)})")
+  for i, result in func_type.results {
+    sb.write_string(
+      " (result \{own_value_type(result, metadata.bind(m => m.type_values.get(type_index)).bind(t => t.results.get(i)))})",
+    )
   }
   sb.write_string("\n")
-  for local_ty in code.locals {
+  for i, local_ty in code.locals {
     sb.write_string(outer_indent)
-    sb.write_string("  (local \{value_type_to_wat(local_ty)})\n")
+    sb.write_string(
+      "  (local \{own_value_type(local_ty, metadata.bind(m => m.local_values.get(local_index)).bind(v => v.get(i)))})\n",
+    )
   }
-  sb.write_string(instrs_to_wat(code.body, indent + 1))
+  let values : Map[Int32, ReadOnlyArray[String]] = Map([])
+  if metadata.bind(m => m.instruction_values.get(local_index)) is Some(items) {
+    for (ordinal, spellings) in items {
+      values[ordinal] = spellings
+    }
+  }
+  sb.write_string(
+    instrs_to_wat(
+      code.body,
+      indent + 1,
+      values~,
+      elses=metadata.bind(m => m.function_elses.get(local_index)).unwrap_or([]),
+    ),
+  )
   sb.write_string(outer_indent)
   sb.write_string(")\n")
   sb.to_string()
@@ -236,7 +260,10 @@ pub fn render_function(
 
 ///|
 /// Render a complete WebAssembly module as deterministic WAT text.
-pub fn render(mod_ : @types.Module) -> String raise WatPrintError {
+pub fn render(
+  mod_ : @types.Module,
+  metadata~ : @core_parser.ModuleTextMetadata? = None,
+) -> String raise WatPrintError {
   validate_module_shape(mod_)
   let sb = StringBuilder::StringBuilder()
   sb.write_string("(module\n")
@@ -258,17 +285,31 @@ pub fn render(mod_ : @types.Module) -> String raise WatPrintError {
     if group_end - type_idx > 1 {
       sb.write_string("  (rec\n")
       for i = type_idx; i < group_end; i = i + 1 {
-        sb.write_string(type_to_wat(i, mod_.types[i], 2))
+        sb.write_string(
+          type_to_wat(
+            i,
+            mod_.types[i],
+            2,
+            text=metadata.bind(m => m.type_values.get(i)),
+          ),
+        )
       }
       sb.write_string("  )\n")
     } else {
-      sb.write_string(type_to_wat(type_idx, mod_.types[type_idx], 1))
+      sb.write_string(
+        type_to_wat(
+          type_idx,
+          mod_.types[type_idx],
+          1,
+          text=metadata.bind(m => m.type_values.get(type_idx)),
+        ),
+      )
     }
     type_idx = group_end
   }
 
   // Imports section
-  for imp in mod_.imports {
+  for import_index, imp in mod_.imports {
     sb.write_string("  (import \"")
     sb.write_string(escape_wat_string(imp.mod_name))
     sb.write_string("\" \"")
@@ -287,7 +328,12 @@ pub fn render(mod_ : @types.Module) -> String raise WatPrintError {
         }
         sb.write_string(limits_to_wat(table_type.limits))
         sb.write_string(" ")
-        sb.write_string(value_type_to_wat(table_type.elem_type))
+        sb.write_string(
+          own_value_type(
+            table_type.elem_type,
+            metadata.bind(m => m.import_values.get(import_index)),
+          ),
+        )
         sb.write_string(")")
       }
       Memory(mem_type) => {
@@ -306,10 +352,20 @@ pub fn render(mod_ : @types.Module) -> String raise WatPrintError {
         sb.write_string("(global ")
         if global_type.mutable {
           sb.write_string("(mut ")
-          sb.write_string(value_type_to_wat(global_type.value_type))
+          sb.write_string(
+            own_value_type(
+              global_type.value_type,
+              metadata.bind(m => m.import_values.get(import_index)),
+            ),
+          )
           sb.write_string(")")
         } else {
-          sb.write_string(value_type_to_wat(global_type.value_type))
+          sb.write_string(
+            own_value_type(
+              global_type.value_type,
+              metadata.bind(m => m.import_values.get(import_index)),
+            ),
+          )
         }
         sb.write_string(")")
       }
@@ -338,7 +394,12 @@ pub fn render(mod_ : @types.Module) -> String raise WatPrintError {
     }
     sb.write_string(limits_to_wat(table.type_.limits))
     sb.write_string(" ")
-    sb.write_string(value_type_to_wat(table.type_.elem_type))
+    sb.write_string(
+      own_value_type(
+        table.type_.elem_type,
+        metadata.bind(m => m.table_values.get(i)),
+      ),
+    )
     if table.init is Some(init) {
       sb.write_string(" (")
       sb.write_string(instrs_to_wat_inline(init))
@@ -370,10 +431,20 @@ pub fn render(mod_ : @types.Module) -> String raise WatPrintError {
     sb.write_string(";) ")
     if global.type_.mutable {
       sb.write_string("(mut ")
-      sb.write_string(value_type_to_wat(global.type_.value_type))
+      sb.write_string(
+        own_value_type(
+          global.type_.value_type,
+          metadata.bind(m => m.global_values.get(i)),
+        ),
+      )
       sb.write_string(")")
     } else {
-      sb.write_string(value_type_to_wat(global.type_.value_type))
+      sb.write_string(
+        own_value_type(
+          global.type_.value_type,
+          metadata.bind(m => m.global_values.get(i)),
+        ),
+      )
     }
     sb.write_string(" ")
     sb.write_string(instrs_to_wat_inline(global.init))
@@ -441,7 +512,9 @@ pub fn render(mod_ : @types.Module) -> String raise WatPrintError {
         sb.write_string(") ")
       }
     }
-    sb.write_string(value_type_to_wat(elem.type_))
+    sb.write_string(
+      own_value_type(elem.type_, metadata.bind(m => m.element_values.get(i))),
+    )
     for init in elem.init {
       sb.write_string(" (")
       sb.write_string(instrs_to_wat_inline(init))
@@ -454,7 +527,7 @@ pub fn render(mod_ : @types.Module) -> String raise WatPrintError {
   for i in 0..<mod_.codes.length() {
     let func_idx = import_func_count + i
     sb.write_string(
-      render_defined_function(mod_, func_idx, import_func_count, 1),
+      render_defined_function(mod_, func_idx, import_func_count, 1, metadata~),
     )
   }
 
@@ -562,17 +635,24 @@ fn memory_page_size_to_wat(memory : @types.MemoryType) -> String {
 }
 
 ///|
-fn composite_type_to_wat(composite : @types.CompositeType) -> String {
+fn composite_type_to_wat(
+  composite : @types.CompositeType,
+  text~ : @core_parser.FunctionTextTypes? = None,
+) -> String {
   let sb = StringBuilder::StringBuilder()
   match composite {
     Cont(index) => sb.write_string("(cont \{index})")
     Func(func_type) => {
       sb.write_string("(func")
-      for param in func_type.params {
-        sb.write_string(" (param \{value_type_to_wat(param)})")
+      for i, param in func_type.params {
+        sb.write_string(
+          " (param \{own_value_type(param, text.bind(t => t.params.get(i)))})",
+        )
       }
-      for result in func_type.results {
-        sb.write_string(" (result \{value_type_to_wat(result)})")
+      for i, result in func_type.results {
+        sb.write_string(
+          " (result \{own_value_type(result, text.bind(t => t.results.get(i)))})",
+        )
       }
       sb.write_string(")")
     }
@@ -607,9 +687,12 @@ fn composite_type_to_wat(composite : @types.CompositeType) -> String {
 }
 
 ///|
-fn subtype_to_wat(subtype : @types.SubType) -> String {
+fn subtype_to_wat(
+  subtype : @types.SubType,
+  text~ : @core_parser.FunctionTextTypes? = None,
+) -> String {
   if subtype.final_ && subtype.supertypes.is_empty() {
-    return composite_type_to_wat(subtype.composite)
+    return composite_type_to_wat(subtype.composite, text~)
   }
   let sb = StringBuilder::StringBuilder()
   sb.write_string("(sub")
@@ -620,7 +703,7 @@ fn subtype_to_wat(subtype : @types.SubType) -> String {
     sb.write_string(" \{supertype}")
   }
   sb.write_string(" ")
-  sb.write_string(composite_type_to_wat(subtype.composite))
+  sb.write_string(composite_type_to_wat(subtype.composite, text~))
   sb.write_string(")")
   sb.to_string()
 }
@@ -630,8 +713,9 @@ fn type_to_wat(
   index : Int32,
   subtype : @types.SubType,
   indent : Int32,
+  text~ : @core_parser.FunctionTextTypes? = None,
 ) -> String {
-  "\{"  ".repeat(indent)}(type (;\{index};) \{subtype_to_wat(subtype)})\n"
+  "\{"  ".repeat(indent)}(type (;\{index};) \{subtype_to_wat(subtype, text~)})\n"
 }
 
 ///|
@@ -696,10 +780,13 @@ fn value_type_to_wat(t : @types.ValueType) -> String {
 }
 
 ///|
-fn block_type_to_wat(bt : @types.BlockType) -> String {
+fn block_type_to_wat(
+  bt : @types.BlockType,
+  spellings~ : ReadOnlyArray[String] = [],
+) -> String {
   match bt {
     Empty => ""
-    Value(t) => " (result \{value_type_to_wat(t)})"
+    Value(t) => " (result \{own_value_type(t, spellings.get(0))})"
     MultiValue(types) => {
       let types_str = types.map(fn(t) { value_type_to_wat(t) }).join(" ")
       " (result \{types_str})"
@@ -821,16 +908,28 @@ fn format_v128_bytes(bytes : Bytes) -> String {
 priv enum RenderTask {
   Body(Array[@types.Instruction], Int32, Int32)
   Line(String)
+  Skip
 }
 
 ///|
-fn instrs_to_wat(instrs : Array[@types.Instruction], indent : Int32) -> String {
+fn instrs_to_wat(
+  instrs : Array[@types.Instruction],
+  indent : Int32,
+  values~ : Map[Int32, ReadOnlyArray[String]] = Map([]),
+  elses~ : ReadOnlyArray[Int32] = [],
+) -> String {
   let sb = StringBuilder::StringBuilder()
   // Pending bodies and closing lines replace recursion over nested control.
   let tasks : Array[RenderTask] = [Body(instrs, 0, indent)]
+  let mut ordinal = 0
+  let mut control = 0
   while tasks.pop() is Some(task) {
     match task {
-      Line(text) => sb.write_string(text)
+      Line(text) => {
+        ordinal += 1
+        sb.write_string(text)
+      }
+      Skip => ordinal += 1
       Body(body, index, depth) => {
         if index >= body.length() {
           continue
@@ -838,19 +937,27 @@ fn instrs_to_wat(instrs : Array[@types.Instruction], indent : Int32) -> String {
         let instr = body[index]
         let indent_str = "  ".repeat(depth)
         sb.write_string(indent_str)
-        sb.write_string(instr_to_wat(instr))
+        sb.write_string(
+          instr_to_wat(instr, spellings=values.get(ordinal).unwrap_or([])),
+        )
+        ordinal += 1
         sb.write_string("\n")
         tasks.push(Body(body, index + 1, depth))
         match instr {
           Block(_, nested) | Loop(_, nested) | TryTable(_, _, nested) => {
+            control += 1
             tasks.push(Line(indent_str + "end\n"))
             tasks.push(Body(nested, 0, depth + 1))
           }
           If(_, then_body, else_body) => {
+            let has_else = elses.contains(control)
+            control += 1
             tasks.push(Line(indent_str + "end\n"))
             if !else_body.is_empty() {
               tasks.push(Body(else_body, 0, depth + 1))
               tasks.push(Line(indent_str + "else\n"))
+            } else if has_else {
+              tasks.push(Skip)
             }
             tasks.push(Body(then_body, 0, depth + 1))
           }
@@ -863,7 +970,10 @@ fn instrs_to_wat(instrs : Array[@types.Instruction], indent : Int32) -> String {
 }
 
 ///|
-fn instr_to_wat(instr : @types.Instruction) -> String {
+fn instr_to_wat(
+  instr : @types.Instruction,
+  spellings~ : ReadOnlyArray[String] = [],
+) -> String {
   fn atomic_instr(
     subop : Int32,
     mem : Int32,
@@ -993,9 +1103,9 @@ fn instr_to_wat(instr : @types.Instruction) -> String {
   match instr {
     Unreachable => "unreachable"
     Nop => "nop"
-    Block(bt, _) => "block\{block_type_to_wat(bt)}"
-    Loop(bt, _) => "loop\{block_type_to_wat(bt)}"
-    If(bt, _, _) => "if\{block_type_to_wat(bt)}"
+    Block(bt, _) => "block\{block_type_to_wat(bt, spellings~)}"
+    Loop(bt, _) => "loop\{block_type_to_wat(bt, spellings~)}"
+    If(bt, _, _) => "if\{block_type_to_wat(bt, spellings~)}"
     Br(idx) => "br \{idx}"
     BrIf(idx) => "br_if \{idx}"
     BrTable(labels, default) => {
@@ -1033,7 +1143,7 @@ fn instr_to_wat(instr : @types.Instruction) -> String {
     Switch(index, tag) => "switch \{index} \{tag}"
     TryTable(bt, handlers, _) => {
       let sb = StringBuilder::StringBuilder()
-      sb.write_string("try_table\{block_type_to_wat(bt)}")
+      sb.write_string("try_table\{block_type_to_wat(bt, spellings~)}")
       for handler in handlers {
         sb.write_string(catch_handler_to_wat(handler))
       }
@@ -1042,7 +1152,9 @@ fn instr_to_wat(instr : @types.Instruction) -> String {
     Drop => "drop"
     Select => "select"
     SelectTyped(types) => {
-      let types_str = types.map(fn(t) { value_type_to_wat(t) }).join(" ")
+      let types_str = types
+        .mapi((i, t) => own_value_type(t, spellings.get(i)))
+        .join(" ")
       "select (result \{types_str})"
     }
     LocalGet(idx) => "local.get \{idx}"
@@ -1622,4 +1734,15 @@ fn resume_handlers_to_wat(handlers : Array[@types.ResumeHandler]) -> String {
     }
   })
   .join("")
+}
+
+///|
+// Preserve nullability where the retained enum has a single variant for both
+// encodings. Other types keep the default printer's established spelling.
+fn own_value_type(type_ : @types.ValueType, text : String?) -> String {
+  match text {
+    Some("(ref exn)" | "(ref nofunc)" | "(ref noextern)" | "(ref noexn)") =>
+      text.unwrap()
+    _ => value_type_to_wat(type_)
+  }
 }

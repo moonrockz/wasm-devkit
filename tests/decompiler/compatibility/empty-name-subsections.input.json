@@ -1,0 +1,10 @@
+{
+  "base_wat": "(module (func nop))",
+  "custom_sections": [
+    {
+      "name": "name",
+      "data_hex": "000001000200",
+      "before_section": null
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+(component (core module $m (import "env" "f" (func))) (core module $m2 (func (export "f"))) (core instance $i (instantiate $m2)) (core instance $i2 (instantiate $m (with "env" (instance $i)))) (alias core export $i "f" (core func)) (core instance $e (export "f" (func 0))))

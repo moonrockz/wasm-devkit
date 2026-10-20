@@ -1,0 +1,20 @@
+{
+  "base_wat": "(module (func nop))",
+  "custom_sections": [
+    {
+      "name": "target_features",
+      "data_hex": "012b0b62756c6b2d6d656d6f7279",
+      "before_section": null
+    },
+    {
+      "name": "dylink",
+      "data_hex": "0000000000",
+      "before_section": null
+    },
+    {
+      "name": "reloc.CODE",
+      "data_hex": "0000",
+      "before_section": null
+    }
+  ]
+}

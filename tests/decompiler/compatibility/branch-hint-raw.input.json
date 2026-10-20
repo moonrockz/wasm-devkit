@@ -1,0 +1,10 @@
+{
+  "base_wat": "(module (func nop))",
+  "custom_sections": [
+    {
+      "name": "metadata.code.branch_hint",
+      "data_hex": "01000101026162",
+      "before_section": 10
+    }
+  ]
+}

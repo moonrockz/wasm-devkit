@@ -8,12 +8,21 @@ struct Parser {
   mut pos : Int32
   mut has_data_count : Bool // true if data count section was seen
   types : Array[@types.SubType]
+  mut capture_text : Bool
+  text_values : Array[(Int32, String)]
 } derive(Debug)
 
 ///|
 /// Create a new parser from bytes
 pub fn Parser::Parser(data : Bytes) -> Parser {
-  { data, pos: 0, has_data_count: false, types: [], }
+  {
+    data,
+    pos: 0,
+    has_data_count: false,
+    types: [],
+    capture_text: false,
+    text_values: [],
+  }
 }
 
 ///|

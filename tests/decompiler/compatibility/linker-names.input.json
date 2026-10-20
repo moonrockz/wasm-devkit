@@ -1,0 +1,10 @@
+{
+  "base_wat": "(module (func (export \"run\") nop) (global i32 (i32.const 0)) (table 1 funcref) (memory 1) (tag (param i32)) (data (i32.const 0) \"x\"))",
+  "custom_sections": [
+    {
+      "name": "linking",
+      "data_hex": "020827050000000372756e02000004676c6f620500000374616201000364617400000104000003746167",
+      "before_section": null
+    }
+  ]
+}

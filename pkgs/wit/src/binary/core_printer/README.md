@@ -22,5 +22,18 @@ The local patch makes these changes:
 
 This is an internal compatibility package for the
 [core-module WAT printer](../../decompiler/README.mbt.md). It does not establish
-conformance for every upstream proposal or compatibility with other printers.
-Beads tracking: `wasm-devkit-p5m.13.1`.
+conformance for every upstream proposal.
+Beads tracking: `wasm-devkit-p5m.13.1` and `wasm-devkit-p5m.13.4`.
+
+The opt-in compatibility renderer matches the pinned default layouts of
+`wasm-tools 1.262.0 print` and `WABT 1.0.42 wasm2wat --enable-all`. Separate
+emitters preserve their section order, naming, float spelling, custom metadata,
+folding and comments. The default renderer uses raw reference-type metadata to
+preserve nullability without changing its layout. All instruction and initializer
+walks use explicit work stacks.
+
+The compatibility implementation follows the reference sources named in
+`THIRD_PARTY_NOTICES.md`. Exact binaries, expected text, pins, licenses, hashes,
+re-encoded structure and measured boundaries live in
+`tests/decompiler/compatibility/` at the repository root. These pins do not imply
+compatibility with other versions or proposals outside the existing profile.

@@ -1,0 +1,1 @@
+(module (memory $m 1) (memory $other 1) (func (result i32) i32.const 0 i32.load $m align=1 drop i32.const 0 i64.load8_s $other drop i32.const 0 i64.load32_u $m drop memory.size $m drop i32.const 0 i32.const 0 i32.const 0 memory.copy $m $m memory.size $other))

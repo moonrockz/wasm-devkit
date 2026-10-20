@@ -1,0 +1,5 @@
+error: unexpected token, expected one of: `i32`, `i64`, `f32`, `f64`, `v128`, `funcref`, `externref`, `exnref`, `contref`, `anyref`, `eqref`, `structref`, `arrayref`, `i31ref`, `nullfuncref`, `nullexternref`, `nullexnref`, `nullcontref`, `nullref`, lparen
+     --> tests/decompiler/compatibility/unicode.wabt.wat:3:34
+      |
+    3 |   (func $f___ (type 0) (param $a b i32))
+      |                                  ^

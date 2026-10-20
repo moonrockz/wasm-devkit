@@ -1,0 +1,1 @@
+(component (core type $f (func (param i32))) (core type $m (module (alias outer 1 $f (type $f)) (export "f" (func (type $f))))) (import "m" (core module $m (type $m))) (export "out" (core module $m)))

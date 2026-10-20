@@ -73,3 +73,19 @@ The repository does not vendor `.mooncakes/` in git. Declared package
 dependencies are:
 
 - `moonbitlang/x` - Apache-2.0
+
+## Pinned WAT printer behavior
+
+- `compatibility*.mbt` follows wasm-tools `v1.262.0`, commit `e22db44da`,
+  `crates/wasmprinter/src/{lib,component,operator}.rs`, and wasmparser name and
+  branch-hint readers. Source: https://github.com/bytecodealliance/wasm-tools/tree/v1.262.0
+- The WABT layout, name sanitization, custom-section validation and annotation
+  queue behavior follow WABT `1.0.42`, `src/wat-writer.cc`,
+  `src/binary-reader.cc` and `src/binary-reader-ir.cc`.
+  Source: https://github.com/WebAssembly/wabt/tree/1.0.42
+- WABT is Copyright 2016 WebAssembly Community Group participants, Apache-2.0.
+  Its existing copyright header is retained in `compatibility_wabt_metadata.mbt`.
+- wasm-tools offers Apache-2.0 WITH LLVM-exception, Apache-2.0 or MIT licensing.
+  This implementation uses its Apache-2.0 option. This directory retains the
+  Apache-2.0 license in `LICENSE`; the exact release licenses are also retained
+  in the repository's `tests/decompiler/compatibility/licenses/` directory.

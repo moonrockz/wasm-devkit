@@ -1,0 +1,15 @@
+{
+  "base_wat": "(module (func nop))",
+  "custom_sections": [
+    {
+      "name": "linking",
+      "data_hex": "020806010000000166",
+      "before_section": null
+    },
+    {
+      "name": "name",
+      "data_hex": "010401000166",
+      "before_section": null
+    }
+  ]
+}

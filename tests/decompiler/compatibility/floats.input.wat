@@ -1,0 +1,1 @@
+(module (func (result f32 f32 f32 f32 f32 f32 f64 f64 f64 f64 f64) f32.const 0 f32.const -0 f32.const 0.1 f32.const 0x1p-149 f32.const inf f32.const nan:0x400001 f64.const 0.1 f64.const 0x1p-1074 f64.const 0x1.fffffffffffffp1023 f64.const -inf f64.const -nan:0x1))

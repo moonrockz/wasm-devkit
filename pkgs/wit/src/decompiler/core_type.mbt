@@ -41,14 +41,17 @@ fn Reader::u32(self : Reader) -> Int32 raise PrintFailure {
 }
 
 ///|
-fn Reader::name(self : Reader) -> String raise PrintFailure {
+fn Reader::name(
+  self : Reader,
+  scope~ : Scope = Scope::new(),
+) -> String raise PrintFailure {
   let size = self.u32()
   guard size <= self.bytes.length() - self.position else {
     raise PrintFailure(None, "WIT-D001", "core type name ends early")
   }
   let start = self.position
   self.position += size
-  quote_bytes(self.bytes[start:start + size])
+  quote(@utf8.decode_lossy(self.bytes[start:start + size]), scope~)
 }
 
 ///|
@@ -100,7 +103,11 @@ fn Reader::func_type(self : Reader) -> String raise PrintFailure {
 
 ///|
 // `min [max] [shared] [(pagesize N)]` after an optional `i64` address type.
-fn Reader::limits(self : Reader, memory : Bool) -> String raise PrintFailure {
+fn Reader::limits(
+  self : Reader,
+  memory : Bool,
+  scope~ : Scope = Scope::new(),
+) -> String raise PrintFailure {
   let flags = self.byte()
   guard (flags & 0xf0) == 0 && (memory || (flags & 0x0a) == 0) else {
     unsupported("core limits flags are outside the print profile")
@@ -124,7 +131,9 @@ fn Reader::limits(self : Reader, memory : Bool) -> String raise PrintFailure {
       )
     }
     out.write_string(
-      if log == 0 {
+      if scope.compatibility {
+        " (pagesize 0x\{(1 << log).to_string(radix=16)})"
+      } else if log == 0 {
         " (pagesize 1)"
       } else {
         " (pagesize 65536)"
@@ -135,14 +144,25 @@ fn Reader::limits(self : Reader, memory : Bool) -> String raise PrintFailure {
 }
 
 ///|
-fn Reader::extern_type(self : Reader) -> String raise PrintFailure {
+fn Reader::extern_type(
+  self : Reader,
+  scope~ : Scope = Scope::new(),
+) -> String raise PrintFailure {
   match self.byte() {
-    0x00 => "(func (type \{self.u32()}))"
+    0x00 => {
+      let index = self.u32()
+      let signature = if scope.compatibility {
+        scope.core_signatures.get(index).unwrap_or("")
+      } else {
+        ""
+      }
+      "(func (type \{scope.reference(0x110, index)})\{signature})"
+    }
     0x01 => {
       let element = self.value_type()
-      "(table\{self.limits(false)} \{element})"
+      "(table\{self.limits(false, scope~)} \{element})"
     }
-    0x02 => "(memory\{self.limits(true)})"
+    0x02 => "(memory\{self.limits(true, scope~)})"
     0x03 => {
       let type_ = self.value_type()
       match self.byte() {
@@ -157,7 +177,13 @@ fn Reader::extern_type(self : Reader) -> String raise PrintFailure {
       guard self.byte() == 0x00 else {
         raise PrintFailure(None, "WIT-D001", "core tag attribute must be zero")
       }
-      "(tag (type \{self.u32()}))"
+      let index = self.u32()
+      let signature = if scope.compatibility {
+        scope.core_signatures.get(index).unwrap_or("")
+      } else {
+        ""
+      }
+      "(tag (type \{scope.reference(0x110, index)})\{signature})"
     }
     _ => unsupported("core extern kind is outside the print profile")
   }
@@ -190,9 +216,10 @@ fn core_type_text(
   bytes : Bytes,
   depth : Int32,
   index : Int32,
+  scope~ : Scope = Scope::new(),
 ) -> String raise PrintFailure {
   let reader = { bytes, position: 0, }
-  let text = core_type(reader, depth, index)
+  let text = core_type(reader, depth, index, scope~)
   guard reader.position == bytes.length() else {
     raise PrintFailure(None, "WIT-D001", "core type has trailing bytes")
   }
@@ -206,22 +233,34 @@ fn core_type(
   reader : Reader,
   depth : Int32,
   index : Int32,
+  scope~ : Scope = Scope::new(),
 ) -> String raise PrintFailure {
   let pad = indent(depth)
   match reader.byte() {
-    0x60 => "\{pad}(core type (;\{index};) \{reader.func_type()})\n"
+    0x60 => {
+      let signature = reader.func_type()
+      scope.core_signatures[index] = signature[5:signature.length() - 1].to_owned()
+      "\{pad}(core type \{scope.declaration(0x110, index)} \{signature})\n"
+    }
     0x50 => {
       let out = StringBuilder()
-      out.write_string("\{pad}(core type (;\{index};)\n\{pad}  (module\n")
+      out.write_string(
+        "\{pad}(core type \{scope.declaration(0x110, index)}\n\{pad}  (module\n",
+      )
+      let scope = scope.child()
       let inner = indent(depth + 2)
       let mut types = 0
-      for _ in 0..<reader.u32() {
+      let count = reader.u32()
+      if scope.compatibility && count == 0 {
+        return "\{pad}(core type \{scope.parents.last().unwrap().declaration(0x110, index)}\n\{pad}  (module)\n\{pad})\n"
+      }
+      for _ in 0..<count {
         match reader.byte() {
           0x00 => {
-            let module_ = reader.name()
-            let name = reader.name()
+            let module_ = reader.name(scope~)
+            let name = reader.name(scope~)
             out.write_string(
-              "\{inner}(import \{module_} \{name} \{reader.extern_type()})\n",
+              "\{inner}(import \{module_} \{name} \{reader.extern_type(scope~)})\n",
             )
           }
           0x01 => {
@@ -230,9 +269,9 @@ fn core_type(
                 "module type definitions other than functions are outside the print profile",
               )
             }
-            out.write_string(
-              "\{inner}(type (;\{types};) \{reader.func_type()})\n",
-            )
+            let signature = reader.func_type()
+            scope.core_signatures[types] = signature[5:signature.length() - 1].to_owned()
+            out.write_string("\{inner}(type (;\{types};) \{signature})\n")
             types += 1
           }
           0x02 => {
@@ -243,15 +282,25 @@ fn core_type(
             }
             let count = reader.u32()
             let target = reader.u32()
+            let outer = if count > 0 && count <= scope.parents.length() {
+              scope.parents[scope.parents.length() - count]
+            } else {
+              scope
+            }
+            let count_text = if scope.compatibility {
+              outer.names.root_name().unwrap_or(count.to_string())
+            } else {
+              count.to_string()
+            }
             out.write_string(
-              "\{inner}(alias outer \{count} \{target} (type (;\{types};)))\n",
+              "\{inner}(alias outer \{count_text} \{outer.reference(0x110, target)} (type (;\{types};)))\n",
             )
             types += 1
           }
           0x03 => {
-            let name = reader.name()
+            let name = reader.name(scope~)
             out.write_string(
-              "\{inner}(export \{name} \{reader.extern_type()})\n",
+              "\{inner}(export \{name} \{reader.extern_type(scope~)})\n",
             )
           }
           _ =>

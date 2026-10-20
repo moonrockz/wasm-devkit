@@ -45,7 +45,8 @@ pub let help : String =
   #|decompile prints a core-module or component .wasm as one WAT document.
   #|Components use the verifier's component profile; core modules and nested
   #|components print inline. It does not execute the binary or claim
-  #|wasm-tools/wasm2wat output.
+  #|external printer output unless --compatibility is selected.
+  #|  --compatibility wasm-tools|wabt  Match the pinned printer, without split/selection
   #|  --output PATH, -o PATH  Write the WAT document or inventory instead of stdout
   #|  --split DIR          Write component documents into a new directory
   #|  --select ID          Select a component inventory ID (repeatable; split only)
@@ -113,6 +114,7 @@ pub(all) struct Options {
 ///|
 /// Arguments for printing one binary as WAT.
 pub(all) struct DecompileOptions {
+  compatibility : @wit_decompiler.Compatibility?
   path : String
   output : String?
 } derive(Eq, Debug)
@@ -146,6 +148,7 @@ fn decompile_arguments(args : ArrayView[String]) -> Result[Action, String] {
   let mut path = None
   let mut output = None
   let mut directory = None
+  let mut compatibility = None
   let selected : Array[String] = []
   let mut selection = false
   let mut select_none = false
@@ -173,6 +176,21 @@ fn decompile_arguments(args : ArrayView[String]) -> Result[Action, String] {
         return Err("duplicate --json")
       }
       json = true
+    } else if !literal && arg == "--compatibility" && !inventory {
+      at += 1
+      if compatibility is Some(_) {
+        return Err("duplicate --compatibility")
+      }
+      if at == args.length() {
+        return Err("--compatibility requires wasm-tools or wabt")
+      }
+      compatibility = Some(
+        match args[at] {
+          "wasm-tools" => @wit_decompiler.Compatibility::WasmTools
+          "wabt" => @wit_decompiler.Compatibility::Wabt
+          _ => return Err("--compatibility requires wasm-tools or wabt")
+        },
+      )
     } else if !literal && arg == "--split" && !inventory {
       at += 1
       if at == args.length() || args[at].is_empty() || args[at] == "-" {
@@ -215,6 +233,9 @@ fn decompile_arguments(args : ArrayView[String]) -> Result[Action, String] {
   if inventory {
     return Ok(Inventory({ path, output, json, }))
   }
+  if compatibility is Some(_) && (directory is Some(_) || selection) {
+    return Err("--compatibility cannot be combined with split or selection")
+  }
   if directory is Some(directory) {
     if output is Some(_) {
       return Err("--split and --output cannot be combined")
@@ -234,7 +255,7 @@ fn decompile_arguments(args : ArrayView[String]) -> Result[Action, String] {
   if selection {
     return Err("--select requires --split")
   }
-  Ok(Decompile({ path, output, }))
+  Ok(Decompile({ path, output, compatibility, }))
 }
 
 ///|

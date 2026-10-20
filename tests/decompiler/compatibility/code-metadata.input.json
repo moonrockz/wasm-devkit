@@ -1,0 +1,10 @@
+{
+  "base_wat": "(module (func nop))",
+  "custom_sections": [
+    {
+      "name": "metadata.code.note",
+      "data_hex": "010002010568656c6c6f0203656e64",
+      "before_section": 10
+    }
+  ]
+}

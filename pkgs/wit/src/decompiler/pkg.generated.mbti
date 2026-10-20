@@ -4,6 +4,7 @@ package "moonrockz/wit/decompiler"
 import {
   "moonbitlang/core/debug",
   "moonrockz/wit/binary",
+  "moonrockz/wit/binary/core_printer",
 }
 
 // Values
@@ -11,11 +12,11 @@ pub fn component_fragment(Bytes, ReadOnlyArray[Int], source_id? : String) -> Res
 
 pub fn component_fragment_validated(@binary.ValidatedDeclarativeComponent, ReadOnlyArray[Int], source_id? : String) -> Result[ComponentFragment, ReadOnlyArray[Diagnostic]]
 
-pub fn print_binary(Bytes, source_id? : String) -> Result[WatDocuments, ReadOnlyArray[Diagnostic]]
+pub fn print_binary(Bytes, source_id? : String, compatibility? : @core_printer.Compatibility?) -> Result[WatDocuments, ReadOnlyArray[Diagnostic]]
 
-pub fn print_component(Bytes, source_id? : String) -> Result[WatDocuments, ReadOnlyArray[Diagnostic]]
+pub fn print_component(Bytes, source_id? : String, compatibility? : @core_printer.Compatibility?) -> Result[WatDocuments, ReadOnlyArray[Diagnostic]]
 
-pub fn print_core_module(Bytes, source_id? : String) -> Result[WatDocuments, ReadOnlyArray[Diagnostic]]
+pub fn print_core_module(Bytes, source_id? : String, compatibility? : @core_printer.Compatibility?) -> Result[WatDocuments, ReadOnlyArray[Diagnostic]]
 
 // Errors
 
@@ -51,5 +52,6 @@ pub fn WatDocuments::root(Self) -> WatDocument
 pub fn WatDocuments::to_repr(Self) -> @debug.Repr
 
 // Type aliases
+pub using @core_printer {type Compatibility}
 
 // Traits

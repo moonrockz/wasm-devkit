@@ -1,0 +1,1 @@
+(component $root (core type $f (func (param i32))) (core type $m (module (alias outer 1 $f (type $f)) (export "f" (func (type $f))))) (type $t (list u32)) (component $child (alias outer 1 $t (type $alias)) (type (func (param "x" $alias)))))

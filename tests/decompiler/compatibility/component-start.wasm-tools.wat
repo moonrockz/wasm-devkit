@@ -1,0 +1,13 @@
+(component
+  (core module $m (;0;)
+    (type (;0;) (func))
+    (export "f" (func 0))
+    (func (;0;) (type 0))
+  )
+  (core instance $i (;0;) (instantiate $m))
+  (alias core export $i "f" (core func $f (;0;)))
+  (type $t (;0;) (func))
+  (func $f (;0;) (type $t) (canon lift (core func $f)))
+  (start $f)
+  (export (;1;) "f" (func $f))
+)

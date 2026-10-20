@@ -1,0 +1,10 @@
+(module
+  (type (;0;) (func))
+  (table $t (;0;) 5 funcref)
+  (table (;1;) 5 externref)
+  (elem (;0;) (table $t) (i32.const 0) func 0)
+  (elem (;1;) (table 1) (i32.const 0) externref (ref.null extern))
+  (elem (;2;) funcref (ref.func 0))
+  (elem (;3;) func)
+  (func (;0;) (type 0))
+)
