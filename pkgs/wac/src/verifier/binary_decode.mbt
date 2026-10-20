@@ -203,7 +203,7 @@ fn binary_root_declarations(
         1 => declarations.push(CoreModule(section.payload))
         3 => declarations.push(CoreDefine(section.payload, true))
         7 =>
-          for definition in @component.parse_type_section(section.payload) {
+          for definition in @type_parser.parse_type_section(section.payload) {
             declarations.push(BinaryDeclaration::Define(definition))
           }
         6 =>

@@ -210,7 +210,7 @@ priv enum Frame {
 }
 
 ///|
-/// Bound physical scope nesting before invoking the maintained recursive parser.
+/// Bound physical scope nesting before invoking the maintained type parser.
 /// Type references remain flat indices; vector work is bounded by input bytes.
 fn type_framing(
   reader : Reader,

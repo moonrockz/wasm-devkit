@@ -8,7 +8,8 @@ compared byte-for-byte with the published package before applying local changes.
 reviewable changes against that baseline. The Apache-2.0 license and
 upstream third-party notices are retained here.
 
-The component parser and binary model remain pinned external dependencies.
+The binary model remains a pinned external dependency. Component type decoding
+uses the retained `../type_parser` package with explicit work stacks.
 Core parsing and instruction validation use the retained `../core_parser` and
 `../core_validation` packages with explicit control stacks.
 This local validator adds modern component accessor-name validation needed by the
@@ -210,3 +211,10 @@ excludes legacy cancellable wait/poll. No intrinsic runs or walks its payload.
 Shape and contract work use the existing shared budgets. GC reference shapes and
 all intrinsics outside the documented chosen set still fail explicitly.
 The low-level retained path without complete core metadata rejects GC options.
+
+Nested component and instance type validation schedules declarations and child
+completion on an explicit work stack. Child definitions become visible only
+after validation completes, preserving preceding-declaration and outer-alias
+semantics. The 256-scope physical profile remains unchanged. Regression tests
+exercise both public binary profiles, decompilation and WAC dependency loading
+on all four targets. This fix is tracked in `wasm-devkit-p5m.14`.

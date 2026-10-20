@@ -1,4 +1,5 @@
 import {
+  "moonrockz/wit/binary/type_parser",
   "Milky2018/wasm_component" @component,
   "moonrockz/wit/binary/validation",
   "moonrockz/wit/core_types",

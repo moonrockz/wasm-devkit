@@ -391,7 +391,7 @@ fn lift(
     match section.id {
       0 => ()
       7 => {
-        let entries = @component.parse_type_section(section.payload) catch {
+        let entries = @type_parser.parse_type_section(section.payload) catch {
           error => raise Failure("WAC-D001", error.to_string())
         }
         for _ in entries {

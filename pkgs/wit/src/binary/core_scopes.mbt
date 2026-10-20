@@ -172,7 +172,7 @@ fn core_root_declarations(
           }
         3 => root.push(Definition(section.payload, true))
         7 =>
-          for td in @component.parse_type_section(section.payload) {
+          for td in @type_parser.parse_type_section(section.payload) {
             root.push(Nested(td))
           }
         6 =>

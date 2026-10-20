@@ -1,4 +1,5 @@
 import {
+  "moonrockz/wit/binary/type_parser",
   "moonrockz/wac/verifier",
   "moonrockz/wit/binary",
   "moonrockz/wit/core_types",

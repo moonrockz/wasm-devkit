@@ -392,10 +392,7 @@ test "nested components and types print with explicit stacks up to the profile l
   assert_true(text.contains("  ".repeat(256) + "(component (;0;)\n"))
   assert_eq(text.split("(component").count(), 258)
   assert_eq(component_error(nested_components(257)).code, "WIT-D003")
-  // The retained component validator recurses through type declarations and
-  // exhausts the wasm stack before 128 levels (wasm-devkit-p5m.14). The
-  // printer's own type traversal uses explicit stacks.
-  guard @decompiler.print_component(nested_component_types(64)) is Ok(types) else {
+  guard @decompiler.print_component(nested_component_types(256)) is Ok(types) else {
     fail("nested component types rejected")
   }
   // Each type level indents its `(component` body by four spaces.
@@ -405,8 +402,8 @@ test "nested components and types print with explicit stacks up to the profile l
     .map(line => line.length())
     .to_array()
   // The root component is the first entry.
-  assert_eq(depths.length(), 65)
-  assert_eq(depths[64], 4 * 64 + "(component".length())
+  assert_eq(depths.length(), 257)
+  assert_eq(depths[256], 4 * 256 + "(component".length())
   assert_eq(component_error(nested_component_types(257)).code, "WIT-D003")
   // The text compiler bounds parentheses at 256, so its oracle uses 64.
   ignore(round_trip_component(nested_components(64)))
