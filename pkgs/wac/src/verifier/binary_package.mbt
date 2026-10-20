@@ -8,6 +8,7 @@ pub struct BinaryPackage {
   priv world_type : Int32
   priv instance_type : Int32
   priv defined_items : ReadOnlyArray[Extern]
+  priv component_scopes : ReadOnlyArray[ComponentScope]
 }
 
 ///|
@@ -123,4 +124,29 @@ pub fn decode_component_package(
       Err([binary_problem(source_id, "WAC-B002", message)])
     Invalid(message) => Err([binary_problem(source_id, "WAC-B004", message)])
   }
+}
+
+///|
+/// Index spaces for one concrete component, in binary declaration order. All
+/// entries refer to `BinaryPackage::types()`. Type-only scopes are excluded.
+pub struct ComponentScope {
+  world : Int32
+  parent : Int32?
+  index : Int32
+  types : ReadOnlyArray[Int32]
+  functions : ReadOnlyArray[Int32]
+  values : ReadOnlyArray[Int32]
+  instances : ReadOnlyArray[Int32]
+  components : ReadOnlyArray[Int32]
+  modules : ReadOnlyArray[Int32]
+  core_types : ReadOnlyArray[@core_types.Definition]
+}
+
+///|
+/// Concrete component scopes in preorder, including the root. Parent indices
+/// refer to world types, and index is the component index in that parent.
+pub fn BinaryPackage::components(
+  self : BinaryPackage,
+) -> ReadOnlyArray[ComponentScope] {
+  self.component_scopes
 }

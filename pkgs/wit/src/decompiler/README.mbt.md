@@ -142,14 +142,17 @@ survive. Strings keep printable ASCII other than quotes and backslashes and use
 Printed text uses only forms that the retained
 [component text compiler](../component_text/README.md) accepts. Values of type
 `error-context`, resource representations other than `i32` and `i64`, and
-concrete or GC core references have no such form, and fail with `WIT-D003`. Two compiler limits remain: it rejects core control
-nesting deeper than 64, and it rejects the flat extended constant initializers
-that the core printer emits (`wasm-devkit-p5m.13.5`). Such components print,
-but their text does not compile again.
+concrete or GC core references have no such form, and fail with `WIT-D003`. The text compiler rejects core control nesting deeper than 64. Such components
+print, but their text does not compile again. Extended constant global
+initializers print as flat instructions and round trip through both text paths.
 
 Output is deterministic, but it is not wasm-tools `print` or WABT `wasm2wat`
-output. Compatibility with those tools, split documents, module selection and
-API-shape inventories are later slices of epic `wasm-devkit-p5m.13`.
+output. Compatibility with those tools remains a later slice of epic `wasm-devkit-p5m.13`.
+[WAC decompilation](../../../wac/src/decompiler/README.mbt.md) provides inventories,
+component selection and recursive WAC/WAT splitting. `component_fragment` prints
+a validated nested definition in its lexical context; its distinct
+`ComponentFragment` result retains outer aliases and must be closed before
+standalone compilation.
 
 ## Diagnostics
 

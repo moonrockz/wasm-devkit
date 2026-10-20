@@ -9,6 +9,7 @@ import {
   "moonrockz/wit/formatter" @wit_formatter,
   "moonrockz/wit/decompiler" @wit_decompiler,
   "moonrockz/wac/verifier" @wac_verifier,
+  "moonrockz/wac/decompiler" @wac_decompiler,
   "moonrockz/wac/parser" @wac_parser,
   "moonrockz/wac/scanner" @wac_scanner,
   "moonrockz/wac/span" @wac_span,

@@ -956,3 +956,127 @@ pub fn print_component(
   }
   Ok({ documents: [{ name: "root", text: text.to_string(), }], })
 }
+
+///|
+/// Text of a nested component in its original lexical context. Outer aliases
+/// are retained, so a fragment must be closed before compiling it standalone.
+pub struct ComponentFragment {
+  text : String
+}
+
+///|
+fn render_fragment(bytes : Bytes) -> String raise PrintFailure {
+  let text = StringBuilder()
+  let work : Array[Task] = [Component(bytes, 0, None, "(component\n")]
+  while work.pop() is Some(task) {
+    let next = match task {
+      Text(line) => {
+        text.write_string(line)
+        continue
+      }
+      Component(bytes, depth, base, header) => {
+        let next = [Text(header)]
+        next.append(component_tasks(bytes, depth + 1, base))
+        next.push(Text("\{indent(depth)})\n"))
+        next
+      }
+      ComponentDecls(decls, depth) => component_decl_tasks(decls, depth)
+      InstanceDecls(decls, depth) => instance_decl_tasks(decls, depth)
+    }
+    for i = next.length() - 1; i >= 0; i = i - 1 {
+      work.push(next[i])
+    }
+  }
+  text.to_string()
+}
+
+///|
+/// Print a nested definition after validating the entire containing binary.
+/// Each path entry is a component index in its containing component's index
+/// space. This returns a contextual fragment, rather than a standalone WAT
+/// document. No unvalidated binary is rendered and no operation performs I/O.
+pub fn component_fragment(
+  bytes : Bytes,
+  path : ReadOnlyArray[Int32],
+  source_id~ : String = "<wasm>",
+) -> Result[ComponentFragment, ReadOnlyArray[Diagnostic]] {
+  let validated = match
+    @binary.validate_declarative_component(bytes, source_id~) {
+    Ok(value) => value
+    Err(errors) =>
+      return Err(
+        errors.map(e => {
+          source: e.source,
+          offset: e.offset,
+          code: match e.code {
+            "WIT-B001" => "WIT-D001"
+            "WIT-B002" => "WIT-D003"
+            _ => "WIT-D002"
+          },
+          message: e.message,
+        }),
+      )
+  }
+  component_fragment_validated(validated, path, source_id~)
+}
+
+///|
+/// Print a contextual fragment from an immutable validation snapshot. Reusing
+/// the snapshot avoids validating a containing binary for every nested entry.
+pub fn component_fragment_validated(
+  validated : @binary.ValidatedDeclarativeComponent,
+  path : ReadOnlyArray[Int32],
+  source_id~ : String = "<wasm>",
+) -> Result[ComponentFragment, ReadOnlyArray[Diagnostic]] {
+  try {
+    let mut selected = validated.parser_bytes()
+    for wanted in path {
+      let binary = parsed(None, () => {
+        @component.parse_component_binary(selected)
+      })
+      let scope = Scope::new()
+      let mut child : Bytes? = None
+      for section in binary.sections {
+        match section.id {
+          4 =>
+            if scope.take(4) == wanted {
+              child = Some(section.payload)
+              break
+            }
+          6 =>
+            for
+              entry in parsed(None, () => {
+                @component.parse_alias_section(section.payload)
+              }) {
+              ignore(scope.take(sort_key(entry.sort)))
+            }
+          10 =>
+            for
+              entry in parsed(None, () => {
+                @component.parse_import_section(section.payload)
+              }) {
+              ignore(scope.take(extern_sort(entry.desc)))
+            }
+          11 =>
+            for
+              entry in parsed(None, () => {
+                @component.parse_export_section(section.payload)
+              }) {
+              ignore(scope.take(sort_key(entry.sortidx.sort)))
+            }
+          _ => ()
+        }
+      }
+      guard child is Some(value) else {
+        unsupported(
+          "component fragment path does not identify a physical definition",
+        )
+      }
+      selected = value
+    }
+    Ok({ text: render_fragment(selected), })
+  } catch {
+    PrintFailure(offset, code, message) =>
+      Err([{ source: source_id, offset, code, message, }])
+  }
+}

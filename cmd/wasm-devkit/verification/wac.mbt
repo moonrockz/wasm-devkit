@@ -21,6 +21,19 @@ async fn wac(options : @cli.Options) -> @cli.Output {
   }
   let source = @utf8.decode(data.binary(), ignore_bom=false)
   let label = if options.path == "-" { "<stdin>" } else { options.path }
+  let sources : Map[String, String] = Map([(label, source)])
+  let render_errors = fn(errors : ReadOnlyArray[@wac_verifier.Diagnostic]) {
+    let out = StringBuilder()
+    for error in errors {
+      let name = error.primary.location.source
+      let rendered = match sources.get(name) {
+        Some(text) => @cli.render_wac_diagnostics([error], text, name)
+        None => @cli.render_wac_diagnostics([error], source, label)
+      }
+      out.write_string(rendered)
+    }
+    out.to_string()
+  }
   let features = if options.all_features {
     @wac_parser.Features::all()
   } else {
@@ -30,8 +43,7 @@ async fn wac(options : @cli.Options) -> @cli.Output {
   let requests = match
     @wac_verifier.package_requests(parsed, source~, source_id=label) {
     Ok(requests) => requests
-    Err(errors) =>
-      return output("", @cli.render_wac_diagnostics(errors, source, label), 1)
+    Err(errors) => return output("", render_errors(errors), 1)
   }
   let base = options.base.unwrap_or(parent(options.path))
   let registry = match options.registry {
@@ -46,7 +58,21 @@ async fn wac(options : @cli.Options) -> @cli.Output {
   }
   let dependencies : Array[@wac_verifier.PackageSource] = []
   let wit_dependencies : Array[@wac_verifier.WitPackageSource] = []
-  for request in requests {
+  let source_packages : Array[@wac_verifier.SourcePackage] = []
+  let pending = requests.iter().to_array()
+  let seen : Map[String, Bool] = Map([])
+  let mut cursor = 0
+  while cursor < pending.length() {
+    let request = pending[cursor]
+    cursor += 1
+    let key = request.name + request.version.map(v => "@" + v).unwrap_or("")
+    if seen.contains(key) {
+      continue
+    }
+    seen[key] = true
+    if seen.length() > 10000 {
+      return output("", "WAC dependency closure exceeds 10000 packages\n", 1)
+    }
     let explicit = request.version is None && overrides.contains(request.name)
     let path = if request.version is None &&
       overrides.get(request.name) is Some(path) {
@@ -62,6 +88,8 @@ async fn wac(options : @cli.Options) -> @cli.Output {
         request.version.map(version => "/" + version).unwrap_or("")
       if @fs.exists(path) && @fs.kind(path) is Directory {
         path
+      } else if @fs.exists(path + ".wac") {
+        path + ".wac"
       } else if @fs.exists(path + ".wat") {
         path + ".wat"
       } else {
@@ -73,27 +101,19 @@ async fn wac(options : @cli.Options) -> @cli.Output {
         RegistryProblem(code, message, status) =>
           return output(
             "",
-            @cli.render_wac_diagnostics(
-              [wac_problem(request, code, message)],
-              source,
-              label,
-            ),
+            render_errors([wac_problem(request, code, message)]),
             status,
           )
         error =>
           return output(
             "",
-            @cli.render_wac_diagnostics(
-              [
-                wac_problem(
-                  request,
-                  "WAC-R003",
-                  "registry/cache provider failed: " + error.to_string(),
-                ),
-              ],
-              source,
-              label,
-            ),
+            render_errors([
+              wac_problem(
+                request,
+                "WAC-R003",
+                "registry/cache provider failed: " + error.to_string(),
+              ),
+            ]),
             2,
           )
       }
@@ -106,31 +126,42 @@ async fn wac(options : @cli.Options) -> @cli.Output {
         "WAC-P003",
         "package `" + request.name + "` was not found at `" + path + "`",
       )
-      return output(
-        "",
-        @cli.render_wac_diagnostics([error], source, label),
-        if explicit {
-          2
-        } else {
-          1
-        },
-      )
+      return output("", render_errors([error]), if explicit { 2 } else { 1 })
+    }
+    if path.has_suffix(".wac") {
+      let text = @utf8.decode(@fs.read_file(path).binary(), ignore_bom=false)
+      sources[path] = text
+      source_packages.push({
+        name: request.name,
+        version: request.version,
+        source: path,
+        text,
+      })
+      match
+        @wac_verifier.package_requests(
+          @wac_parser.parse(text, features~),
+          source=text,
+          source_id=path,
+        ) {
+        Ok(requests) =>
+          for child in requests {
+            pending.push(child)
+          }
+        Err(errors) => return output("", render_errors(errors), 1)
+      }
+      continue
     }
     let directory = @fs.kind(path) is Directory
     if explicit && directory {
       return output(
         "",
-        @cli.render_wac_diagnostics(
-          [
-            wac_problem(
-              request,
-              "WAC-P006",
-              "explicit dependency path must be a file: `" + path + "`",
-            ),
-          ],
-          source,
-          label,
-        ),
+        render_errors([
+          wac_problem(
+            request,
+            "WAC-P006",
+            "explicit dependency path must be a file: `" + path + "`",
+          ),
+        ]),
         2,
       )
     }
@@ -174,20 +205,16 @@ async fn wac(options : @cli.Options) -> @cli.Output {
         error =>
           return output(
             "",
-            @cli.render_wac_diagnostics(
-              [
-                wac_problem(
-                  request,
-                  "WAC-P006",
-                  "failed to read WIT package `" +
-                  path +
-                  "`: " +
-                  error.to_string(),
-                ),
-              ],
-              source,
-              label,
-            ),
+            render_errors([
+              wac_problem(
+                request,
+                "WAC-P006",
+                "failed to read WIT package `" +
+                path +
+                "`: " +
+                error.to_string(),
+              ),
+            ]),
             2,
           )
       }
@@ -207,11 +234,7 @@ async fn wac(options : @cli.Options) -> @cli.Output {
           "WAC-P006",
           "failed to read `" + path + "`: " + error.to_string(),
         )
-        return output(
-          "",
-          @cli.render_wac_diagnostics([diagnostic], source, label),
-          2,
-        )
+        return output("", render_errors([diagnostic]), 2)
       }
     }
     let binary = bytes.length() >= 4 &&
@@ -232,11 +255,7 @@ async fn wac(options : @cli.Options) -> @cli.Output {
             })
             { ..problem, related: ReadOnlyArray::from_array(related), }
           })
-          return output(
-            "",
-            @cli.render_wac_diagnostics(errors, source, label),
-            1,
-          )
+          return output("", render_errors(errors), 1)
         }
       }
     } else {
@@ -249,11 +268,22 @@ async fn wac(options : @cli.Options) -> @cli.Output {
       bytes,
     })
   }
+  let compositions = match
+    @wac_verifier.resolve_composition_packages(
+      ReadOnlyArray::from_array(source_packages),
+      features~,
+      dependencies=ReadOnlyArray::from_array(dependencies),
+      wit_dependencies=ReadOnlyArray::from_array(wit_dependencies),
+    ) {
+    Ok(compositions) => compositions
+    Err(errors) => return output("", render_errors(errors), 1)
+  }
   let result = @cli.verify_wac(
     options,
     source,
     dependencies=ReadOnlyArray::from_array(dependencies),
     wit_dependencies=ReadOnlyArray::from_array(wit_dependencies),
+    compositions~,
   )
   if result.exit_code == 0 && registry is Some(session) {
     session.save()

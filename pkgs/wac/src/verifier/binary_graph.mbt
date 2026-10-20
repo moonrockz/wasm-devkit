@@ -18,6 +18,7 @@ priv struct BinaryScope {
   owner : Int32
   interface_scope : Bool
   concrete : Bool
+  component_index : Int32
   declarations : Array[BinaryDeclaration]
   types : Array[Int32]
   functions : Array[Int32]
@@ -254,6 +255,10 @@ fn BinaryGraph::scope(
     owner,
     interface_scope,
     concrete,
+    component_index: match parent {
+      Some(parent) => self.scopes[parent].components.length()
+      None => 0
+    },
     declarations,
     types: [],
     functions: [],

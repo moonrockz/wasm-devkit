@@ -3,6 +3,7 @@ package "moonrockz/wasm-devkit/cli"
 
 import {
   "moonbitlang/core/debug",
+  "moonrockz/wac/decompiler",
 }
 
 // Values
@@ -14,11 +15,15 @@ pub fn execute(Options, String) -> Output
 
 pub let help : String
 
+pub fn inventory(InventoryOptions, Bytes) -> Output
+
+pub fn render_split_diagnostics(ReadOnlyArray[@decompiler.Diagnostic]) -> String
+
 pub fn render_wac_diagnostics(ReadOnlyArray[@moonrockz/wac/verifier.Diagnostic], String, String) -> String
 
 pub fn render_wit_diagnostics(ReadOnlyArray[@moonrockz/wit/verifier.Diagnostic], ReadOnlyArray[(String, String)]) -> String
 
-pub fn verify_wac(Options, String, dependencies? : ReadOnlyArray[@moonrockz/wac/verifier.PackageSource], wit_dependencies? : ReadOnlyArray[@moonrockz/wac/verifier.WitPackageSource]) -> Output
+pub fn verify_wac(Options, String, dependencies? : ReadOnlyArray[@moonrockz/wac/verifier.PackageSource], wit_dependencies? : ReadOnlyArray[@moonrockz/wac/verifier.WitPackageSource], compositions? : ReadOnlyArray[@moonrockz/wac/verifier.CompositionPackage]) -> Output
 
 pub fn version() -> String
 
@@ -30,6 +35,8 @@ pub(all) enum Action {
   Version
   Run(Options)
   Decompile(DecompileOptions)
+  Split(SplitOptions)
+  Inventory(InventoryOptions)
 } derive(Eq, @debug.Debug)
 pub fn Action::equal(Self, Self) -> Bool
 pub fn Action::not_equal(Self, Self) -> Bool
@@ -63,6 +70,15 @@ pub(all) struct DependencyMapping {
 pub fn DependencyMapping::equal(Self, Self) -> Bool
 pub fn DependencyMapping::not_equal(Self, Self) -> Bool
 pub fn DependencyMapping::to_repr(Self) -> @debug.Repr
+
+pub(all) struct InventoryOptions {
+  path : String
+  output : String?
+  json : Bool
+} derive(Eq, @debug.Debug)
+pub fn InventoryOptions::equal(Self, Self) -> Bool
+pub fn InventoryOptions::not_equal(Self, Self) -> Bool
+pub fn InventoryOptions::to_repr(Self) -> @debug.Repr
 
 pub(all) enum Language {
   Wit
@@ -115,6 +131,15 @@ pub(all) struct RegistryOptions {
 pub fn RegistryOptions::equal(Self, Self) -> Bool
 pub fn RegistryOptions::not_equal(Self, Self) -> Bool
 pub fn RegistryOptions::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SplitOptions {
+  path : String
+  directory : String
+  select : ReadOnlyArray[String]?
+} derive(Eq, @debug.Debug)
+pub fn SplitOptions::equal(Self, Self) -> Bool
+pub fn SplitOptions::not_equal(Self, Self) -> Bool
+pub fn SplitOptions::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

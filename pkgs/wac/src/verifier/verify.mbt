@@ -54,6 +54,7 @@ priv struct Check {
   mut package_version : String?
   dependencies : Map[String, PackageSource]
   wit_dependencies : Map[String, WitPackageSource]
+  compositions : Map[String, CompositionPackage]
   loaded_packages : Map[String, LoadedPackage]
 }
 
@@ -378,6 +379,7 @@ pub fn verify_ast(
   source~ : String,
   dependencies~ : ReadOnlyArray[PackageSource] = [],
   wit_dependencies~ : ReadOnlyArray[WitPackageSource] = [],
+  compositions~ : ReadOnlyArray[CompositionPackage] = [],
 ) -> Result[Verified, ReadOnlyArray[Diagnostic]] {
   guard tree.validate() && !tree.nodes.is_empty() else {
     return Err([
@@ -421,11 +423,13 @@ pub fn verify_ast(
     package_version: None,
     dependencies: Map([]),
     wit_dependencies: Map([]),
+    compositions: Map([]),
     loaded_packages: Map([]),
   }
   try {
     check.register_packages(dependencies)
     check.register_wit_packages(wit_dependencies)
+    check.register_compositions(compositions)
     check.file(tree.nodes.length() - 1)
     check.finalize_implicit_imports()
     check.validate_value_uses()

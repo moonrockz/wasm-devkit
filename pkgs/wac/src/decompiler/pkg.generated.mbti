@@ -1,0 +1,73 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonrockz/wac/decompiler"
+
+import {
+  "moonbitlang/core/debug",
+  "moonrockz/wac/verifier",
+  "moonrockz/wit/core_types",
+}
+
+// Values
+pub fn inventory(Bytes, source_id? : String) -> Result[Inventory, ReadOnlyArray[Diagnostic]]
+
+pub fn split(Bytes, select? : ReadOnlyArray[String]?, source_id? : String) -> Result[Split, ReadOnlyArray[Diagnostic]]
+
+// Errors
+
+// Types and methods
+pub(all) enum BinaryKind {
+  Component
+  CoreModule
+} derive(Eq, @debug.Debug)
+pub fn BinaryKind::equal(Self, Self) -> Bool
+pub fn BinaryKind::not_equal(Self, Self) -> Bool
+pub fn BinaryKind::to_repr(Self) -> @debug.Repr
+
+pub struct Diagnostic {
+  source : String
+  code : String
+  message : String
+}
+
+pub struct Document {
+  id : String
+  path : String
+  package_name : String
+  kind : DocumentKind
+  text : String
+  // private fields
+}
+
+pub(all) enum DocumentKind {
+  Wat
+  Wac
+} derive(Eq, @debug.Debug)
+pub fn DocumentKind::equal(Self, Self) -> Bool
+pub fn DocumentKind::not_equal(Self, Self) -> Bool
+pub fn DocumentKind::to_repr(Self) -> @debug.Repr
+
+pub struct Entry {
+  id : String
+  parent : String?
+  kind : BinaryKind
+  name : String?
+  export_names : ReadOnlyArray[String]
+  world : Int?
+  core : @core_types.Module?
+}
+
+pub struct Inventory {
+  entries : ReadOnlyArray[Entry]
+  types : ReadOnlyArray[@verifier.ResolvedType]
+}
+pub fn Inventory::to_json(Self) -> Json
+pub fn Inventory::to_text(Self) -> String
+
+pub struct Split {
+  inventory : Inventory
+  documents : ReadOnlyArray[Document]
+}
+
+// Type aliases
+
+// Traits

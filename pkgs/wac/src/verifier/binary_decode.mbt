@@ -391,7 +391,25 @@ fn binary_decode(
       _ => ()
     }
   }
+  let component_scopes : Array[ComponentScope] = []
+  for scope in graph.scopes {
+    if scope.concrete || scope.parent is None {
+      component_scopes.push({
+        world: scope.owner,
+        parent: scope.parent.map(parent => graph.scopes[parent].owner),
+        index: scope.component_index,
+        types: ReadOnlyArray::from_array(scope.types),
+        functions: ReadOnlyArray::from_array(scope.functions),
+        values: ReadOnlyArray::from_array(scope.values),
+        instances: ReadOnlyArray::from_array(scope.instances),
+        components: ReadOnlyArray::from_array(scope.components),
+        modules: ReadOnlyArray::from_array(scope.modules),
+        core_types: ReadOnlyArray::from_array(scope.core_types),
+      })
+    }
+  }
   Ok({
+    component_scopes: ReadOnlyArray::from_array(component_scopes),
     source_id,
     snapshot: bytes,
     arena: ReadOnlyArray::from_array(graph.types),

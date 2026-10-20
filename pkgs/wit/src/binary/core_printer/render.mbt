@@ -375,9 +375,9 @@ pub fn render(mod_ : @types.Module) -> String raise WatPrintError {
     } else {
       sb.write_string(value_type_to_wat(global.type_.value_type))
     }
-    sb.write_string(" (")
+    sb.write_string(" ")
     sb.write_string(instrs_to_wat_inline(global.init))
-    sb.write_string("))\n")
+    sb.write_string(")\n")
   }
 
   // Exports section

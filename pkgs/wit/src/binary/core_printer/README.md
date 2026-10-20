@@ -7,13 +7,15 @@ retained file in the published package; `LOCAL.patch` reconstructs each file
 from that baseline. Apache-2.0 licensing and upstream third-party notices are
 retained.
 
-The local patch makes three changes:
+The local patch makes these changes:
 
 - Instruction-shape checks and instruction rendering use explicit work stacks.
   Nested block, loop, if and try-table bodies never deepen the call stack, and
   output order is unchanged.
 - Index comments for defined tables, memories, globals and tags count imported
   items first, so they name absolute indices like function comments do.
+- Global initializers print as flat instruction sequences, so extended constant
+  expressions compile through both retained text paths.
 - Retained tests qualify package names and parse with the pinned `wat` package.
   The floating-point bits test compares f32 values with the bits that the target
   can hold, because JavaScript quiets f32 signaling NaNs.

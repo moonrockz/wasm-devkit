@@ -111,10 +111,13 @@ fn Check::import_resource_context(
   kind : ItemKind,
 ) -> ReadOnlyArray[ResourceBinding] raise SemanticFailure {
   let (resources, owned) = self.resource_parameters(node, kind)
+  let used = self.imported_resource_owners(node, kind)
   let result = []
   for ty in resources {
     let identity = if owned.contains(ty) {
       self.new_resource_identity()
+    } else if used.get(ty) is Some(identity) {
+      identity
     } else {
       match self.root_resources.get(ty) {
         Some(identity) => identity
@@ -138,4 +141,64 @@ fn resource_binding(
     }
   }
   None
+}
+
+///|
+// Explicit imports can come from different provider graphs. A used resource is
+// still the earlier named owner's exported resource, not a fresh declaration.
+fn Check::imported_resource_owners(
+  self : Check,
+  node : Int32,
+  kind : ItemKind,
+) -> Map[Int32, Int32] raise SemanticFailure {
+  let result : Map[Int32, Int32] = Map([])
+  let work = [binary_kind_id(kind)]
+  let seen : Map[Int32, Bool] = Map([])
+  let budget : VerificationBudget = { remaining: 1000000, }
+  while work.pop() is Some(id) {
+    self.verification_step(budget, node)
+    if seen.contains(id) {
+      continue
+    }
+    seen[id] = true
+    let uses = match self.types[id].kind {
+      Interface(_, uses, _) | World(_, uses, _, _) => uses
+      _ => []
+    }
+    for used in uses {
+      self.verification_step(budget, node)
+      guard self.resource_root(used.ty) is Some(resource) &&
+        self.types[used.interface].kind is Interface(Some(owner), _, _) else {
+        continue
+      }
+      for value in self.composition_nodes {
+        self.verification_step(budget, node)
+        guard value.operation is Import(name) &&
+          name == owner &&
+          value.kind is Instance(ty) &&
+          self.types[ty].kind is Interface(Some(identity), _, exports) &&
+          identity == owner else {
+          continue
+        }
+        for exported in exports {
+          self.verification_step(budget, node)
+          if exported.name == used.original_name &&
+            exported.kind is Type(ty) &&
+            self.resource_root(ty) is Some(root) &&
+            resource_binding(value.resources, root) is Some(identity) {
+            if result.get(resource) is Some(previous) && previous != identity {
+              raise Problem(
+                self.problem(
+                  node, "WAC-C005", "used resource has conflicting imported owners",
+                ),
+              )
+            }
+            result[resource] = identity
+          }
+        }
+      }
+    }
+    work.append(binary_children(self.types[id].kind))
+  }
+  result
 }
