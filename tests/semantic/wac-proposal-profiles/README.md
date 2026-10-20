@@ -15,8 +15,9 @@ argument checks and the remaining exclusions are library tests.
 The later [canonical handle/scalar GC profile](../wac-canonical-intrinsics/README.md)
 admits selected intrinsics and scalar `gc`/`core-type` options. Remaining
 intrinsics, GC reference shapes, concrete GC and reference types, exception
-instructions, shared concrete globals and limits above signed Int64 still
-return `WAC-B002`.
+instructions and shared concrete globals still return `WAC-B002`.
+The [core limits suite](../wac-core-limits/README.md) covers full UInt64 limits
+and custom memory pages in nested declarations and concrete modules.
 
 `composition/` is loaded by the CLI smoke test for both `.wat` and `.wasm`.
 `SHA256SUMS` records every file in this directory. Verification does not
