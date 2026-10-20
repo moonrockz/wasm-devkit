@@ -9,6 +9,8 @@ pub let help : String =
   #|
   #|Usage: wasm-devkit <parse|verify|ast|cst|tokens|print|format> [FILE|-] [OPTIONS]
   #|       wasm-devkit decompile [FILE.wasm|-] [--output FILE.wat]
+  #|       wasm-devkit decompile [FILE.wasm|-] --split DIR [--select ID]...
+  #|       wasm-devkit inventory [FILE.wasm|-] [--json] [--output FILE]
   #|       wasm-devkit --help | --version
   #|
   #|Language: inferred from .wit/.wac; verify also accepts .wasm/.wat as WIT.
@@ -44,7 +46,13 @@ pub let help : String =
   #|Components use the verifier's component profile; core modules and nested
   #|components print inline. It does not execute the binary or claim
   #|wasm-tools/wasm2wat output.
-  #|  --output PATH, -o PATH  Write the WAT document instead of stdout
+  #|  --output PATH, -o PATH  Write the WAT document or inventory instead of stdout
+  #|  --split DIR          Write component documents into a new directory
+  #|  --select ID          Select a component inventory ID (repeatable; split only)
+  #|  --select-none        Convert no components (split only)
+  #|inventory lists physical components/modules and their complete public types.
+  #|Pure compositions split into WAC; components with core content remain WAT.
+  #|Core modules remain inline and cannot be selected separately.
   #|Exit codes: 0 success, 1 syntax/semantic errors or formatting differences, 2 usage/I/O.
   #|Diagnostic line/column values are 1-based and count UTF-16 code units.
   #|
@@ -115,12 +123,34 @@ pub(all) enum Action {
   Version
   Run(Options)
   Decompile(DecompileOptions)
+  Split(SplitOptions)
+  Inventory(InventoryOptions)
+} derive(Eq, Debug)
+
+///|
+pub(all) struct SplitOptions {
+  path : String
+  directory : String
+  select : ReadOnlyArray[String]?
+} derive(Eq, Debug)
+
+///|
+pub(all) struct InventoryOptions {
+  path : String
+  output : String?
+  json : Bool
 } derive(Eq, Debug)
 
 ///|
 fn decompile_arguments(args : ArrayView[String]) -> Result[Action, String] {
   let mut path = None
   let mut output = None
+  let mut directory = None
+  let selected : Array[String] = []
+  let mut selection = false
+  let mut select_none = false
+  let mut json = false
+  let inventory = args[0] == "inventory"
   let mut literal = false
   let mut at = 1
   while at < args.length() {
@@ -138,6 +168,36 @@ fn decompile_arguments(args : ArrayView[String]) -> Result[Action, String] {
         return Err("duplicate " + arg)
       }
       output = Some(args[at])
+    } else if !literal && arg == "--json" && inventory {
+      if json {
+        return Err("duplicate --json")
+      }
+      json = true
+    } else if !literal && arg == "--split" && !inventory {
+      at += 1
+      if at == args.length() || args[at].is_empty() || args[at] == "-" {
+        return Err("--split requires a directory")
+      }
+      if directory is Some(_) {
+        return Err("duplicate --split")
+      }
+      directory = Some(args[at])
+    } else if !literal && arg == "--select" && !inventory {
+      at += 1
+      if at == args.length() || args[at].is_empty() {
+        return Err("--select requires a component ID")
+      }
+      if select_none {
+        return Err("--select and --select-none cannot be combined")
+      }
+      selected.push(args[at])
+      selection = true
+    } else if !literal && arg == "--select-none" && !inventory {
+      if selection {
+        return Err("--select-none cannot be combined with --select")
+      }
+      selection = true
+      select_none = true
     } else if !literal && arg.has_prefix("-") && arg != "-" {
       return Err("unknown decompile option: " + arg)
     } else {
@@ -152,6 +212,28 @@ fn decompile_arguments(args : ArrayView[String]) -> Result[Action, String] {
   if output is Some(file) && file == path {
     return Err("--output must differ from the input file")
   }
+  if inventory {
+    return Ok(Inventory({ path, output, json, }))
+  }
+  if directory is Some(directory) {
+    if output is Some(_) {
+      return Err("--split and --output cannot be combined")
+    }
+    return Ok(
+      Split({
+        path,
+        directory,
+        select: if selection {
+          Some(ReadOnlyArray::from_array(selected))
+        } else {
+          None
+        },
+      }),
+    )
+  }
+  if selection {
+    return Err("--select requires --split")
+  }
   Ok(Decompile({ path, output, }))
 }
 
@@ -163,7 +245,7 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
   if args is ["--version"] || args is ["-V"] {
     return Ok(Version)
   }
-  if args[0] == "decompile" {
+  if args[0] == "decompile" || args[0] == "inventory" {
     return decompile_arguments(args)
   }
   let command : Command = match args[0] {
@@ -438,3 +520,15 @@ pub extend RegistryOptions with Eq::{equal, not_equal}
 
 ///|
 pub extend RegistryOptions with @debug.Debug::{to_repr}
+
+///|
+pub extend SplitOptions with Eq::{equal, not_equal}
+
+///|
+pub extend SplitOptions with @debug.Debug::{to_repr}
+
+///|
+pub extend InventoryOptions with Eq::{equal, not_equal}
+
+///|
+pub extend InventoryOptions with @debug.Debug::{to_repr}

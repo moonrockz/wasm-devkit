@@ -2,9 +2,13 @@
 package "moonrockz/wit/component_text"
 
 // Values
+pub fn outer_references(String) -> ReadOnlyArray[OuterReference] raise ComponentTextError
+
 pub fn parse_component_wat(String) -> Bytes raise ComponentTextError
 
 pub fn parse_normalized_component_wat(String) -> Bytes raise ComponentTextError
+
+pub fn relocate_outer_references(String, ReadOnlyArray[OuterBinding]) -> String raise ComponentTextError
 
 // Errors
 pub suberror ComponentTextError {
@@ -16,6 +20,18 @@ pub fn ComponentTextError::to_string(Self) -> String
 pub impl Show for ComponentTextError
 
 // Types and methods
+pub(all) struct OuterBinding {
+  distance : Int
+  sort : Int
+  index : Int
+  name : String
+}
+
+pub struct OuterReference {
+  distance : Int
+  sort : Int
+  index : Int
+}
 
 // Type aliases
 

@@ -463,3 +463,25 @@ test "law: printing arbitrary component bytes is total and deterministic" {
     seed=1302,
   )
 }
+
+///|
+test "extended constant global initializers round trip inside components" {
+  let bytes = b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x01\x25\x00\x61\x73\x6d\x01\x00\x00\x00\x06\x09\x01\x7f\x00\x41\x01\x41\x02\x6a\x0b\x07\x05\x01\x01\x67\x03\x00\x00\x09\x04\x6e\x61\x6d\x65\x00\x02\x01\x6d\x0b\x0d\x01\x00\x06\x6d\x6f\x64\x75\x6c\x65\x00\x11\x00\x00\x00\x17\x0e\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x2d\x6e\x61\x6d\x65\x01\x06\x00\x11\x01\x00\x01\x6d"
+  let text = round_trip_component(bytes)
+  assert_true(text.contains("i32.const 1 i32.const 2 i32.add"))
+}
+
+///|
+test "contextual fragments validate input and select physical component indices" {
+  let bytes = b"\x00asm\x0d\x00\x01\x00\x04\x08\x00asm\x0d\x00\x01\x00"
+  let fragment = @decompiler.component_fragment(bytes, [0]).unwrap()
+  assert_eq(fragment.text, "(component\n)\n")
+  assert_eq(
+    @decompiler.component_fragment(bytes, [1]).unwrap_err()[0].code,
+    "WIT-D003",
+  )
+  assert_eq(
+    @decompiler.component_fragment(b"bad", []).unwrap_err()[0].code,
+    "WIT-D001",
+  )
+}

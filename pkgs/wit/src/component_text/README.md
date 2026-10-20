@@ -76,3 +76,10 @@ Concrete child component compilation uses suspended frames and an explicit
 driver stack. Parent name bindings become visible only after a child completes.
 The existing 256-parenthesis source limit also bounds concrete scopes; binary
 validation separately permits 256 nested component envelopes.
+
+
+Local fragment operations discover and relocate external outer aliases with
+explicit work stacks. They retain internal aliases and distinguish concrete,
+component/instance type and core-module type scopes. These transformations do
+not by themselves claim that a fragment compiles standalone; component splitting
+supplies the containing capture declarations before compilation.

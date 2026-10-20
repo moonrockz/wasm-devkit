@@ -1,0 +1,47 @@
+///|
+test "source package dependencies resolve in dependency order and retain public models" {
+  let packages : ReadOnlyArray[@verifier.SourcePackage] = [
+    {
+      name: "test:outer",
+      version: None,
+      source: "outer.wac",
+      text: "package test:outer; let i = new test:inner {}; export i as \"inner\";",
+    },
+    {
+      name: "test:inner",
+      version: None,
+      source: "inner.wac",
+      text: "package test:inner;",
+    },
+  ]
+  let resolved = @verifier.resolve_composition_packages(packages).unwrap()
+  assert_eq(resolved.length(), 2)
+  assert_eq(resolved[0].name, "test:inner")
+  let source = "package test:root; let i = new test:outer {}; export i as \"out\";"
+  assert_true(
+    @verifier.verify(@parser.parse(source), source~, compositions=resolved)
+    is Ok(_),
+  )
+}
+
+///|
+test "source package dependency cycles and lookup collisions fail explicitly" {
+  let a : @verifier.SourcePackage = {
+    name: "test:a",
+    version: None,
+    source: "a.wac",
+    text: "package test:a; let i = new test:b {};",
+  }
+  let b : @verifier.SourcePackage = {
+    name: "test:b",
+    version: None,
+    source: "b.wac",
+    text: "package test:b; let i = new test:a {};",
+  }
+  let cycle = @verifier.resolve_composition_packages([a, b]).unwrap_err()
+  assert_eq(cycle[0].code, "WAC-P007")
+  assert_eq(
+    @verifier.resolve_composition_packages([a, a]).unwrap_err()[0].code,
+    "WAC-P002",
+  )
+}

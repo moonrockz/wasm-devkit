@@ -177,9 +177,41 @@ binary. Values of type `error-context` are outside the profile.
 Diagnostics go to stderr as `FILE:[byte N]: error CODE: message`, or `FILE:[binary]` when the
 retained parser or validator supplies no offset. A failure prints no document and does not
 create or change the output file. The text uses index comments without identifiers. It is
-not wasm-tools `print` or WABT `wasm2wat` output. Split documents, module selection and
-API-shape inventories are later work. See the
+not wasm-tools `print` or WABT `wasm2wat` output. Inventory, component selection and
+recursive splitting are described below. See the
 [decompiler guide](../../pkgs/wit/src/decompiler/README.mbt.md).
+
+## Inventory and split component documents
+
+```shell
+wasm-devkit inventory app.wasm
+wasm-devkit inventory app.wasm --json --output inventory.json
+wasm-devkit decompile app.wasm --split app-documents
+wasm-devkit verify app-documents/root.wac
+wasm-devkit decompile app.wasm --split selected --select root/component-n0
+wasm-devkit decompile app.wasm --split empty --select-none
+```
+
+Inventory includes every physical component and core module, stable path IDs,
+optional binary/export names and complete public signatures. `--json` writes a
+versioned flat type graph. Files and stdin work for both commands.
+
+Split boundaries are components. Pure compositions become WAC and resolve local
+WAC/WAT dependencies recursively. Components with core content stay WAT, with
+core modules inline. Generated signature and operation adapters use ordinary WAC
+package keys under `deps/split/`. Captured lexical values become explicit imports
+that the containing WAC supplies. Every complete split is checked before output.
+
+`--select` accepts exact inventory component IDs and can repeat. Omitting selection
+converts all; `--select-none` creates no files. Unknown IDs and core-module IDs
+fail without output. A subset omits unselected bodies and may require callers to
+supply the omitted dependencies before verifying its WAC documents.
+
+`--split` requires a new destination directory. Files are staged beside it and
+published by one rename after success. Existing directories, invalid inputs,
+unknown selectors and write failures leave the destination unchanged. `--output`
+and `--split` cannot be combined. See the [library split guide](../../pkgs/wac/src/decompiler/README.mbt.md)
+for identities, closure imports, adapter documents and supported profiles.
 
 ## Command reference
 

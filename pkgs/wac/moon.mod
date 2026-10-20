@@ -17,4 +17,5 @@ source = "src"
 import {
   "moonrockz/wit@0.2.0",
   "Milky2018/wasm_component@0.16.0",
+  "moonbitlang/x@0.5.5",
 }

@@ -114,8 +114,9 @@ The CLI under `cmd/wasm-devkit` supports both languages, files/stdin, inspection
 and formatter check/write modes.
 `moonrockz/wit/decompiler` and `wasm-devkit decompile` print a core-module or component `.wasm`
 binary as one deterministic WAT document, with core modules and nested components inline.
-Split documents, module selection, API-shape inventories and wasm-tools/WABT output
-compatibility are not implemented yet (`wasm-devkit-p5m.13`). The current release version is `0.2.0`.
+`moonrockz/wac/decompiler` and the CLI provide API-shape inventories, component
+selection and recursive WAC/WAT splitting. See the [split guide](pkgs/wac/src/decompiler/README.mbt.md).
+Compatibility with wasm-tools/WABT output remains a later slice (`wasm-devkit-p5m.13.4`). The current release version is `0.2.0`.
 
 | Module | Path | Intended capabilities |
 |--------|------|-----------------------|
@@ -173,7 +174,7 @@ mise run clean
 ## Documentation checks
 
 `mise run test` executes checked API comments and package README examples.
-`mise run test:docs` additionally compiles all 25 library guides using exactly their
+`mise run test:docs` additionally compiles all 26 library guides using exactly their
 documented imports, including the root and module READMEs outside package source directories.
 Both commands run on wasm, wasm-gc, js and native by default.
 

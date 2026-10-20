@@ -214,6 +214,7 @@ fn wac_execute(
   label : String,
   dependencies~ : ReadOnlyArray[@wac_verifier.PackageSource] = [],
   wit_dependencies~ : ReadOnlyArray[@wac_verifier.WitPackageSource] = [],
+  compositions~ : ReadOnlyArray[@wac_verifier.CompositionPackage] = [],
 ) -> Output {
   if options.command == Tokens {
     let scanned = @wac_scanner.scan(source)
@@ -249,6 +250,7 @@ fn wac_execute(
           source~,
           dependencies~,
           wit_dependencies~,
+          compositions~,
         ) {
         Ok(_) => output(label + ": verified wac\n", "", 0)
         Err(diagnostics) =>
@@ -448,6 +450,7 @@ pub fn verify_wac(
   source : String,
   dependencies~ : ReadOnlyArray[@wac_verifier.PackageSource] = [],
   wit_dependencies~ : ReadOnlyArray[@wac_verifier.WitPackageSource] = [],
+  compositions~ : ReadOnlyArray[@wac_verifier.CompositionPackage] = [],
 ) -> Output {
   if options.command != Verify || options.language != Wac {
     return output("", "WAC verification requires verify and language wac\n", 2)
@@ -462,5 +465,36 @@ pub fn verify_wac(
     },
     dependencies~,
     wit_dependencies~,
+    compositions~,
   )
+}
+
+///|
+pub fn inventory(options : InventoryOptions, bytes : Bytes) -> Output {
+  match @wac_decompiler.inventory(bytes, source_id=options.path) {
+    Ok(inventory) => {
+      let text = if options.json {
+        inventory.to_json().stringify() + "\n"
+      } else {
+        inventory.to_text()
+      }
+      if options.output is Some(_) {
+        { stdout: "", stderr: "", exit_code: 0, write_text: Some(text), }
+      } else {
+        output(text, "", 0)
+      }
+    }
+    Err(errors) => output("", render_split_diagnostics(errors), 1)
+  }
+}
+
+///|
+pub fn render_split_diagnostics(
+  errors : ReadOnlyArray[@wac_decompiler.Diagnostic],
+) -> String {
+  errors
+  .map(e => e.source + ": error " + e.code + ": " + e.message + "\n")
+  .iter()
+  .to_array()
+  .join("")
 }

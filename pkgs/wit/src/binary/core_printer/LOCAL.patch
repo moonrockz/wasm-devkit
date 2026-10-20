@@ -166,6 +166,12 @@
 @@ -341 +369 @@
 -    sb.write_string(i.to_string())
 +    sb.write_string((import_globals + i).to_string())
+@@ -350 +378 @@
+-    sb.write_string(" (")
++    sb.write_string(" ")
+@@ -352 +380 @@
+-    sb.write_string("))\n")
++    sb.write_string(")\n")
 @@ -394 +422 @@
 -    sb.write_string("  (tag (;\{i};) (type \{tag.type_idx}))\n")
 +    sb.write_string("  (tag (;\{import_tags + i};) (type \{tag.type_idx}))\n")

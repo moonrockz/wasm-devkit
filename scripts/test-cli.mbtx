@@ -91,6 +91,79 @@ async fn main {
   assert_eq(@fs.read_file(module_wat).text(), module_text)
   let _ = run(["decompile", component_wasm, "-o", absent_wat], 1, wit)
   assert_false(@fs.exists(absent_wat))
+  // Inventory and recursively split WAC dependencies work over files/stdin.
+  let nested = dir + "/split-input.wasm"
+  @fs.write_file(
+    nested, b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x04\x2f\x00\x61\x73\x6d\x0d\x00\x01\x00\x04\x12\x00\x61\x73\x6d\x0d\x00\x01\x00\x01\x08\x00\x61\x73\x6d\x01\x00\x00\x00\x05\x04\x01\x00\x00\x00\x0b\x0b\x01\x00\x05\x69\x6e\x6e\x65\x72\x05\x00\x00\x05\x04\x01\x00\x00\x00\x0b\x0b\x01\x00\x05\x6f\x75\x74\x65\x72\x05\x00\x00",
+  )
+  let (inventory, _) = run(["inventory", nested, "--json"], 0, wit)
+  assert_true(inventory.contains("\"schema-version\":1"))
+  assert_true(inventory.contains("root/component-n0/component-n0/module-n0"))
+  let (piped_inventory, _) = run(["inventory", "--json"], 0, nested)
+  assert_eq(piped_inventory, inventory)
+  let inventory_file = dir + "/inventory.json"
+  let (quiet_inventory, _) = run(
+    ["inventory", nested, "--json", "--output", inventory_file],
+    0,
+    wit,
+  )
+  assert_eq(quiet_inventory, "")
+  assert_eq(@fs.read_file(inventory_file).text(), inventory)
+  let split_dir = dir + "/split-output"
+  if @fs.exists(split_dir) {
+    @fs.rmdir(split_dir, recursive=true)
+  }
+  let (split_output, _) = run(
+    ["decompile", nested, "--split", split_dir],
+    0,
+    wit,
+  )
+  assert_eq(split_output, "")
+  let (_, verified_split_error) = run(
+    ["verify", split_dir + "/root.wac"],
+    0,
+    wit,
+  )
+  assert_eq(verified_split_error, "")
+  let sentinel = split_dir + "/sentinel"
+  @fs.write_file(sentinel, "keep")
+  let _ = run(["decompile", nested, "--split", split_dir], 2, wit)
+  assert_eq(@fs.read_file(sentinel).text(), "keep")
+  let absent_split = dir + "/absent-split"
+  if @fs.exists(absent_split) {
+    @fs.rmdir(absent_split, recursive=true)
+  }
+  let _ = run(["decompile", component_wasm, "--split", absent_split], 1, wit)
+  assert_false(@fs.exists(absent_split))
+  let _ = run(
+    ["decompile", nested, "--split", absent_split, "--select", "missing"],
+    1,
+    wit,
+  )
+  assert_false(@fs.exists(absent_split))
+  let _ = run(
+    [
+      "decompile", nested, "--split", absent_split, "--select", "root/component-n0/component-n0/module-n0",
+    ],
+    1,
+    wit,
+  )
+  assert_false(@fs.exists(absent_split))
+  let _ = run(
+    ["decompile", nested, "--split", absent_split, "--select-none"],
+    0,
+    wit,
+  )
+  assert_false(@fs.exists(absent_split))
+  let _ = run(
+    [
+      "decompile", nested, "--split", absent_split, "--select", "root/component-n0/component-n0",
+    ],
+    0,
+    wit,
+  )
+  assert_false(@fs.exists(absent_split + "/root.wac"))
+  assert_eq(@fs.readdir(absent_split + "/deps/split").length(), 1)
   // An encoded WIT package verifies to the same model as its printed WAT.
   let package_wasm = "tests/semantic/wit-encoded-upstream/wasi-http.wasm"
   let package_wat = dir + "/wasi-http.wat"

@@ -153,6 +153,8 @@ fn Check::load_package(
     decode_component_package(input.bytes, source_id=input.source).map(model => {
       self.append_package(model)
     })
+  } else if self.compositions.get(key) is Some(input) {
+    Ok(self.append_composition(input.model))
   } else if self.wit_dependencies.get(key) is Some(input) {
     resolve_wit_package(input.root, dependencies=input.dependencies).map(model => {
       self.append_type_graph(

@@ -18,11 +18,13 @@ pub fn decode_wat_component_package(String, source_id? : String) -> Result[Binar
 
 pub fn package_requests(@parser.Parse, source~ : String, source_id? : String) -> Result[ReadOnlyArray[PackageRequest], ReadOnlyArray[Diagnostic]]
 
+pub fn resolve_composition_packages(ReadOnlyArray[SourcePackage], dependencies? : ReadOnlyArray[PackageSource], wit_dependencies? : ReadOnlyArray[WitPackageSource]) -> Result[ReadOnlyArray[CompositionPackage], ReadOnlyArray[Diagnostic]]
+
 pub fn resolve_wit_package(@moonrockz/wit/verifier.PackageInput, dependencies? : ReadOnlyArray[@moonrockz/wit/verifier.PackageInput]) -> Result[WitPackage, ReadOnlyArray[Diagnostic]]
 
-pub fn verify(@parser.Parse, source_id? : String, source~ : String, dependencies? : ReadOnlyArray[PackageSource], wit_dependencies? : ReadOnlyArray[WitPackageSource]) -> Result[Verified, ReadOnlyArray[Diagnostic]]
+pub fn verify(@parser.Parse, source_id? : String, source~ : String, dependencies? : ReadOnlyArray[PackageSource], wit_dependencies? : ReadOnlyArray[WitPackageSource], compositions? : ReadOnlyArray[CompositionPackage]) -> Result[Verified, ReadOnlyArray[Diagnostic]]
 
-pub fn verify_ast(@ast.Tree, source_id? : String, source~ : String, dependencies? : ReadOnlyArray[PackageSource], wit_dependencies? : ReadOnlyArray[WitPackageSource]) -> Result[Verified, ReadOnlyArray[Diagnostic]]
+pub fn verify_ast(@ast.Tree, source_id? : String, source~ : String, dependencies? : ReadOnlyArray[PackageSource], wit_dependencies? : ReadOnlyArray[WitPackageSource], compositions? : ReadOnlyArray[CompositionPackage]) -> Result[Verified, ReadOnlyArray[Diagnostic]]
 
 // Errors
 
@@ -31,6 +33,7 @@ pub struct BinaryPackage {
   // private fields
 }
 pub fn BinaryPackage::bytes(Self) -> Bytes
+pub fn BinaryPackage::components(Self) -> ReadOnlyArray[ComponentScope]
 pub fn BinaryPackage::definitions(Self) -> ReadOnlyArray[Extern]
 pub fn BinaryPackage::instance(Self) -> Int
 pub fn BinaryPackage::resource_identity(Self, Int) -> Int?
@@ -47,6 +50,19 @@ pub(all) struct Binding {
 pub fn Binding::equal(Self, Self) -> Bool
 pub fn Binding::not_equal(Self, Self) -> Bool
 pub fn Binding::to_repr(Self) -> @debug.Repr
+
+pub struct ComponentScope {
+  world : Int
+  parent : Int?
+  index : Int
+  types : ReadOnlyArray[Int]
+  functions : ReadOnlyArray[Int]
+  values : ReadOnlyArray[Int]
+  instances : ReadOnlyArray[Int]
+  components : ReadOnlyArray[Int]
+  modules : ReadOnlyArray[Int]
+  core_types : ReadOnlyArray[@core_types.Definition]
+}
 
 pub(all) struct CompositionExport {
   name : String
@@ -77,6 +93,12 @@ pub(all) enum CompositionOperation {
 pub fn CompositionOperation::equal(Self, Self) -> Bool
 pub fn CompositionOperation::not_equal(Self, Self) -> Bool
 pub fn CompositionOperation::to_repr(Self) -> @debug.Repr
+
+pub(all) struct CompositionPackage {
+  name : String
+  version : String?
+  model : Verified
+}
 
 pub(all) struct Diagnostic {
   code : String
@@ -193,6 +215,13 @@ pub(all) struct ResourceBinding {
 pub fn ResourceBinding::equal(Self, Self) -> Bool
 pub fn ResourceBinding::not_equal(Self, Self) -> Bool
 pub fn ResourceBinding::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SourcePackage {
+  name : String
+  version : String?
+  source : String
+  text : String
+}
 
 pub(all) struct TypeCase {
   name : String

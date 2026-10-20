@@ -46,7 +46,21 @@ async fn wac(options : @cli.Options) -> @cli.Output {
   }
   let dependencies : Array[@wac_verifier.PackageSource] = []
   let wit_dependencies : Array[@wac_verifier.WitPackageSource] = []
-  for request in requests {
+  let source_packages : Array[@wac_verifier.SourcePackage] = []
+  let pending = requests.iter().to_array()
+  let seen : Map[String, Bool] = Map([])
+  let mut cursor = 0
+  while cursor < pending.length() {
+    let request = pending[cursor]
+    cursor += 1
+    let key = request.name + request.version.map(v => "@" + v).unwrap_or("")
+    if seen.contains(key) {
+      continue
+    }
+    seen[key] = true
+    if seen.length() > 10000 {
+      return output("", "WAC dependency closure exceeds 10000 packages\n", 1)
+    }
     let explicit = request.version is None && overrides.contains(request.name)
     let path = if request.version is None &&
       overrides.get(request.name) is Some(path) {
@@ -62,6 +76,8 @@ async fn wac(options : @cli.Options) -> @cli.Output {
         request.version.map(version => "/" + version).unwrap_or("")
       if @fs.exists(path) && @fs.kind(path) is Directory {
         path
+      } else if @fs.exists(path + ".wac") {
+        path + ".wac"
       } else if @fs.exists(path + ".wat") {
         path + ".wat"
       } else {
@@ -115,6 +131,33 @@ async fn wac(options : @cli.Options) -> @cli.Output {
           1
         },
       )
+    }
+    if path.has_suffix(".wac") {
+      let text = @utf8.decode(@fs.read_file(path).binary(), ignore_bom=false)
+      source_packages.push({
+        name: request.name,
+        version: request.version,
+        source: path,
+        text,
+      })
+      match
+        @wac_verifier.package_requests(
+          @wac_parser.parse(text),
+          source=text,
+          source_id=path,
+        ) {
+        Ok(requests) =>
+          for child in requests {
+            pending.push(child)
+          }
+        Err(errors) =>
+          return output(
+            "",
+            @cli.render_wac_diagnostics(errors, source, label),
+            1,
+          )
+      }
+      continue
     }
     let directory = @fs.kind(path) is Directory
     if explicit && directory {
@@ -249,11 +292,22 @@ async fn wac(options : @cli.Options) -> @cli.Output {
       bytes,
     })
   }
+  let compositions = match
+    @wac_verifier.resolve_composition_packages(
+      ReadOnlyArray::from_array(source_packages),
+      dependencies=ReadOnlyArray::from_array(dependencies),
+      wit_dependencies=ReadOnlyArray::from_array(wit_dependencies),
+    ) {
+    Ok(compositions) => compositions
+    Err(errors) =>
+      return output("", @cli.render_wac_diagnostics(errors, source, label), 1)
+  }
   let result = @cli.verify_wac(
     options,
     source,
     dependencies=ReadOnlyArray::from_array(dependencies),
     wit_dependencies=ReadOnlyArray::from_array(wit_dependencies),
+    compositions~,
   )
   if result.exit_code == 0 && registry is Some(session) {
     session.save()

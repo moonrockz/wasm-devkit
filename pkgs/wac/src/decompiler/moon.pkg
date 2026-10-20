@@ -1,0 +1,20 @@
+import {
+  "moonrockz/wac/verifier",
+  "moonrockz/wit/binary",
+  "moonrockz/wit/core_types",
+  "moonrockz/wit/decompiler" @wat,
+  "moonrockz/wit/binary/core_parser",
+  "moonrockz/wit/binary/core_validation",
+  "moonrockz/wit/component_text",
+  "Milky2018/wasm_component" @component,
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/debug",
+  "moonbitlang/x/crypto",
+}
+
+import {
+  "moonrockz/wac/decompiler",
+  "moonrockz/wac/verifier",
+  "moonrockz/wit/component_text",
+  "moonbitlang/core/quickcheck",
+} for "test"

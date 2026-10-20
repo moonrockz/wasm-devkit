@@ -419,3 +419,25 @@ test "decompile prints one document or explicit diagnostics without a document" 
   assert_eq(invalid.write_text, None)
   assert_true(invalid.stderr.has_prefix("<stdin>:[binary]: error WIT-D002: "))
 }
+
+///|
+test "inventory and component selection arguments are unambiguous" {
+  assert_eq(
+    @cli.arguments(["inventory", "app.wasm", "--json"]),
+    Ok(Inventory({ path: "app.wasm", output: None, json: true, })),
+  )
+  assert_eq(
+    @cli.arguments(["decompile", "app.wasm", "--split", "out", "--select-none"]),
+    Ok(Split({ path: "app.wasm", directory: "out", select: Some([]), })),
+  )
+  for
+    args in [
+      ["decompile", "--select", "root"],
+      ["decompile", "--split", "out", "--output", "root.wat"],
+      ["decompile", "--split", "out", "--select-none", "--select", "root"],
+      ["decompile", "--split", "out", "--select", "root", "--select-none"],
+      ["inventory", "--split", "out"],
+    ] {
+    assert_true(@cli.arguments(args[:]) is Err(_))
+  }
+}
