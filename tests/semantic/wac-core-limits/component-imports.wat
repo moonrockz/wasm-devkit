@@ -1,0 +1,1 @@
+(component (type $c (component (core type $m (module (import "env" "mem" (memory i64 18446744073709551615 (pagesize 1))) (import "env" "tab" (table i64 9223372036854775808 funcref)) (import "env" "g" (global (shared i32))) (export "mem" (memory 1 (pagesize 65536))))) (import "m" (core module (type $m))))) (export "c" (type $c)))

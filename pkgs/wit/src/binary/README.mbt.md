@@ -123,9 +123,11 @@ while escaping signatures require visible names.
 Core declarations have separate lexical index validation and retain complete
 unsigned signatures through `moonrockz/wit/core_types`. Concrete GC references
 and shared heap types remain unsupported. Concrete modules support function-only
-recursive groups without concrete references. Nested core declarations
-with limits above u32 or custom memory pages return `WIT-B002` before the pinned
-parser runs; root core-type sections support those encodings.
+recursive groups without concrete references. Root, nested and concrete core
+declarations retain full UInt64 limits with the same address-width checks.
+Custom memory pages support 1 and 65536 bytes; an explicit default annotation
+remains distinct from an absent annotation. Shared concrete globals still
+return `WIT-B002`.
 
 
 The declarative entry point also validates concrete core modules. The

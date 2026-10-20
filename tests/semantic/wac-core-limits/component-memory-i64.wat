@@ -1,0 +1,1 @@
+(component (type $c (component (core type $m (module (export "value" (memory i64 9223372036854775807 9223372036854775807 (pagesize 1))))) (import "m" (core module (type $m))))) (export "c" (type $c)))

@@ -1,0 +1,1 @@
+(component (type $i (instance (core type $m (module (export "value" (table i64 9223372036854775807 9223372036854775807 funcref)))) (export "m" (core module (type $m))))) (import "i" (instance $i (type $i))) (export "i" (instance $i)))

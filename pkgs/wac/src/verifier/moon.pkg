@@ -13,6 +13,8 @@ import {
 }
 
 import {
+  "moonrockz/wit/core_types",
+  "moonrockz/wit/binary" @binary_validation,
   "moonrockz/wac/span",
   "moonrockz/wac/verifier",
   "moonrockz/wac/parser",

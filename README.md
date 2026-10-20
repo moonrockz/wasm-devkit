@@ -93,8 +93,9 @@ record exact supported operations and explicit exclusions.
 Dependency and component verification is implemented for the documented v0.2.0 profile.
 Unsupported constructs fail explicitly. Async canonical lift/lower and component
 start sections are in the profile. Concrete GC and reference types, exception
-instructions, shared concrete globals and limits above signed Int64 stay
-rejected. Those remaining extensions are tracked in `wasm-devkit-p5m.12`.
+instructions and shared concrete globals stay rejected. Nested and concrete
+core declarations retain full UInt64 limits, address-width bounds and custom
+memory pages of 1 or 65536 bytes. Those remaining extensions are tracked in `wasm-devkit-p5m.12`.
 
 ## Status
 

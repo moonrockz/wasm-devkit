@@ -358,7 +358,7 @@ fn type_framing(
       Declaration(depth, component) => {
         let offset = reader.position
         match reader.byte() {
-          0 if core => reader.core_type(legacy_nested=true)
+          0 if core => reader.core_type()
           0 =>
             raise Failure(
               Some(offset),
@@ -748,12 +748,8 @@ fn preflight(
 }
 
 ///|
-fn Reader::core_type(
-  self : Reader,
-  legacy_nested~ : Bool = false,
-) -> Unit raise Boundary {
-  match
-    @core_types.scan_type(self.bytes, self.position, self.end, legacy_nested~) {
+fn Reader::core_type(self : Reader) -> Unit raise Boundary {
+  match @core_types.scan_type(self.bytes, self.position, self.end) {
     Ok(end) => self.position = end
     Err(error) =>
       raise Failure(

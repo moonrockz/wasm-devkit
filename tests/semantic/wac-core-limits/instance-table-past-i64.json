@@ -1,0 +1,82 @@
+{
+  "definitions": [],
+  "instance": 1,
+  "name": "test:limits",
+  "types": {
+    "defined": [],
+    "funcs": [],
+    "interfaces": [
+      {
+        "exports": [
+          [
+            "m",
+            {
+              "module": 0
+            }
+          ]
+        ],
+        "id": null,
+        "uses": []
+      },
+      {
+        "exports": [
+          [
+            "i",
+            {
+              "instance": 0
+            }
+          ]
+        ],
+        "id": null,
+        "uses": []
+      }
+    ],
+    "modules": [
+      {
+        "exports": [
+          [
+            "value",
+            {
+              "table": {
+                "elementType": {
+                  "heapType": "func",
+                  "nullable": true
+                },
+                "initial": 9223372036854775808,
+                "maximum": 9223372036854775808,
+                "shared": false,
+                "table64": true
+              }
+            }
+          ]
+        ],
+        "imports": []
+      }
+    ],
+    "resources": [],
+    "worlds": [
+      {
+        "exports": [
+          [
+            "i",
+            {
+              "instance": 0
+            }
+          ]
+        ],
+        "id": null,
+        "imports": [
+          [
+            "i",
+            {
+              "instance": 0
+            }
+          ]
+        ],
+        "uses": []
+      }
+    ]
+  },
+  "version": null,
+  "world": 0
+}

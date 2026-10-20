@@ -921,8 +921,7 @@ test "core signatures bound unsigned limits and truncation" {
   let encoded = b"\x50\x01\x03\x01m\x02\x0c\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01\x00"
   assert_true(decode_type(encoded) is Ok(_))
   assert_true(
-    scan_type(encoded, 0, encoded.length(), legacy_nested=true)
-    is Err({ kind: Unsupported, .. }),
+    scan_type(encoded, 0, encoded.length(), legacy_nested=true) is Ok(_),
   )
   for end in 0..<encoded.length() {
     assert_true(decode_type(encoded[:end].to_owned()) is Err(_))

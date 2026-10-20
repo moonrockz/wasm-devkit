@@ -1,0 +1,1 @@
+(component (core module $provider (memory (export "value") i64 18446744073709551615 18446744073709551615 (pagesize 1))) (core instance $p (instantiate $provider)) (core module $consumer (import "env" "value" (memory i64 18446744073709551615 18446744073709551615 (pagesize 1)))) (core instance (instantiate $consumer (with "env" (instance $p)))) (export "m" (core module $provider)))

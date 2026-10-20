@@ -83,3 +83,9 @@ explicit work stacks. They retain internal aliases and distinguish concrete,
 component/instance type and core-module type scopes. These transformations do
 not by themselves claim that a fragment compiles standalone; component splitting
 supplies the containing capture declarations before compilation.
+
+Concrete memory/table limits use the same checked UInt64 literal reader as
+declarative signatures before retained core compilation. Explicit default page
+annotations survive the core encoder, and inline memory export indices include
+preceding imported memories. Both transformations preserve the instruction bytes.
+Shared concrete globals remain an explicit unsupported diagnostic.

@@ -1,0 +1,1 @@
+package test:app; let dep = new test:limits { ... }; export dep as "out";

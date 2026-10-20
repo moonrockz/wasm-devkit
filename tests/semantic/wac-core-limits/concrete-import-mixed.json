@@ -1,0 +1,125 @@
+{
+  "definitions": [],
+  "instance": 0,
+  "name": "test:limits",
+  "types": {
+    "defined": [],
+    "funcs": [],
+    "interfaces": [
+      {
+        "exports": [
+          [
+            "m",
+            {
+              "module": 0
+            }
+          ]
+        ],
+        "id": null,
+        "uses": []
+      }
+    ],
+    "modules": [
+      {
+        "exports": [
+          [
+            "byte",
+            {
+              "memory": {
+                "initial": 18446744073709551615,
+                "maximum": null,
+                "memory64": true,
+                "pageSizeLog2": 0,
+                "shared": false
+              }
+            }
+          ],
+          [
+            "default",
+            {
+              "memory": {
+                "initial": 1,
+                "maximum": null,
+                "memory64": false,
+                "pageSizeLog2": 16,
+                "shared": false
+              }
+            }
+          ],
+          [
+            "imported",
+            {
+              "memory": {
+                "initial": 1,
+                "maximum": null,
+                "memory64": true,
+                "pageSizeLog2": 16,
+                "shared": false
+              }
+            }
+          ]
+        ],
+        "imports": [
+          {
+            "module": "env",
+            "name": "table",
+            "type": {
+              "table": {
+                "elementType": {
+                  "heapType": "func",
+                  "nullable": true
+                },
+                "initial": 18446744073709551615,
+                "maximum": null,
+                "shared": false,
+                "table64": true
+              }
+            }
+          },
+          {
+            "module": "env",
+            "name": "global",
+            "type": {
+              "global": {
+                "mutable": false,
+                "shared": false,
+                "valType": "i64"
+              }
+            }
+          },
+          {
+            "module": "env",
+            "name": "memory",
+            "type": {
+              "memory": {
+                "initial": 1,
+                "maximum": null,
+                "memory64": true,
+                "pageSizeLog2": 16,
+                "shared": false
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "resources": [],
+    "worlds": [
+      {
+        "exports": [
+          [
+            "m",
+            {
+              "module": 0
+            }
+          ]
+        ],
+        "id": null,
+        "imports": [],
+        "uses": []
+      }
+    ]
+  },
+  "version": null,
+  "world": 0
+}
