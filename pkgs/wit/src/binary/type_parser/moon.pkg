@@ -1,3 +1,4 @@
 import {
+  "moonrockz/wit/core_types",
   "Milky2018/wasm_component" @component,
 }

@@ -1,0 +1,2 @@
+error: type mismatch for export `value` of module instantiation argument `env`
+mismatch in memory limits (at offset 0x8f)

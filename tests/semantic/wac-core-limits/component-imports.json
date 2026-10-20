@@ -1,0 +1,118 @@
+{
+  "definitions": [],
+  "instance": 0,
+  "name": "test:limits",
+  "types": {
+    "defined": [],
+    "funcs": [],
+    "interfaces": [
+      {
+        "exports": [
+          [
+            "c",
+            {
+              "type": {
+                "world": 0
+              }
+            }
+          ]
+        ],
+        "id": null,
+        "uses": []
+      }
+    ],
+    "modules": [
+      {
+        "exports": [
+          [
+            "mem",
+            {
+              "memory": {
+                "initial": 1,
+                "maximum": null,
+                "memory64": false,
+                "pageSizeLog2": 16,
+                "shared": false
+              }
+            }
+          ]
+        ],
+        "imports": [
+          {
+            "module": "env",
+            "name": "mem",
+            "type": {
+              "memory": {
+                "initial": 18446744073709551615,
+                "maximum": null,
+                "memory64": true,
+                "pageSizeLog2": 0,
+                "shared": false
+              }
+            }
+          },
+          {
+            "module": "env",
+            "name": "tab",
+            "type": {
+              "table": {
+                "elementType": {
+                  "heapType": "func",
+                  "nullable": true
+                },
+                "initial": 9223372036854775808,
+                "maximum": null,
+                "shared": false,
+                "table64": true
+              }
+            }
+          },
+          {
+            "module": "env",
+            "name": "g",
+            "type": {
+              "global": {
+                "mutable": false,
+                "shared": true,
+                "valType": "i32"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "resources": [],
+    "worlds": [
+      {
+        "exports": [],
+        "id": null,
+        "imports": [
+          [
+            "m",
+            {
+              "module": 0
+            }
+          ]
+        ],
+        "uses": []
+      },
+      {
+        "exports": [
+          [
+            "c",
+            {
+              "type": {
+                "world": 0
+              }
+            }
+          ]
+        ],
+        "id": null,
+        "imports": [],
+        "uses": []
+      }
+    ]
+  },
+  "version": null,
+  "world": 1
+}

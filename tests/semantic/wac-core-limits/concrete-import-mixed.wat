@@ -1,0 +1,1 @@
+(component (core module $m (import "env" "table" (table i64 18446744073709551615 funcref)) (import "env" "global" (global i64)) (import "env" "memory" (memory i64 1 (pagesize 65536))) (memory (export "byte") i64 18446744073709551615 (pagesize 1)) (memory (export "default") 1 (pagesize 65536)) (export "imported" (memory 0))) (export "m" (core module $m)))

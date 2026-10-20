@@ -20,9 +20,10 @@ Aliases resolve only against preceding definitions. No operation performs I/O.
 
 `scan_type` returns the end offset of one definition within an enclosing range.
 It checks byte framing and values before the retained component parser runs.
-`legacy_nested=true` rejects limits above u32 and custom memory page sizes in
-nested component/instance type declarations, whose pinned dependency parser
-cannot consume those encodings. Root core-type sections support full u64 limits.
+Root and nested component/instance core declarations share full u64 limits and
+custom memory pages of 1 or 65536 bytes. The obsolete `legacy_nested` argument
+is retained for source compatibility and no longer restricts nested limits.
+The retained type parser uses this scanner to retain the complete payload.
 The enclosing component validator checks external type indices separately.
 
 Concrete GC references, recursive/subtype groups and shared heap references
@@ -47,8 +48,9 @@ Function/initializer framing uses explicit control frames; block, loop and if
 nesting is limited to 256. The retained binary parser and validator use explicit
 stacks. Concrete references, GC types, supertypes and unimplemented proposals
 reject before parsing. Function-only groups are supported when no concrete
-references occur. Shared globals and limits above signed Int64 remain outside
-the concrete-module profile because of the retained parser/validator.
+references occur. Concrete memory64 and table64 limits retain all UInt64 bits;
+semantic checks compare them unsigned. Memory limits also obey address width
+and page size. Shared globals remain outside the concrete-module profile.
 
 
 `signaling_f32_constants` applies the same framing checks as `inspect_module`

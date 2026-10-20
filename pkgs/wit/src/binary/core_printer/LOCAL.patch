@@ -308,13 +308,19 @@
 @@ -429 +530 @@
 -      render_defined_function(mod_, func_idx, import_func_count, 1),
 +      render_defined_function(mod_, func_idx, import_func_count, 1, metadata~),
-@@ -537 +638,4 @@
+@@ -522,2 +623,3 @@
+-    Some(max) => "\{limits.min} \{max}"
+-    None => limits.min.to_string()
++    Some(max) =>
++      "\{limits.min.reinterpret_as_uint64()} \{max.reinterpret_as_uint64()}"
++    None => limits.min.reinterpret_as_uint64().to_string()
+@@ -537 +639,4 @@
 -fn composite_type_to_wat(composite : @types.CompositeType) -> String {
 +fn composite_type_to_wat(
 +  composite : @types.CompositeType,
 +  text~ : @core_parser.FunctionTextTypes? = None,
 +) -> String {
-@@ -543,5 +647,9 @@
+@@ -543,5 +648,9 @@
 -      for param in func_type.params {
 -        sb.write_string(" (param \{value_type_to_wat(param)})")
 -      }
@@ -329,19 +335,19 @@
 +        sb.write_string(
 +          " (result \{own_value_type(result, text.bind(t => t.results.get(i)))})",
 +        )
-@@ -582 +690,4 @@
+@@ -582 +691,4 @@
 -fn subtype_to_wat(subtype : @types.SubType) -> String {
 +fn subtype_to_wat(
 +  subtype : @types.SubType,
 +  text~ : @core_parser.FunctionTextTypes? = None,
 +) -> String {
-@@ -584 +695 @@
+@@ -584 +696 @@
 -    return composite_type_to_wat(subtype.composite)
 +    return composite_type_to_wat(subtype.composite, text~)
-@@ -595 +706 @@
+@@ -595 +707 @@
 -  sb.write_string(composite_type_to_wat(subtype.composite))
 +  sb.write_string(composite_type_to_wat(subtype.composite, text~))
-@@ -601,2 +712,7 @@
+@@ -601,2 +713,7 @@
 -fn type_to_wat(index : Int, subtype : @types.SubType, indent : Int) -> String {
 -  "\{"  ".repeat(indent)}(type (;\{index};) \{subtype_to_wat(subtype)})\n"
 +fn type_to_wat(
@@ -351,24 +357,24 @@
 +  text~ : @core_parser.FunctionTextTypes? = None,
 +) -> String {
 +  "\{"  ".repeat(indent)}(type (;\{index};) \{subtype_to_wat(subtype, text~)})\n"
-@@ -667 +783,4 @@
+@@ -667 +784,4 @@
 -fn block_type_to_wat(bt : @types.BlockType) -> String {
 +fn block_type_to_wat(
 +  bt : @types.BlockType,
 +  spellings~ : ReadOnlyArray[String] = [],
 +) -> String {
-@@ -670 +789 @@
+@@ -670 +790 @@
 -    Value(t) => " (result \{value_type_to_wat(t)})"
 +    Value(t) => " (result \{own_value_type(t, spellings.get(0))})"
-@@ -760,2 +879,2 @@
+@@ -760,2 +880,2 @@
 -  mem : Int,
 -  align : Int,
 +  mem : Int32,
 +  align : Int32,
-@@ -763 +882 @@
+@@ -763 +883 @@
 -  _natural_align : Int,
 +  _natural_align : Int32,
-@@ -789 +908,13 @@
+@@ -789 +909,13 @@
 -fn instrs_to_wat(instrs : Array[@types.Instruction], indent : Int) -> String {
 +priv enum RenderTask {
 +  Body(Array[@types.Instruction], Int32, Int32)
@@ -383,7 +389,7 @@
 +  values~ : Map[Int32, ReadOnlyArray[String]] = Map([]),
 +  elses~ : ReadOnlyArray[Int32] = [],
 +) -> String {
-@@ -791,8 +922,17 @@
+@@ -791,8 +923,17 @@
 -  let indent_str = "  ".repeat(indent)
 -  for instr in instrs {
 -    sb.write_string(indent_str)
@@ -409,7 +415,7 @@
 +        }
 +        let instr = body[index]
 +        let indent_str = "  ".repeat(depth)
-@@ -800,8 +940,25 @@
+@@ -800,8 +941,25 @@
 -        sb.write_string("end\n")
 -      }
 -      If(_, then_body, else_body) => {
@@ -443,7 +449,7 @@
 +            tasks.push(Body(then_body, 0, depth + 1))
 +          }
 +          _ => ()
-@@ -809,9 +966 @@
+@@ -809,9 +967 @@
 -        sb.write_string(indent_str)
 -        sb.write_string("end\n")
 -      }
@@ -454,35 +460,35 @@
 -      }
 -      _ => ()
 +      }
-@@ -824 +973,4 @@
+@@ -824 +974,4 @@
 -fn instr_to_wat(instr : @types.Instruction) -> String {
 +fn instr_to_wat(
 +  instr : @types.Instruction,
 +  spellings~ : ReadOnlyArray[String] = [],
 +) -> String {
-@@ -826,3 +978,3 @@
+@@ -826,3 +979,3 @@
 -    subop : Int,
 -    mem : Int,
 -    align : Int,
 +    subop : Int32,
 +    mem : Int32,
 +    align : Int32,
-@@ -954,3 +1106,3 @@
+@@ -954,3 +1107,3 @@
 -    Block(bt, _) => "block\{block_type_to_wat(bt)}"
 -    Loop(bt, _) => "loop\{block_type_to_wat(bt)}"
 -    If(bt, _, _) => "if\{block_type_to_wat(bt)}"
 +    Block(bt, _) => "block\{block_type_to_wat(bt, spellings~)}"
 +    Loop(bt, _) => "loop\{block_type_to_wat(bt, spellings~)}"
 +    If(bt, _, _) => "if\{block_type_to_wat(bt, spellings~)}"
-@@ -994 +1146 @@
+@@ -994 +1147 @@
 -      sb.write_string("try_table\{block_type_to_wat(bt)}")
 +      sb.write_string("try_table\{block_type_to_wat(bt, spellings~)}")
-@@ -1003 +1155,3 @@
+@@ -1003 +1156,3 @@
 -      let types_str = types.map(fn(t) { value_type_to_wat(t) }).join(" ")
 +      let types_str = types
 +        .mapi((i, t) => own_value_type(t, spellings.get(i)))
 +        .join(" ")
-@@ -1583,0 +1738,11 @@
+@@ -1583,0 +1739,11 @@
 +
 +///|
 +// Preserve nullability where the retained enum has a single variant for both

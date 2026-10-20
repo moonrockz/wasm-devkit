@@ -658,14 +658,15 @@ fn limits_import_compatible(
   expected : @types.Limits,
   provided : @types.Limits,
 ) -> Bool {
-  if provided.min < expected.min {
+  if provided.min.reinterpret_as_uint64() < expected.min.reinterpret_as_uint64() {
     return false
   }
   match expected.max {
     None => true
     Some(emax) =>
       match provided.max {
-        Some(pmax) => pmax <= emax
+        Some(pmax) =>
+          pmax.reinterpret_as_uint64() <= emax.reinterpret_as_uint64()
         None => false
       }
   }
@@ -1816,9 +1817,7 @@ fn CoreTypeReader::read_extern_type_sig(
         _ => ()
       }
       let (flags, min, max, _) = self.read_limits(false)
-      if min > 9223372036854775807UL ||
-        (max is Some(n) && n > 9223372036854775807UL) ||
-        (flags & 2) != 0 {
+      if (flags & 2) != 0 {
         return None
       }
       let limits : @types.Limits = {
@@ -1829,12 +1828,7 @@ fn CoreTypeReader::read_extern_type_sig(
     }
     0x02 => {
       let (flags, min, max, page) = self.read_limits(true)
-      // The complete unsigned signature is retained by the declarative codec.
-      // Legacy runtime metadata has signed limits and cannot represent it.
-      if min > 9223372036854775807UL ||
-        (max is Some(n) && n > 9223372036854775807UL) {
-        return None
-      }
+      // Retained core limits use Int64 storage as an unsigned bit pattern.
       let limits : @types.Limits = {
         min: min.reinterpret_as_int64(),
         max: max.map(n => n.reinterpret_as_int64()),

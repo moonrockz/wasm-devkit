@@ -168,7 +168,12 @@ async fn main {
     fail("WAC corpus gate: " + corpus_error.text())
   }
   println(corpus_output.text().trim())
-  canonical_intrinsic_gate(wasm_tools, wac_oracle)
+  package_profile_gate(
+    wasm_tools, wac_oracle, "wac-canonical-intrinsics", "test:intrinsics", 92,
+  )
+  package_profile_gate(
+    wasm_tools, wac_oracle, "wac-core-limits", "test:limits", 90,
+  )
   println(
     "\{count} semantic fixture comparisons and \{models} normalized WIT world summaries passed",
   )
@@ -379,20 +384,26 @@ test "reference normalization preserves key discriminants despite JSON map colli
 ///|
 // Keep the admitted canonical profile tied to both pinned binary validators.
 // The CLI checks providers independently for the retained WAT and binary forms.
-async fn canonical_intrinsic_gate(wasm_tools : String, oracle : String) -> Unit {
-  let root = "tests/semantic/wac-canonical-intrinsics/"
+async fn package_profile_gate(
+  wasm_tools : String,
+  oracle : String,
+  suite : String,
+  package_name : String,
+  expected_cases : Int32,
+) -> Unit {
+  let root = "tests/semantic/" + suite + "/"
   let (code, _, error) = @process.collect_output("node", [
     "--input-type=module", "-e", "import {createHash} from 'node:crypto'; import {readFileSync} from 'node:fs'; const root=process.argv[1]; for(const line of readFileSync(root+'SHA256SUMS','utf8').trim().split('\\n')) { const match=/^([0-9a-f]{64})  (.+)$/.exec(line); if(!match || match[2].includes('..') || match[2].startsWith('/')) throw Error('invalid hash manifest'); if(createHash('sha256').update(readFileSync(root+match[2])).digest('hex')!==match[1]) throw Error('fixture hash mismatch: '+match[2]); }",
     root,
   ])
   if code != 0 {
-    fail("canonical intrinsic hashes: " + error.text())
+    fail(suite + " hashes: " + error.text())
   }
   guard @json.parse(@fs.read_file(root + "cases.json").text()) is Array(cases) else {
-    fail("invalid canonical intrinsic manifest")
+    fail("invalid package profile manifest: " + suite)
   }
-  if cases.length() != 92 {
-    fail("expected all 92 canonical intrinsic probes")
+  if cases.length() != expected_cases {
+    fail("expected all \{expected_cases} \{suite} probes")
   }
   @fs.mkdir(".dev/canonical-intrinsic-gate", recursive=true, allow_exist=true)
   let mut models = 0
@@ -406,10 +417,10 @@ async fn canonical_intrinsic_gate(wasm_tools : String, oracle : String) -> Unit 
         "reference": Number(reference, ..),
         ..
       } else {
-      fail("invalid canonical intrinsic case")
+      fail("invalid package profile case: " + suite)
     }
     if name.contains("/") || name.contains("\\") || name.contains("..") {
-      fail("invalid canonical intrinsic path")
+      fail("invalid package profile path")
     }
     let binary = root + name + ".wasm"
     let (code, _, error) = @process.collect_output(wasm_tools, [
@@ -418,10 +429,17 @@ async fn canonical_intrinsic_gate(wasm_tools : String, oracle : String) -> Unit 
       "-o",
       ".dev/canonical-intrinsic-gate/parsed.wasm",
     ])
-    if code != 0 ||
+    let expected_parse = match row {
+      { "parse": Number(value, ..), .. } => value.to_int()
+      _ => 0
+    }
+    if code != expected_parse {
+      fail(name + ": WAT parsing acceptance changed: " + error.text())
+    }
+    if code == 0 &&
       @fs.read_file(binary).binary() !=
       @fs.read_file(".dev/canonical-intrinsic-gate/parsed.wasm").binary() {
-      fail(name + ": WAT binary identity mismatch: " + error.text())
+      fail(name + ": WAT binary identity mismatch")
     }
     let (code, _, error) = @process.collect_output(wasm_tools, [
       "validate", "--features", "all", binary,
@@ -430,7 +448,7 @@ async fn canonical_intrinsic_gate(wasm_tools : String, oracle : String) -> Unit 
       fail(name + ": wasm-tools acceptance mismatch: " + error.text())
     }
     let (code, output, error) = @process.collect_output(oracle, [
-      "--package", "test:intrinsics", binary,
+      "--package", package_name, binary,
     ])
     if code != reference.to_int() {
       fail(name + ": WAC package acceptance mismatch: " + error.text())
@@ -453,7 +471,7 @@ async fn canonical_intrinsic_gate(wasm_tools : String, oracle : String) -> Unit 
         "verify",
         root + "package.wac",
         "--dep",
-        "test:intrinsics=" + name + "." + extension,
+        package_name + "=" + name + "." + extension,
       ])
       if code != (if accepts == Json::boolean(true) { 0 } else { 1 }) {
         fail(
@@ -467,6 +485,6 @@ async fn canonical_intrinsic_gate(wasm_tools : String, oracle : String) -> Unit 
     }
   }
   println(
-    "92 canonical intrinsic comparisons and \{models} complete pinned package models passed",
+    "\{expected_cases} \{suite} comparisons and \{models} complete pinned package models passed",
   )
 }

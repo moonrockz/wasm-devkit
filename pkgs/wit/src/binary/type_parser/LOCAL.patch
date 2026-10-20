@@ -295,90 +295,162 @@
 +}
 --- a/type_section.mbt
 +++ b/type_section.mbt
-@@ -1,3 +1,7 @@
+@@ -0,0 +1,4 @@
 +// Retained from Milky2018/wasm_component@0.16.0.
 +// Modified by wasm-devkit: parse nested type scopes with an explicit work stack.
 +
 +///|
- fn Reader::read_label(self : Reader) -> String raise ComponentParseError {
-   let len = self.read_leb_u32()
-   let bytes = self.read_bytes(len)
-@@ -5,7 +9,7 @@
- }
- 
- ///|
+@@ -8 +12 @@
 -fn parse_prim_valtype(op : Int) -> PrimValType? {
 +fn parse_prim_valtype(op : Int32) -> PrimValType? {
-   match op {
-     0x7f => Some(Bool)
-     0x7e => Some(S8)
-@@ -69,7 +73,7 @@
- ///|
- fn parse_functype(
-   reader : Reader,
+@@ -72 +76 @@
 -  op : Int,
 +  op : Int32,
- ) -> FuncType raise ComponentParseError {
-   let is_async = op == 0x43
-   let params = parse_paramlist(reader)
-@@ -154,7 +158,7 @@
- }
- 
- ///|
+@@ -157 +161 @@
 -fn parse_alias_kind(reader : Reader) -> Int raise ComponentParseError {
 +fn parse_alias_kind(reader : Reader) -> Int32 raise ComponentParseError {
-   // Alias kinds use the same encoding as Sort in the import/export sections:
-   // 0x00 <core_sort> for core items, or a single-byte tag for component items.
-   let tag = reader.read_u8()
-@@ -208,7 +212,7 @@
- ///|
- fn skip_core_extern_type(
-   reader : Reader,
+@@ -171,98 +174,0 @@
+-fn skip_limits(reader : Reader) -> Unit raise ComponentParseError {
+-  let flags = reader.read_u8()
+-  reader.read_leb_u32() |> ignore
+-  if (flags & 0x01) != 0 {
+-    reader.read_leb_u32() |> ignore
+-  }
+-}
+-
+-///|
+-fn skip_core_functype_inline(reader : Reader) -> Unit raise ComponentParseError {
+-  let form = reader.read_u8()
+-  if form != 0x60 {
+-    raise InvalidTypeSection
+-  }
+-  skip_core_functype_body(reader)
+-}
+-
+-///|
+-fn skip_core_functype_body(reader : Reader) -> Unit raise ComponentParseError {
+-  let nparams = reader.read_leb_u32()
+-  for _i in 0..<nparams {
+-    skip_core_valtype(reader)
+-  }
+-  let nresults = reader.read_leb_u32()
+-  for _i in 0..<nresults {
+-    skip_core_valtype(reader)
+-  }
+-}
+-
+-///|
+-fn skip_core_valtype(reader : Reader) -> Unit raise ComponentParseError {
+-  let opcode = reader.read_u8()
+-  if opcode == 0x63 || opcode == 0x64 {
+-    reader.read_sleb_i32() |> ignore
+-  }
+-}
+-
+-///|
+-fn skip_core_extern_type(
+-  reader : Reader,
 -  kind : Int,
-+  kind : Int32,
- ) -> Unit raise ComponentParseError {
-   match kind {
-     0x00 => reader.read_leb_u32() |> ignore // func type index
-@@ -290,7 +294,7 @@
- }
- 
- ///|
+-) -> Unit raise ComponentParseError {
+-  match kind {
+-    0x00 => reader.read_leb_u32() |> ignore // func type index
+-    0x01 => {
+-      skip_core_valtype(reader)
+-      skip_limits(reader)
+-    }
+-    0x02 => skip_limits(reader)
+-    0x03 => {
+-      skip_core_valtype(reader)
+-      reader.read_u8() |> ignore // mut
+-    }
+-    0x04 => {
+-      if reader.read_u8() != 0x00 {
+-        raise InvalidTypeSection
+-      }
+-      reader.read_leb_u32() |> ignore // tag type index
+-    }
+-    _ => raise InvalidTypeSection
+-  }
+-}
+-
+-///|
+-fn skip_core_moduletype(reader : Reader) -> Unit raise ComponentParseError {
+-  let ndecls = reader.read_leb_u32()
+-  for _i in 0..<ndecls {
+-    let tag = reader.read_u8()
+-    match tag {
+-      0x00 => {
+-        reader.read_label() |> ignore // module
+-        reader.read_label() |> ignore // name
+-        let kind = reader.read_u8()
+-        skip_core_extern_type(reader, kind)
+-      }
+-      0x01 => skip_core_functype_inline(reader)
+-      0x02 => {
+-        // alias decl: sort + target + indices
+-        reader.read_u8() |> ignore
+-        let target = reader.read_u8()
+-        if target == 0x01 {
+-          reader.read_leb_u32() |> ignore
+-          reader.read_leb_u32() |> ignore
+-        } else {
+-          raise InvalidTypeSection
+-        }
+-      }
+-      0x03 => {
+-        reader.read_label() |> ignore // name
+-        let kind = reader.read_u8()
+-        skip_core_extern_type(reader, kind)
+-      }
+-      _ => raise InvalidTypeSection
+-    }
+-  }
+-}
+-
+-///|
+@@ -270,24 +176,8 @@
+-  let op = reader.read_u8()
+-  if op == 0x50 {
+-    skip_core_moduletype(reader)
+-  } else if op == 0x60 {
+-    skip_core_functype_body(reader)
+-  } else if op == 0x00 {
+-    if reader.read_u8() != 0x50 {
+-      raise InvalidTypeSection
+-    }
+-    let supertype_count = reader.read_leb_u32()
+-    for _ in 0..<supertype_count {
+-      reader.read_sleb_i32() |> ignore
+-    }
+-    if reader.read_u8() != 0x60 {
+-      raise InvalidTypeSection
+-    }
+-    skip_core_functype_body(reader)
+-  } else {
+-    raise InvalidTypeSection
+-  }
+-}
+-
+-///|
 -fn bytes_sub(bytes : Bytes, start : Int, end : Int) -> Bytes {
++  match @core_types.scan_type(reader.data, reader.pos, reader.data.length()) {
++    Ok(end) => reader.pos = end
++    Err(_) => raise InvalidTypeSection
++  }
++}
++
++///|
 +fn bytes_sub(bytes : Bytes, start : Int32, end : Int32) -> Bytes {
-   let out : Array[Byte] = []
-   for i in start..<end {
-     out.push(bytes[i])
-@@ -308,8 +312,6 @@
-     skip_core_typedef(reader)
-     let end = reader.pos
-     CoreType(bytes_sub(reader.data, start, end))
+@@ -311,2 +200,0 @@
 -  } else if tag == 0x01 {
 -    Type(parse_typedef(reader))
-   } else if tag == 0x02 {
-     // aliasdecl ::= 0x02 kind:<externkind> target:<aliastarget> ...
-     let kind = parse_alias_kind(reader)
-@@ -348,8 +350,6 @@
-     skip_core_typedef(reader)
-     let end = reader.pos
-     CoreType(bytes_sub(reader.data, start, end))
+@@ -351,2 +238,0 @@
 -  } else if tag == 0x01 {
 -    Type(parse_typedef(reader))
-   } else if tag == 0x02 {
-     // aliasdecl ::= 0x02 kind:<externkind> target:<aliastarget> ...
-     let kind = parse_alias_kind(reader)
-@@ -381,7 +381,7 @@
- }
- 
- ///|
+@@ -384 +270 @@
 -fn parse_typedef(reader : Reader) -> TypeDef raise ComponentParseError {
 +fn parse_leaf_typedef(reader : Reader) -> TypeDef raise ComponentParseError {
-   let op = reader.read_u8()
-   match op {
-     0x40 | 0x43 => FuncType(parse_functype(reader, op))
-@@ -508,28 +508,6 @@
-       }
-       ResourceType(-1, rep, dtor, GuestDefined)
-     }
+@@ -511,22 +396,0 @@
 -    0x41 => {
 -      // componenttype ::= 0x41 cd*:vec(<componentdecl>)
 -      let n = reader.read_leb_u32()
@@ -401,13 +473,7 @@
 -        InstanceType(decls)
 -      }
 -    }
-     _ =>
-       match parse_prim_valtype(op) {
-         Some(p) => DefValType(p)
-@@ -539,14 +517,76 @@
- }
- 
- ///|
+@@ -541,0 +406,9 @@
 +priv enum TypeWork {
 +  ReadType(Array[TypeDef])
 +  ComponentDecls(Int32, Array[ComponentDecl])
@@ -417,15 +483,12 @@
 +}
 +
 +///|
- pub fn parse_type_section(
-   payload : Bytes,
- ) -> Array[TypeDef] raise ComponentParseError {
-   let reader = Reader::Reader(payload)
+@@ -546 +419 @@
 -  let n = reader.read_leb_u32()
 +  let n = reader.read_count()
-   let types : Array[TypeDef] = []
+@@ -547,0 +421 @@
 +  let work : Array[TypeWork] = []
-   for _ in 0..<n {
+@@ -549 +423,53 @@
 -    types.push(parse_typedef(reader))
 +    work.push(ReadType(types))
 +  }
@@ -480,15 +543,6 @@
 +      ComponentChild(out, child) => out.push(Type(child[0]))
 +      InstanceChild(out, child) => out.push(Type(child[0]))
 +    }
-   }
-   if !reader.is_eof() {
-     raise InvalidTypeSection
-@@ -555,7 +595,7 @@
- }
- 
- ///|
+@@ -558 +484 @@
 -fn parse_prim_valtype_from_sleb(v : Int) -> PrimValType? {
 +fn parse_prim_valtype_from_sleb(v : Int32) -> PrimValType? {
-   match v {
-     -1 => Some(Bool)
-     -2 => Some(S8)

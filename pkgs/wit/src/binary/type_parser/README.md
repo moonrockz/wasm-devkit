@@ -10,7 +10,9 @@ The binary model and other section parsers remain pinned dependencies.
 
 `parse_type_section` decodes component and instance scopes with an explicit
 work stack. It preserves declaration order and the dependency's leaf decoding,
-including core type payloads, aliases and name attributes. Vector counts are
+including core type payloads, aliases and name attributes. Core payload framing
+uses `core_types.scan_type`, so nested memories and tables retain full unsigned
+limits and custom memory pages without narrowing to u32. Vector counts are
 checked against remaining bytes before scheduling work. `parse_component`
 uses a separate explicit stack to assemble concrete component snapshots.
 

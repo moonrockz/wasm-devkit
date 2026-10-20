@@ -549,10 +549,12 @@ option keeps the synchronous core ABI. The handle/cancellation intrinsics and
 scalar `gc`/`core-type` options below also validate; other forms remain explicit
 unsupported failures.
 Concrete GC/reference types, supertypes, shared heap types, exception
-instructions, shared concrete globals and limits above signed Int64 remain
-unsupported. Nested component/instance core declarations with limits above u32
-or custom memory pages return `WAC-B002` before the pinned parser runs; root
-core-type sections support full UInt64 limits. The pinned WAC encoder panics
+instructions and shared concrete globals remain unsupported. Nested component
+and instance core declarations and concrete modules retain full UInt64 limits,
+with the same address-width bounds as root core-type sections. Memory pages
+support 1 and 65536 bytes, preserving an absent annotation versus an explicit
+default. The [core limits fixtures](../../../../tests/semantic/wac-core-limits/README.md)
+compare complete normalized package models for binary and WAT inputs. The pinned WAC encoder panics
 when composing the accepted core-module instance-export cases, so independent
 validator witnesses establish their subtype behavior. No public API executes a
 module or component. The remaining profile extensions are tracked in
@@ -565,8 +567,8 @@ without execution. Binary framing and retained parser/validator control walks
 use explicit stacks. Block, loop and if are supported; unimplemented proposals
 return `WAC-B002`. Function-only
 recursive groups without concrete references are supported. Shared concrete
-globals and limits above signed Int64 remain unsupported by the retained core
-parser; declarative module types still retain their complete signatures.
+globals remain unsupported by the retained core parser; declarative module
+types still retain their complete shared signatures.
 
 The validation-work estimate charges byte count times maximum signature arity,
 pairwise type comparisons and local-state snapshots at control frames. The sum

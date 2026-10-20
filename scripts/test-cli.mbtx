@@ -1273,6 +1273,45 @@ async fn main {
       }
     }
   }
+  for name in ["concrete-memory-u64", "concrete-table-u64"] {
+    let (printed, _) = run(
+      ["decompile", "tests/semantic/wac-core-limits/" + name + ".wasm"],
+      0,
+      wit,
+    )
+    assert_true(
+      printed.contains("i64 18446744073709551615 18446744073709551615"),
+    )
+  }
+  for extension in ["wasm", "wat"] {
+    for
+      (name, status) in [
+        ("component-memory-u64", 0),
+        ("instance-table-u64", 0),
+        ("concrete-memory-u64", 0),
+        ("concrete-import-mixed", 0),
+        ("concrete-page-default", 0),
+        ("instantiate-memory-equal", 0),
+        ("instantiate-table-min-mismatch", 1),
+        ("concrete-global-shared", 1),
+        ("malformed-nested-u64-overflow", 1),
+        ("malformed-concrete-page-invalid", 1),
+      ] {
+      let (_, diagnostic) = run(
+        [
+          "verify",
+          "tests/semantic/wac-core-limits/package.wac",
+          "--dep",
+          "test:limits=" + name + "." + extension,
+        ],
+        status,
+        wit,
+      )
+      if status == 1 {
+        assert_true(diagnostic.contains("WAC-B"))
+      }
+    }
+  }
   for extension in ["wasm", "wat"] {
     for
       (name, status) in [

@@ -14,6 +14,7 @@ The local patch makes these changes:
   output order is unchanged.
 - Index comments for defined tables, memories, globals and tags count imported
   items first, so they name absolute indices like function comments do.
+- Memory/table limits print unsigned, including values above signed Int64.
 - Global initializers print as flat instruction sequences, so extended constant
   expressions compile through both retained text paths.
 - Retained tests qualify package names and parse with the pinned `wat` package.

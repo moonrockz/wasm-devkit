@@ -1,0 +1,74 @@
+{
+  "definitions": [],
+  "instance": 0,
+  "name": "test:limits",
+  "types": {
+    "defined": [],
+    "funcs": [],
+    "interfaces": [
+      {
+        "exports": [
+          [
+            "m",
+            {
+              "module": 0
+            }
+          ]
+        ],
+        "id": null,
+        "uses": []
+      }
+    ],
+    "modules": [
+      {
+        "exports": [
+          [
+            "value",
+            {
+              "memory": {
+                "initial": 1,
+                "maximum": 2,
+                "memory64": true,
+                "pageSizeLog2": 16,
+                "shared": false
+              }
+            }
+          ]
+        ],
+        "imports": [
+          {
+            "module": "env",
+            "name": "value",
+            "type": {
+              "memory": {
+                "initial": 1,
+                "maximum": 2,
+                "memory64": true,
+                "pageSizeLog2": 16,
+                "shared": false
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "resources": [],
+    "worlds": [
+      {
+        "exports": [
+          [
+            "m",
+            {
+              "module": 0
+            }
+          ]
+        ],
+        "id": null,
+        "imports": [],
+        "uses": []
+      }
+    ]
+  },
+  "version": null,
+  "world": 0
+}

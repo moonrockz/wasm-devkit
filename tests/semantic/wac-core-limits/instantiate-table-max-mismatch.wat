@@ -1,0 +1,1 @@
+(component (core module $provider (table (export "value") i64 9223372036854775808 9223372036854775808 funcref)) (core instance $p (instantiate $provider)) (core module $consumer (import "env" "value" (table i64 9223372036854775807 9223372036854775807 funcref))) (core instance (instantiate $consumer (with "env" (instance $p)))) (export "m" (core module $provider)))

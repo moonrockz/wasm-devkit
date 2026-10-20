@@ -28,16 +28,17 @@ these cases. Valid merged models compare exactly with the reference.
 while converting a concrete heap type in `wac-types/src/core.rs`. The product
 returns `WAC-B002`. Concrete GC references and shared heap types remain unsupported.
 Concrete modules support function-only recursive groups without concrete references.
-Nested declarations with limits above u32 or custom memory pages
-are also explicitly unsupported because the pinned component parser cannot
-consume them. Root core-type sections retain these encodings without loss.
+Nested declarations and concrete modules now share the root core-type limit
+profile, including full UInt64 limits and custom memory pages. The separate
+[core limits suite](../wac-core-limits/README.md) gates these encodings and their
+complete normalized package models.
 
 The separate deep fixture traverses 41 component type scopes. Unit contracts
 also exercise 50,000 function parameters, truncated limits, overflowing u64 LEBs
 and immutable module graphs. `SHA256SUMS` covers all retained sources and tables.
 Separate suites cover runtime core bodies, values and export annotations.
-Concrete GC and reference types, exception instructions, shared concrete globals
-and limits above signed Int64 stay outside the documented profile.
+Concrete GC and reference types, exception instructions and shared concrete
+globals stay outside the documented profile.
 
 Eight text-only cases reject duplicate type identifiers/aliases, invalid global
 syntax and malformed/overflowing limits against the pinned text parser.

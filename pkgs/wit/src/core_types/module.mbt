@@ -195,14 +195,6 @@ fn Reader::module_external(
             Unsupported,
             "shared globals exceed the retained core module parser",
           )
-        Memory(min, max, _, _, _) | Table(_, min, max, _, _) =>
-          if min > 9223372036854775807UL ||
-            (max is Some(max) && max > 9223372036854775807UL) {
-            self.fail(
-              Unsupported,
-              "unsigned core limits exceed the retained core module validator",
-            )
-          }
         _ => ()
       }
       value

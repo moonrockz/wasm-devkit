@@ -269,37 +269,12 @@ pub fn scan_type(
       message: "invalid core byte range",
     })
   }
+  // Retain the obsolete option for source compatibility. All scopes now use
+  // the same unsigned limits and custom-page profile.
+  ignore(legacy_nested)
   let reader = { bytes, position: start, end, }
   try {
-    let raw = reader.definition()
-    if legacy_nested && raw is Module(declarations) {
-      for declaration in declarations {
-        let external = match declaration {
-          Import(_, _, value) | Export(_, value) => Some(value)
-          _ => None
-        }
-        match external {
-          Some(Value(Memory(initial, maximum, _, _, page))) =>
-            if initial > 4294967295UL ||
-              (maximum is Some(maximum) && maximum > 4294967295UL) ||
-              page is Some(_) {
-              reader.fail(
-                Unsupported,
-                "nested extended memory types exceed the retained component parser",
-              )
-            }
-          Some(Value(Table(_, initial, maximum, _, _))) =>
-            if initial > 4294967295UL ||
-              (maximum is Some(maximum) && maximum > 4294967295UL) {
-              reader.fail(
-                Unsupported,
-                "nested extended table types exceed the retained component parser",
-              )
-            }
-          _ => ()
-        }
-      }
-    }
+    ignore(reader.definition())
     Ok(reader.position)
   } catch {
     Failure(error) => Err(error)

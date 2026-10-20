@@ -1,0 +1,632 @@
+[
+  {
+    "name": "component-memory-u32",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instance-memory-u32",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "concrete-memory-u32",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "component-table-u32",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instance-table-u32",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "concrete-table-u32",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "component-memory-past-u32",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instance-memory-past-u32",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "concrete-memory-past-u32",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "component-table-past-u32",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instance-table-past-u32",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "concrete-table-past-u32",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "component-memory-i64",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instance-memory-i64",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "concrete-memory-i64",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "component-table-i64",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instance-table-i64",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "concrete-table-i64",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "component-memory-past-i64",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instance-memory-past-i64",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "concrete-memory-past-i64",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "component-table-past-i64",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instance-table-past-i64",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "concrete-table-past-i64",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "component-memory-u64",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instance-memory-u64",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "concrete-memory-u64",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "component-table-u64",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instance-table-u64",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "concrete-table-u64",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "component-page-default",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instance-page-default",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "concrete-page-default",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "component-page-byte",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instance-page-byte",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "concrete-page-byte",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "component-page-absent",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instance-page-absent",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "concrete-page-absent",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "component-memory-shared",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instance-memory-shared",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "concrete-memory-shared",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "component-global",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instance-global",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "component-global-mut",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instance-global-mut",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "component-global-shared",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instance-global-shared",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instantiate-memory-equal",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instantiate-memory-min-mismatch",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "instantiate-memory-max-mismatch",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "instantiate-table-equal",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instantiate-table-min-mismatch",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "instantiate-table-max-mismatch",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "component-memory-reversed",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "concrete-memory-reversed",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "component-table-reversed",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "concrete-table-reversed",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "component-memory-bound",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "concrete-memory-bound",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "component-memory32-bound",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "concrete-memory32-bound",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "component-page-invalid",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "concrete-page-invalid",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "concrete-global",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "concrete-global-shared",
+    "accepts": false,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "outer-alias",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "nested-concrete",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "concrete-import-page-default",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "concrete-import-mixed",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "concrete-inline-import-page-default",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "component-imports",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "concrete-table-hex",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "concrete-memory-decimal",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "malformed-concrete-u64-overflow",
+    "accepts": false,
+    "parse": 1,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "malformed-nested-u64-overflow",
+    "accepts": false,
+    "parse": 1,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "malformed-concrete-u64-unterminated",
+    "accepts": false,
+    "parse": 1,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "malformed-nested-u64-unterminated",
+    "accepts": false,
+    "parse": 1,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "malformed-concrete-limit-truncated",
+    "accepts": false,
+    "parse": 1,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "malformed-nested-limit-truncated",
+    "accepts": false,
+    "parse": 1,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "malformed-concrete-page-truncated",
+    "accepts": false,
+    "parse": 1,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "malformed-nested-page-truncated",
+    "accepts": false,
+    "parse": 1,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "malformed-concrete-page-overflow",
+    "accepts": false,
+    "parse": 1,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "malformed-nested-page-overflow",
+    "accepts": false,
+    "parse": 1,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "malformed-concrete-page-invalid",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "malformed-nested-page-invalid",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "malformed-concrete-flags-invalid",
+    "accepts": false,
+    "parse": 1,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "malformed-nested-flags-invalid",
+    "accepts": false,
+    "parse": 1,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "malformed-concrete-shared-without-max",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "malformed-nested-shared-without-max",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  }
+]

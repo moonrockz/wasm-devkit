@@ -78,8 +78,10 @@ pinned acceptance, model and composition comparisons. Exact reference panics and
 accepted invalid outputs are recorded beside their witnesses and never counted
 as successful matches. Async canonical lift/lower and component start are covered
 by `wac-proposal-profiles/`. Concrete GC and reference types, exception
-instructions, shared concrete globals and limits above signed Int64 stay outside
-the profile and are tracked in `wasm-devkit-p5m.12`.
+instructions and shared concrete globals stay outside the profile and are
+tracked in `wasm-devkit-p5m.12`. The [core limits suite](wac-core-limits/README.md)
+covers full UInt64 limits and custom memory pages in nested declarations and
+concrete modules.
 
 WIT type cases establish the pinned resolver's aggregate constraints, map-key categories,
 fixed-list u32 bounds and lexical representation, forward references and recursive graphs.
