@@ -89,6 +89,15 @@ async fn main {
   let _ = run(["decompile", component_wasm, "-o", absent_wat], 1, wit)
   assert_false(@fs.exists(absent_wat))
   let _ = run(["decompile", module_wasm, "--language", "wit"], 2, wit)
+  // Another spelling of the input path must not overwrite the binary.
+  let module_bytes = @fs.read_file(module_wasm).binary()
+  let (_, alias_err) = run(
+    ["decompile", module_wasm, "-o", dir + "/./module.wasm"],
+    2,
+    wit,
+  )
+  assert_true(alias_err.contains("output holds the input binary"))
+  assert_eq(@fs.read_file(module_wasm).binary(), module_bytes)
   for file in [wit, wac] {
     let (out, err) = run(["parse", file], 0, wit)
     assert_true(out.contains(": valid "))

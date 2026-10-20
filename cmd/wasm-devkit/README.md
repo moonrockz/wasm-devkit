@@ -135,10 +135,13 @@ See the [WIT parser profile](../../pkgs/wit/src/parser/README.mbt.md) and
 
 ### Print a core-module binary as WAT
 
+Release `0.2.0` does not include this command. Run it from local sources with
+`mise run cli -- decompile ...` until the next release.
+
 ```shell
-moonx moonrockz/wasm-devkit@0.2.0 decompile module.wasm
-moonx moonrockz/wasm-devkit@0.2.0 decompile module.wasm --output module.wat
-cat module.wasm | moonx moonrockz/wasm-devkit@0.2.0 decompile -o module.wat
+wasm-devkit decompile module.wasm
+wasm-devkit decompile module.wasm --output module.wat
+cat module.wasm | wasm-devkit decompile -o module.wat
 ```
 
 For a module that exports one empty function `run`, stdout receives:
@@ -153,7 +156,8 @@ For a module that exports one empty function `run`, stdout receives:
 ```
 
 `decompile` reads one binary from a file or stdin. It writes the document to stdout,
-or to the `--output`/`-o` file. The output path must differ from the input path.
+or to the `--output`/`-o` file. The output path must differ from the input path. If the
+output file already holds the input's bytes, the command exits with status 2 and does not write it.
 The command never executes the binary and accepts no `--language` or formatting options.
 
 The input must be a flat core module inside the profile that component verification uses.

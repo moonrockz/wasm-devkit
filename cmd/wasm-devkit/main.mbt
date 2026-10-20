@@ -22,9 +22,19 @@ async fn main {
         } else {
           @fs.read_file(options.path)
         }
-        let result = @cli.decompile(options, data.binary())
-        // Only a complete document reaches the output file.
+        let input = data.binary()
+        let result = @cli.decompile(options, input)
+        // Only a complete document reaches the output file. An existing output
+        // with the input's bytes can be the input under another path.
         if result.write_text is Some(text) && options.output is Some(path) {
+          if options.path != "-" &&
+            @fs.exists(path) &&
+            @fs.read_file(path).binary() == input {
+            @stdio.stderr.write(
+              path + ": output holds the input binary; file was not written\n",
+            )
+            @sys.exit(2)
+          }
           @fs.write_file(path, text)
         }
         if !result.stdout.is_empty() {
