@@ -13,6 +13,7 @@ component-deep	component	accepted	success	n/a	success	n/a
 component-empty-module	component	accepted	success	n/a	success	n/a
 component-empty-types	component	accepted	success	n/a	success	n/a
 component-empty	component	accepted	success	n/a	success	n/a
+component-explicit-nullable	component	accepted	success	n/a	success	n/a
 component-instances	component	accepted	success	n/a	success	n/a
 component-malformed-custom	component	accepted	success	n/a	success	n/a
 component-named-outer	component	accepted	success	n/a	success	n/a
@@ -64,6 +65,7 @@ references	core	accepted	success	reject	success	n/a
 rich	core	accepted	success	success	success	success
 subtyping	core	accepted	success	reject	success	n/a
 tags	core	accepted	success	success	success	success
+try-table	core	rejected	success	success	success	success
 unicode	core	accepted	success	success	success	reject
 unknown-dylink	core	accepted	reject	success	n/a	success
 wide-memory-offset	core	accepted	success	success	success	success

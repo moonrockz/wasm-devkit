@@ -16,7 +16,8 @@ test "compatibility rejects reference limits and out-of-profile binaries without
     ] {
     for
       source in [
-        "(module (type (struct)))", "(module (func (result i32) i64.const 1))", "(module (memory 1 1 shared) (func (result i32) i32.const 0 i32.atomic.load))",
+        "(module (type (struct)))", "(module (func try_table nop end))", "(module (func (result i32) i64.const 1))",
+        "(module (memory 1 1 shared) (func (result i32) i32.const 0 i32.atomic.load))",
       ] {
       assert_true(
         @decompiler.print_binary(wasm(source), compatibility=Some(mode))
@@ -95,5 +96,21 @@ test "compatibility prints deep core input up to the existing profile limit" {
       @decompiler.print_binary(nested_blocks(257), compatibility=Some(mode))
       is Err(_),
     )
+  }
+}
+
+///|
+test "try_table retains the existing public input-profile rejection" {
+  let input = wasm("(module (func try_table nop end))")
+  for
+    compatibility in [
+      None,
+      Some(@decompiler.Compatibility::WasmTools),
+      Some(@decompiler.Compatibility::Wabt),
+    ] {
+    guard @decompiler.print_binary(input, compatibility~) is Err(errors) else {
+      fail("try_table printed")
+    }
+    assert_eq(errors[0].code, "WIT-D003")
   }
 }

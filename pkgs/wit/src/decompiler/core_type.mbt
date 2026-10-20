@@ -55,7 +55,10 @@ fn Reader::name(
 }
 
 ///|
-fn Reader::value_type(self : Reader) -> String raise PrintFailure {
+fn Reader::value_type(
+  self : Reader,
+  compatibility~ : Bool = false,
+) -> String raise PrintFailure {
   match self.byte() {
     0x7f => "i32"
     0x7e => "i64"
@@ -73,7 +76,9 @@ fn Reader::value_type(self : Reader) -> String raise PrintFailure {
             "concrete and GC core references are outside the print profile",
           )
       }
-      if prefix == 0x63 {
+      if prefix == 0x63 && compatibility {
+        heap + "ref"
+      } else if prefix == 0x63 {
         "(ref null \{heap})"
       } else {
         "(ref \{heap})"
@@ -84,7 +89,10 @@ fn Reader::value_type(self : Reader) -> String raise PrintFailure {
 }
 
 ///|
-fn Reader::func_type(self : Reader) -> String raise PrintFailure {
+fn Reader::func_type(
+  self : Reader,
+  compatibility~ : Bool = false,
+) -> String raise PrintFailure {
   let out = StringBuilder()
   out.write_string("(func")
   for keyword in ["param", "result"] {
@@ -92,7 +100,7 @@ fn Reader::func_type(self : Reader) -> String raise PrintFailure {
     if count > 0 {
       out.write_string(" (\{keyword}")
       for _ in 0..<count {
-        out.write_string(" " + self.value_type())
+        out.write_string(" " + self.value_type(compatibility~))
       }
       out.write_string(")")
     }
@@ -159,12 +167,12 @@ fn Reader::extern_type(
       "(func (type \{scope.reference(0x110, index)})\{signature})"
     }
     0x01 => {
-      let element = self.value_type()
+      let element = self.value_type(compatibility=scope.compatibility)
       "(table\{self.limits(false, scope~)} \{element})"
     }
     0x02 => "(memory\{self.limits(true, scope~)})"
     0x03 => {
-      let type_ = self.value_type()
+      let type_ = self.value_type(compatibility=scope.compatibility)
       match self.byte() {
         0x00 => "(global \{type_})"
         0x01 => "(global (mut \{type_}))"
@@ -238,7 +246,7 @@ fn core_type(
   let pad = indent(depth)
   match reader.byte() {
     0x60 => {
-      let signature = reader.func_type()
+      let signature = reader.func_type(compatibility=scope.compatibility)
       scope.core_signatures[index] = signature[5:signature.length() - 1].to_owned()
       "\{pad}(core type \{scope.declaration(0x110, index)} \{signature})\n"
     }
@@ -269,7 +277,7 @@ fn core_type(
                 "module type definitions other than functions are outside the print profile",
               )
             }
-            let signature = reader.func_type()
+            let signature = reader.func_type(compatibility=scope.compatibility)
             scope.core_signatures[types] = signature[5:signature.length() - 1].to_owned()
             out.write_string("\{inner}(type (;\{types};) \{signature})\n")
             types += 1

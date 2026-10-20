@@ -1,4 +1,29 @@
 ///|
+// The public decompiler rejects this proposal before constructing its model.
+// Keep direct calls to the lower-level compatibility renderer atomic too.
+fn validate_compatibility_control(
+  mod_ : @types.Module,
+) -> Unit raise WatPrintError {
+  let work = mod_.codes.map(code => code.body)
+  while work.pop() is Some(body) {
+    for instruction in body {
+      match instruction {
+        TryTable(_) =>
+          raise ReferenceUnsupported(
+            "try_table is outside the compatibility input profile",
+          )
+        Block(_, nested) | Loop(_, nested) => work.push(nested)
+        If(_, then_, else_) => {
+          work.push(then_)
+          work.push(else_)
+        }
+        _ => ()
+      }
+    }
+  }
+}
+
+///|
 fn wabt_value(value : String) -> Unit raise WatPrintError {
   if ![
       "i32", "i64", "f32", "f64", "v128", "funcref", "externref", "exnref", "(ref func)",

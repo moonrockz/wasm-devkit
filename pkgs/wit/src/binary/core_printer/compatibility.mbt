@@ -190,7 +190,8 @@ fn compatible_offset(body : Array[@types.Instruction], names : Names) -> String 
 }
 
 ///|
-/// Render a validated core module using pinned wasm-tools or WABT conventions.
+/// Render a validated core module inside the decompiler input profile using
+/// pinned wasm-tools or WABT conventions.
 /// `bytes` supplies name and custom sections that the core AST does not retain.
 pub fn render_compatible(
   mod_ : @types.Module,
@@ -199,6 +200,7 @@ pub fn render_compatible(
   binary_offset~ : Int32 = 0,
 ) -> String raise WatPrintError {
   validate_module_shape(mod_)
+  validate_compatibility_control(mod_)
   let metadata = @core_parser.module_text_metadata(bytes) catch {
     error => raise BinaryMetadata(error.to_string())
   }
