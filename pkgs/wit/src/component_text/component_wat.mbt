@@ -5757,6 +5757,9 @@ fn parse_core_module_field(
     module_items.push(item)
   }
   check_flat_core_module(module_items)
+  let (module_items, shared_globals, global_exports) = normalize_concrete_globals(
+    module_items,
+  )
   let (module_items, explicit_pages, memory_exports) = normalize_concrete_limits(
     module_items,
   )
@@ -5774,11 +5777,16 @@ fn parse_core_module_field(
       memory_exports.get(export_.name) is Some(index) {
       mod.exports[i] = { name: export_.name, desc: Memory(index), }
     }
+    if export_.desc is Global(_) &&
+      global_exports.get(export_.name) is Some(index) {
+      mod.exports[i] = { name: export_.name, desc: Global(index), }
+    }
   }
   let bytes = restore_concrete_memory_pages(
     int_array_to_bytes(@encoder.encode(mod)),
     explicit_pages,
   )
+  let bytes = restore_concrete_global_flags(bytes, shared_globals)
   state.sections_ordered.push({ section_id: 1, payload: bytes, })
   let idx = state.next_core_module_idx
   state.next_core_module_idx += 1

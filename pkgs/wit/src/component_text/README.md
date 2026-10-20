@@ -88,4 +88,7 @@ Concrete memory/table limits use the same checked UInt64 literal reader as
 declarative signatures before retained core compilation. Explicit default page
 annotations survive the core encoder, and inline memory export indices include
 preceding imported memories. Both transformations preserve the instruction bytes.
-Shared concrete globals remain an explicit unsupported diagnostic.
+Concrete shared global types compile through a normalized legacy AST. Immutable
+raw-byte metadata restores the shared flag after encoding without changing any
+initializer or instruction bytes. Inline global export indices include imports.
+Original-byte validation still checks the complete result.

@@ -100,7 +100,10 @@ Core module contracts use tuple import keys rather than concatenating names with
 custom page size. Depth-zero aliases use preceding module-local function slots.
 The enclosing declarative codec retains complete unsigned/shared signatures.
 Legacy runtime metadata stores UInt64 limit bit patterns in Int64 fields and
-compares them unsigned. It omits shared globals/tables that it cannot represent. Flat concrete core modules now validate their original instructions after bounded
+compares them unsigned. It omits shared declarative globals/tables that it cannot
+represent. Concrete shared-global contracts come from the complete core scope;
+the retained core AST checks scalar/vector values and mutability against original
+initializer and instruction bytes. Raw-byte metadata retains shared flags. Flat concrete core modules now validate their original instructions after bounded
 preflight. Other runtime sections remain excluded.
 
 Concrete module import keys also use `(module, name)` tuples, so colons cannot

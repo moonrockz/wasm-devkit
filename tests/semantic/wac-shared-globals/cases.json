@@ -1,0 +1,275 @@
+[
+  {
+    "name": "i32",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "i32-mut",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "i64",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "i64-mut",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "f32",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "f32-mut",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "f64",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "f64-mut",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "v128",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "v128-mut",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "ordinary",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "import",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "inline-import",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "mixed-index",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "get-set",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "import-init",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "ordinary-import-init",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "extended-init",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "nested",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "ascribe-00",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "ascribe-01",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 0
+  },
+  {
+    "name": "ascribe-10",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 0
+  },
+  {
+    "name": "ascribe-11",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instantiate-00",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "instantiate-01",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 0
+  },
+  {
+    "name": "instantiate-10",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 0
+  },
+  {
+    "name": "instantiate-11",
+    "accepts": true,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "wrong-init",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "mutable-init",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "missing-init-global",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "immutable-set",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 0
+  },
+  {
+    "name": "bad-body",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 0
+  },
+  {
+    "name": "unshared-reference",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "gc-reference",
+    "accepts": false,
+    "parse": 0,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "exception",
+    "accepts": false,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "atomic",
+    "accepts": false,
+    "parse": 0,
+    "validator": 0,
+    "reference": 0
+  },
+  {
+    "name": "malformed-flags",
+    "accepts": false,
+    "parse": 1,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "malformed-truncated-flags",
+    "accepts": false,
+    "parse": 1,
+    "validator": 1,
+    "reference": 1
+  },
+  {
+    "name": "malformed-truncated-init",
+    "accepts": false,
+    "parse": 1,
+    "validator": 1,
+    "reference": 1
+  }
+]

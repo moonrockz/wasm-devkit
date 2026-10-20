@@ -1,0 +1,1 @@
+(component (core module $p (global (export "g") i32 (i32.const 1))) (core module $c (import "env" "g" (global $g (shared i32))) (export "g" (global $g))) (core instance $p (instantiate $p)) (core instance (instantiate $c (with "env" (instance $p)))) (export "c" (core module $c)))

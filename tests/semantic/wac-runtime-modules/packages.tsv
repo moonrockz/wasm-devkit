@@ -19,7 +19,7 @@ tuple-imports	0	0	0
 memory64	0	0	0
 shared-memory	0	0	0
 table64	0	0	0
-shared-global	0	0	1
+shared-global	0	0	0
 custom-pages	0	0	0
 import-global-init	0	0	0
 extended-const	0	0	0

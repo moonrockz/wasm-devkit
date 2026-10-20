@@ -1,0 +1,70 @@
+{
+  "definitions": [],
+  "instance": 0,
+  "name": "test:globals",
+  "types": {
+    "defined": [],
+    "funcs": [],
+    "interfaces": [
+      {
+        "exports": [
+          [
+            "c",
+            {
+              "module": 0
+            }
+          ]
+        ],
+        "id": null,
+        "uses": []
+      }
+    ],
+    "modules": [
+      {
+        "exports": [
+          [
+            "g",
+            {
+              "global": {
+                "mutable": false,
+                "shared": false,
+                "valType": "i32"
+              }
+            }
+          ]
+        ],
+        "imports": [
+          {
+            "module": "env",
+            "name": "g",
+            "type": {
+              "global": {
+                "mutable": false,
+                "shared": false,
+                "valType": "i32"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "resources": [],
+    "worlds": [
+      {
+        "exports": [
+          [
+            "c",
+            {
+              "module": 0
+            }
+          ]
+        ],
+        "id": null,
+        "imports": [],
+        "uses": []
+      }
+    ]
+  },
+  "version": null,
+  "world": 0
+}

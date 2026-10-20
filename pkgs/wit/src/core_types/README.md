@@ -50,7 +50,8 @@ stacks. Concrete references, GC types, supertypes and unimplemented proposals
 reject before parsing. Function-only groups are supported when no concrete
 references occur. Concrete memory64 and table64 limits retain all UInt64 bits;
 semantic checks compare them unsigned. Memory limits also obey address width
-and page size. Shared globals remain outside the concrete-module profile.
+and page size. Scalar and vector globals retain mutability and shared flags.
+Shared globals require shared value types; unshared reference types reject.
 
 
 `signaling_f32_constants` applies the same framing checks as `inspect_module`

@@ -114,17 +114,18 @@ test "core limits reject overflowing WAT literals before retained compilation" {
 }
 
 ///|
-test "core limits keep shared concrete global import exclusions explicit" {
+test "core limits admit shared concrete global imports and definitions" {
   for
     declaration in [
       "(import \"env\" \"g\" (global (shared i32)))", "(global (import \"env\" \"g\") (shared i32))",
       "(global (export \"g\") (shared mut i32) (i32.const 0))",
     ] {
-    let error = @verifier.decode_wat_component_package(
+    assert_true(
+      @verifier.decode_wat_component_package(
         "(component (core module " + declaration + "))",
-      ).unwrap_err()[0]
-    assert_eq(error.code, "WAC-B002")
-    assert_true(error.message.contains("shared concrete globals"))
+      )
+      is Ok(_),
+    )
   }
 }
 

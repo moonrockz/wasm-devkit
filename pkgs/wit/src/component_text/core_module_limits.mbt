@@ -19,17 +19,6 @@ fn normalize_concrete_limits(
     } else {
       field
     }
-    if desc.get(0) is Some(Atom("global")) {
-      // Shared concrete globals remain an explicit profile exclusion, including
-      // inline import/export spellings that the retained WAT parser rejects.
-      for value in desc {
-        if value is List(flags) && flags.get(0) is Some(Atom("shared")) {
-          raise Unsupported(
-            "shared concrete globals are outside the module profile",
-          )
-        }
-      }
-    }
     guard desc.get(0) is Some(Atom("memory" | "table" as kind)) else {
       out.push(item)
       continue

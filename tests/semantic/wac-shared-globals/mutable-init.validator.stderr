@@ -1,0 +1,1 @@
+error: constant expression required: global.get of mutable global (at offset 0x23)

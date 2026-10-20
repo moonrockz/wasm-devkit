@@ -160,13 +160,16 @@ fn compatible_memory(
 fn compatible_global(
   type_ : @types.GlobalType,
   spelling~ : String = "",
+  shared~ : Bool = false,
 ) -> String {
   let value = if spelling.is_empty() {
     compatible_value_type(type_.value_type)
   } else {
     spelling
   }
-  if type_.mutable {
+  if shared {
+    "(shared \{if type_.mutable { "mut " } else { "" }}\{value})"
+  } else if type_.mutable {
     "(mut \{value})"
   } else {
     value
@@ -337,6 +340,7 @@ pub fn render_compatible(
           compatible_global(
             type_,
             spelling=metadata.import_values[import_index],
+            shared=(metadata.import_global_flags[import_index].1 & 2) != 0,
           ),
         )
       Tag(type_) => {
@@ -413,7 +417,7 @@ pub fn render_compatible(
     }
     add(
       6,
-      "  (global \{names.declaration(7, counts.get(7).unwrap_or(0) + i)} \{compatible_global(global.type_, spelling=metadata.global_values[i])} \{init})\n",
+      "  (global \{names.declaration(7, counts.get(7).unwrap_or(0) + i)} \{compatible_global(global.type_, spelling=metadata.global_values[i], shared=(metadata.global_flags[i].1 & 2) != 0)} \{init})\n",
     )
   }
   for i, tag in mod_.tags {

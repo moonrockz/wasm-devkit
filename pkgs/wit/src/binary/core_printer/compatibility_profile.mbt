@@ -40,6 +40,10 @@ fn validate_wabt_types(
   mod_ : @types.Module,
   metadata : @core_parser.ModuleTextMetadata,
 ) -> Unit raise WatPrintError {
+  if metadata.import_global_flags.any(pair => (pair.1 & 2) != 0) ||
+    metadata.global_flags.any(pair => (pair.1 & 2) != 0) {
+    raise ReferenceUnsupported("WABT 1.0.42 does not support shared globals")
+  }
   for code in mod_.codes {
     if code.locals.length() > 50000 {
       raise ReferenceUnsupported("WABT 1.0.42 limits function locals to 50000")

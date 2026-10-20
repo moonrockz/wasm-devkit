@@ -1,0 +1,3 @@
+package test:shared-check;
+let dep = new test:globals {};
+export dep...;

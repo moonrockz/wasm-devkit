@@ -1156,16 +1156,19 @@
 @@ -5161,0 +5533,2 @@
 +    } else if desc[0] is Atom("value") {
 +      (0x02, "value")
-@@ -5386 +5759,7 @@
+@@ -5386 +5759,10 @@
 -  let module_text = sexpr_to_wat(List(module_items))
 +  check_flat_core_module(module_items)
++  let (module_items, shared_globals, global_exports) = normalize_concrete_globals(
++    module_items,
++  )
 +  let (module_items, explicit_pages, memory_exports) = normalize_concrete_limits(
 +    module_items,
 +  )
 +  let module_text = sexpr_to_wat(
 +    List(normalize_core_import_signatures(module_items, state)),
 +  )
-@@ -5390 +5769,13 @@
+@@ -5390 +5772,18 @@
 -  let bytes = int_array_to_bytes(@encoder.encode(mod))
 +  // The retained parser numbers inline defined-memory exports without adding
 +  // imported memories. Restore the source index before encoding the module.
@@ -1175,24 +1178,29 @@
 +      memory_exports.get(export_.name) is Some(index) {
 +      mod.exports[i] = { name: export_.name, desc: Memory(index), }
 +    }
++    if export_.desc is Global(_) &&
++      global_exports.get(export_.name) is Some(index) {
++      mod.exports[i] = { name: export_.name, desc: Global(index), }
++    }
 +  }
 +  let bytes = restore_concrete_memory_pages(
 +    int_array_to_bytes(@encoder.encode(mod)),
 +    explicit_pages,
 +  )
-@@ -5409 +5800 @@
++  let bytes = restore_concrete_global_flags(bytes, shared_globals)
+@@ -5409 +5808 @@
 -fn parse_core_valtype_opcode(expr : SExpr) -> Int raise ComponentTextError {
 +fn parse_core_valtype_opcode(expr : SExpr) -> Int32 raise ComponentTextError {
-@@ -5430 +5821 @@
+@@ -5430 +5829 @@
 -) -> Int raise ComponentTextError {
 +) -> Int32 raise ComponentTextError {
-@@ -5438 +5829 @@
+@@ -5438 +5837 @@
 -    if parse_decimal_index(name) is Some(idx) {
 +    if parse_index_literal(name) is Some(idx) {
-@@ -5453,0 +5845,2 @@
+@@ -5453,0 +5853,2 @@
 +      "cont" => return -24
 +      "nocont" => return -11
-@@ -5474,0 +5868,12 @@
+@@ -5474,0 +5876,12 @@
 +      "anyref" => payload.push_u8(0x6e)
 +      "eqref" => payload.push_u8(0x6d)
 +      "i31ref" => payload.push_u8(0x6c)
@@ -1205,22 +1213,22 @@
 +      "nullexternref" => payload.push_u8(0x72)
 +      "nullexnref" => payload.push_u8(0x74)
 +      "nullcontref" => payload.push_u8(0x75)
-@@ -5567 +5972 @@
+@@ -5567 +5980 @@
 -) -> Int raise ComponentTextError {
 +) -> Int32 raise ComponentTextError {
-@@ -5569 +5974 @@
+@@ -5569 +5982 @@
 -    if parse_decimal_index(text) is Some(value) {
 +    if parse_index_literal(text) is Some(value) {
-@@ -5580 +5985 @@
+@@ -5580 +5993 @@
 -  func_type_count : Int,
 +  func_type_count : Int32,
-@@ -5582 +5987 @@
+@@ -5582 +5995 @@
 -) -> (Bytes, Int, Int) raise ComponentTextError {
 +) -> (Bytes, Int32, Int32) raise ComponentTextError {
-@@ -5596 +6001 @@
+@@ -5596 +6009 @@
 -    let mut type_use_opt : Int? = None
 +    let mut type_use_opt : Int32? = None
-@@ -5651,20 +6056,3 @@
+@@ -5651,20 +6064,3 @@
 -  if head == "table" {
 -    let mut start = 1
 -    if parse_optional_identifier(desc, 1) is Some(_) {
@@ -1244,7 +1252,7 @@
 +  if head == "table" || head == "memory" {
 +    let mut start = if parse_optional_identifier(desc, 1) is Some(_) {
 +      2
-@@ -5672,21 +6060,10 @@
+@@ -5672,21 +6068,10 @@
 -      raise Unsupported(
 -        "core table type must be `(table <min> [<max>] <elemtype>)`",
 -      )
@@ -1276,7 +1284,7 @@
 +        start += 1
 +      }
 +      false
-@@ -5694,0 +6072,27 @@
+@@ -5694,0 +6080,27 @@
 +    let table = head == "table"
 +    b.push_u8(if table { 1 } else { 2 })
 +    if table {
@@ -1304,7 +1312,7 @@
 +      )
 +      end -= 1
 +    }
-@@ -5701,5 +6105,7 @@
+@@ -5701,5 +6113,7 @@
 -    let nlimits = end - start
 -    let min = parse_u32_literal(desc[start], "memory minimum")
 -    let max_opt = if nlimits == 2 {
@@ -1317,7 +1325,7 @@
 +    let max = if end - start == 2 {
 +      Some(parse_core_unsigned(desc[start + 1], wide))
 +    } else {
-@@ -5707,8 +6113,5 @@
+@@ -5707,8 +6121,5 @@
 -    } else {
 -      raise Unsupported("core memory type must be `(memory <min> [<max>])`")
 -    }
@@ -1331,7 +1339,7 @@
 +      (if shared { 2 } else { 0 }) |
 +      (if wide { 4 } else { 0 }) |
 +      (if page is Some(_) { 8 } else { 0 })
-@@ -5716,3 +6119,6 @@
+@@ -5716,3 +6127,6 @@
 -    b.push_uleb_u32(min)
 -    if max_opt is Some(max) {
 -      b.push_uleb_u32(max)
@@ -1341,7 +1349,7 @@
 +    }
 +    if page is Some(value) {
 +      b.push_uleb_u32(value)
-@@ -5731,10 +6137,18 @@
+@@ -5731,10 +6145,18 @@
 -    let (val_opcode, mutability) = if desc[start] is List(items) {
 -      if items.length() == 2 && items[0] is Atom("mut") {
 -        (parse_core_valtype_opcode(items[1]), 0x01)
@@ -1370,78 +1378,78 @@
 +        raise Unsupported("invalid shared or mutable global type")
 +      }
 +      value = items[cursor]
-@@ -5743 +6157 @@
+@@ -5743 +6165 @@
 -      raise Unsupported("core global type must be `(global <valtype>)`")
 +      raise Unsupported("core global requires one value type")
-@@ -5746,2 +6160,2 @@
+@@ -5746,2 +6168,2 @@
 -    b.push_u8(val_opcode)
 -    b.push_u8(mutability)
 +    push_core_valtype_encoding(b, value, func_type_names)
 +    b.push_u8(flags)
-@@ -5763 +6177 @@
+@@ -5763 +6185 @@
 -      parse_u32_literal(items[1], "core tag type index")
 +      resolve_reference(items[1], func_type_names, "core tag type")
-@@ -5779,0 +6194 @@
+@@ -5779,0 +6202 @@
 +    b.push_u8(0x00)
-@@ -5790 +6205 @@
+@@ -5790 +6213 @@
 -  start : Int,
 +  start : Int32,
-@@ -5822 +6237 @@
+@@ -5822 +6245 @@
 -            let mut found : Int? = None
 +            let mut found : Int32? = None
-@@ -5839 +6254 @@
+@@ -5839 +6262 @@
 -          if parse_decimal_index(count_atom) is Some(count) {
 +          if parse_index_literal(count_atom) is Some(count) {
-@@ -5880,0 +6296 @@
+@@ -5880,0 +6304 @@
 +        core_unique_name(state, func_type_names, sort_spec.name_opt, 0)
-@@ -5936,0 +6353 @@
+@@ -5936,0 +6361 @@
 +      core_unique_name(state, func_type_names, name_opt, 0)
-@@ -6005 +6422,5 @@
+@@ -6005 +6430,5 @@
 -  let idx = ensure_core_type_bytes(state, bytes)
 +  core_unique_name(state, state.core_type_names, name_opt, 0)
 +  let idx = state.next_core_type_idx
 +  state.next_core_type_idx += 1
 +  state.core_types.push({ idx, bytes, })
 +  push_ordered_section(state, 3, bytes)
-@@ -6010 +6431 @@
+@@ -6010 +6439 @@
 -fn parse_component_sort_tag(sort_name : String) -> Int? {
 +fn parse_component_sort_tag(sort_name : String) -> Int32? {
-@@ -6163,0 +6585 @@
+@@ -6163,0 +6593 @@
 +      0x02 => resolve_reference(items[1], state.value_names, "value")
-@@ -6173,0 +6596 @@
+@@ -6173,0 +6604 @@
 +      sort_tag == 0x02 ||
-@@ -6457 +6880 @@
+@@ -6457 +6888 @@
 -fn parse_core_sort_kind(sort_name : String) -> Int? {
 +fn parse_core_sort_kind(sort_name : String) -> Int32? {
-@@ -6917,3 +7340,3 @@
+@@ -6917,3 +7348,3 @@
 -  sort_tag : Int,
 -  core_kind : Int?,
 -) -> Int raise ComponentTextError {
 +  sort_tag : Int32,
 +  core_kind : Int32?,
 +) -> Int32 raise ComponentTextError {
-@@ -6921 +7344 @@
+@@ -6921 +7352 @@
 -    if parse_decimal_index(atom) is Some(idx) {
 +    if parse_index_literal(atom) is Some(idx) {
-@@ -6944,0 +7368 @@
+@@ -6944,0 +7376 @@
 +      0x02 => resolve_reference(expr, state.value_names, "value")
-@@ -7017 +7441 @@
+@@ -7017 +7449 @@
 -        let mut found : Int? = None
 +        let mut found : Int32? = None
-@@ -7027 +7451 @@
+@@ -7027 +7459 @@
 -        let mut found : Int? = None
 +        let mut found : Int32? = None
-@@ -7046 +7470 @@
+@@ -7046 +7478 @@
 -      if parse_decimal_index(count_atom) is Some(count) {
 +      if parse_index_literal(count_atom) is Some(count) {
-@@ -7203 +7627,5 @@
+@@ -7203 +7635,5 @@
 -fn append_section(output : ByteBuf, section_id : Int, payload : Bytes) -> Unit {
 +fn append_section(
 +  output : ByteBuf,
 +  section_id : Int32,
 +  payload : Bytes,
 +) -> Unit {
-@@ -7210 +7638,12 @@
+@@ -7210 +7646,12 @@
 -fn compile_component_expr_with_outer(
 +priv struct ComponentCompileFrame {
 +  advance : (Bytes?) -> ComponentCompileStep raise ComponentTextError
@@ -1455,10 +1463,10 @@
 +
 +///|
 +fn component_compile_frame(
-@@ -7216 +7655 @@
+@@ -7216 +7663 @@
 -) -> Bytes raise ComponentTextError {
 +) -> ComponentCompileFrame raise ComponentTextError {
-@@ -7235,83 +7674,9 @@
+@@ -7235,83 +7682,9 @@
 -  for index in field_index..<expr.length() {
 -    let field_expr = expr[index]
 -    let field = if field_expr is List(items) {
@@ -1551,7 +1559,7 @@
 +        raise ParseError("missing component continuation")
 +      }
 +      pending = None
-@@ -7334,52 +7699,167 @@
+@@ -7334,52 +7707,167 @@
 -      continue
 -    }
 -    if field[0] is Atom("type") {
@@ -1771,7 +1779,7 @@
 +    Complete(out.to_bytes())
 +  }
 +  { advance, }
-@@ -7392 +7872,22 @@
+@@ -7392 +7880,22 @@
 -  compile_component_expr_with_outer(expr, [], [], [], [])
 +  let work = [component_compile_frame(expr, [], [], [], [])]
 +  let mut completed : Bytes? = None
@@ -1795,11 +1803,11 @@
 +    Some(bytes) => bytes
 +    None => raise ParseError("missing component result")
 +  }
-@@ -7433,3 +7933,0 @@
+@@ -7433,3 +7941,0 @@
 -      if index < items.length() && items[index] is Atom("definition") {
 -        index += 1
 -      }
-@@ -7454,5 +7952 @@
+@@ -7454,5 +7960 @@
 -        let bytes = Bytes::from_array(out)
 -        ignore(@component.parse_component(bytes)) catch {
 -          e => raise ParseError("\{e}")
@@ -1816,6 +1824,7 @@
 +        #|  (import "wasi:http/types@0.2.6" (version-suffix "") (instance)))
 --- a/moon.pkg
 +++ b/moon.pkg
-@@ -1,0 +2,2 @@
+@@ -1,0 +2,3 @@
 +  "moonrockz/wit/core_types",
++  "moonrockz/wit/binary/core_parser",
 +  "moonbitlang/core/encoding/utf8",

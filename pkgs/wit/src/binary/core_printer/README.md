@@ -38,3 +38,7 @@ The compatibility implementation follows the reference sources named in
 re-encoded structure and measured boundaries live in
 `tests/decompiler/compatibility/` at the repository root. These pins do not imply
 compatibility with other versions or proposals outside the existing profile.
+
+Default and wasm-tools-compatible renderers preserve concrete global shared
+flags from immutable raw-byte metadata. WABT compatibility rejects shared
+globals explicitly. The regression suite is `tests/semantic/wac-shared-globals`.

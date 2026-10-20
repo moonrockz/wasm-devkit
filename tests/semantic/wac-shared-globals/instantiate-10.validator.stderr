@@ -1,0 +1,2 @@
+error: type mismatch for export `g` of module instantiation argument `env`
+mismatch in the shared flag for globals (at offset 0x60)

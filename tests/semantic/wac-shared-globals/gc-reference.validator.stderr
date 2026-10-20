@@ -1,0 +1,1 @@
+error: shared globals must have a shared value type (at offset 0x1a)

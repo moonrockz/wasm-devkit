@@ -31,6 +31,8 @@ pub struct ModuleTextMetadata {
   explicit_rec_groups : ReadOnlyArray[(Int, Int)]
   subtype_encodings : ReadOnlyArray[Bool]
   type_values : ReadOnlyArray[FunctionTextTypes]
+  import_global_flags : ReadOnlyArray[(Int, Int)]
+  global_flags : ReadOnlyArray[(Int, Int)]
   import_values : ReadOnlyArray[String]
   explicit_memory_pages : ReadOnlyArray[Bool]
   table_values : ReadOnlyArray[String]

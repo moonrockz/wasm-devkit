@@ -549,7 +549,8 @@ option keeps the synchronous core ABI. The handle/cancellation intrinsics and
 scalar `gc`/`core-type` options below also validate; other forms remain explicit
 unsupported failures.
 Concrete GC/reference types, supertypes, shared heap types, exception
-instructions and shared concrete globals remain unsupported. Nested component
+instructions remain unsupported. Concrete scalar/vector globals preserve shared
+flags through binary/WAT decoding and module ascriptions. Nested component
 and instance core declarations and concrete modules retain full UInt64 limits,
 with the same address-width bounds as root core-type sections. Memory pages
 support 1 and 65536 bytes, preserving an absent annotation versus an explicit
@@ -566,9 +567,11 @@ bodies, initializers, start signatures, exports and segment metadata validate
 without execution. Binary framing and retained parser/validator control walks
 use explicit stacks. Block, loop and if are supported; unimplemented proposals
 return `WAC-B002`. Function-only
-recursive groups without concrete references are supported. Shared concrete
-globals remain unsupported by the retained core parser; declarative module
-types still retain their complete shared signatures.
+recursive groups without concrete references are supported. Concrete globals
+and declarative module types retain the same complete shared signatures.
+The [shared-global fixtures](../../../../tests/semantic/wac-shared-globals/README.md)
+check scalar/vector types, imports, definitions, ascriptions, original-byte
+identity, malformed inputs and unchanged depth/work bounds.
 
 The validation-work estimate charges byte count times maximum signature arity,
 pairwise type comparisons and local-state snapshots at control frames. The sum

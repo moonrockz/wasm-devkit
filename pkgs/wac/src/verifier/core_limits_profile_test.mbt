@@ -4169,19 +4169,21 @@ test "core limits concrete-global-shared" {
     "(component (core module $m (global (export \"value\") (shared i32) (i32.const 0))) (export \"m\" (core module $m)))",
     source_id="concrete-global-shared.wat",
   )
-  for result in [binary, text] {
-    guard result is Err(errors) else {
-      fail("invalid limits accepted")
-      continue
-    }
-    assert_true(errors[0].code.has_prefix("WAC-B"))
-    assert_true(!errors[0].message.is_empty())
-    assert_eq(errors[0].code, "WAC-B002")
-    assert_true(errors[0].message.contains("shared"))
+  let expected : @core_types.Module = {
+    imports: [],
+    exports: [{ name: "value", kind: Global(Scalar("i32"), false, true), }],
   }
-  assert_true(
-    @binary_validation.validate_declarative_component(bytes) is Err(_),
-  )
+  for result in [binary, text] {
+    let model = result.unwrap()
+    assert_true(model.types().any(type_ => type_.kind == Module(expected)))
+    assert_eq(
+      binary_projection(
+        @verifier.decode_component_package(model.bytes()).unwrap(),
+      ),
+      binary_projection(model),
+    )
+  }
+  assert_true(@binary_validation.validate_declarative_component(bytes) is Ok(_))
 }
 
 ///|

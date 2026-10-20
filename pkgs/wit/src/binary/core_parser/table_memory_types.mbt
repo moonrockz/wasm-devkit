@@ -152,9 +152,10 @@ fn Parser::read_global_type(
 ) -> @types.GlobalType raise ParserError {
   let value_type = self.read_value_type()
   let mutability = self.read_byte()
-  // Mutability must be 0 (const) or 1 (var)
-  if mutability != 0x00 && mutability != 0x01 {
+  // The legacy AST stores mutability only. The complete core contract checks
+  // shared value types, and text metadata retains the original flags.
+  if mutability > 0x03 {
     raise MalformedMutability(mutability)
   }
-  { value_type, mutable: mutability == 0x01, }
+  { value_type, mutable: (mutability & 1) != 0, }
 }

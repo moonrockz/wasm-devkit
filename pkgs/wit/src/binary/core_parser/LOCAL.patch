@@ -439,6 +439,15 @@
 @@ -96 +96 @@
 -  let valid_memory_flags : FixedArray[Int] = [
 +  let valid_memory_flags : FixedArray[Int32] = [
+@@ -155,2 +155,3 @@
+-  // Mutability must be 0 (const) or 1 (var)
+-  if mutability != 0x00 && mutability != 0x01 {
++  // The legacy AST stores mutability only. The complete core contract checks
++  // shared value types, and text metadata retains the original flags.
++  if mutability > 0x03 {
+@@ -159 +160 @@
+-  { value_type, mutable: mutability == 0x01, }
++  { value_type, mutable: (mutability & 1) != 0, }
 --- a/value_types.mbt
 +++ b/value_types.mbt
 @@ -8 +8 @@

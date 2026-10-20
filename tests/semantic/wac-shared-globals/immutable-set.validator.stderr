@@ -1,0 +1,4 @@
+error: func 0 failed to validate
+
+Caused by:
+    0: global is immutable: cannot modify it with `global.set` (at offset 0x2b)
