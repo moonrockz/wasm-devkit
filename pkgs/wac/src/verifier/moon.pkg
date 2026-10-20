@@ -21,4 +21,5 @@ import {
   "moonrockz/wit/verifier" @wit_verifier,
   "moonrockz/wit/parser" @wit_parser,
   "moonrockz/wac/formatter",
+  "moonrockz/wit/decompiler",
 } for "test"

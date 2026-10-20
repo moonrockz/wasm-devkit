@@ -1,8 +1,11 @@
 import {
   "moonrockz/wit/core_types",
+  "moonrockz/wit/binary",
   "moonrockz/wit/binary/core_parser",
   "moonrockz/wit/binary/core_validation",
   "moonrockz/wit/binary/core_printer",
+  "Milky2018/wasm_component" @component,
+  "Milky2018/wasm_core/types",
   "moonbitlang/core/debug",
   "moonbitlang/core/encoding/utf8",
 }
@@ -15,4 +18,6 @@ import {
   "moonrockz/wit/binary/core_parser",
   "moonbitlang/core/quickcheck",
   "moonbitlang/core/encoding/utf8",
+  "moonrockz/wit/component_text",
+  "moonrockz/wit/binary",
 } for "test"

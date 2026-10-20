@@ -92,6 +92,74 @@ fn comment_name(name : String) -> String {
 }
 
 ///|
+// A print failure inside a nested operation. The public operations convert it
+// to exactly one diagnostic.
+priv suberror PrintFailure {
+  PrintFailure(Int32?, String, String)
+}
+
+///|
+fn at(base : Int32?, offset : Int32) -> Int32? {
+  base.map(base => base + offset)
+}
+
+///|
+// Check and render one core module. `base` is the module's offset in the
+// printed binary, or `None` when nested offsets are not exact.
+fn render_core_module(
+  bytes : Bytes,
+  base : Int32?,
+) -> String raise PrintFailure {
+  match @core_types.signaling_f32_constants(bytes) {
+    Ok([]) => ()
+    // JavaScript quiets these payloads, so no target prints them.
+    Ok(offsets) =>
+      raise PrintFailure(
+        at(base, offsets[0]),
+        "WIT-D003",
+        "f32 signaling NaN constants are outside the core-module print profile",
+      )
+    Err(error) =>
+      raise PrintFailure(
+        at(base, error.offset),
+        match error.kind {
+          Malformed => "WIT-D001"
+          Invalid => "WIT-D002"
+          Unsupported => "WIT-D003"
+        },
+        error.message,
+      )
+  }
+  let module_ = @core_parser.parse_module(bytes) catch {
+    error => raise PrintFailure(None, "WIT-D001", error.to_string())
+  }
+  @core_validation.validate_module(module_) catch {
+    error =>
+      raise PrintFailure(
+        None,
+        "WIT-D002",
+        @core_validation.format_validation_error(error),
+      )
+  }
+  let body = @core_printer.render(module_) catch {
+    error => raise PrintFailure(None, "WIT-D004", error.to_string())
+  }
+  let text = StringBuilder()
+  for name in custom_section_names(bytes) {
+    text.write_string(";; custom section omitted: \"\{comment_name(name)}\"\n")
+  }
+  text.write_string(body)
+  text.to_string()
+}
+
+///|
+fn is_component_header(bytes : Bytes) -> Bool {
+  bytes.length() >= 8 &&
+  bytes[0:4] == b"\x00asm".exact_view() &&
+  bytes[4:8] == b"\x0d\x00\x01\x00".exact_view()
+}
+
+///|
 /// Print a flat core-module binary as one deterministic WAT document.
 ///
 /// The binary must satisfy the core-module profile shared with component
@@ -104,9 +172,7 @@ pub fn print_core_module(
   bytes : Bytes,
   source_id~ : String = "<wasm>",
 ) -> Result[WatDocuments, ReadOnlyArray[Diagnostic]] {
-  if bytes.length() >= 8 &&
-    bytes[0:4] == b"\x00asm".exact_view() &&
-    bytes[4:8] == b"\x0d\x00\x01\x00".exact_view() {
+  if is_component_header(bytes) {
     return problem(
       source_id,
       Some(4),
@@ -114,49 +180,27 @@ pub fn print_core_module(
       "component binaries are outside the core-module print profile",
     )
   }
-  match @core_types.signaling_f32_constants(bytes) {
-    Ok([]) => ()
-    // JavaScript quiets these payloads, so no target prints them.
-    Ok(offsets) =>
-      return problem(
-        source_id,
-        Some(offsets[0]),
-        "WIT-D003",
-        "f32 signaling NaN constants are outside the core-module print profile",
-      )
-    Err(error) =>
-      return problem(
-        source_id,
-        Some(error.offset),
-        match error.kind {
-          Malformed => "WIT-D001"
-          Invalid => "WIT-D002"
-          Unsupported => "WIT-D003"
-        },
-        error.message,
-      )
+  let text = render_core_module(bytes, Some(0)) catch {
+    PrintFailure(offset, code, message) =>
+      return problem(source_id, offset, code, message)
   }
-  let module_ = @core_parser.parse_module(bytes) catch {
-    error => return problem(source_id, None, "WIT-D001", error.to_string())
+  Ok({ documents: [{ name: "root", text, }], })
+}
+
+///|
+/// Print a component or core-module binary as one deterministic WAT document.
+///
+/// A component preamble selects `print_component`. Every other input uses
+/// `print_core_module`, which reports binaries that are not core modules.
+pub fn print_binary(
+  bytes : Bytes,
+  source_id~ : String = "<wasm>",
+) -> Result[WatDocuments, ReadOnlyArray[Diagnostic]] {
+  if is_component_header(bytes) {
+    print_component(bytes, source_id~)
+  } else {
+    print_core_module(bytes, source_id~)
   }
-  @core_validation.validate_module(module_) catch {
-    error =>
-      return problem(
-        source_id,
-        None,
-        "WIT-D002",
-        @core_validation.format_validation_error(error),
-      )
-  }
-  let body = @core_printer.render(module_) catch {
-    error => return problem(source_id, None, "WIT-D004", error.to_string())
-  }
-  let text = StringBuilder()
-  for name in custom_section_names(bytes) {
-    text.write_string(";; custom section omitted: \"\{comment_name(name)}\"\n")
-  }
-  text.write_string(body)
-  Ok({ documents: [{ name: "root", text: text.to_string(), }], })
 }
 
 ///|
