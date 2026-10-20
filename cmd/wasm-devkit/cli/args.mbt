@@ -8,6 +8,7 @@ pub let help : String =
   #|wasm-devkit: WIT and WAC language tools
   #|
   #|Usage: wasm-devkit <parse|verify|ast|cst|tokens|print|format> [FILE|-] [OPTIONS]
+  #|       wasm-devkit decompile [FILE.wasm|-] [--output FILE.wat]
   #|       wasm-devkit --help | --version
   #|
   #|Language: inferred from .wit/.wac; verify also accepts .wasm/.wat as WIT.
@@ -39,6 +40,9 @@ pub let help : String =
   #|verify checks supported semantics; unsupported constructs fail explicitly.
   #|parse reports syntax validity; ast/cst/tokens inspect immutable flat arenas.
   #|print emits canonical AST source; format retains comments and token spelling.
+  #|decompile prints a flat core-module .wasm as one WAT document. It does not
+  #|accept components, execute the binary or claim wasm-tools/wasm2wat output.
+  #|  --output PATH, -o PATH  Write the WAT document instead of stdout
   #|Exit codes: 0 success, 1 syntax/semantic errors or formatting differences, 2 usage/I/O.
   #|Diagnostic line/column values are 1-based and count UTF-16 code units.
   #|
@@ -97,11 +101,57 @@ pub(all) struct Options {
 } derive(Eq, Debug)
 
 ///|
+/// Arguments for printing one binary as WAT.
+pub(all) struct DecompileOptions {
+  path : String
+  output : String?
+} derive(Eq, Debug)
+
+///|
 pub(all) enum Action {
   Help
   Version
   Run(Options)
+  Decompile(DecompileOptions)
 } derive(Eq, Debug)
+
+///|
+fn decompile_arguments(args : ArrayView[String]) -> Result[Action, String] {
+  let mut path = None
+  let mut output = None
+  let mut literal = false
+  let mut at = 1
+  while at < args.length() {
+    let arg = args[at]
+    if !literal && arg == "--" {
+      literal = true
+    } else if !literal && (arg == "--help" || arg == "-h") {
+      return Ok(Help)
+    } else if !literal && (arg == "--output" || arg == "-o") {
+      at += 1
+      if at == args.length() || args[at].is_empty() || args[at] == "-" {
+        return Err(arg + " requires a file path")
+      }
+      if output is Some(_) {
+        return Err("duplicate " + arg)
+      }
+      output = Some(args[at])
+    } else if !literal && arg.has_prefix("-") && arg != "-" {
+      return Err("unknown decompile option: " + arg)
+    } else {
+      if path is Some(_) {
+        return Err("expected one input file")
+      }
+      path = Some(arg)
+    }
+    at += 1
+  }
+  let path = path.unwrap_or("-")
+  if output is Some(file) && file == path {
+    return Err("--output must differ from the input file")
+  }
+  Ok(Decompile({ path, output, }))
+}
 
 ///|
 pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
@@ -110,6 +160,9 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
   }
   if args is ["--version"] || args is ["-V"] {
     return Ok(Version)
+  }
+  if args[0] == "decompile" {
+    return decompile_arguments(args)
   }
   let command : Command = match args[0] {
     "parse" | "check" => Parse
@@ -371,6 +424,12 @@ pub extend DependencyMapping with Eq::{equal, not_equal}
 
 ///|
 pub extend DependencyMapping with @debug.Debug::{to_repr}
+
+///|
+pub extend DecompileOptions with Eq::{equal, not_equal}
+
+///|
+pub extend DecompileOptions with @debug.Debug::{to_repr}
 
 ///|
 pub extend RegistryOptions with Eq::{equal, not_equal}

@@ -3,6 +3,7 @@
 Syntax tools for WIT and WAC. The CLI parses and diagnoses source, inspects tokens and
 immutable AST/CST arenas, prints canonical AST source and formats while retaining comments.
 It performs no package resolution or composition evaluation.
+`decompile` prints a flat core-module `.wasm` binary as one WAT document.
 
 ## Install
 
@@ -132,6 +133,45 @@ type callback = func() -> (value: u8);
 See the [WIT parser profile](../../pkgs/wit/src/parser/README.mbt.md) and
 [WAC parser profile](../../pkgs/wac/src/parser/README.mbt.md) for the exact syntax covered.
 
+### Print a core-module binary as WAT
+
+Release `0.2.0` does not include this command. Run it from local sources with
+`mise run cli -- decompile ...` until the next release.
+
+```shell
+wasm-devkit decompile module.wasm
+wasm-devkit decompile module.wasm --output module.wat
+cat module.wasm | wasm-devkit decompile -o module.wat
+```
+
+For a module that exports one empty function `run`, stdout receives:
+
+```wat
+(module
+  (type (;0;) (func))
+  (export "run" (func 0))
+  (func (;0;) (type 0)
+  )
+)
+```
+
+`decompile` reads one binary from a file or stdin. It writes the document to stdout,
+or to the `--output`/`-o` file. The output path must differ from the input path. If the
+output file already holds the input's bytes, the command exits with status 2 and does not write it.
+The command never executes the binary and accepts no `--language` or formatting options.
+
+The input must be a flat core module inside the profile that component verification uses.
+Components, GC types, threads, exceptions, SIMD instructions other than `v128.const`,
+shared globals and f32 signaling NaN constants fail explicitly. Custom sections are
+omitted, and the document starts with one `;; custom section omitted: "NAME"` line for each.
+
+Diagnostics go to stderr as `FILE:[byte N]: error CODE: message`, or `FILE:[binary]` when the
+retained parser or validator supplies no offset. A failure prints no document and does not
+create or change the output file. The text follows the retained wasm_core printer: index
+comments without identifiers. It is not wasm-tools `print` or WABT `wasm2wat` output.
+Components, nested modules, split documents, module selection and API-shape inventories are
+later work. See the [decompiler guide](../../pkgs/wit/src/decompiler/README.mbt.md).
+
 ## Command reference
 
 ```shell
@@ -144,6 +184,7 @@ wasm-devkit format example.wit
 wasm-devkit format --check example.wit
 wasm-devkit format --write example.wac
 cat example.wit | wasm-devkit parse --language wit
+wasm-devkit decompile module.wasm --output module.wat
 ```
 
 One input is accepted per invocation. The CLI infers the language from `.wit` or `.wac`;
@@ -164,8 +205,8 @@ stdout. `--check` emits no source and fails when layout differs. `--write` requi
 file, validates before writing and checks whether the source changed after the initial read.
 It never writes malformed input. Check and write modes are mutually exclusive.
 
-Exit status is `0` on success, `1` for syntax errors or formatting differences, and `2`
-for usage, decoding, I/O or internal output failures. No partial print/format source is emitted
+Exit status is `0` on success, `1` for syntax errors, formatting differences or `decompile`
+input outside its profile, and `2` for usage, decoding, I/O or internal output failures. No partial print/format source is emitted
 on errors. The unchanged CST remains available for lossless recovery through the libraries.
 
 ## Development checks

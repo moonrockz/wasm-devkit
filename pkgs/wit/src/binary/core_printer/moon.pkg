@@ -1,0 +1,8 @@
+import {
+  "Milky2018/wasm_core/types",
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "Milky2018/wasm_core/wat",
+} for "test"

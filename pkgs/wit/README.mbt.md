@@ -253,6 +253,7 @@ test "Guide: Keep invalid input unchanged and report formatting errors" {
 | Readers, prune/stop, cursors, folds, reductions and rewrites | [traversal recipes](src/traversal/README.mbt.md#recipes) |
 | Canonical source and printer errors | [printer recipes](src/printer/README.mbt.md#recipes) |
 | Comment retention, indentation and formatting errors | [formatter recipes](src/formatter/README.mbt.md#recipes) |
+| Print a core-module binary as WAT | [decompiler recipes](src/decompiler/README.mbt.md#recipes) |
 
 All `mbt check` blocks are executable tests. `mise run test:docs` also checks these
 README recipes with exactly the imports shown, on wasm, wasm-gc, js and native.
@@ -280,6 +281,7 @@ verifier. The syntax parser performs no I/O. Binding generation is outside this 
 | [printer](src/printer/README.mbt.md) | Implemented: stack-safe canonical AST emission with structural round-trip checks |
 | [formatter](src/formatter/README.mbt.md) | Implemented: CST-aware layout preserving comment text, token order and meaning |
 | [verifier](src/verifier/README.mbt.md) | Pure name/type/dependency resolution and immutable semantic models |
+| [decompiler](src/decompiler/README.mbt.md) | Implemented for flat core modules: one deterministic WAT document from a `.wasm` binary |
 
 ## Validation
 

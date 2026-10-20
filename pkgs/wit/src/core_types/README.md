@@ -51,6 +51,12 @@ references occur. Shared globals and limits above signed Int64 remain outside
 the concrete-module profile because of the retained parser/validator.
 
 
+`signaling_f32_constants` applies the same framing checks as `inspect_module`
+and returns the byte offset of each `f32.const` opcode whose immediate is a
+signaling NaN, in input order. The JavaScript target quiets these payloads when
+it creates `Float` values, so consumers that need exact bits can reject them.
+
+
 `check_external_subtype` and `check_module_subtype` compare already validated
 contracts without I/O. Module imports are contravariant and exports covariant;
 function/tag signatures and value/width/shared flags are invariant. Minimum and

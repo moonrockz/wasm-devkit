@@ -35,7 +35,11 @@ fn Reader::signed(self : Reader, bits : Int32) -> Int64 raise Failure {
 ///|
 /// Frame supported expressions before the retained instruction parser runs.
 /// Explicit control frames bound nesting and record local-state copy work.
-fn Reader::expression(self : Reader, constant : Bool) -> Int32 raise Failure {
+fn Reader::expression(
+  self : Reader,
+  constant : Bool,
+  signaling : Array[Int32],
+) -> Int32 raise Failure {
   let controls : Array[Int32] = []
   let mut count = 0
   while true {
@@ -74,7 +78,17 @@ fn Reader::expression(self : Reader, constant : Bool) -> Int32 raise Failure {
       }
       0x41 => ignore(self.signed(32))
       0x42 => ignore(self.signed(64))
-      0x43 => self.skip(4)
+      0x43 => {
+        let opcode = self.position - 1
+        self.skip(4)
+        let bits = self.bytes[self.position - 4].to_uint() |
+          (self.bytes[self.position - 3].to_uint() << 8) |
+          (self.bytes[self.position - 2].to_uint() << 16) |
+          (self.bytes[self.position - 1].to_uint() << 24)
+        if (bits & 0x7fc00000U) == 0x7f800000U && (bits & 0x003fffffU) != 0U {
+          signaling.push(opcode)
+        }
+      }
       0x44 => self.skip(8)
       0x23 | 0xd2 => ignore(self.index())
       0xd0 => {
@@ -215,6 +229,25 @@ fn Reader::module_external(
 /// parsing. This is framing evidence only: callers must validate the original
 /// module's metadata and instruction semantics before exposing a package.
 pub fn inspect_module(bytes : Bytes) -> Result[ModuleMetadata, Diagnostic] {
+  inspect(bytes, [])
+}
+
+///|
+/// Return byte offsets of `f32.const` opcodes whose immediates are signaling
+/// NaNs, in input order, after the same framing checks as `inspect_module`.
+/// The JavaScript target cannot represent these payloads as `Float` values.
+pub fn signaling_f32_constants(
+  bytes : Bytes,
+) -> Result[ReadOnlyArray[Int32], Diagnostic] {
+  let signaling : Array[Int32] = []
+  inspect(bytes, signaling).map(_ => ReadOnlyArray::from_array(signaling))
+}
+
+///|
+fn inspect(
+  bytes : Bytes,
+  signaling : Array[Int32],
+) -> Result[ModuleMetadata, Diagnostic] {
   let reader : Reader = { bytes, position: 0, end: bytes.length(), }
   try {
     if bytes.length() < 8 ||
@@ -323,7 +356,7 @@ pub fn inspect_module(bytes : Bytes) -> Result[ModuleMetadata, Diagnostic] {
               ),
             )
             if section == 6 || initialized {
-              ignore(payload.expression(true))
+              ignore(payload.expression(true, signaling))
             }
           }
         }
@@ -358,7 +391,7 @@ pub fn inspect_module(bytes : Bytes) -> Result[ModuleMetadata, Diagnostic] {
               ignore(payload.index())
             }
             if (flags & 1) == 0 {
-              ignore(payload.expression(true))
+              ignore(payload.expression(true, signaling))
             }
             if flags != 0 && flags != 4 {
               if flags < 4 {
@@ -374,7 +407,7 @@ pub fn inspect_module(bytes : Bytes) -> Result[ModuleMetadata, Diagnostic] {
               if flags < 4 {
                 ignore(payload.index())
               } else {
-                ignore(payload.expression(true))
+                ignore(payload.expression(true, signaling))
               }
             }
           }
@@ -399,7 +432,7 @@ pub fn inspect_module(bytes : Bytes) -> Result[ModuleMetadata, Diagnostic] {
               }
               ignore(body.value())
             }
-            let controls = body.expression(false).to_uint64()
+            let controls = body.expression(false, signaling).to_uint64()
             let params = match
               slots[0].get(slots[0].length() - code_count + body_index) {
               Some(Func(function)) => function.params.length().to_uint64()
@@ -429,7 +462,7 @@ pub fn inspect_module(bytes : Bytes) -> Result[ModuleMetadata, Diagnostic] {
               ignore(payload.index())
             }
             if flags != 1 {
-              ignore(payload.expression(true))
+              ignore(payload.expression(true, signaling))
             }
             let count = payload.count()
             payload.skip(count)

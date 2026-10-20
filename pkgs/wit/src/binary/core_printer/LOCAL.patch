@@ -1,0 +1,258 @@
+--- a/render_instruction_roundtrip_test.mbt
++++ b/render_instruction_roundtrip_test.mbt
+@@ -19 +19 @@
+-  let expected = parse(source) catch {
++  let expected = @wat.parse(source) catch {
+@@ -22,2 +22,2 @@
+-  let rendered = render(expected)
+-  let actual = parse(rendered) catch {
++  let rendered = @core_printer.render(expected)
++  let actual = @wat.parse(rendered) catch {
+--- a/render_roundtrip_test.mbt
++++ b/render_roundtrip_test.mbt
+@@ -23,3 +23,3 @@
+-  let expected = parse(source)
+-  let rendered = render(expected)
+-  let actual = parse(rendered) catch {
++  let expected = @wat.parse(source)
++  let rendered = @core_printer.render(expected)
++  let actual = @wat.parse(rendered) catch {
+@@ -91 +91 @@
+-  let f32_bits : Array[UInt] = [
++  let f32_bits : Array[UInt32] = [
+@@ -107,2 +107,2 @@
+-  let rendered = render(expected)
+-  let actual = parse(rendered)
++  let rendered = @core_printer.render(expected)
++  let actual = @wat.parse(rendered)
+@@ -113 +113,3 @@
+-    assert_eq(value.reinterpret_as_uint(), bits)
++    // JavaScript quiets f32 signaling NaNs when it creates the Float value.
++    let held = Float::reinterpret_from_uint(bits).reinterpret_as_uint()
++    assert_eq(value.reinterpret_as_uint(), held)
+--- a/render_test.mbt
++++ b/render_test.mbt
+@@ -3 +3 @@
+-  inspect(render(@types.Module::empty()), content="(module\n)\n")
++  inspect(@core_printer.render(@types.Module::empty()), content="(module\n)\n")
+@@ -19 +19 @@
+-  let wat = render(module_)
++  let wat = @core_printer.render(module_)
+@@ -39 +39 @@
+-  let wat = render(module_)
++  let wat = @core_printer.render(module_)
+@@ -55 +55 @@
+-    render_function(module_, 0),
++    @core_printer.render_function(module_, 0),
+@@ -71 +71,3 @@
+-  assert_true(render(module_).contains("(export \"x\\22\\5c\\0a\\c3\\a9\""))
++  assert_true(
++    @core_printer.render(module_).contains("(export \"x\\22\\5c\\0a\\c3\\a9\""),
++  )
+@@ -82,2 +84,2 @@
+-  let v128_error : WatPrintError? = try {
+-    let _ = render(malformed_v128)
++  let v128_error : @core_printer.WatPrintError? = try {
++    let _ = @core_printer.render(malformed_v128)
+@@ -98,2 +100,2 @@
+-  let shuffle_error : WatPrintError? = try {
+-    let _ = render(malformed_shuffle)
++  let shuffle_error : @core_printer.WatPrintError? = try {
++    let _ = @core_printer.render(malformed_shuffle)
+@@ -114,2 +116,2 @@
+-  let atomic_error : WatPrintError? = try {
+-    let _ = render(malformed_atomic)
++  let atomic_error : @core_printer.WatPrintError? = try {
++    let _ = @core_printer.render(malformed_atomic)
+@@ -135 +137,5 @@
+-  assert_true(render(module_).contains("(memory (;0;) i64 1 2 (pagesize 256))"))
++  assert_true(
++    @core_printer.render(module_).contains(
++      "(memory (;0;) i64 1 2 (pagesize 256))",
++    ),
++  )
+--- a/render.mbt
++++ b/render.mbt
+@@ -8,10 +8,10 @@
+-  NotAFunctionType(Int)
+-  FunctionCodeCountMismatch(declarations~ : Int, bodies~ : Int)
+-  FunctionIndexOutOfBounds(Int)
+-  ImportedFunction(Int)
+-  TypeRecGroupCountMismatch(types~ : Int, groups~ : Int)
+-  NonContiguousTypeRecGroup(Int)
+-  InvalidMemoryPageSizeLog2(Int)
+-  InvalidV128ConstantLength(Int)
+-  InvalidShuffleLaneCount(Int)
+-  InvalidAtomicSubopcode(Int)
++  NotAFunctionType(Int32)
++  FunctionCodeCountMismatch(declarations~ : Int32, bodies~ : Int32)
++  FunctionIndexOutOfBounds(Int32)
++  ImportedFunction(Int32)
++  TypeRecGroupCountMismatch(types~ : Int32, groups~ : Int32)
++  NonContiguousTypeRecGroup(Int32)
++  InvalidMemoryPageSizeLog2(Int32)
++  InvalidV128ConstantLength(Int32)
++  InvalidShuffleLaneCount(Int32)
++  InvalidAtomicSubopcode(Int32)
+@@ -49 +49 @@
+-fn imported_function_count(mod_ : @types.Module) -> Int {
++fn imported_function_count(mod_ : @types.Module) -> Int32 {
+@@ -59,0 +60,19 @@
++// Comments name absolute indices, so defined items follow their imports.
++fn imported_counts(mod_ : @types.Module) -> (Int32, Int32, Int32, Int32) {
++  let mut tables = 0
++  let mut memories = 0
++  let mut globals = 0
++  let mut tags = 0
++  for import_ in mod_.imports {
++    match import_.desc {
++      Table(_) => tables += 1
++      Memory(_) => memories += 1
++      Global(_) => globals += 1
++      Tag(_) => tags += 1
++      Func(_) => ()
++    }
++  }
++  (tables, memories, globals, tags)
++}
++
++///|
+@@ -70,3 +89,9 @@
+-  for instruction in instructions {
+-    match instruction {
+-      Block(_, body) | Loop(_, body) => validate_instructions(body)
++  // Pending bodies replace recursion and keep the original depth-first order.
++  let pending : Array[(Array[@types.Instruction], Int32)] = [(instructions, 0)]
++  while pending.pop() is Some((body, index)) {
++    if index >= body.length() {
++      continue
++    }
++    pending.push((body, index + 1))
++    match body[index] {
++      Block(_, nested) | Loop(_, nested) => pending.push((nested, 0))
+@@ -74,2 +99,2 @@
+-        validate_instructions(then_body)
+-        validate_instructions(else_body)
++        pending.push((else_body, 0))
++        pending.push((then_body, 0))
+@@ -77 +102 @@
+-      TryTable(_, _, body) => validate_instructions(body)
++      TryTable(_, _, nested) => pending.push((nested, 0))
+@@ -112,2 +137,2 @@
+-  let closed_groups : Map[Int, Bool] = Map([])
+-  let mut previous_group : Int? = None
++  let closed_groups : Map[Int32, Bool] = Map([])
++  let mut previous_group : Int32? = None
+@@ -160,3 +185,3 @@
+-  function_index : Int,
+-  imported : Int,
+-  indent : Int,
++  function_index : Int32,
++  imported : Int32,
++  indent : Int32,
+@@ -201 +226 @@
+-  function_index : Int,
++  function_index : Int32,
+@@ -301,0 +327,3 @@
++  let (import_tables, import_memories, import_globals, import_tags) = imported_counts(
++    mod_,
++  )
+@@ -306 +334 @@
+-    sb.write_string(i.to_string())
++    sb.write_string((import_tables + i).to_string())
+@@ -325 +353 @@
+-    sb.write_string(i.to_string())
++    sb.write_string((import_memories + i).to_string())
+@@ -341 +369 @@
+-    sb.write_string(i.to_string())
++    sb.write_string((import_globals + i).to_string())
+@@ -394 +422 @@
+-    sb.write_string("  (tag (;\{i};) (type \{tag.type_idx}))\n")
++    sb.write_string("  (tag (;\{import_tags + i};) (type \{tag.type_idx}))\n")
+@@ -601 +629,5 @@
+-fn type_to_wat(index : Int, subtype : @types.SubType, indent : Int) -> String {
++fn type_to_wat(
++  index : Int32,
++  subtype : @types.SubType,
++  indent : Int32,
++) -> String {
+@@ -760,2 +792,2 @@
+-  mem : Int,
+-  align : Int,
++  mem : Int32,
++  align : Int32,
+@@ -763 +795 @@
+-  _natural_align : Int,
++  _natural_align : Int32,
+@@ -789 +821,7 @@
+-fn instrs_to_wat(instrs : Array[@types.Instruction], indent : Int) -> String {
++priv enum RenderTask {
++  Body(Array[@types.Instruction], Int32, Int32)
++  Line(String)
++}
++
++///|
++fn instrs_to_wat(instrs : Array[@types.Instruction], indent : Int32) -> String {
+@@ -791,17 +829,8 @@
+-  let indent_str = "  ".repeat(indent)
+-  for instr in instrs {
+-    sb.write_string(indent_str)
+-    sb.write_string(instr_to_wat(instr))
+-    sb.write_string("\n")
+-    match instr {
+-      Block(_, body) | Loop(_, body) => {
+-        sb.write_string(instrs_to_wat(body, indent + 1))
+-        sb.write_string(indent_str)
+-        sb.write_string("end\n")
+-      }
+-      If(_, then_body, else_body) => {
+-        sb.write_string(instrs_to_wat(then_body, indent + 1))
+-        if !else_body.is_empty() {
+-          sb.write_string(indent_str)
+-          sb.write_string("else\n")
+-          sb.write_string(instrs_to_wat(else_body, indent + 1))
++  // Pending bodies and closing lines replace recursion over nested control.
++  let tasks : Array[RenderTask] = [Body(instrs, 0, indent)]
++  while tasks.pop() is Some(task) {
++    match task {
++      Line(text) => sb.write_string(text)
++      Body(body, index, depth) => {
++        if index >= body.length() {
++          continue
+@@ -808,0 +838,2 @@
++        let instr = body[index]
++        let indent_str = "  ".repeat(depth)
+@@ -810,6 +841,18 @@
+-        sb.write_string("end\n")
+-      }
+-      TryTable(_, _, body) => {
+-        sb.write_string(instrs_to_wat(body, indent + 1))
+-        sb.write_string(indent_str)
+-        sb.write_string("end\n")
++        sb.write_string(instr_to_wat(instr))
++        sb.write_string("\n")
++        tasks.push(Body(body, index + 1, depth))
++        match instr {
++          Block(_, nested) | Loop(_, nested) | TryTable(_, _, nested) => {
++            tasks.push(Line(indent_str + "end\n"))
++            tasks.push(Body(nested, 0, depth + 1))
++          }
++          If(_, then_body, else_body) => {
++            tasks.push(Line(indent_str + "end\n"))
++            if !else_body.is_empty() {
++              tasks.push(Body(else_body, 0, depth + 1))
++              tasks.push(Line(indent_str + "else\n"))
++            }
++            tasks.push(Body(then_body, 0, depth + 1))
++          }
++          _ => ()
++        }
+@@ -817 +859,0 @@
+-      _ => ()
+@@ -826,3 +868,3 @@
+-    subop : Int,
+-    mem : Int,
+-    align : Int,
++    subop : Int32,
++    mem : Int32,
++    align : Int32,

@@ -328,6 +328,36 @@ pub fn execute(options : Options, source : String) -> Output {
 }
 
 ///|
+/// Print immutable binary input as WAT. With `output`, `write_text` holds the
+/// document for the executable to write; failures never carry a document.
+pub fn decompile(options : DecompileOptions, bytes : Bytes) -> Output {
+  let label = if options.path == "-" { "<stdin>" } else { options.path }
+  match @wit_decompiler.print_core_module(bytes, source_id=label) {
+    Ok(printed) => {
+      let text = printed.root().text
+      match options.output {
+        Some(_) =>
+          { stdout: "", stderr: "", exit_code: 0, write_text: Some(text), }
+        None => output(text, "", 0)
+      }
+    }
+    Err(diagnostics) => {
+      let out = StringBuilder()
+      for diagnostic in diagnostics {
+        let location = match diagnostic.offset {
+          Some(offset) => "[byte \{offset}]"
+          None => "[binary]"
+        }
+        out.write_string(
+          "\{diagnostic.source}:\{location}: error \{diagnostic.code}: \{diagnostic.message}\n",
+        )
+      }
+      output("", out.to_string(), 1)
+    }
+  }
+}
+
+///|
 pub extend Output with Eq::{equal, not_equal}
 
 ///|
