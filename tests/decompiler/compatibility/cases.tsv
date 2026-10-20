@@ -39,6 +39,7 @@ element-forms	core	accepted	success	success	success	success
 empty-groups	core	accepted	success	reject	success	n/a
 empty-name-subsections	core	accepted	success	success	success	success
 empty	core	accepted	success	success	success	success
+explicit-pagesize	core	accepted	success	success	success	success
 floats	core	accepted	success	success	success	success
 groups	core	accepted	success	reject	success	n/a
 label-shadow	core	accepted	success	success	success	success

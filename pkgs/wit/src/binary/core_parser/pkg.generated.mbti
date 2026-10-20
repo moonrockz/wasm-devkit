@@ -32,6 +32,7 @@ pub struct ModuleTextMetadata {
   subtype_encodings : ReadOnlyArray[Bool]
   type_values : ReadOnlyArray[FunctionTextTypes]
   import_values : ReadOnlyArray[String]
+  explicit_memory_pages : ReadOnlyArray[Bool]
   table_values : ReadOnlyArray[String]
   global_values : ReadOnlyArray[String]
   element_values : ReadOnlyArray[String]

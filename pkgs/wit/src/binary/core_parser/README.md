@@ -19,7 +19,8 @@ greeter components. Original upstream tests are retained. Beads tracking:
 `wasm-devkit-p5m.8.2.2` and `wasm-devkit-p5m.8.2.7`.
 
 The optional text-metadata reader retains raw reference-type spellings, explicit
-recursive groups, explicit empty else arms and opcode offsets. The retained AST
+recursive groups, explicit memory page-size fields, empty else arms and opcode
+offsets. The retained AST
 collapses several non-null bottom and exception reference types, so printers use
 these immutable metadata snapshots to preserve their original meaning. Ordinary
 parsing still returns the same AST. Metadata and instruction walks use explicit

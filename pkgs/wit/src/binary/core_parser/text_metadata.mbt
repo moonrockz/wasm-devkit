@@ -18,6 +18,7 @@ pub struct ModuleTextMetadata {
   subtype_encodings : ReadOnlyArray[Bool]
   type_values : ReadOnlyArray[FunctionTextTypes]
   import_values : ReadOnlyArray[String]
+  explicit_memory_pages : ReadOnlyArray[Bool]
   table_values : ReadOnlyArray[String]
   global_values : ReadOnlyArray[String]
   element_values : ReadOnlyArray[String]
@@ -56,6 +57,7 @@ pub fn module_text_metadata(
   let subtype_encodings : Array[Bool] = []
   let type_values : Array[FunctionTextTypes] = []
   let import_values : Array[String] = []
+  let explicit_memory_pages : Array[Bool] = []
   let table_values : Array[String] = []
   let global_values : Array[String] = []
   let element_values : Array[String] = []
@@ -109,7 +111,10 @@ pub fn module_text_metadata(
           match section.read_byte() {
             0 => ignore(section.read_u32())
             1 => ignore(section.read_table_type())
-            2 => ignore(section.read_memory_type())
+            2 => {
+              explicit_memory_pages.push((section.peek_byte() & 0x08) != 0)
+              ignore(section.read_memory_type())
+            }
             3 => ignore(section.read_global_type())
             4 => {
               ignore(section.read_byte())
@@ -125,6 +130,13 @@ pub fn module_text_metadata(
         for _ in 0..<count {
           ignore(section.read_table())
           table_values.push(section.take_text().get(0).unwrap_or(""))
+        }
+      }
+      5 => {
+        let count = section.read_u32()
+        for _ in 0..<count {
+          explicit_memory_pages.push((section.peek_byte() & 0x08) != 0)
+          ignore(section.read_memory_type())
         }
       }
       6 => {
@@ -213,6 +225,7 @@ pub fn module_text_metadata(
     subtype_encodings: ReadOnlyArray::from_array(subtype_encodings),
     type_values: ReadOnlyArray::from_array(type_values),
     import_values: ReadOnlyArray::from_array(import_values),
+    explicit_memory_pages: ReadOnlyArray::from_array(explicit_memory_pages),
     table_values: ReadOnlyArray::from_array(table_values),
     global_values: ReadOnlyArray::from_array(global_values),
     element_values: ReadOnlyArray::from_array(element_values),

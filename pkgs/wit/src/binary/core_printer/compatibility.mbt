@@ -142,11 +142,12 @@ fn compatible_table(
 fn compatible_memory(
   type_ : @types.MemoryType,
   style : Compatibility,
+  explicit_pages~ : Bool = false,
 ) -> String {
   (if type_.is_memory64 { "i64 " } else { "" }) +
   limits_to_wat(type_.limits) +
   (if type_.is_shared { " shared" } else { "" }) +
-  (if type_.page_size_log2 == 16 {
+  (if type_.page_size_log2 == 16 && !(style == WasmTools && explicit_pages) {
     ""
   } else if style == WasmTools {
     " (pagesize 0x\{(1 << type_.page_size_log2).to_string(radix=16)})"
@@ -319,7 +320,17 @@ pub fn render_compatible(
           5,
           compatible_table(type_, spelling=metadata.import_values[import_index]),
         )
-      Memory(type_) => (6, compatible_memory(type_, style))
+      Memory(type_) =>
+        (
+          6,
+          compatible_memory(
+            type_,
+            style,
+            explicit_pages=metadata.explicit_memory_pages
+              .get(counts.get(6).unwrap_or(0))
+              .unwrap_or(false),
+          ),
+        )
       Global(type_) =>
         (
           7,
@@ -391,7 +402,7 @@ pub fn render_compatible(
   for i, memory in mod_.memories {
     add(
       5,
-      "  (memory \{names.declaration(6, counts.get(6).unwrap_or(0) + i)} \{compatible_memory(memory, style)})\n",
+      "  (memory \{names.declaration(6, counts.get(6).unwrap_or(0) + i)} \{compatible_memory(memory, style, explicit_pages=metadata.explicit_memory_pages.get(counts.get(6).unwrap_or(0) + i).unwrap_or(false))})\n",
     )
   }
   for i, global in mod_.globals {
