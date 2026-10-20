@@ -1,0 +1,8 @@
+{
+  "component-core-alias": "tests/semantic/wac-core-modules/outer-function.wat",
+  "component-start": "tests/semantic/wac-proposal-profiles/composition/component-start/dep.wat",
+  "component-value-types": "tests/semantic/wac-value-externs/packages/composite.wat",
+  "component-waitable-poll": "tests/semantic/wac-canonical-intrinsics/waitable-set.poll-32.wat",
+  "component-package-component": "pkgs/wit/src/decompiler/component_test.mbt: package_component",
+  "component-runtime-component": "pkgs/wit/src/decompiler/component_test.mbt: runtime_component, canonical-option export references use the pinned strict spelling"
+}

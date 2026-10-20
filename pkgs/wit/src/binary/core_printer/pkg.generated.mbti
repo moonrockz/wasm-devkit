@@ -3,15 +3,29 @@ package "moonrockz/wit/binary/core_printer"
 
 import {
   "Milky2018/wasm_core/types",
+  "moonbitlang/core/debug",
+  "moonrockz/wit/binary/core_parser",
 }
 
 // Values
-pub fn render(@types.Module) -> String raise WatPrintError
+pub fn compatibility_string(String, Compatibility) -> String
+
+pub fn component_custom_section(Bytes, binary_offset? : Int) -> String? raise WatPrintError
+
+pub fn component_names(Bytes) -> Names
+
+pub fn limit_indentation(String) -> String
+
+pub fn render(@types.Module, metadata? : @core_parser.ModuleTextMetadata?) -> String raise WatPrintError
+
+pub fn render_compatible(@types.Module, Bytes, Compatibility, binary_offset? : Int) -> String raise WatPrintError
 
 pub fn render_function(@types.Module, Int) -> String raise WatPrintError
 
 // Errors
 pub(all) suberror WatPrintError {
+  ReferenceUnsupported(String)
+  BinaryMetadata(String)
   NotAFunctionType(Int)
   FunctionCodeCountMismatch(declarations~ : Int, bodies~ : Int)
   FunctionIndexOutOfBounds(Int)
@@ -28,6 +42,20 @@ pub fn WatPrintError::to_string(Self) -> String
 pub impl Show for WatPrintError
 
 // Types and methods
+pub(all) enum Compatibility {
+  WasmTools
+  Wabt
+} derive(Eq, @debug.Debug)
+pub fn Compatibility::equal(Self, Self) -> Bool
+pub fn Compatibility::not_equal(Self, Self) -> Bool
+pub fn Compatibility::to_repr(Self) -> @debug.Repr
+
+pub struct Names {
+  // private fields
+}
+pub fn Names::declaration(Self, Int, Int, scope? : Int) -> String
+pub fn Names::reference(Self, Int, Int, scope? : Int) -> String
+pub fn Names::root_name(Self) -> String?
 
 // Type aliases
 

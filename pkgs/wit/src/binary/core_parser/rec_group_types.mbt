@@ -245,6 +245,8 @@ fn Parser::read_rec_group(
     // to learn each entry's composite kind, then pre-allocate placeholders so
     // typed refs can be resolved during the real parse.
     let scan : Parser = {
+      capture_text: false,
+      text_values: [],
       data: self.data,
       pos: self.pos,
       has_data_count: self.has_data_count,

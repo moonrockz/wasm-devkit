@@ -1,0 +1,7 @@
+(module
+  (type (;0;) (func (result v128)))
+  (@custom "metadata.code.note" (after func) "\01\00\01\02\08callback")
+  (func (;0;) (type 0) (result v128)
+    v128.const i32x4 0x00000000 0x00000000 0x00000000 0x00000000
+  )
+)

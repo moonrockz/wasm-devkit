@@ -1,0 +1,10 @@
+(module $#x
+  (type (;0;) (func))
+  (func $same (type 0))
+  (func $same.1 (type 0))
+  (func (;2;) (type 0))
+  (func $#name (type 0))
+  (func $x_y (type 0))
+  (export "a" (func $same))
+  (export "b" (func $same.1))
+  (@custom "name" "\00\03\02#x\01\1b\05\00\04same\01\04same\02\00\03\05#name\04\03x y"))

@@ -1,4 +1,7 @@
 ///|
+pub using @core_printer {type Compatibility}
+
+///|
 /// One named WAT document. Text is complete and ends with a newline.
 pub struct WatDocument {
   name : String
@@ -109,6 +112,7 @@ fn at(base : Int32?, offset : Int32) -> Int32? {
 fn render_core_module(
   bytes : Bytes,
   base : Int32?,
+  compatibility~ : Compatibility? = None,
 ) -> String raise PrintFailure {
   match @core_types.signaling_f32_constants(bytes) {
     Ok([]) => ()
@@ -141,10 +145,33 @@ fn render_core_module(
         @core_validation.format_validation_error(error),
       )
   }
-  let body = @core_printer.render(module_) catch {
+  let body = try {
+    match compatibility {
+      Some(style) =>
+        @core_printer.render_compatible(
+          module_,
+          bytes,
+          style,
+          binary_offset=base.unwrap_or(0),
+        )
+      None => {
+        let metadata = @core_parser.module_text_metadata(bytes) catch {
+          error => raise PrintFailure(None, "WIT-D001", error.to_string())
+        }
+        @core_printer.render(module_, metadata=Some(metadata))
+      }
+    }
+  } catch {
+    @core_printer.ReferenceUnsupported(message) =>
+      raise PrintFailure(base, "WIT-D003", message)
+    @core_printer.BinaryMetadata(message) =>
+      raise PrintFailure(base, "WIT-D001", message)
     error => raise PrintFailure(None, "WIT-D004", error.to_string())
   }
   let text = StringBuilder()
+  if compatibility is Some(_) {
+    return body
+  }
   for name in custom_section_names(bytes) {
     text.write_string(";; custom section omitted: \"\{comment_name(name)}\"\n")
   }
@@ -171,6 +198,7 @@ fn is_component_header(bytes : Bytes) -> Bool {
 pub fn print_core_module(
   bytes : Bytes,
   source_id~ : String = "<wasm>",
+  compatibility~ : Compatibility? = None,
 ) -> Result[WatDocuments, ReadOnlyArray[Diagnostic]] {
   if is_component_header(bytes) {
     return problem(
@@ -180,7 +208,7 @@ pub fn print_core_module(
       "component binaries are outside the core-module print profile",
     )
   }
-  let text = render_core_module(bytes, Some(0)) catch {
+  let text = render_core_module(bytes, Some(0), compatibility~) catch {
     PrintFailure(offset, code, message) =>
       return problem(source_id, offset, code, message)
   }
@@ -195,11 +223,12 @@ pub fn print_core_module(
 pub fn print_binary(
   bytes : Bytes,
   source_id~ : String = "<wasm>",
+  compatibility~ : Compatibility? = None,
 ) -> Result[WatDocuments, ReadOnlyArray[Diagnostic]] {
   if is_component_header(bytes) {
-    print_component(bytes, source_id~)
+    print_component(bytes, source_id~, compatibility~)
   } else {
-    print_core_module(bytes, source_id~)
+    print_core_module(bytes, source_id~, compatibility~)
   }
 }
 

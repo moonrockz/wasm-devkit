@@ -3,9 +3,9 @@
 // bodies become tasks, so input-controlled nesting never recurses.
 priv enum Task {
   Text(String)
-  Component(Bytes, Int32, Int32?, String)
-  ComponentDecls(Array[@component.ComponentDecl], Int32)
-  InstanceDecls(Array[@component.InstanceDecl], Int32)
+  Component(Bytes, Int32, Int32?, String, Scope)
+  ComponentDecls(Array[@component.ComponentDecl], Int32, Scope)
+  InstanceDecls(Array[@component.InstanceDecl], Int32, Scope)
 }
 
 ///|
@@ -13,11 +13,62 @@ priv enum Task {
 // core sorts use 0x100 plus their core sort byte.
 priv struct Scope {
   counts : Map[Int32, Int32]
+  compatibility : Bool
+  names : @core_printer.Names
+  parents : Array[Scope]
+  original_bytes : Bytes
+  source_offset : Int32
+  core_signatures : Map[Int32, String]
 }
 
 ///|
-fn Scope::new() -> Scope {
-  { counts: Map([]), }
+fn Scope::new(
+  compatibility~ : Bool = false,
+  bytes~ : Bytes = b"",
+  parents~ : Array[Scope] = [],
+  source_offset~ : Int32 = 0,
+) -> Scope {
+  {
+    counts: Map([]),
+    compatibility,
+    names: @core_printer.component_names(bytes),
+    parents,
+    original_bytes: bytes,
+    source_offset,
+    core_signatures: Map([]),
+  }
+}
+
+///|
+fn Scope::child(
+  self : Scope,
+  bytes~ : Bytes = b"",
+  source_offset~ : Int32 = 0,
+) -> Scope {
+  Scope::new(
+    compatibility=self.compatibility,
+    bytes~,
+    parents=self.parents + [self],
+    source_offset~,
+  )
+}
+
+///|
+fn Scope::reference(self : Scope, kind : Int32, index : Int32) -> String {
+  if self.compatibility {
+    self.names.reference(kind, index)
+  } else {
+    index.to_string()
+  }
+}
+
+///|
+fn Scope::declaration(self : Scope, kind : Int32, index : Int32) -> String {
+  if self.compatibility {
+    self.names.declaration(kind, index)
+  } else {
+    "(;\{index};)"
+  }
 }
 
 ///|
@@ -102,39 +153,58 @@ fn quote_bytes(bytes : BytesView) -> String {
 }
 
 ///|
-fn quote(text : String) -> String {
-  quote_bytes(@utf8.encode(text))
+fn quote(text : String, scope~ : Scope = Scope::new()) -> String {
+  if scope.compatibility {
+    "\"" + @core_printer.compatibility_string(text, WasmTools) + "\""
+  } else {
+    quote_bytes(@utf8.encode(text))
+  }
 }
 
 ///|
-fn attributes(attributes : Array[@component.NameAttribute]) -> String {
+fn attributes(
+  attributes : Array[@component.NameAttribute],
+  scope~ : Scope = Scope::new(),
+) -> String {
   let out = StringBuilder()
   for attribute in attributes {
     match attribute {
       Implements(value) =>
-        out.write_string(" (implements \{quote_bytes(value)})")
+        out.write_string(
+          " (implements \{quote(@utf8.decode_lossy(value), scope~)})",
+        )
       VersionSuffix(value) =>
-        out.write_string(" (version-suffix \{quote_bytes(value)})")
+        out.write_string(
+          " (version-suffix \{quote(@utf8.decode_lossy(value), scope~)})",
+        )
       ExternalId(value) =>
-        out.write_string(" (external-id \{quote_bytes(value)})")
+        out.write_string(
+          " (external-id \{quote(@utf8.decode_lossy(value), scope~)})",
+        )
     }
   }
   out.to_string()
 }
 
 ///|
-fn import_name(name : @component.ImportName) -> String raise PrintFailure {
+fn import_name(
+  name : @component.ImportName,
+  scope~ : Scope = Scope::new(),
+) -> String raise PrintFailure {
   match name {
-    Plain(bytes) => quote_bytes(bytes)
+    Plain(bytes) => quote(@utf8.decode_lossy(bytes), scope~)
     WithVersion(_, _) =>
       unsupported("versioned import names are outside the print profile")
   }
 }
 
 ///|
-fn export_name(name : @component.ExportName) -> String raise PrintFailure {
+fn export_name(
+  name : @component.ExportName,
+  scope~ : Scope = Scope::new(),
+) -> String raise PrintFailure {
   match name {
-    Plain(bytes) => quote_bytes(bytes)
+    Plain(bytes) => quote(@utf8.decode_lossy(bytes), scope~)
     WithVersion(_, _) =>
       unsupported("versioned export names are outside the print profile")
   }
@@ -166,9 +236,12 @@ fn primitive(type_ : @component.PrimValType) -> String raise PrintFailure {
 }
 
 ///|
-fn value_type(type_ : @component.ValType) -> String raise PrintFailure {
+fn value_type(
+  type_ : @component.ValType,
+  scope~ : Scope = Scope::new(),
+) -> String raise PrintFailure {
   match type_ {
-    TypeIdx(index) => index.to_string()
+    TypeIdx(index) => scope.reference(3, index)
     Prim(prim) => primitive(prim)
   }
 }
@@ -176,7 +249,10 @@ fn value_type(type_ : @component.ValType) -> String raise PrintFailure {
 ///|
 // Print a non-nesting type definition. Component and instance types are
 // handled by `type_tasks`.
-fn simple_type(definition : @component.TypeDef) -> String raise PrintFailure {
+fn simple_type(
+  definition : @component.TypeDef,
+  scope~ : Scope = Scope::new(),
+) -> String raise PrintFailure {
   match definition {
     DefValType(prim) => primitive(prim)
     FuncType(func) => {
@@ -187,24 +263,26 @@ fn simple_type(definition : @component.TypeDef) -> String raise PrintFailure {
       }
       for param in func.params {
         out.write_string(
-          " (param \{quote(param.label)} \{value_type(param.ty)})",
+          " (param \{quote(param.label, scope~)} \{value_type(param.ty, scope~)})",
         )
       }
       if func.result is Some(result) {
-        out.write_string(" (result \{value_type(result)})")
+        out.write_string(" (result \{value_type(result, scope~)})")
       }
       out.write_string(")")
       out.to_string()
     }
-    List(element) => "(list \{value_type(element)})"
-    FixedList(element, length) => "(list \{value_type(element)} \{length})"
-    MapType(key, value) => "(map \{value_type(key)} \{value_type(value)})"
+    List(element) => "(list \{value_type(element, scope~)})"
+    FixedList(element, length) =>
+      "(list \{value_type(element, scope~)} \{length})"
+    MapType(key, value) =>
+      "(map \{value_type(key, scope~)} \{value_type(value, scope~)})"
     Record(fields) => {
       let out = StringBuilder()
       out.write_string("(record")
       for field in fields {
         out.write_string(
-          " (field \{quote(field.label)} \{value_type(field.ty)})",
+          " (field \{quote(field.label, scope~)} \{value_type(field.ty, scope~)})",
         )
       }
       out.write_string(")")
@@ -214,9 +292,9 @@ fn simple_type(definition : @component.TypeDef) -> String raise PrintFailure {
       let out = StringBuilder()
       out.write_string("(variant")
       for case_ in cases {
-        out.write_string(" (case \{quote(case_.label)}")
+        out.write_string(" (case \{quote(case_.label, scope~)}")
         if case_.ty is Some(payload) {
-          out.write_string(" \{value_type(payload)}")
+          out.write_string(" \{value_type(payload, scope~)}")
         }
         if case_.refines is Some(index) {
           out.write_string(" (refines \{index})")
@@ -230,7 +308,7 @@ fn simple_type(definition : @component.TypeDef) -> String raise PrintFailure {
       let out = StringBuilder()
       out.write_string("(tuple")
       for type_ in types {
-        out.write_string(" \{value_type(type_)}")
+        out.write_string(" \{value_type(type_, scope~)}")
       }
       out.write_string(")")
       out.to_string()
@@ -239,29 +317,29 @@ fn simple_type(definition : @component.TypeDef) -> String raise PrintFailure {
       let out = StringBuilder()
       out.write_string(if definition is Flags(_) { "(flags" } else { "(enum" })
       for name in names {
-        out.write_string(" \{quote(name)}")
+        out.write_string(" \{quote(name, scope~)}")
       }
       out.write_string(")")
       out.to_string()
     }
-    Option(type_) => "(option \{value_type(type_)})"
+    Option(type_) => "(option \{value_type(type_, scope~)})"
     Result(ok, error) => {
       let out = StringBuilder()
       out.write_string("(result")
       if ok is Some(type_) {
-        out.write_string(" \{value_type(type_)}")
+        out.write_string(" \{value_type(type_, scope~)}")
       }
       if error is Some(type_) {
-        out.write_string(" (error \{value_type(type_)})")
+        out.write_string(" (error \{value_type(type_, scope~)})")
       }
       out.write_string(")")
       out.to_string()
     }
-    Own(index) => "(own \{index})"
-    Borrow(index) => "(borrow \{index})"
-    Stream(Some(type_)) => "(stream \{value_type(type_)})"
+    Own(index) => "(own \{scope.reference(3, index)})"
+    Borrow(index) => "(borrow \{scope.reference(3, index)})"
+    Stream(Some(type_)) => "(stream \{value_type(type_, scope~)})"
     Stream(None) => "(stream)"
-    Future(Some(type_)) => "(future \{value_type(type_)})"
+    Future(Some(type_)) => "(future \{value_type(type_, scope~)})"
     Future(None) => "(future)"
     ResourceType(_, rep, destructor, _) => {
       let rep = match rep {
@@ -273,7 +351,12 @@ fn simple_type(definition : @component.TypeDef) -> String raise PrintFailure {
           )
       }
       match destructor {
-        Some(index) => "(resource (rep \{rep}) (dtor (func \{index})))"
+        Some(index) =>
+          if scope.compatibility {
+            "(resource (rep \{rep}) (dtor \{scope.reference(0x100, index)}))"
+          } else {
+            "(resource (rep \{rep}) (dtor (func \{index})))"
+          }
         None => "(resource (rep \{rep}))"
       }
     }
@@ -290,21 +373,35 @@ fn type_tasks(
   depth : Int32,
   index : Int32,
   definition : @component.TypeDef,
+  scope~ : Scope = Scope::new(),
 ) -> Unit raise PrintFailure {
   let pad = indent(depth)
+  let label = scope.declaration(3, index)
   match definition {
     ComponentType(decls) => {
-      tasks.push(Text("\{pad}(type (;\{index};)\n\{pad}  (component\n"))
-      tasks.push(ComponentDecls(decls, depth + 2))
+      if scope.compatibility && decls.is_empty() {
+        tasks.push(Text("\{pad}(type \{label}\n\{pad}  (component)\n\{pad})\n"))
+        return
+      }
+      tasks.push(Text("\{pad}(type \{label}\n\{pad}  (component\n"))
+      tasks.push(ComponentDecls(decls, depth + 2, scope.child()))
       tasks.push(Text("\{pad}  )\n\{pad})\n"))
     }
     InstanceType(decls) => {
-      tasks.push(Text("\{pad}(type (;\{index};)\n\{pad}  (instance\n"))
-      tasks.push(InstanceDecls(decls, depth + 2))
+      if scope.compatibility && decls.is_empty() {
+        tasks.push(Text("\{pad}(type \{label}\n\{pad}  (instance)\n\{pad})\n"))
+        return
+      }
+      tasks.push(Text("\{pad}(type \{label}\n\{pad}  (instance\n"))
+      tasks.push(InstanceDecls(decls, depth + 2, scope.child()))
       tasks.push(Text("\{pad}  )\n\{pad})\n"))
     }
+    InstanceTypeEmpty if scope.compatibility =>
+      tasks.push(Text("\{pad}(type \{label}\n\{pad}  (instance)\n\{pad})\n"))
     _ =>
-      tasks.push(Text("\{pad}(type (;\{index};) \{simple_type(definition)})\n"))
+      tasks.push(
+        Text("\{pad}(type \{label} \{simple_type(definition, scope~)})\n"),
+      )
   }
 }
 
@@ -326,20 +423,29 @@ fn extern_sort(desc : @component.ExternDesc) -> Int32 {
 fn extern_desc(
   desc : @component.ExternDesc,
   index : Int32?,
+  scope~ : Scope = Scope::new(),
 ) -> String raise PrintFailure {
   let comment = match index {
-    Some(index) => " (;\{index};)"
+    Some(index) => " " + scope.declaration(extern_sort(desc), index)
     None => ""
   }
   match desc {
-    CoreModuleType(type_) => "(core module\{comment} (type \{type_}))"
-    FuncType(type_) => "(func\{comment} (type \{type_}))"
-    Value(Type(type_)) => "(value\{comment} \{value_type(type_)})"
-    Value(Eq(value)) => "(value\{comment} (eq \{value}))"
-    Type(Eq(type_)) => "(type\{comment} (eq \{type_}))"
+    CoreModuleType(type_) =>
+      "(core module\{comment} (type \{scope.reference(0x110, type_)}))"
+    FuncType(type_) => "(func\{comment} (type \{scope.reference(3, type_)}))"
+    Value(Type(type_)) =>
+      match type_ {
+        TypeIdx(index) if scope.compatibility =>
+          "(value\{comment} (type \{scope.reference(3, index)}))"
+        _ => "(value\{comment} \{value_type(type_, scope~)})"
+      }
+    Value(Eq(value)) => "(value\{comment} (eq \{scope.reference(2, value)}))"
+    Type(Eq(type_)) => "(type\{comment} (eq \{scope.reference(3, type_)}))"
     Type(SubResource) => "(type\{comment} (sub resource))"
-    ComponentType(type_) => "(component\{comment} (type \{type_}))"
-    InstanceType(type_) => "(instance\{comment} (type \{type_}))"
+    ComponentType(type_) =>
+      "(component\{comment} (type \{scope.reference(3, type_)}))"
+    InstanceType(type_) =>
+      "(instance\{comment} (type \{scope.reference(3, type_)}))"
   }
 }
 
@@ -354,7 +460,19 @@ fn outer_alias(
   // Declaration aliases encode core sorts as 0x100 plus the core sort byte,
   // matching `sort_key`.
   let index = scope.take(kind)
-  "\{pad}(alias outer \{count} \{target} (\{sort_name(kind)} (;\{index};)))\n"
+  let target_scope = if count == 0 {
+    scope
+  } else if count <= scope.parents.length() {
+    scope.parents[scope.parents.length() - count]
+  } else {
+    scope
+  }
+  let count = if scope.compatibility {
+    target_scope.names.root_name().unwrap_or(count.to_string())
+  } else {
+    count.to_string()
+  }
+  "\{pad}(alias outer \{count} \{target_scope.reference(kind, target)} (\{sort_name(kind)} \{scope.declaration(kind, index)}))\n"
 }
 
 ///|
@@ -370,22 +488,25 @@ fn export_alias(
 ) -> String raise PrintFailure {
   let index = scope.take(kind)
   let target = if core { "core export" } else { "export" }
-  "\{pad}(alias \{target} \{instance} \{quote(name)} (\{sort_name(kind)} (;\{index};)))\n"
+  "\{pad}(alias \{target} \{scope.reference(if core { 0x112 } else { 5 }, instance)} \{quote(name, scope~)} (\{sort_name(kind)} \{scope.declaration(kind, index)}))\n"
 }
 
 ///|
 fn component_decl_tasks(
   decls : Array[@component.ComponentDecl],
   depth : Int32,
+  scope~ : Scope = Scope::new(),
 ) -> Array[Task] raise PrintFailure {
   let tasks : Array[Task] = []
-  let scope = Scope::new()
   let pad = indent(depth)
   for decl in decls {
     match decl {
       CoreType(bytes) =>
-        tasks.push(Text(core_type_text(bytes, depth, scope.take(0x110))))
-      Type(definition) => type_tasks(tasks, depth, scope.take(3), definition)
+        tasks.push(
+          Text(core_type_text(bytes, depth, scope.take(0x110), scope~)),
+        )
+      Type(definition) =>
+        type_tasks(tasks, depth, scope.take(3), definition, scope~)
       AliasOuter(kind, count, target) =>
         tasks.push(Text(outer_alias(pad, kind, count, target, scope)))
       AliasInstanceExport(kind, instance, name) =>
@@ -394,7 +515,7 @@ fn component_decl_tasks(
         let index = scope.take(extern_sort(desc))
         tasks.push(
           Text(
-            "\{pad}(import \{quote(name)}\{attributes(attrs)} \{extern_desc(desc, Some(index))})\n",
+            "\{pad}(import \{quote(name, scope~)}\{attributes(attrs, scope~)} \{extern_desc(desc, Some(index), scope~)})\n",
           ),
         )
       }
@@ -402,7 +523,11 @@ fn component_decl_tasks(
         let index = scope.take(extern_sort(desc))
         tasks.push(
           Text(
-            "\{pad}(export \{quote(name)}\{attributes(attrs)} \{extern_desc(desc, Some(index))})\n",
+            if scope.compatibility {
+              "\{pad}(export \{scope.declaration(extern_sort(desc), index)} \{quote(name, scope~)}\{attributes(attrs, scope~)} \{extern_desc(desc, None, scope~)})\n"
+            } else {
+              "\{pad}(export \{quote(name, scope~)}\{attributes(attrs, scope~)} \{extern_desc(desc, Some(index), scope~)})\n"
+            },
           ),
         )
       }
@@ -415,15 +540,18 @@ fn component_decl_tasks(
 fn instance_decl_tasks(
   decls : Array[@component.InstanceDecl],
   depth : Int32,
+  scope~ : Scope = Scope::new(),
 ) -> Array[Task] raise PrintFailure {
   let tasks : Array[Task] = []
-  let scope = Scope::new()
   let pad = indent(depth)
   for decl in decls {
     match decl {
       CoreType(bytes) =>
-        tasks.push(Text(core_type_text(bytes, depth, scope.take(0x110))))
-      Type(definition) => type_tasks(tasks, depth, scope.take(3), definition)
+        tasks.push(
+          Text(core_type_text(bytes, depth, scope.take(0x110), scope~)),
+        )
+      Type(definition) =>
+        type_tasks(tasks, depth, scope.take(3), definition, scope~)
       AliasOuter(kind, count, target) =>
         tasks.push(Text(outer_alias(pad, kind, count, target, scope)))
       AliasInstanceExport(kind, instance, name) =>
@@ -432,7 +560,11 @@ fn instance_decl_tasks(
         let index = scope.take(extern_sort(desc))
         tasks.push(
           Text(
-            "\{pad}(export \{quote(name)}\{attributes(attrs)} \{extern_desc(desc, Some(index))})\n",
+            if scope.compatibility {
+              "\{pad}(export \{scope.declaration(extern_sort(desc), index)} \{quote(name, scope~)}\{attributes(attrs, scope~)} \{extern_desc(desc, None, scope~)})\n"
+            } else {
+              "\{pad}(export \{quote(name, scope~)}\{attributes(attrs, scope~)} \{extern_desc(desc, Some(index), scope~)})\n"
+            },
           ),
         )
       }
@@ -442,17 +574,26 @@ fn instance_decl_tasks(
 }
 
 ///|
-fn sort_ref(sort_index : @component.SortIdx) -> String raise PrintFailure {
-  "(\{sort_name(sort_key(sort_index.sort))} \{sort_index.idx})"
+fn sort_ref(
+  sort_index : @component.SortIdx,
+  scope~ : Scope = Scope::new(),
+) -> String raise PrintFailure {
+  "(\{sort_name(sort_key(sort_index.sort))} \{scope.reference(sort_key(sort_index.sort), sort_index.idx)})"
 }
 
 ///|
-fn core_sort_ref(sort_index : @component.SortIdx) -> String raise PrintFailure {
-  "(\{core_sort_name(sort_key(sort_index.sort))} \{sort_index.idx})"
+fn core_sort_ref(
+  sort_index : @component.SortIdx,
+  scope~ : Scope = Scope::new(),
+) -> String raise PrintFailure {
+  "(\{core_sort_name(sort_key(sort_index.sort))} \{scope.reference(sort_key(sort_index.sort), sort_index.idx)})"
 }
 
 ///|
-fn canon_options(options : Array[@component.CanonOpt]) -> String {
+fn canon_options(
+  options : Array[@component.CanonOpt],
+  scope~ : Scope = Scope::new(),
+) -> String {
   let out = StringBuilder()
   for option in options {
     out.write_string(
@@ -460,13 +601,13 @@ fn canon_options(options : Array[@component.CanonOpt]) -> String {
         StringEncoding(Utf8) => " string-encoding=utf8"
         StringEncoding(Utf16) => " string-encoding=utf16"
         StringEncoding(Latin1Utf16) => " string-encoding=latin1+utf16"
-        Memory(index) => " (memory \{index})"
-        Realloc(index) => " (realloc \{index})"
-        PostReturn(index) => " (post-return \{index})"
-        CoreType(index) => " (core-type \{index})"
+        Memory(index) => " (memory \{scope.reference(258, index)})"
+        Realloc(index) => " (realloc \{scope.reference(256, index)})"
+        PostReturn(index) => " (post-return \{scope.reference(256, index)})"
+        CoreType(index) => " (core-type \{scope.reference(272, index)})"
         Gc => " gc"
         Async => " async"
-        Callback(index) => " (callback \{index})"
+        Callback(index) => " (callback \{scope.reference(256, index)})"
       },
     )
   }
@@ -496,20 +637,24 @@ fn flag(set : Bool, name : String) -> String {
 
 ///|
 // The body of a canonical definition that produces a core function.
-fn canon_body(canon : @component.Canon) -> String raise PrintFailure {
+fn canon_body(
+  canon : @component.Canon,
+  scope~ : Scope = Scope::new(),
+) -> String raise PrintFailure {
   match canon {
     Lift(_, _, _) => unsupported("lift produces a component function")
-    Lower(func, options) => "lower (func \{func})\{canon_options(options)}"
+    Lower(func, options) =>
+      "lower (func \{scope.reference(1, func)})\{canon_options(options, scope~)}"
     BackpressureInc => "backpressure.inc"
     BackpressureDec => "backpressure.dec"
     ContextGet(type_, index) => "context.get \{core_value_type(type_)} \{index}"
     ContextSet(type_, index) => "context.set \{core_value_type(type_)} \{index}"
     TaskReturn(result, options) => {
       let result = match result {
-        Some(type_) => " (result \{value_type(type_)})"
+        Some(type_) => " (result \{value_type(type_, scope~)})"
         None => ""
       }
-      "task.return\{result}\{canon_options(options)}"
+      "task.return\{result}\{canon_options(options, scope~)}"
     }
     TaskCancel => "task.cancel"
     ThreadIndex => "thread.index"
@@ -529,42 +674,51 @@ fn canon_body(canon : @component.Canon) -> String raise PrintFailure {
     ThreadNewIndirect(type_, table) => "thread.new-indirect \{type_} \{table}"
     WaitableSetNew => "waitable-set.new"
     WaitableSetWait(cancellable, memory) =>
-      "waitable-set.wait\{flag(cancellable, "cancellable")} (memory \{memory})"
+      "waitable-set.wait\{flag(cancellable, "cancellable")} (memory \{scope.reference(0x102, memory)})"
     WaitableSetPoll(cancellable, memory) =>
-      "waitable-set.poll\{flag(cancellable, "cancellable")} (memory \{memory})"
+      "waitable-set.poll\{flag(cancellable, "cancellable")} (memory \{scope.reference(0x102, memory)})"
     WaitableSetDrop => "waitable-set.drop"
     WaitableJoin => "waitable.join"
     SubtaskCancel(is_async) => "subtask.cancel" + flag(is_async, "async")
     SubtaskDrop => "subtask.drop"
-    StreamNew(type_) => "stream.new \{type_}"
+    StreamNew(type_) => "stream.new \{scope.reference(3, type_)}"
     StreamRead(type_, options) =>
-      "stream.read \{type_}\{canon_options(options)}"
+      "stream.read \{scope.reference(3, type_)}\{canon_options(options, scope~)}"
     StreamWrite(type_, options) =>
-      "stream.write \{type_}\{canon_options(options)}"
+      "stream.write \{scope.reference(3, type_)}\{canon_options(options, scope~)}"
     StreamCancelRead(type_, is_async) =>
-      "stream.cancel-read \{type_}" + flag(is_async, "async")
+      "stream.cancel-read \{scope.reference(3, type_)}" +
+      flag(is_async, "async")
     StreamCancelWrite(type_, is_async) =>
-      "stream.cancel-write \{type_}" + flag(is_async, "async")
-    StreamDropReadable(type_) => "stream.drop-readable \{type_}"
-    StreamDropWritable(type_) => "stream.drop-writable \{type_}"
-    FutureNew(type_) => "future.new \{type_}"
+      "stream.cancel-write \{scope.reference(3, type_)}" +
+      flag(is_async, "async")
+    StreamDropReadable(type_) =>
+      "stream.drop-readable \{scope.reference(3, type_)}"
+    StreamDropWritable(type_) =>
+      "stream.drop-writable \{scope.reference(3, type_)}"
+    FutureNew(type_) => "future.new \{scope.reference(3, type_)}"
     FutureRead(type_, options) =>
-      "future.read \{type_}\{canon_options(options)}"
+      "future.read \{scope.reference(3, type_)}\{canon_options(options, scope~)}"
     FutureWrite(type_, options) =>
-      "future.write \{type_}\{canon_options(options)}"
+      "future.write \{scope.reference(3, type_)}\{canon_options(options, scope~)}"
     FutureCancelRead(type_, is_async) =>
-      "future.cancel-read \{type_}" + flag(is_async, "async")
+      "future.cancel-read \{scope.reference(3, type_)}" +
+      flag(is_async, "async")
     FutureCancelWrite(type_, is_async) =>
-      "future.cancel-write \{type_}" + flag(is_async, "async")
-    FutureDropReadable(type_) => "future.drop-readable \{type_}"
-    FutureDropWritable(type_) => "future.drop-writable \{type_}"
-    ErrorContextNew(options) => "error-context.new\{canon_options(options)}"
+      "future.cancel-write \{scope.reference(3, type_)}" +
+      flag(is_async, "async")
+    FutureDropReadable(type_) =>
+      "future.drop-readable \{scope.reference(3, type_)}"
+    FutureDropWritable(type_) =>
+      "future.drop-writable \{scope.reference(3, type_)}"
+    ErrorContextNew(options) =>
+      "error-context.new\{canon_options(options, scope~)}"
     ErrorContextDebugMessage(options) =>
-      "error-context.debug-message\{canon_options(options)}"
+      "error-context.debug-message\{canon_options(options, scope~)}"
     ErrorContextDrop => "error-context.drop"
-    ResourceNew(type_) => "resource.new \{type_}"
-    ResourceDrop(type_) => "resource.drop \{type_}"
-    ResourceRep(type_) => "resource.rep \{type_}"
+    ResourceNew(type_) => "resource.new \{scope.reference(3, type_)}"
+    ResourceDrop(type_) => "resource.drop \{scope.reference(3, type_)}"
+    ResourceRep(type_) => "resource.rep \{scope.reference(3, type_)}"
   }
 }
 
@@ -610,11 +764,23 @@ fn component_tasks(
   bytes : Bytes,
   depth : Int32,
   base : Int32?,
+  scope~ : Scope = Scope::new(),
 ) -> Array[Task] raise PrintFailure {
   let binary = parsed(base, () => @component.parse_component_binary(bytes))
   let offsets = payload_offsets(bytes)
+  let original = if scope.compatibility && !scope.original_bytes.is_empty() {
+    Some(
+      parsed(base, () => @component.parse_component_binary(scope.original_bytes)),
+    )
+  } else {
+    None
+  }
+  let original_offsets = if original is Some(_) {
+    payload_offsets(scope.original_bytes)
+  } else {
+    []
+  }
   let tasks : Array[Task] = []
-  let scope = Scope::new()
   let pad = indent(depth)
   for i, section in binary.sections {
     let payload = section.payload
@@ -623,19 +789,73 @@ fn component_tasks(
     } else {
       None
     }
+    let original_payload = if original is Some(binary) {
+      binary.sections[i].payload
+    } else {
+      payload
+    }
+    let original_offset = if i < original_offsets.length() {
+      scope.source_offset + original_offsets[i]
+    } else {
+      offset.unwrap_or(0)
+    }
     match section.id {
-      0 => tasks.push(Text(custom_text(pad, payload)))
+      0 =>
+        if scope.compatibility {
+          let custom = @core_printer.component_custom_section(
+            payload,
+            binary_offset=original_offset,
+          ) catch {
+            @core_printer.ReferenceUnsupported(message) =>
+              raise PrintFailure(Some(original_offset), "WIT-D003", message)
+            error =>
+              raise PrintFailure(
+                Some(original_offset),
+                "WIT-D004",
+                error.to_string(),
+              )
+          }
+          if custom is Some(text) {
+            tasks.push(
+              Text(
+                text
+                .split("\n")
+                .map(line => pad + line.to_owned() + "\n")
+                .to_array()
+                .join(""),
+              ),
+            )
+          }
+        } else {
+          tasks.push(Text(custom_text(pad, payload)))
+        }
       1 => {
         let index = scope.take(0x111)
-        let text = render_core_module(payload, offset)
+        let text = render_core_module(
+          payload,
+          if scope.compatibility {
+            Some(original_offset)
+          } else {
+            offset
+          },
+          compatibility=if scope.compatibility { Some(WasmTools) } else { None },
+        )
         let lines = text.split("\n").to_array()
         let out = StringBuilder()
         for line in lines {
           if line.is_empty() {
             continue
           }
-          if line == "(module" {
-            out.write_string("\{pad}(core module (;\{index};)\n")
+          if line.has_prefix("(module") {
+            if scope.compatibility {
+              let empty = line.has_suffix(")")
+              let label = scope.declaration(0x111, index)
+              out.write_string(
+                "\{pad}(core module \{label}\{if empty { ")" } else { "" }}\n",
+              )
+            } else {
+              out.write_string("\{pad}(core module (;\{index};)\n")
+            }
           } else {
             out.write_string("\{pad}\{line}\n")
           }
@@ -648,7 +868,7 @@ fn component_tasks(
             @component.parse_core_instance_section(payload)
           }) {
           let index = scope.take(0x112)
-          let head = "\{pad}(core instance (;\{index};)"
+          let head = "\{pad}(core instance \{scope.declaration(0x112, index)}"
           match instance.expr {
             Instantiate(module_, args) =>
               tasks.push(
@@ -656,10 +876,11 @@ fn component_tasks(
                   instance_text(
                     head,
                     pad,
-                    "(instantiate \{module_}",
+                    "(instantiate \{scope.reference(0x111, module_)}",
                     args.map(arg => {
-                      "(with \{quote(arg.name)} \{core_sort_ref(arg.sortidx)})"
+                      "(with \{quote(arg.name, scope~)} \{core_sort_ref(arg.sortidx, scope~)})"
                     }),
+                    compatibility=scope.compatibility,
                   ),
                 ),
               )
@@ -671,8 +892,9 @@ fn component_tasks(
                     pad,
                     "",
                     exports.map(item => {
-                      "(export \{quote(item.name)} \{core_sort_ref(item.sortidx)})"
+                      "(export \{quote(item.name, scope~)} \{core_sort_ref(item.sortidx, scope~)})"
                     }),
+                    compatibility=scope.compatibility,
                   ),
                 ),
               )
@@ -680,12 +902,20 @@ fn component_tasks(
         }
       3 =>
         for entry in core_type_entries(payload, offset) {
-          tasks.push(Text(core_type_text(entry, depth, scope.take(0x110))))
+          tasks.push(
+            Text(core_type_text(entry, depth, scope.take(0x110), scope~)),
+          )
         }
       4 => {
         let index = scope.take(4)
         tasks.push(
-          Component(payload, depth, offset, "\{pad}(component (;\{index};)\n"),
+          Component(
+            payload,
+            depth,
+            offset,
+            "\{pad}(component \{scope.declaration(4, index)}\n",
+            scope.child(bytes=original_payload, source_offset=original_offset),
+          ),
         )
       }
       5 =>
@@ -694,7 +924,7 @@ fn component_tasks(
             @component.parse_instance_section(payload)
           }) {
           let index = scope.take(5)
-          let head = "\{pad}(instance (;\{index};)"
+          let head = "\{pad}(instance \{scope.declaration(5, index)}"
           match instance.expr {
             Instantiate(component, args) =>
               tasks.push(
@@ -702,10 +932,11 @@ fn component_tasks(
                   instance_text(
                     head,
                     pad,
-                    "(instantiate \{component}",
+                    "(instantiate \{scope.reference(4, component)}",
                     args.map(arg => {
-                      "(with \{quote(arg.name)} \{sort_ref(arg.sortidx)})"
+                      "(with \{quote(arg.name, scope~)} \{sort_ref(arg.sortidx, scope~)})"
                     }),
+                    compatibility=scope.compatibility,
                   ),
                 ),
               )
@@ -717,8 +948,9 @@ fn component_tasks(
                     pad,
                     "",
                     exports.map(item => {
-                      "(export \{quote(item.name)}\{attributes(item.attributes)} \{sort_ref(item.sortidx)})"
+                      "(export \{quote(item.name, scope~)}\{attributes(item.attributes, scope~)} \{sort_ref(item.sortidx, scope~)})"
                     }),
+                    compatibility=scope.compatibility,
                   ),
                 ),
               )
@@ -746,7 +978,7 @@ fn component_tasks(
           definition in parsed(offset, () => {
             @component.parse_type_section(payload)
           }) {
-          type_tasks(tasks, depth, scope.take(3), definition)
+          type_tasks(tasks, depth, scope.take(3), definition, scope~)
         }
       8 =>
         for
@@ -756,7 +988,7 @@ fn component_tasks(
               let index = scope.take(1)
               tasks.push(
                 Text(
-                  "\{pad}(func (;\{index};) (type \{type_}) (canon lift (core func \{core_func})\{canon_options(options)}))\n",
+                  "\{pad}(func \{scope.declaration(1, index)} (type \{scope.reference(3, type_)}) (canon lift (core func \{scope.reference(0x100, core_func)})\{canon_options(options, scope~)}))\n",
                 ),
               )
             }
@@ -764,7 +996,7 @@ fn component_tasks(
               let index = scope.take(0x100)
               tasks.push(
                 Text(
-                  "\{pad}(core func (;\{index};) (canon \{canon_body(canon)}))\n",
+                  "\{pad}(core func \{scope.declaration(0x100, index)} (canon \{canon_body(canon, scope~)}))\n",
                 ),
               )
             }
@@ -773,13 +1005,22 @@ fn component_tasks(
       9 => {
         let start = parsed(offset, () => @component.parse_start_section(payload))
         let out = StringBuilder()
-        out.write_string("\{pad}(start \{start.func_idx}")
+        out.write_string("\{pad}(start \{scope.reference(1, start.func_idx)}")
         for arg in start.args {
-          out.write_string(" (value \{arg})")
+          out.write_string(" (value \{scope.reference(2, arg)})")
         }
-        out.write_string(" (result \{start.results}))\n")
-        for _ in 0..<start.results {
-          ignore(scope.take(2))
+        if scope.compatibility {
+          for _ in 0..<start.results {
+            out.write_string(
+              " (result (value \{scope.declaration(2, scope.take(2))}))",
+            )
+          }
+          out.write_string(")\n")
+        } else {
+          out.write_string(" (result \{start.results}))\n")
+          for _ in 0..<start.results {
+            ignore(scope.take(2))
+          }
         }
         tasks.push(Text(out.to_string()))
       }
@@ -791,7 +1032,7 @@ fn component_tasks(
           let index = scope.take(extern_sort(import_.desc))
           tasks.push(
             Text(
-              "\{pad}(import \{import_name(import_.name)}\{attributes(import_.attributes)} \{extern_desc(import_.desc, Some(index))})\n",
+              "\{pad}(import \{import_name(import_.name, scope~)}\{attributes(import_.attributes, scope~)} \{extern_desc(import_.desc, Some(index), scope~)})\n",
             ),
           )
         }
@@ -800,12 +1041,12 @@ fn component_tasks(
           item in parsed(offset, () => @component.parse_export_section(payload)) {
           let index = scope.take(sort_key(item.sortidx.sort))
           let ascription = match item.desc {
-            Some(desc) => " " + extern_desc(desc, None)
+            Some(desc) => " " + extern_desc(desc, None, scope~)
             None => ""
           }
           tasks.push(
             Text(
-              "\{pad}(export (;\{index};) \{export_name(item.name)}\{attributes(item.attributes)} \{sort_ref(item.sortidx)}\{ascription})\n",
+              "\{pad}(export \{scope.declaration(sort_key(item.sortidx.sort), index)} \{export_name(item.name, scope~)}\{attributes(item.attributes, scope~)} \{sort_ref(item.sortidx, scope~)}\{ascription})\n",
             ),
           )
         }
@@ -828,6 +1069,7 @@ fn instance_text(
   pad : String,
   opening : String,
   items : Array[String],
+  compatibility~ : Bool = false,
 ) -> String {
   if opening.is_empty() {
     if items.is_empty() {
@@ -845,7 +1087,13 @@ fn instance_text(
     return "\{head} \{opening}))\n"
   }
   let out = StringBuilder()
-  out.write_string("\{head}\n\{pad}  \{opening}\n")
+  out.write_string(
+    if compatibility {
+      "\{head} \{opening}\n"
+    } else {
+      "\{head}\n\{pad}  \{opening}\n"
+    },
+  )
   for item in items {
     out.write_string("\{pad}    \{item}\n")
   }
@@ -884,7 +1132,16 @@ fn custom_text(pad : String, payload : Bytes) -> String {
 pub fn print_component(
   bytes : Bytes,
   source_id~ : String = "<wasm>",
+  compatibility~ : Compatibility? = None,
 ) -> Result[WatDocuments, ReadOnlyArray[Diagnostic]] {
+  if compatibility == Some(Wabt) {
+    return problem(
+      source_id,
+      Some(4),
+      "WIT-D003",
+      "WABT 1.0.42 does not print components",
+    )
+  }
   if !is_component_header(bytes) {
     if bytes.length() >= 8 && bytes[0:4] == b"\x00asm".exact_view() {
       if bytes[4:8] == b"\x01\x00\x00\x00".exact_view() {
@@ -921,31 +1178,51 @@ pub fn print_component(
   // reported only when the retained parser reads the original bytes.
   let base = if parser_bytes == bytes { Some(0) } else { None }
   let text = StringBuilder()
-  let work : Array[Task] = [Component(parser_bytes, 0, base, "(component\n")]
+  let root_scope = Scope::new(
+    compatibility=compatibility == Some(WasmTools),
+    bytes~,
+  )
+  let root_name = if root_scope.compatibility {
+    root_scope.names.root_name().map(n => " " + n).unwrap_or("")
+  } else {
+    ""
+  }
+  let work : Array[Task] = [
+    Component(
+      parser_bytes,
+      0,
+      base,
+      "(component" + root_name + "\n",
+      root_scope,
+    ),
+  ]
   while work.pop() is Some(task) {
     let tasks = match task {
       Text(line) => {
         text.write_string(line)
         continue
       }
-      Component(bytes, depth, base, header) => {
-        let tasks = [Text(header)]
-        tasks.append(
-          component_tasks(bytes, depth + 1, base) catch {
-            PrintFailure(offset, code, message) =>
-              return problem(source_id, offset, code, message)
-          },
-        )
-        tasks.push(Text("\{indent(depth)})\n"))
-        tasks
-      }
-      ComponentDecls(decls, depth) =>
-        component_decl_tasks(decls, depth) catch {
+      Component(bytes, depth, base, header, scope) => {
+        let children = component_tasks(bytes, depth + 1, base, scope~) catch {
           PrintFailure(offset, code, message) =>
             return problem(source_id, offset, code, message)
         }
-      InstanceDecls(decls, depth) =>
-        instance_decl_tasks(decls, depth) catch {
+        if scope.compatibility && children.is_empty() {
+          [Text(header.trim_end(chars="\n").to_owned() + ")\n")]
+        } else {
+          let tasks = [Text(header)]
+          tasks.append(children)
+          tasks.push(Text("\{indent(depth)})\n"))
+          tasks
+        }
+      }
+      ComponentDecls(decls, depth, scope) =>
+        component_decl_tasks(decls, depth, scope~) catch {
+          PrintFailure(offset, code, message) =>
+            return problem(source_id, offset, code, message)
+        }
+      InstanceDecls(decls, depth, scope) =>
+        instance_decl_tasks(decls, depth, scope~) catch {
           PrintFailure(offset, code, message) =>
             return problem(source_id, offset, code, message)
         }
@@ -954,7 +1231,18 @@ pub fn print_component(
       work.push(tasks[i])
     }
   }
-  Ok({ documents: [{ name: "root", text: text.to_string(), }], })
+  Ok({
+    documents: [
+      {
+        name: "root",
+        text: if compatibility == Some(WasmTools) {
+          @core_printer.limit_indentation(text.to_string())
+        } else {
+          text.to_string()
+        },
+      },
+    ],
+  })
 }
 
 ///|
@@ -967,21 +1255,25 @@ pub struct ComponentFragment {
 ///|
 fn render_fragment(bytes : Bytes) -> String raise PrintFailure {
   let text = StringBuilder()
-  let work : Array[Task] = [Component(bytes, 0, None, "(component\n")]
+  let work : Array[Task] = [
+    Component(bytes, 0, None, "(component\n", Scope::new()),
+  ]
   while work.pop() is Some(task) {
     let next = match task {
       Text(line) => {
         text.write_string(line)
         continue
       }
-      Component(bytes, depth, base, header) => {
+      Component(bytes, depth, base, header, scope) => {
         let next = [Text(header)]
-        next.append(component_tasks(bytes, depth + 1, base))
+        next.append(component_tasks(bytes, depth + 1, base, scope~))
         next.push(Text("\{indent(depth)})\n"))
         next
       }
-      ComponentDecls(decls, depth) => component_decl_tasks(decls, depth)
-      InstanceDecls(decls, depth) => instance_decl_tasks(decls, depth)
+      ComponentDecls(decls, depth, scope) =>
+        component_decl_tasks(decls, depth, scope~)
+      InstanceDecls(decls, depth, scope) =>
+        instance_decl_tasks(decls, depth, scope~)
     }
     for i = next.length() - 1; i >= 0; i = i - 1 {
       work.push(next[i])

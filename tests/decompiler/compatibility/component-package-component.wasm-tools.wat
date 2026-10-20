@@ -1,0 +1,20 @@
+(component
+  (type (;0;)
+    (component
+      (type (;0;)
+        (instance
+          (export (;0;) "r" (type (sub resource)))
+          (type (;1;) (own 0))
+          (type (;2;) (list string))
+          (type (;3;) (record (field "id" u32) (field "tags" 2)))
+          (export (;4;) "item" (type (eq 3)))
+          (type (;5;) (func (param "x" string) (param "i" 4) (result 1)))
+          (export (;0;) "make" (func (type 5)))
+        )
+      )
+      (export (;0;) "example:pkg/api@1.0.0" (instance (type 0)))
+    )
+  )
+  (export (;1;) "api" (type 0))
+  (@custom "package-docs" "\00{}")
+)

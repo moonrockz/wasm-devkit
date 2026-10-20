@@ -1,0 +1,1 @@
+(component (core module (func (export "dtor") (param i32))) (core instance (instantiate 0)) (alias core export 0 "dtor" (core func)) (type $r (resource (rep i32) (dtor 0))) (type $o (own $r)) (type $f (func (param "r" $o))) (core func $n (canon resource.new $r)))

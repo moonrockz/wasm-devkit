@@ -1,0 +1,1 @@
+(component (core type $a (func (param i32 i64) (result i32))) (core type $m (module (type $b (func)) (import "env" "a" (func (type $b))) (export "f" (func (type $b))))) (import "m" (core module $m (type $m))))

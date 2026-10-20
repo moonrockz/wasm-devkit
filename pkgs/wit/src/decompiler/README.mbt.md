@@ -6,9 +6,9 @@ not execute the binary.
 
 | Operation | Input |
 |-----------|-------|
-| `print_core_module(bytes, source_id~)` | A flat core module |
-| `print_component(bytes, source_id~)` | A component, with core modules and nested components inline |
-| `print_binary(bytes, source_id~)` | Either; the binary preamble selects the operation |
+| `print_core_module(bytes, source_id~, compatibility~)` | A flat core module |
+| `print_component(bytes, source_id~, compatibility~)` | A component, with core modules and nested components inline |
+| `print_binary(bytes, source_id~, compatibility~)` | Either; the binary preamble selects the operation |
 
 Each operation returns `WatDocuments` or diagnostics. `WatDocuments.documents`
 is an immutable ordered collection of named documents. Every successful result
@@ -110,13 +110,13 @@ and shared globals.
 target cannot represent their payloads as `Float` values, so no target prints them.
 This keeps results identical on wasm, wasm-gc, js and native.
 
-Custom sections carry no module structure. The document omits them and starts with
+In the default mode, custom sections carry no module structure. The document omits them and starts with
 one `;; custom section omitted: "NAME"` line per custom section, in binary order.
 Control characters, quotes and backslashes in those names use `\hh` escapes.
 
 Text comes from the [retained core printer](../binary/core_printer/README.md).
-Index comments name absolute indices. No identifiers are printed, and the name
-section is not read.
+Index comments name absolute indices. The default mode prints no identifiers and does not read the name
+section.
 
 ## Component profile
 
@@ -146,8 +146,49 @@ concrete or GC core references have no such form, and fail with `WIT-D003`. The 
 print, but their text does not compile again. Extended constant global
 initializers print as flat instructions and round trip through both text paths.
 
-Output is deterministic, but it is not wasm-tools `print` or WABT `wasm2wat`
-output. Compatibility with those tools remains a later slice of epic `wasm-devkit-p5m.13`.
+The default output is deterministic and uses the conventions above.
+
+## Compatibility modes
+
+All three single-document operations accept `compatibility=Some(Compatibility::WasmTools)`
+or `Some(Compatibility::Wabt)`. Omitting the argument retains the default emitter.
+Compatibility is pure and performs the same binary profile validation before
+returning a complete document. WABT mode rejects components and explicit recursive
+type groups. The CLI rejects compatibility combined with split or selection.
+
+```mbt check
+///|
+test "decompiler: select the pinned printer's conventions" {
+  let bytes = b"\x00asm\x01\x00\x00\x00"
+  let printed = @decompiler.print_binary(
+    bytes,
+    compatibility=Some(@decompiler.Compatibility::WasmTools),
+  ).unwrap()
+  assert_eq(printed.root().text, "(module)\n")
+  assert_true(
+    @decompiler.print_binary(
+      b"\x00asm\x0d\x00\x01\x00",
+      compatibility=Some(@decompiler.Compatibility::Wabt),
+    )
+    is Err(_),
+  )
+}
+```
+
+`WasmTools` targets `wasm-tools 1.262.0 print INPUT.wasm` with default flags,
+for core modules and components. `Wabt` targets
+`wasm2wat 1.0.42 --enable-all INPUT.wasm` with default formatting and debug-name
+behavior, for core modules. Names, metadata, declaration order, indentation,
+number spelling and escapes follow the selected reference. Nested core modules
+remain inline. Reference feature flags do not expand the accepted binary profile.
+
+The [pinned fixtures](../../../../tests/decompiler/compatibility/README.md) record
+hashes, licenses, exact invocations and measured reference/readback boundaries.
+Only newlines outside string literals and one terminal newline may normalize.
+Use the matching pinned text tools for compatibility readback; the local text
+readers have a smaller profile. Structured diagnostics retain wasm-devkit's own
+codes and wording. No compatibility promise extends beyond these pins and the
+accepted profile.
 [WAC decompilation](../../../wac/src/decompiler/README.mbt.md) provides inventories,
 component selection and recursive WAC/WAT splitting. `component_fragment` prints
 a validated nested definition in its lexical context; its distinct

@@ -1,0 +1,10 @@
+{
+  "base_wat": "(module (func (result v128) v128.const i32x4 0 0 0 0))",
+  "custom_sections": [
+    {
+      "name": "metadata.code.note",
+      "data_hex": "0100010106707265666978",
+      "before_section": 10
+    }
+  ]
+}

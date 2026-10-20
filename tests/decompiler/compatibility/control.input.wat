@@ -1,0 +1,1 @@
+(module (type (func (param i32 i64) (result i32 i64))) (func (param i32 i64) (result i32 i64) local.get 0 local.get 1 block (type 0) end) (func i32.const 1 if else end block loop i32.const 0 br_table 0 1 2 end end))

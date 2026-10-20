@@ -1,0 +1,11 @@
+(component
+  (type (;0;)
+    (component)
+  )
+  (type (;1;)
+    (instance)
+  )
+  (core type (;0;)
+    (module)
+  )
+)

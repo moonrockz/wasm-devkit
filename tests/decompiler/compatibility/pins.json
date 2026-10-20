@@ -1,0 +1,31 @@
+{
+  "wasm-tools": {
+    "version": "1.262.0",
+    "revision": "e22db44da",
+    "release": "https://github.com/bytecodealliance/wasm-tools/releases/tag/v1.262.0",
+    "invocation": [
+      "wasm-tools",
+      "print",
+      "INPUT.wasm"
+    ],
+    "aarch64-macos-archive-sha256": "801b237643cc0f4ab27ebd1745e7863e23bf194a038bc6ca8ce5618212e43669"
+  },
+  "wabt": {
+    "version": "1.0.42",
+    "release": "https://github.com/WebAssembly/wabt/releases/tag/1.0.42",
+    "invocation": [
+      "wasm2wat",
+      "--enable-all",
+      "INPUT.wasm"
+    ],
+    "macos-arm64-archive-sha256": "3f654779b436c628db3ca4323c51538815f5fbc887a6d5f3bb1c18d36281e240"
+  },
+  "readback": [
+    "wasm-tools",
+    "parse",
+    "EXPECTED.wat",
+    "-o",
+    "REENCODED.wasm"
+  ],
+  "normalization": "CRLF/LF outside string literals and exactly one terminal newline only"
+}

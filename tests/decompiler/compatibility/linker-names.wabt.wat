@@ -1,0 +1,12 @@
+(module
+  (type (;0;) (func))
+  (type (;1;) (func (param i32)))
+  (func $run (type 0)
+    nop)
+  (table $tab 1 funcref)
+  (memory (;0;) 1)
+  (tag $tag (type 1) (param i32))
+  (global $glob i32 (i32.const 0))
+  (export "run" (func $run))
+  (data $dat (i32.const 0) "x")
+  (@custom "linking" "\02\08'\05\00\00\00\03run\02\00\00\04glob\05\00\00\03tab\01\00\03dat\00\00\01\04\00\00\03tag"))

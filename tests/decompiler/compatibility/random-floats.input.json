@@ -1,0 +1,962 @@
+[
+  {
+    "kind": "f32",
+    "bits": "0x7bef34fb"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x85ebc284"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x32e2795e"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xb9ce596f"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xfbdf866b"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x8ea6022c"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xe93a0c45"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xb8a12ab1"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xbf011acc"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xa35b139e"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xd5ee75d0"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x20725940"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x6e23220"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xa7c10ba4"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xc3554a3a"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x7c6d10ca"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x1c4604b8"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xf7b67628"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x6353a7a4"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x394bfe2b"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x7d93318b"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xf4d6ce7d"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x3fbf73b0"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x99010881"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x8bb860e8"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xff159e80"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x74a4a0ff"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xf424bc03"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x7cd52aa"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x1a48da36"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x49909b10"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xbacffd43"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x842b12c6"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xf70dd5c6"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xca5b684e"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xc43ce9c1"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xb9bd1c1b"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xcd81ea87"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x46927d6b"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x4db660fa"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xe7fd94f5"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x11351f29"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xbf1e2e6c"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x94faa14f"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xb0965e1a"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xa3163f07"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x43336ed2"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xa3dc165b"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xdf7af81d"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xab9e9efe"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xeba3cba1"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xb86912be"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x61b8d3f6"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xb257b5b2"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xb65f7ffd"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x5b9c56e0"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xeb4f9c6c"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xf29dd7bd"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xeba32b30"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xdaf18bec"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xaa0c7c68"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x4283bc79"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xaa466532"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x5bdc7aed"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x2401ac0d"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xfc3f1256"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xd5f0ef8b"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xfbe9c76d"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xb9c3e48c"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xe7fd149c"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x85946720"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x6416876a"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xdb1bceea"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xb6b5a920"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xd1a97787"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x9e990bfb"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xf3f04bad"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x49c88987"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xbae79d21"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x4cda636f"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x80bf1f16"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x5429ec92"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x92e5535b"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xec2b5e8f"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xc343b74"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x10ef1853"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x6485f5c3"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x390a2bc6"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x3ec05180"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xb19bfbc4"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x233080f9"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xb41d3130"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x193de775"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xf7f06d2b"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xcc8c9d22"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x2d6a5f37"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x18c5953d"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xe7313455"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x5b01ac1f"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x3b9e9115"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xa03bbd1a"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x4388e0e6"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x51e78f29"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x6c17546f"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xa149025c"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x335d70b2"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x40b32a7b"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xb92c3f23"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xb1d74a82"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x277232be"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xacc88683"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xc4a9a7e3"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xce41bf4e"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x294f2b5"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x64ee6fc3"
+  },
+  {
+    "kind": "f32",
+    "bits": "0xd538a2f4"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x2e7dbfda"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x306eb3ff"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x5f0c0e67"
+  },
+  {
+    "kind": "f32",
+    "bits": "0x9ee26d87"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x9cac44bfcb0e80e0"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xb640c10815fee565"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x873764e5ecb57ac0"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x82582d4cc6a684ec"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x12ae9f59d37ca6e9"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x9f97ec582a425a44"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x12c1e2fbb547e080"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x6775b22d1b8b891c"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x2ec4164e38906c73"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x98d3e7953453fb51"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x2aaddd6bedff6300"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x9d672307c6cec155"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xe990dc0785fa96e1"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x1ae6c7d082ea892a"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x3254bf799f2e8416"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x52490a4dc0937ee1"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x817f57e45bc77716"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xf18e70fe62194867"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xdc02342bf00c4714"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x5135d59b3a988ff5"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x142f28c40275bd26"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xdfc5f1b0dc14007f"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x2a04a5daf1a620fd"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x7edb34ab6e5e310f"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x84beaae3b0a3ff5e"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xeeea13a3167cef4a"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x596ec4b70b2ae2f3"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xeb80b9f5016313bd"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x599a080c0dd69425"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x2e7af2386a27911e"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xf47cf6ea002f7fad"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x3f6735e7a94600da"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xcfcc14347597271a"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xaccf4d243c33efb0"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x425b6ebac3d25ae1"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xc7f5cb377f4a47ab"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xf48217abe35cf97"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xfd63635607326923"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xfd5025cb8cb34454"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x77a87dc2d528d0a7"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x80c57cd88e3641aa"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x16e954d4bbf799aa"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xd764372a0c81dda6"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xd01cb11740dd5125"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x19a88090c2ccd8e8"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x5402d4fc80de33fc"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xe3e73d9657761728"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x7119fb6345fd4a28"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xf8390d1061202014"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x6daf3322c52fcb6e"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x9d3b5976d813160d"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xdd428693c1374924"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xddb601ae4d36203c"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x5adc4e54a621230f"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x74955c133f7dbc5e"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xbdd6ea8fe8a0cbea"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x93b9f8c87100581a"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xc8f1b813384cc5c8"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x76ddffdfdfc68f85"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x7c8afa4fa57edbed"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xe48626e848624c6b"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x17afc2b54f55c52f"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xf7300dd4366acf9"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x65e5fa8fc5c5aee5"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xc3c332a1ff04f544"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x9c10ef7c968993c7"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xcc75e942189c58fe"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xf80985768234a111"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xde68e35f30803b8a"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x83bd50d8bc2c8705"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xbe62310a094732f1"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x9f6094fa2f321eb1"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x83be1068dd66b142"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x66484da5e3e5ef42"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xee9bd82505c2dfcb"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xcee43f6441ddf139"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x9d42d3820bb1e80b"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x8012c28c207832e3"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x38132f4354809f35"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x502d7d7499f4d61e"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x13f0768d0e3b1053"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x31b27917b4bad14e"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xadd3fceefdde0bc3"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x97633ae271b6d123"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x2f20bf49008e54aa"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xfea24de3a0ed47b5"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x1f999430d3353464"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xc8347deffd04baed"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x8b8b01d24657cc87"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x3761d822bc3b7040"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x6ac2f06fc24ac858"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xaa6ed88694c487ee"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xdd4ab095a951d1f3"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x805875af7a070083"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xc717737c3076e275"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xdece1cde05f66cac"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xc76a4645a3648a35"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x89e0f3f80998c790"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xa870cfad2da8bbe8"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x3b1e78ac6dd5ff57"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x111eaf9cf24ae8c6"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x55b24a3c0b009108"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x5df6826b9845d963"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xa902191ac6d3293c"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x1b0664f5676cc8b3"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xb213d979a29c750e"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xb3c46f3567730c0b"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x78f19e8e3ac3a15e"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x26e5f39a3f937fbf"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x333bcd295effd259"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xcc64919db462569a"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x59e58955fcd960cf"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x471eb1b974c5e32f"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xa6ef3ce09d532e64"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xa7bcb2e90344fa2a"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x87884a369e07f64f"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x11a308ccca9a1673"
+  },
+  {
+    "kind": "f64",
+    "bits": "0x848253f89687e375"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xba10082d751e91f9"
+  },
+  {
+    "kind": "f64",
+    "bits": "0xadb19ed57ca0e94f"
+  }
+]

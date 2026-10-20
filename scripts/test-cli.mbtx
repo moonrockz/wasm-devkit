@@ -72,6 +72,58 @@ async fn main {
   let (quiet, _) = run(["decompile", module_wasm, "-o", module_wat], 0, wit)
   assert_eq(quiet, "")
   assert_eq(@fs.read_file(module_wat).text(), module_text)
+  // Both pinned layouts work over files, stdin and atomic file output.
+  for mode in ["wasm-tools", "wabt"] {
+    let fixture = "tests/decompiler/compatibility/rich"
+    let expected = @fs.read_file(fixture + "." + mode + ".wat").text()
+    let (text, error) = run(
+      ["decompile", fixture + ".wasm", "--compatibility", mode],
+      0,
+      wit,
+    )
+    assert_eq(text, expected)
+    assert_eq(error, "")
+    let (stdin_text, _) = run(
+      ["decompile", "--compatibility", mode],
+      0,
+      fixture + ".wasm",
+    )
+    assert_eq(stdin_text, expected)
+    let output = dir + "/" + mode + ".wat"
+    let (quiet, _) = run(
+      ["decompile", fixture + ".wasm", "--compatibility", mode, "-o", output],
+      0,
+      wit,
+    )
+    assert_eq(quiet, "")
+    assert_eq(@fs.read_file(output).text(), expected)
+    let _ = run(
+      [
+        "decompile",
+        fixture + ".wasm",
+        "--compatibility",
+        mode,
+        "--select-none",
+        "-o",
+        output,
+      ],
+      2,
+      wit,
+    )
+    assert_eq(@fs.read_file(output).text(), expected)
+  }
+  let compatibility_output = dir + "/wasm-tools.wat"
+  let saved_compatibility = @fs.read_file(compatibility_output).binary()
+  let (unsupported_out, _) = run(
+    [
+      "decompile", "tests/decompiler/compatibility/component-types.wasm", "--compatibility",
+      "wabt", "-o", compatibility_output,
+    ],
+    1,
+    wit,
+  )
+  assert_eq(unsupported_out, "")
+  assert_eq(@fs.read_file(compatibility_output).binary(), saved_compatibility)
   // A failure leaves an existing output file unchanged and creates no new one.
   // The component type section declares one entry but holds none.
   let component_wasm = dir + "/component.wasm"

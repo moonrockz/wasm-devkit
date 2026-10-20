@@ -1,0 +1,10 @@
+{
+  "base_wat": "(component (core module) (core instance (instantiate 0)))",
+  "custom_sections": [
+    {
+      "name": "name",
+      "data_hex": "000504726f6f74010401000166",
+      "before_section": null
+    }
+  ]
+}

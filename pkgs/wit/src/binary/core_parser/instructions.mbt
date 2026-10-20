@@ -25,6 +25,7 @@ priv enum ExpressionHead {
 
 ///|
 priv struct ExpressionFrame {
+  ordinal : Int32
   head : ExpressionHead
   outer : Array[@types.Instruction]
   mut then_body : Array[@types.Instruction]?
@@ -35,10 +36,14 @@ priv struct ExpressionFrame {
 // nesting cap also bounds recursive destruction in third-party model backends.
 fn Parser::read_expr(
   self : Parser,
+  else_labels~ : Array[Int32] = [],
+  instruction_offsets~ : Array[Int32] = [],
 ) -> Array[@types.Instruction] raise ParserError {
+  let mut ordinal = 0
   let frames : Array[ExpressionFrame] = []
   let mut body : Array[@types.Instruction] = []
   while true {
+    instruction_offsets.push(self.pos)
     let opcode = self.read_byte()
     match opcode {
       0x0b => {
@@ -62,6 +67,7 @@ fn Parser::read_expr(
           frame.then_body is None else {
           raise ParseError("unexpected else opcode")
         }
+        else_labels.push(frame.ordinal)
         frame.then_body = Some(body)
         body = []
       }
@@ -76,7 +82,8 @@ fn Parser::read_expr(
           0x04 => ExpressionHead::If(bt)
           _ => ExpressionHead::Try(bt, self.read_catch_handlers())
         }
-        frames.push({ head, outer: body, then_body: None, })
+        frames.push({ head, ordinal, outer: body, then_body: None, })
+        ordinal += 1
         body = []
       }
       _ => body.push(self.read_instruction(opcode))

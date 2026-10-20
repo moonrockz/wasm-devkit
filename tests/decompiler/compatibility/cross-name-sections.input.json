@@ -1,0 +1,10 @@
+{
+  "base_wat": "(module (func nop))",
+  "custom_sections": [
+    {
+      "name": "component-name",
+      "data_hex": "000504726f6f740106000001000166",
+      "before_section": null
+    }
+  ]
+}

@@ -110,7 +110,9 @@ All errors return diagnostics with source provenance and no partial document
 collection. `WAC-D001` reports invalid inventory input, `WAC-D003` reports selection
 or closure constraints, and `WAC-D004` reports a print, compilation or generated
 composition failure. Unsupported proposals follow the existing verifier and text
-compiler profiles. This operation does not claim wasm-tools/WABT print compatibility.
+compiler profiles. Split documents use the default emitters. The opt-in
+[single-document compatibility modes](../../../wit/src/decompiler/README.mbt.md#compatibility-modes)
+are separate. The CLI rejects compatibility combined with splitting or selection.
 
 Splitting uses the retained WAT compiler's existing limits, including 64 levels
 of core control/expression nesting. Inputs beyond those text limits return a

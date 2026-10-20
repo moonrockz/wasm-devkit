@@ -65,16 +65,32 @@
 +fn int_to_hex(n : Int32) -> String {
 --- a/instructions.mbt
 +++ b/instructions.mbt
-@@ -18,0 +19,17 @@
+@@ -19,14 +19,5 @@
+-fn Parser::read_expr(
+-  self : Parser,
+-) -> Array[@types.Instruction] raise ParserError {
+-  let instructions : Array[@types.Instruction] = []
+-  while true {
+-    let opcode = self.read_byte()
+-    if opcode == 0x0B {
+-      // end
+-      break
+-    } else {
+-      instructions.push(self.read_instruction(opcode))
+-    }
+-  }
+-  instructions
 +priv enum ExpressionHead {
 +  Block(@types.BlockType)
 +  Loop(@types.BlockType)
 +  If(@types.BlockType)
 +  Try(@types.BlockType, Array[@types.CatchHandler])
-+}
-+
-+///|
+@@ -36,3 +27,11 @@
+-/// Read if-then body, stopping at either 0x05 (else) or 0x0B (end)
+-/// Returns (body, has_else) where has_else is true if we stopped at else
+-fn Parser::read_if_then_body(
 +priv struct ExpressionFrame {
++  ordinal : Int32
 +  head : ExpressionHead
 +  outer : Array[@types.Instruction]
 +  mut then_body : Array[@types.Instruction]?
@@ -83,13 +99,27 @@
 +///|
 +// Build structured instruction trees with an explicit stack. The physical
 +// nesting cap also bounds recursive destruction in third-party model backends.
-@@ -22 +39,2 @@
++fn Parser::read_expr(
+@@ -40,3 +39,6 @@
+-) -> (Array[@types.Instruction], Bool) raise ParserError {
 -  let instructions : Array[@types.Instruction] = []
+-  let mut has_else = false
++  else_labels~ : Array[Int32] = [],
++  instruction_offsets~ : Array[Int32] = [],
++) -> Array[@types.Instruction] raise ParserError {
++  let mut ordinal = 0
 +  let frames : Array[ExpressionFrame] = []
 +  let mut body : Array[@types.Instruction] = []
-@@ -25,6 +43,43 @@
+@@ -43,0 +46 @@
++    instruction_offsets.push(self.pos)
+@@ -45,11 +48,45 @@
 -    if opcode == 0x0B {
--      // end
+-      // end - no else clause
+-      has_else = false
+-      break
+-    } else if opcode == 0x05 {
+-      // else
+-      has_else = true
 -      break
 -    } else {
 -      instructions.push(self.read_instruction(opcode))
@@ -116,6 +146,7 @@
 +          frame.then_body is None else {
 +          raise ParseError("unexpected else opcode")
 +        }
++        else_labels.push(frame.ordinal)
 +        frame.then_body = Some(body)
 +        body = []
 +      }
@@ -130,37 +161,21 @@
 +          0x04 => ExpressionHead::If(bt)
 +          _ => ExpressionHead::Try(bt, self.read_catch_handlers())
 +        }
-+        frames.push({ head, outer: body, then_body: None, })
++        frames.push({ head, ordinal, outer: body, then_body: None, })
++        ordinal += 1
 +        body = []
 +      }
 +      _ => body.push(self.read_instruction(opcode))
 +    }
 +  } nobreak {
 +    body
-@@ -32 +86,0 @@
--  instructions
-@@ -36,3 +90 @@
--/// Read if-then body, stopping at either 0x05 (else) or 0x0B (end)
--/// Returns (body, has_else) where has_else is true if we stopped at else
--fn Parser::read_if_then_body(
+@@ -57 +94,20 @@
+-  (instructions, has_else)
++}
++
++///|
 +fn Parser::read_catch_handlers(
-@@ -40,16 +92,13 @@
--) -> (Array[@types.Instruction], Bool) raise ParserError {
--  let instructions : Array[@types.Instruction] = []
--  let mut has_else = false
--  while true {
--    let opcode = self.read_byte()
--    if opcode == 0x0B {
--      // end - no else clause
--      has_else = false
--      break
--    } else if opcode == 0x05 {
--      // else
--      has_else = true
--      break
--    } else {
--      instructions.push(self.read_instruction(opcode))
--    }
++  self : Parser,
 +) -> Array[@types.CatchHandler] raise ParserError {
 +  let count = self.read_u32()
 +  let handlers : Array[@types.CatchHandler] = []
@@ -174,13 +189,12 @@
 +        other => raise ParseError("invalid catch handler kind: \{other}")
 +      },
 +    )
-@@ -57 +106 @@
--  (instructions, has_else)
++  }
 +  handlers
-@@ -63 +112 @@
+@@ -63 +119 @@
 -  opcode : Int,
 +  opcode : Int32,
-@@ -69,22 +118,2 @@
+@@ -69,22 +125,2 @@
 -    0x02 => {
 -      let bt = self.read_block_type()
 -      let body = self.read_expr()
@@ -205,7 +219,7 @@
 -    }
 +    0x02 | 0x03 | 0x04 | 0x1f =>
 +      raise ParseError("structured opcode outside expression reader")
-@@ -94,37 +122,0 @@
+@@ -94,37 +129,0 @@
 -    0x1F => {
 -      // try_table: blocktype, catch_handlers*, body
 -      let bt = self.read_block_type()
@@ -243,13 +257,13 @@
 -      let body = self.read_expr()
 -      TryTable(bt, handlers, body)
 -    }
-@@ -581 +573 @@
+@@ -581 +580 @@
 -  subopcode : Int,
 +  subopcode : Int32,
-@@ -685 +677 @@
+@@ -685 +684 @@
 -  subopcode : Int,
 +  subopcode : Int32,
-@@ -756 +748 @@
+@@ -756 +755 @@
 -      let lanes : FixedArray[Int] = FixedArray::make(16, 0)
 +      let lanes : FixedArray[Int32] = FixedArray::make(16, 0)
 --- a/leb128.mbt
@@ -370,7 +384,10 @@
 @@ -209 +209 @@
 -  ) -> Int raise ParserError {
 +  ) -> Int32 raise ParserError {
-@@ -253 +253 @@
+@@ -247,0 +248,2 @@
++      capture_text: false,
++      text_values: [],
+@@ -253 +255 @@
 -    let composite_tags : Array[Int] = []
 +    let composite_tags : Array[Int32] = []
 --- a/sections.mbt
@@ -389,16 +406,29 @@
 @@ -8 +8 @@
 -  mut pos : Int
 +  mut pos : Int32
-@@ -27 +27 @@
+@@ -10,0 +11,2 @@
++  mut capture_text : Bool
++  text_values : Array[(Int32, String)]
+@@ -16 +18,8 @@
+-  { data, pos: 0, has_data_count: false, types: [], }
++  {
++    data,
++    pos: 0,
++    has_data_count: false,
++    types: [],
++    capture_text: false,
++    text_values: [],
++  }
+@@ -27 +36 @@
 -fn Parser::peek_byte(self : Parser) -> Int raise ParserError {
 +fn Parser::peek_byte(self : Parser) -> Int32 raise ParserError {
-@@ -36 +36 @@
+@@ -36 +45 @@
 -fn Parser::read_byte(self : Parser) -> Int raise ParserError {
 +fn Parser::read_byte(self : Parser) -> Int32 raise ParserError {
-@@ -47 +47 @@
+@@ -47 +56 @@
 -fn Parser::skip(self : Parser, n : Int) -> Unit raise ParserError {
 +fn Parser::skip(self : Parser, n : Int32) -> Unit raise ParserError {
-@@ -56 +56 @@
+@@ -56 +65 @@
 -fn Parser::read_bytes(self : Parser, n : Int) -> Bytes raise ParserError {
 +fn Parser::read_bytes(self : Parser, n : Int32) -> Bytes raise ParserError {
 --- a/table_memory_types.mbt
@@ -423,6 +453,89 @@
 @@ -66 +66 @@
 -    heap_type : Int,
 +    heap_type : Int32,
-@@ -133 +133 @@
+@@ -71,0 +72 @@
++  let start = self.pos
+@@ -73 +74 @@
+-  match byte {
++  let result : @types.ValueType = match byte {
+@@ -128,0 +130,4 @@
++  if self.capture_text {
++    self.text_values.push((start, self.value_text(start)))
++  }
++  result
+@@ -133 +138 @@
 -fn Parser::read_heap_type(self : Parser) -> Int raise ParserError {
 +fn Parser::read_heap_type(self : Parser) -> Int32 raise ParserError {
+@@ -174,0 +180,72 @@
++
++///|
++// Retain text spelling independently of the third-party ValueType enum, which
++// has no distinct variants for a few non-null abstract bottom/reference types.
++fn Parser::value_text(self : Parser, start : Int32) -> String raise ParserError {
++  let byte = self.data[start].to_int()
++  if byte == 0x63 || byte == 0x64 {
++    let reader = Parser(self.data)
++    reader.pos = start + 1
++    let heap = reader.read_heap_type()
++    let name = match heap {
++      -16 => "func"
++      -17 => "extern"
++      -18 => "any"
++      -19 => "eq"
++      -20 => "i31"
++      -21 => "struct"
++      -22 => "array"
++      -23 => "exn"
++      -24 => "cont"
++      -15 => "none"
++      -14 => "noextern"
++      -13 => "nofunc"
++      -12 => "noexn"
++      -11 => "nocont"
++      index if index >= 0 => index.to_string()
++      _ => raise ParseError("unknown abstract heap type")
++    }
++    if byte == 0x64 {
++      return "(ref \{name})"
++    }
++    return match heap {
++      -16 => "funcref"
++      -17 => "externref"
++      -18 => "anyref"
++      -19 => "eqref"
++      -20 => "i31ref"
++      -21 => "structref"
++      -22 => "arrayref"
++      -23 => "exnref"
++      -24 => "contref"
++      -15 => "nullref"
++      -14 => "nullexternref"
++      -13 => "nullfuncref"
++      -12 => "nullexnref"
++      -11 => "nullcontref"
++      _ => "(ref null \{name})"
++    }
++  }
++  match byte {
++    0x7f => "i32"
++    0x7e => "i64"
++    0x7d => "f32"
++    0x7c => "f64"
++    0x7b => "v128"
++    0x70 => "funcref"
++    0x6f => "externref"
++    0x6e => "anyref"
++    0x6d => "eqref"
++    0x6c => "i31ref"
++    0x6b => "structref"
++    0x6a => "arrayref"
++    0x69 => "exnref"
++    0x68 => "contref"
++    0x71 => "nullref"
++    0x72 => "nullexternref"
++    0x73 => "nullfuncref"
++    0x74 => "nullexnref"
++    0x75 => "nullcontref"
++    _ => raise ParseError("unsupported value type spelling")
++  }
++}

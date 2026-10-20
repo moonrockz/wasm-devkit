@@ -142,6 +142,8 @@ Release `0.2.0` does not include this command. Run it from local sources with
 wasm-devkit decompile module.wasm
 wasm-devkit decompile component.wasm --output component.wat
 cat module.wasm | wasm-devkit decompile -o module.wat
+wasm-devkit decompile component.wasm --compatibility wasm-tools
+wasm-devkit decompile module.wasm --compatibility wabt
 ```
 
 For a module that exports one empty function `run`, stdout receives:
@@ -176,8 +178,20 @@ binary. Values of type `error-context` are outside the profile.
 
 Diagnostics go to stderr as `FILE:[byte N]: error CODE: message`, or `FILE:[binary]` when the
 retained parser or validator supplies no offset. A failure prints no document and does not
-create or change the output file. The text uses index comments without identifiers. It is
-not wasm-tools `print` or WABT `wasm2wat` output. Inventory, component selection and
+create or change the output file. The default text uses index comments without identifiers.
+
+`--compatibility wasm-tools` targets the default `wasm-tools 1.262.0 print`
+invocation for core modules and components. `--compatibility wabt` targets
+`WABT 1.0.42 wasm2wat --enable-all` with default debug-name behavior for core
+modules. It rejects components and explicit recursive type groups. Both options
+retain the existing input profile. Names, metadata, layout and literal spelling
+follow the selected pin. Only newlines outside strings and a terminal newline
+normalize in the compatibility comparisons. The [fixture guide](../../tests/decompiler/compatibility/README.md)
+records the exact pins and measured reference/readback boundaries. Use the
+matching pinned text tool to read compatibility output.
+
+Compatibility cannot combine with `--split`, `--select` or `--select-none`.
+Inventory is independent of printing style. Inventory, component selection and
 recursive splitting are described below. See the
 [decompiler guide](../../pkgs/wit/src/decompiler/README.mbt.md).
 

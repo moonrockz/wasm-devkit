@@ -116,7 +116,8 @@ and formatter check/write modes.
 binary as one deterministic WAT document, with core modules and nested components inline.
 `moonrockz/wac/decompiler` and the CLI provide API-shape inventories, component
 selection and recursive WAC/WAT splitting. See the [split guide](pkgs/wac/src/decompiler/README.mbt.md).
-Compatibility with wasm-tools/WABT output remains a later slice (`wasm-devkit-p5m.13.4`). The current release version is `0.2.0`.
+Opt-in compatibility modes reproduce the pinned wasm-tools 1.262.0 and WABT 1.0.42 printers.
+See the [compatibility fixtures](tests/decompiler/compatibility/README.md) for exact invocations and measured boundaries. The current release version is `0.2.0`.
 
 | Module | Path | Intended capabilities |
 |--------|------|-----------------------|

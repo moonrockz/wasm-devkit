@@ -259,13 +259,43 @@ fn project_graph(
 }
 
 ///|
-fn assert_split_contract(source : String) -> Unit raise {
+fn binary_contract_projection(
+  model : @verifier.BinaryPackage,
+) -> Array[String] raise {
+  guard model.types()[model.world()].kind is World(_, _, imports, exports) else {
+    fail("world missing")
+  }
+  let work : Array[BinaryProjectionWork] = []
+  for i = exports.length() - 1; i >= 0; i = i - 1 {
+    work.push(Item(exports[i]))
+  }
+  work.push(Text(exports.length().to_string()))
+  for i = imports.length() - 1; i >= 0; i = i - 1 {
+    work.push(Item(imports[i]))
+  }
+  work.push(Text(imports.length().to_string()))
+  project_graph(model.types(), id => model.resource_identity(id), work)
+}
+
+///|
+fn assert_split_contract(
+  source : String,
+  select~ : ReadOnlyArray[String]? = None,
+) -> Unit raise {
   let bytes = binary(source)
   let original = match @verifier.decode_component_package(bytes) {
     Ok(model) => model
     Err(errors) => fail("original: " + errors[0].render())
   }
-  let split = split_source(source)
+  let split = @decompiler.split(bytes, select~).unwrap()
+  for compatibility in [None, Some(@wat.Compatibility::WasmTools)] {
+    let printed = @wat.print_binary(bytes, compatibility~).unwrap().root().text
+    let readback = @verifier.decode_component_package(binary(printed)).unwrap()
+    assert_eq(
+      binary_contract_projection(readback),
+      binary_contract_projection(original),
+    )
+  }
   let dependencies : Array[@verifier.PackageSource] = []
   let sources : Array[@verifier.SourcePackage] = []
   for document in split.documents {

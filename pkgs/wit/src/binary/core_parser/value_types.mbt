@@ -69,8 +69,9 @@ fn Parser::read_value_type(self : Parser) -> @types.ValueType raise ParserError 
     self.resolve_heap_type_as_ref_value_type(heap_type, nullable)
   }
 
+  let start = self.pos
   let byte = self.read_byte()
-  match byte {
+  let result : @types.ValueType = match byte {
     0x7F => I32
     0x7E => I64
     0x7D => F32
@@ -126,6 +127,10 @@ fn Parser::read_value_type(self : Parser) -> @types.ValueType raise ParserError 
     }
     _ => raise InvalidValueType(byte)
   }
+  if self.capture_text {
+    self.text_values.push((start, self.value_text(start)))
+  }
+  result
 }
 
 ///|
@@ -170,5 +175,77 @@ fn Parser::read_block_type(self : Parser) -> @types.BlockType raise ParserError 
     | 0x63
     | 0x62 => Value(self.read_value_type())
     _ => TypeIndex(self.read_i32())
+  }
+}
+
+///|
+// Retain text spelling independently of the third-party ValueType enum, which
+// has no distinct variants for a few non-null abstract bottom/reference types.
+fn Parser::value_text(self : Parser, start : Int32) -> String raise ParserError {
+  let byte = self.data[start].to_int()
+  if byte == 0x63 || byte == 0x64 {
+    let reader = Parser(self.data)
+    reader.pos = start + 1
+    let heap = reader.read_heap_type()
+    let name = match heap {
+      -16 => "func"
+      -17 => "extern"
+      -18 => "any"
+      -19 => "eq"
+      -20 => "i31"
+      -21 => "struct"
+      -22 => "array"
+      -23 => "exn"
+      -24 => "cont"
+      -15 => "none"
+      -14 => "noextern"
+      -13 => "nofunc"
+      -12 => "noexn"
+      -11 => "nocont"
+      index if index >= 0 => index.to_string()
+      _ => raise ParseError("unknown abstract heap type")
+    }
+    if byte == 0x64 {
+      return "(ref \{name})"
+    }
+    return match heap {
+      -16 => "funcref"
+      -17 => "externref"
+      -18 => "anyref"
+      -19 => "eqref"
+      -20 => "i31ref"
+      -21 => "structref"
+      -22 => "arrayref"
+      -23 => "exnref"
+      -24 => "contref"
+      -15 => "nullref"
+      -14 => "nullexternref"
+      -13 => "nullfuncref"
+      -12 => "nullexnref"
+      -11 => "nullcontref"
+      _ => "(ref null \{name})"
+    }
+  }
+  match byte {
+    0x7f => "i32"
+    0x7e => "i64"
+    0x7d => "f32"
+    0x7c => "f64"
+    0x7b => "v128"
+    0x70 => "funcref"
+    0x6f => "externref"
+    0x6e => "anyref"
+    0x6d => "eqref"
+    0x6c => "i31ref"
+    0x6b => "structref"
+    0x6a => "arrayref"
+    0x69 => "exnref"
+    0x68 => "contref"
+    0x71 => "nullref"
+    0x72 => "nullexternref"
+    0x73 => "nullfuncref"
+    0x74 => "nullexnref"
+    0x75 => "nullcontref"
+    _ => raise ParseError("unsupported value type spelling")
   }
 }
