@@ -6,6 +6,10 @@ import {
 }
 
 // Values
+pub fn print_binary(Bytes, source_id? : String) -> Result[WatDocuments, ReadOnlyArray[Diagnostic]]
+
+pub fn print_component(Bytes, source_id? : String) -> Result[WatDocuments, ReadOnlyArray[Diagnostic]]
+
 pub fn print_core_module(Bytes, source_id? : String) -> Result[WatDocuments, ReadOnlyArray[Diagnostic]]
 
 // Errors

@@ -396,12 +396,19 @@ test "decompile prints one document or explicit diagnostics without a document" 
     { path: "c.wasm", output: Some("c.wat"), },
     b"\x00asm\x0d\x00\x01\x00",
   )
-  assert_eq(component.exit_code, 1)
-  assert_eq(component.stdout, "")
-  assert_eq(component.write_text, None)
+  assert_eq(component.exit_code, 0)
+  assert_eq(component.write_text, Some("(component\n)\n"))
+  // A type section that declares one entry but holds none.
+  let truncated = @cli.decompile(
+    { path: "c.wasm", output: Some("c.wat"), },
+    b"\x00asm\x0d\x00\x01\x00\x07\x01\x01",
+  )
+  assert_eq(truncated.exit_code, 1)
+  assert_eq(truncated.stdout, "")
+  assert_eq(truncated.write_text, None)
   assert_eq(
-    component.stderr,
-    "c.wasm:[byte 4]: error WIT-D003: component binaries are outside the core-module print profile\n",
+    truncated.stderr,
+    "c.wasm:[byte 11]: error WIT-D001: vector or string exceeds its enclosing section\n",
   )
   // A function declared to return i32 has an empty body.
   let invalid = @cli.decompile(

@@ -21,4 +21,5 @@ import {
   "moonrockz/wit/ast",
   "moonbitlang/core/encoding/utf8",
   "moonrockz/wit/formatter",
+  "moonrockz/wit/decompiler",
 } for "test"

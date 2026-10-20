@@ -73,9 +73,10 @@ async fn main {
   assert_eq(quiet, "")
   assert_eq(@fs.read_file(module_wat).text(), module_text)
   // A failure leaves an existing output file unchanged and creates no new one.
+  // The component type section declares one entry but holds none.
   let component_wasm = dir + "/component.wasm"
   let absent_wat = dir + "/absent.wat"
-  @fs.write_file(component_wasm, b"\x00asm\x0d\x00\x01\x00")
+  @fs.write_file(component_wasm, b"\x00asm\x0d\x00\x01\x00\x07\x01\x01")
   if @fs.exists(absent_wat) {
     @fs.remove(absent_wat)
   }
@@ -84,10 +85,29 @@ async fn main {
     1,
     wit,
   )
-  assert_true(component_err.contains("component.wasm:[byte 4]: error WIT-D003"))
+  assert_true(
+    component_err.contains("component.wasm:[byte 11]: error WIT-D001"),
+  )
   assert_eq(@fs.read_file(module_wat).text(), module_text)
   let _ = run(["decompile", component_wasm, "-o", absent_wat], 1, wit)
   assert_false(@fs.exists(absent_wat))
+  // An encoded WIT package verifies to the same model as its printed WAT.
+  let package_wasm = "tests/semantic/wit-encoded-upstream/wasi-http.wasm"
+  let package_wat = dir + "/wasi-http.wat"
+  let _ = run(["decompile", package_wasm, "-o", package_wat], 0, wit)
+  let (binary_model, _) = run(["verify", package_wasm, "--json"], 0, wit)
+  let (text_model, _) = run(["verify", package_wat, "--json"], 0, wit)
+  assert_eq(text_model, binary_model)
+  // Runtime components print with core modules and nested components inline.
+  for
+    path in [
+      "tests/semantic/wac-core-control/production/hello/dep.wasm", "tests/semantic/wac-nested-components/production/http-0.2.0/component.wasm",
+    ] {
+    let (text, err) = run(["decompile", path], 0, wit)
+    assert_eq(err, "")
+    assert_true(text.has_prefix("(component\n"))
+    assert_true(text.contains("\n  (core module (;0;)\n"))
+  }
   let _ = run(["decompile", module_wasm, "--language", "wit"], 2, wit)
   // Another spelling of the input path must not overwrite the binary.
   let module_bytes = @fs.read_file(module_wasm).binary()

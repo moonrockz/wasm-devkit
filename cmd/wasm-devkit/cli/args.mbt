@@ -40,8 +40,10 @@ pub let help : String =
   #|verify checks supported semantics; unsupported constructs fail explicitly.
   #|parse reports syntax validity; ast/cst/tokens inspect immutable flat arenas.
   #|print emits canonical AST source; format retains comments and token spelling.
-  #|decompile prints a flat core-module .wasm as one WAT document. It does not
-  #|accept components, execute the binary or claim wasm-tools/wasm2wat output.
+  #|decompile prints a core-module or component .wasm as one WAT document.
+  #|Components use the verifier's component profile; core modules and nested
+  #|components print inline. It does not execute the binary or claim
+  #|wasm-tools/wasm2wat output.
   #|  --output PATH, -o PATH  Write the WAT document instead of stdout
   #|Exit codes: 0 success, 1 syntax/semantic errors or formatting differences, 2 usage/I/O.
   #|Diagnostic line/column values are 1-based and count UTF-16 code units.
