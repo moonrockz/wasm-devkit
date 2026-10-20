@@ -138,6 +138,34 @@ async fn main {
     let (_, errors) = run(["verify", output + "/root.wac"], 0, wit)
     assert_eq(errors, "")
   }
+  // Recursive source errors use the dependency's own line and column.
+  let child = dir + "/diagnostic-child.wac"
+  let leaf = dir + "/diagnostic-leaf.wac"
+  let diagnostic_root = dir + "/diagnostic-root.wac"
+  @fs.write_file(
+    diagnostic_root, "package test:app;\nlet x = new sample:child {};\nexport x;\n",
+  )
+  @fs.write_file(
+    child, "package sample:child;\nlet x = new sample:leaf {};\nexport x;\n",
+  )
+  for
+    (text, code) in [
+      ("package sample:leaf;\n\nlet broken = ;\n", "WAC-P001"),
+      ("package sample:leaf;\n\nlet x = missing;\n", "WAC-S005"),
+      ("package sample:leaf;\n\nlet x = new sample:missing {};\n", "WAC-P003"),
+    ] {
+    @fs.write_file(leaf, text)
+    let (_, diagnostic) = run(
+      [
+        "verify", diagnostic_root, "--dep", "sample:child=diagnostic-child.wac",
+        "--dep", "sample:leaf=diagnostic-leaf.wac",
+      ],
+      1,
+      wit,
+    )
+    assert_true(diagnostic.contains("diagnostic-leaf.wac:3:"))
+    assert_true(diagnostic.contains(code))
+  }
   let sentinel = split_dir + "/sentinel"
   @fs.write_file(sentinel, "keep")
   let _ = run(["decompile", nested, "--split", split_dir], 2, wit)
