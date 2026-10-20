@@ -620,8 +620,9 @@ fn f64_literal(value : Double) -> String {
 ///|
 fn limits_to_wat(limits : @types.Limits) -> String {
   match limits.max {
-    Some(max) => "\{limits.min} \{max}"
-    None => limits.min.to_string()
+    Some(max) =>
+      "\{limits.min.reinterpret_as_uint64()} \{max.reinterpret_as_uint64()}"
+    None => limits.min.reinterpret_as_uint64().to_string()
   }
 }
 

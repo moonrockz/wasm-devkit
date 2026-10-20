@@ -1273,6 +1273,16 @@ async fn main {
       }
     }
   }
+  for name in ["concrete-memory-u64", "concrete-table-u64"] {
+    let (printed, _) = run(
+      ["decompile", "tests/semantic/wac-core-limits/" + name + ".wasm"],
+      0,
+      wit,
+    )
+    assert_true(
+      printed.contains("i64 18446744073709551615 18446744073709551615"),
+    )
+  }
   for extension in ["wasm", "wat"] {
     for
       (name, status) in [

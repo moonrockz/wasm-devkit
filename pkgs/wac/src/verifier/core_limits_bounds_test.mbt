@@ -171,3 +171,27 @@ test "core limits law preserves arbitrary UInt64 contracts through WAT and binar
     seed=122,
   )
 }
+
+///|
+test "core limits newly admitted UInt64 modules print valid unsigned WAT" {
+  for
+    declaration in [
+      "(memory (export \"value\") i64 9223372036854775808 18446744073709551615 (pagesize 1))",
+      "(table (export \"value\") i64 9223372036854775808 18446744073709551615 funcref)",
+    ] {
+    let model = assert_package(
+      "(component (core module $m " +
+      declaration +
+      ") (export \"m\" (core module $m)))",
+      "limits.wat",
+    )
+    for compatibility in [None, Some(@decompiler.Compatibility::WasmTools)] {
+      let printed = @decompiler.print_component(model.bytes(), compatibility~)
+        .unwrap()
+        .root().text
+      let again = assert_package(printed, "printed.wat")
+      assert_eq(binary_projection(again), binary_projection(model))
+      assert_true(printed.contains("9223372036854775808 18446744073709551615"))
+    }
+  }
+}

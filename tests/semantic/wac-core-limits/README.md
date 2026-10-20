@@ -38,7 +38,9 @@ definitions with different widths and page sizes.
 `core_limits_bounds_test.mbt` checks randomized UInt64 contract round trips,
 the unchanged 1,000,000-step work allowance,
 binary component/control depth of 256, WAT control nesting of 64, invalid
-instruction validation and overflowing decimal/hexadecimal literals. Validation
+instruction validation and overflowing decimal/hexadecimal literals. Newly
+admitted concrete UInt64 modules also print unsigned limits and round-trip
+through default and wasm-tools-compatible WAT output. Validation
 uses explicit stacks, performs no hidden I/O and never executes input modules.
 
 Run `mise run test` for wasm, wasm-gc, js and native. `mise run test:cli -- wasm`
