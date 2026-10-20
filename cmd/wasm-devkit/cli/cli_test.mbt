@@ -343,3 +343,72 @@ test "WIT verification defaults to the semantic reference grammar" {
   assert_eq(extended.exit_code, 1)
   assert_true(extended.stderr.contains("WIT-P003"))
 }
+
+///|
+test "decompile arguments accept one binary and an optional output file" {
+  assert_eq(
+    @cli.arguments(["decompile", "app.wasm"]),
+    Ok(Decompile({ path: "app.wasm", output: None, })),
+  )
+  assert_eq(
+    @cli.arguments(["decompile", "-o", "app.wat", "--", "-app.wasm"]),
+    Ok(Decompile({ path: "-app.wasm", output: Some("app.wat"), })),
+  )
+  assert_eq(
+    @cli.arguments(["decompile", "--output", "app.wat"]),
+    Ok(Decompile({ path: "-", output: Some("app.wat"), })),
+  )
+  assert_true(@cli.arguments(["decompile", "--help"]) is Ok(Help))
+  for
+    args in [
+      ["decompile", "a.wasm", "b.wasm"],
+      ["decompile", "a.wasm", "--output"],
+      ["decompile", "a.wasm", "--output", "-"],
+      ["decompile", "a.wasm", "-o", "x.wat", "-o", "y.wat"],
+      ["decompile", "a.wasm", "--language", "wit"],
+      ["decompile", "a.wasm", "--output", "a.wasm"],
+    ] {
+    assert_true(@cli.arguments(args[:]) is Err(_))
+  }
+  assert_true(@cli.help.contains("decompile [FILE.wasm|-] [--output FILE.wat]"))
+}
+
+///|
+test "decompile prints one document or explicit diagnostics without a document" {
+  // (module (func (export "run")))
+  let bytes = b"\x00asm\x01\x00\x00\x00\x01\x04\x01\x60\x00\x00\x03\x02\x01\x00\x07\x07\x01\x03run\x00\x00\x0a\x04\x01\x02\x00\x0b"
+  let expected = "(module\n  (type (;0;) (func))\n  (export \"run\" (func 0))\n  (func (;0;) (type 0)\n  )\n)\n"
+  let printed = @cli.decompile({ path: "app.wasm", output: None, }, bytes)
+  assert_eq(printed, {
+    stdout: expected,
+    stderr: "",
+    exit_code: 0,
+    write_text: None,
+  })
+  let written = @cli.decompile({ path: "-", output: Some("app.wat"), }, bytes)
+  assert_eq(written, {
+    stdout: "",
+    stderr: "",
+    exit_code: 0,
+    write_text: Some(expected),
+  })
+  let component = @cli.decompile(
+    { path: "c.wasm", output: Some("c.wat"), },
+    b"\x00asm\x0d\x00\x01\x00",
+  )
+  assert_eq(component.exit_code, 1)
+  assert_eq(component.stdout, "")
+  assert_eq(component.write_text, None)
+  assert_eq(
+    component.stderr,
+    "c.wasm:[byte 4]: error WIT-D003: component binaries are outside the core-module print profile\n",
+  )
+  // A function declared to return i32 has an empty body.
+  let invalid = @cli.decompile(
+    { path: "-", output: None, },
+    b"\x00asm\x01\x00\x00\x00\x01\x05\x01\x60\x00\x01\x7f\x03\x02\x01\x00\x0a\x04\x01\x02\x00\x0b",
+  )
+  assert_eq(invalid.exit_code, 1)
+  assert_eq(invalid.write_text, None)
+  assert_true(invalid.stderr.has_prefix("<stdin>:[binary]: error WIT-D002: "))
+}

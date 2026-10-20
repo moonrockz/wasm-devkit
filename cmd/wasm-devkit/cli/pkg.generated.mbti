@@ -8,6 +8,8 @@ import {
 // Values
 pub fn arguments(ArrayView[String]) -> Result[Action, String]
 
+pub fn decompile(DecompileOptions, Bytes) -> Output
+
 pub fn execute(Options, String) -> Output
 
 pub let help : String
@@ -27,6 +29,7 @@ pub(all) enum Action {
   Help
   Version
   Run(Options)
+  Decompile(DecompileOptions)
 } derive(Eq, @debug.Debug)
 pub fn Action::equal(Self, Self) -> Bool
 pub fn Action::not_equal(Self, Self) -> Bool
@@ -44,6 +47,14 @@ pub(all) enum Command {
 pub fn Command::equal(Self, Self) -> Bool
 pub fn Command::not_equal(Self, Self) -> Bool
 pub fn Command::to_repr(Self) -> @debug.Repr
+
+pub(all) struct DecompileOptions {
+  path : String
+  output : String?
+} derive(Eq, @debug.Debug)
+pub fn DecompileOptions::equal(Self, Self) -> Bool
+pub fn DecompileOptions::not_equal(Self, Self) -> Bool
+pub fn DecompileOptions::to_repr(Self) -> @debug.Repr
 
 pub(all) struct DependencyMapping {
   name : String

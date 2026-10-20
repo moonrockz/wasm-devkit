@@ -20,6 +20,8 @@ pub fn inspect_module(Bytes) -> Result[ModuleMetadata, Diagnostic]
 
 pub fn scan_type(Bytes, Int, Int, legacy_nested? : Bool) -> Result[Int, Diagnostic]
 
+pub fn signaling_f32_constants(Bytes) -> Result[ReadOnlyArray[Int], Diagnostic]
+
 // Errors
 
 // Types and methods

@@ -66,6 +66,7 @@ available for invalid input, and the CST always reconstructs the original text.
 | Walk trees, navigate cursors or perform immutable rewrites | [WIT traversal](pkgs/wit/src/traversal/README.mbt.md#recipes), [WAC traversal](pkgs/wac/src/traversal/README.mbt.md#recipes) |
 | Apply source edits while retaining comments | [WIT editor recipe](pkgs/wit/README.mbt.md#edit-one-token-and-retain-comments), [WAC editor recipe](pkgs/wac/README.mbt.md#edit-one-token-and-retain-comments) |
 | Work from a terminal or check formatting in CI | [CLI scenarios](cmd/wasm-devkit/README.md#scenarios) |
+| Print a core-module `.wasm` binary as WAT | [Decompiler guide](pkgs/wit/src/decompiler/README.mbt.md), [CLI decompile](cmd/wasm-devkit/README.md#print-a-core-module-binary-as-wat) |
 
 ## Semantic verification
 
@@ -110,7 +111,10 @@ WAC has a lossless scanner, typed immutable AST/CST and recovering parser, teste
 all 163 files in its pinned reference corpus. WAC immutable traversal, rewrites, canonical printing and comment-preserving formatting
 are implemented.
 The CLI under `cmd/wasm-devkit` supports both languages, files/stdin, inspection, printing
-and formatter check/write modes. The current release version is `0.2.0`.
+and formatter check/write modes.
+`moonrockz/wit/decompiler` and `wasm-devkit decompile` print a flat core-module `.wasm` binary
+as one deterministic WAT document. Components, split documents, module selection, API-shape
+inventories and wasm-tools/WABT output compatibility are not implemented yet (`wasm-devkit-p5m.13`). The current release version is `0.2.0`.
 
 | Module | Path | Intended capabilities |
 |--------|------|-----------------------|
@@ -168,7 +172,7 @@ mise run clean
 ## Documentation checks
 
 `mise run test` executes checked API comments and package README examples.
-`mise run test:docs` additionally compiles all 24 library guides using exactly their
+`mise run test:docs` additionally compiles all 25 library guides using exactly their
 documented imports, including the root and module READMEs outside package source directories.
 Both commands run on wasm, wasm-gc, js and native by default.
 

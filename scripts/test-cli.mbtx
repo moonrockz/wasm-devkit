@@ -56,6 +56,39 @@ async fn main {
   assert_true(version.has_prefix("wasm-devkit "))
   let (help, _) = run(["--help"], 0, wit)
   assert_true(help.contains("--check"))
+  assert_true(help.contains("decompile"))
+  // (module (func (export "run")))
+  let module_wasm = dir + "/module.wasm"
+  let module_wat = dir + "/module.wat"
+  @fs.write_file(
+    module_wasm, b"\x00asm\x01\x00\x00\x00\x01\x04\x01\x60\x00\x00\x03\x02\x01\x00\x07\x07\x01\x03run\x00\x00\x0a\x04\x01\x02\x00\x0b",
+  )
+  let module_text = "(module\n  (type (;0;) (func))\n  (export \"run\" (func 0))\n  (func (;0;) (type 0)\n  )\n)\n"
+  let (printed, printed_err) = run(["decompile", module_wasm], 0, wit)
+  assert_eq(printed, module_text)
+  assert_eq(printed_err, "")
+  let (piped, _) = run(["decompile"], 0, module_wasm)
+  assert_eq(piped, module_text)
+  let (quiet, _) = run(["decompile", module_wasm, "-o", module_wat], 0, wit)
+  assert_eq(quiet, "")
+  assert_eq(@fs.read_file(module_wat).text(), module_text)
+  // A failure leaves an existing output file unchanged and creates no new one.
+  let component_wasm = dir + "/component.wasm"
+  let absent_wat = dir + "/absent.wat"
+  @fs.write_file(component_wasm, b"\x00asm\x0d\x00\x01\x00")
+  if @fs.exists(absent_wat) {
+    @fs.remove(absent_wat)
+  }
+  let (_, component_err) = run(
+    ["decompile", component_wasm, "--output", module_wat],
+    1,
+    wit,
+  )
+  assert_true(component_err.contains("component.wasm:[byte 4]: error WIT-D003"))
+  assert_eq(@fs.read_file(module_wat).text(), module_text)
+  let _ = run(["decompile", component_wasm, "-o", absent_wat], 1, wit)
+  assert_false(@fs.exists(absent_wat))
+  let _ = run(["decompile", module_wasm, "--language", "wit"], 2, wit)
   for file in [wit, wac] {
     let (out, err) = run(["parse", file], 0, wit)
     assert_true(out.contains(": valid "))

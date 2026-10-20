@@ -16,6 +16,25 @@ async fn main {
         @stdio.stdout.write("wasm-devkit " + @cli.version() + "\n")
         0
       }
+      Ok(Decompile(options)) => {
+        let data = if options.path == "-" {
+          @stdio.stdin.read_all()
+        } else {
+          @fs.read_file(options.path)
+        }
+        let result = @cli.decompile(options, data.binary())
+        // Only a complete document reaches the output file.
+        if result.write_text is Some(text) && options.output is Some(path) {
+          @fs.write_file(path, text)
+        }
+        if !result.stdout.is_empty() {
+          @stdio.stdout.write(result.stdout)
+        }
+        if !result.stderr.is_empty() {
+          @stdio.stderr.write(result.stderr)
+        }
+        result.exit_code
+      }
       Ok(Run(options)) if options.command == Verify => {
         let result = @verification.execute(options)
         if !result.stdout.is_empty() {
