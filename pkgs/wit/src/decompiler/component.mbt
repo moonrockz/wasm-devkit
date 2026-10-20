@@ -748,10 +748,7 @@ fn payload_offsets(bytes : Bytes) -> Array[Int32] {
 }
 
 ///|
-fn[T] parsed(
-  base : Int32?,
-  parse : () -> T raise @component.ComponentParseError,
-) -> T raise PrintFailure {
+fn[T] parsed(base : Int32?, parse : () -> T raise) -> T raise PrintFailure {
   parse() catch {
     error => raise PrintFailure(base, "WIT-D001", error.to_string())
   }
@@ -976,7 +973,7 @@ fn component_tasks(
       7 =>
         for
           definition in parsed(offset, () => {
-            @component.parse_type_section(payload)
+            @type_parser.parse_type_section(payload)
           }) {
           type_tasks(tasks, depth, scope.take(3), definition, scope~)
         }

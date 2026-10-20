@@ -30,7 +30,7 @@ pub fn validate_type_component(
 ) -> Result[ValidatedComponent, ReadOnlyArray[Diagnostic]] {
   try {
     preflight(bytes)
-    let component = @component.parse_component(bytes) catch {
+    let component = @type_parser.parse_component(bytes) catch {
       error => raise Failure(None, "WIT-B001", error.to_string())
     }
     @validation.validate_component(component) catch {

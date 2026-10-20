@@ -42,7 +42,7 @@ pub fn decode_package(
     Ok(_) => ()
   }
   try {
-    let component = @component.parse_component(bytes) catch {
+    let component = @type_parser.parse_component(bytes) catch {
       _ => raise Invalid("validated component could not be read")
     }
     let (text, metadata_bytes, markers) = lower_encoded(component)

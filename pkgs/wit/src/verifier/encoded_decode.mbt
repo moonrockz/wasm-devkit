@@ -398,7 +398,7 @@ fn lower_encoded(
         }
       }
       7 => {
-        let definitions = @component.parse_type_section(section.payload) catch {
+        let definitions = @type_parser.parse_type_section(section.payload) catch {
           _ => raise Invalid("invalid component type section")
         }
         for definition in definitions {

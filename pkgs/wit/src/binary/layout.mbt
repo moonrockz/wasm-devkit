@@ -245,7 +245,7 @@ fn validate_layouts(component : @component.Component) -> Unit raise Boundary {
   let declarations : Array[@component.ComponentDecl] = []
   for section in component.binary.sections {
     if section.id == 7 {
-      let types = @component.parse_type_section(section.payload) catch {
+      let types = @type_parser.parse_type_section(section.payload) catch {
         _ => {
           layout_error("invalid component layout type section")
           []

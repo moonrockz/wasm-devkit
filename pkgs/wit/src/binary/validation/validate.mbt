@@ -654,7 +654,7 @@ fn component_validation_frame(
         }
         7 => {
           // Definitions extend the type index space.
-          let defs = @component.parse_type_section(s.payload) catch {
+          let defs = @type_parser.parse_type_section(s.payload) catch {
             e => raise SectionParseError(7, "\{e}")
           }
           for d in defs {

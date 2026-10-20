@@ -119,3 +119,40 @@ test "concrete component cumulative scope budget is unsupported" {
   assert_eq(result.unwrap_err()[0].code, "WAC-B002")
   assert_true(result.unwrap_err()[0].message.contains("scope work limit"))
 }
+
+///|
+fn nested_type_binary(depth : Int32, instance : Bool) -> Bytes {
+  let op : Byte = if instance { 0x42 } else { 0x41 }
+  let definition : Array[Byte] = []
+  for _ in 1..<depth {
+    definition.append([op, 1, 1])
+  }
+  definition.append([op, 0])
+  let payload : Array[Byte] = [1]
+  payload.append(definition)
+  // Reuse the section length encoder, replacing section 4 with section 7.
+  let envelope = nested_binary(Bytes::from_array(payload))
+  let bytes = envelope.to_array()
+  bytes[8] = 7
+  Bytes::from_array(bytes)
+}
+
+///|
+test "dependency type parser accepts 256 scopes and diagnoses 257" {
+  for instance in [false, true] {
+    let result = @verifier.decode_component_package(
+      nested_type_binary(256, instance),
+    )
+    assert_true(
+      result is Ok(_),
+      msg=match result {
+        Ok(_) => "accepted"
+        Err(errors) => errors[0].render()
+      },
+    )
+    assert_eq(
+      @verifier.decode_component_package(nested_type_binary(257, instance)).unwrap_err()[0].code,
+      "WAC-B002",
+    )
+  }
+}
