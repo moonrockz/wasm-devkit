@@ -40,8 +40,12 @@ fn Parser::read_array_type(self : Parser) -> @types.ArrayType raise ParserError 
 fn Parser::read_composite_type(
   self : Parser,
 ) -> @types.CompositeType raise ParserError {
+  let shared = self.peek_byte() == 0x65
+  if shared {
+    self.skip(1)
+  }
   let tag = self.read_byte()
-  match tag {
+  let result : @types.CompositeType = match tag {
     0x60 => {
       let params = self.read_vec(() => self.read_value_type())
       let results = self.read_vec(() => self.read_value_type())
@@ -52,48 +56,30 @@ fn Parser::read_composite_type(
     0x5d => Cont(self.read_u32())
     _ => raise ParseError("unknown composite type tag: \{tag}")
   }
+  if !shared {
+    return result
+  }
+  match result {
+    Func(f) => SharedFunc(f)
+    Struct(t) => SharedStruct(t)
+    Array(t) => SharedArray(t)
+    _ => raise ParseError("unsupported shared composite type")
+  }
 }
 
 ///|
 fn Parser::read_subtype(self : Parser) -> @types.SubType raise ParserError {
-  // WasmGC binary subtype encoding:
-  // - 0x50: subtype header with flags + optional supertype
-  // - 0x4f: final subtype header with optional supertype
-  // - otherwise: implicit final subtype without supertypes
   let tag = self.peek_byte()
-  if tag == 0x50 {
+  if tag == 0x50 || tag == 0x4f {
     self.skip(1)
-    let flags = self.read_byte()
-    let has_supertype = (flags & 0x01) != 0
-    let final_ = (flags & 0x02) != 0
-    if (flags & 0xFC) != 0 {
-      raise ParseError("malformed subtype flags")
+    let count = self.read_u32()
+    if count < 0 || count > 1 {
+      raise ParseError("invalid supertype count")
     }
-    let supertypes : Array[Int32] = if has_supertype {
-      [self.read_u32()]
-    } else {
-      []
-    }
-    let composite = self.read_composite_type()
-    { final_, supertypes, composite, }
-  } else if tag == 0x4f {
-    self.skip(1)
-    let flags = self.read_byte()
-    let has_supertype = (flags & 0x01) != 0
-    if (flags & 0xFE) != 0 {
-      raise ParseError("malformed subtype flags")
-    }
-    let supertypes : Array[Int32] = if has_supertype {
-      [self.read_u32()]
-    } else {
-      []
-    }
-    let composite = self.read_composite_type()
-    { final_: true, supertypes, composite, }
+    let supertypes = if count == 1 { [self.read_u32()] } else { [] }
+    { final_: tag == 0x4f, supertypes, composite: self.read_composite_type(), }
   } else {
-    // Implicit final subtype
-    let composite = self.read_composite_type()
-    { final_: true, supertypes: [], composite, }
+    { final_: true, supertypes: [], composite: self.read_composite_type(), }
   }
 }
 
@@ -108,7 +94,8 @@ fn Parser::read_rec_group(
   fn placeholder_subtype_by_composite_tag(
     composite_tag : Int32,
   ) -> @types.SubType raise ParserError {
-    let composite : @types.CompositeType = match composite_tag {
+    let shared = (composite_tag & 256) != 0
+    let composite : @types.CompositeType = match composite_tag & 255 {
       0x60 => Func({ params: [], results: [], })
       0x5d => Cont(0)
       0x5f => Struct({ fields: [], })
@@ -120,6 +107,16 @@ fn Parser::read_rec_group(
         Array({ element, })
       }
       _ => raise ParseError("unknown composite type tag: \{composite_tag}")
+    }
+    let composite = if shared {
+      match composite {
+        Func(f) => @types.CompositeType::SharedFunc(f)
+        Struct(t) => SharedStruct(t)
+        Array(t) => SharedArray(t)
+        _ => raise ParseError("unsupported shared composite type")
+      }
+    } else {
+      composite
     }
     { final_: true, supertypes: [], composite, }
   }
@@ -149,10 +146,7 @@ fn Parser::read_rec_group(
       0x64 | 0x63 => self.read_heap_type() |> ignore
 
       // shared reference types proposal
-      0x65 | 0x62 => {
-        self.read_heap_type() |> ignore
-        raise ParseError("shared reference types not supported")
-      }
+      0x65 => self.read_heap_type() |> ignore
       _ => raise InvalidValueType(byte)
     }
   }
@@ -169,8 +163,12 @@ fn Parser::read_rec_group(
   }
 
   fn skip_composite_type_no_resolve(self : Parser) -> Int32 raise ParserError {
+    let shared = self.peek_byte() == 0x65
+    if shared {
+      self.skip(1)
+    }
     let tag = self.read_byte()
-    match tag {
+    let result = match tag {
       0x60 => {
         // func: vec(valtype) vec(valtype)
         let nparams = self.read_u32()
@@ -202,37 +200,24 @@ fn Parser::read_rec_group(
       }
       _ => raise ParseError("unknown composite type tag: \{tag}")
     }
+    result | (if shared { 256 } else { 0 })
   }
 
   fn skip_subtype_and_get_composite_tag(
     self : Parser,
   ) -> Int32 raise ParserError {
     let tag = self.peek_byte()
-    if tag == 0x50 {
+    if tag == 0x50 || tag == 0x4f {
       self.skip(1)
-      let flags = self.read_byte()
-      let has_supertype = (flags & 0x01) != 0
-      if (flags & 0xFC) != 0 {
-        raise ParseError("malformed subtype flags")
+      let count = self.read_u32()
+      if count < 0 || count > 1 {
+        raise ParseError("invalid supertype count")
       }
-      if has_supertype {
-        self.read_u32() |> ignore
+      if count == 1 {
+        ignore(self.read_u32())
       }
-      skip_composite_type_no_resolve(self)
-    } else if tag == 0x4f {
-      self.skip(1)
-      let flags = self.read_byte()
-      let has_supertype = (flags & 0x01) != 0
-      if (flags & 0xFE) != 0 {
-        raise ParseError("malformed subtype flags")
-      }
-      if has_supertype {
-        self.read_u32() |> ignore
-      }
-      skip_composite_type_no_resolve(self)
-    } else {
-      skip_composite_type_no_resolve(self)
     }
+    skip_composite_type_no_resolve(self)
   }
 
   let tag = self.peek_byte()
@@ -267,8 +252,13 @@ fn Parser::read_rec_group(
     }
     defs
   } else {
+    let scan = Parser(self.data)
+    scan.pos = self.pos
+    let kind = skip_subtype_and_get_composite_tag(scan)
+    let index = self.types.length()
+    self.types.push(placeholder_subtype_by_composite_tag(kind))
     let subtype = self.read_subtype()
-    self.types.push(subtype)
+    self.types[index] = subtype
     [subtype]
   }
 }

@@ -319,14 +319,6 @@ test "binaries outside the component profile fail without a partial document" {
   )
   assert_eq(error_context.code, "WIT-D003")
   assert_true(error_context.message.contains("error-context"))
-  // Prefixed core subtypes (`0x00 0x50 ... 0x60`) fail component validation
-  // as GC types, in a core type section and in a component type declaration.
-  for
-    bytes in [
-      b"\x00asm\x0d\x00\x01\x00\x03\x06\x01\x00\x50\x00\x60\x00\x00", b"\x00asm\x0d\x00\x01\x00\x07\x0a\x01\x41\x01\x00\x00\x50\x00\x60\x00\x00",
-    ] {
-    assert_eq(component_error(bytes).code, "WIT-D003")
-  }
   // `(func (result f32) f32.const nan:0x200000)` nested in a component reports
   // the absolute offset of the constant.
   let module_ = b"\x00asm\x01\x00\x00\x00\x01\x05\x01\x60\x00\x01\x7d\x03\x02\x01\x00\x0a\x09\x01\x07\x00\x43\x00\x00\xa0\x7f\x0b"
@@ -481,4 +473,16 @@ test "contextual fragments validate input and select physical component indices"
     @decompiler.component_fragment(b"bad", []).unwrap_err()[0].code,
     "WIT-D001",
   )
+}
+
+///|
+test "GC core declarations print through root and nested component scopes" {
+  for
+    source in [
+      "(component (core type (sub (func))))", "(component (type (component (core type (sub (func))))))",
+      "(component (core rec (type $s (struct (field (ref null 1)))) (type $a (array (ref null 0)))) (core type $m (module (alias outer 1 $a (type $local)) (export \"g\" (global (ref null 0))))) (import \"m\" (core module $m0 (type $m))) (export \"m\" (core module $m0)))",
+      "(component (type (component (core rec (type $s (struct (field (ref null 1)))) (type $a (array (ref null 0)))) (core type $m (module (alias outer 1 $a (type $local)) (export \"g\" (global (ref null 0))))) (import \"m\" (core module (type $m))))))",
+    ] {
+    ignore(round_trip_component(component(source)))
+  }
 }

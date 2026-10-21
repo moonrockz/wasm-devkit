@@ -59,32 +59,58 @@ fn Reader::value_type(
   self : Reader,
   compatibility~ : Bool = false,
 ) -> String raise PrintFailure {
-  match self.byte() {
-    0x7f => "i32"
-    0x7e => "i64"
-    0x7d => "f32"
-    0x7c => "f64"
-    0x7b => "v128"
-    0x70 => "funcref"
-    0x6f => "externref"
-    0x63 | 0x64 as prefix => {
-      let heap = match self.byte() {
-        0x70 => "func"
-        0x6f => "extern"
-        _ =>
-          unsupported(
-            "concrete and GC core references are outside the print profile",
-          )
-      }
-      if prefix == 0x63 && compatibility {
-        heap + "ref"
-      } else if prefix == 0x63 {
-        "(ref null \{heap})"
+  if self.position < self.bytes.length() && self.bytes[self.position] == b'\x70' {
+    self.position += 1
+    return "funcref"
+  }
+  if self.position < self.bytes.length() && self.bytes[self.position] == b'\x6f' {
+    self.position += 1
+    return "externref"
+  }
+  let (end, value) = match
+    @core_types.scan_value(self.bytes, self.position, self.bytes.length()) {
+    Ok(result) => result
+    Err(error) =>
+      raise PrintFailure(Some(error.offset), "WIT-D001", error.message)
+  }
+  self.position = end
+  match value {
+    Number(name) => name
+    Ref(nullable, shared, heap) => {
+      let name = if heap >= 0 {
+        heap.to_string()
       } else {
-        "(ref \{heap})"
+        match heap {
+          -16 => "func"
+          -17 => "extern"
+          -18 => "any"
+          -19 => "eq"
+          -20 => "i31"
+          -21 => "struct"
+          -22 => "array"
+          -23 => "exn"
+          -15 => "none"
+          -14 => "noextern"
+          -13 => "nofunc"
+          -12 => "noexn"
+          _ => unsupported("unsupported abstract core heap type")
+        }
+      }
+      if compatibility && nullable && !shared && heap < 0 {
+        match heap {
+          -15 => "nullref"
+          -14 => "nullexternref"
+          -13 => "nullfuncref"
+          -12 => "nullexnref"
+          _ => name + "ref"
+        }
+      } else {
+        "(ref " +
+        (if nullable { "null " } else { "" }) +
+        (if shared { "(shared " + name + ")" } else { name }) +
+        ")"
       }
     }
-    _ => unsupported("core value type is outside the print profile")
   }
 }
 
@@ -117,10 +143,13 @@ fn Reader::limits(
   scope~ : Scope = Scope::new(),
 ) -> String raise PrintFailure {
   let flags = self.byte()
-  guard (flags & 0xf0) == 0 && (memory || (flags & 0x0a) == 0) else {
+  guard (flags & 0xf0) == 0 && (memory || (flags & 0x08) == 0) else {
     unsupported("core limits flags are outside the print profile")
   }
   let out = StringBuilder()
+  if !memory && (flags & 2) != 0 {
+    out.write_string(" shared")
+  }
   if (flags & 0x04) != 0 {
     out.write_string(" i64")
   }
@@ -128,7 +157,7 @@ fn Reader::limits(
   if (flags & 0x01) != 0 {
     out.write_string(" \{self.u64()}")
   }
-  if (flags & 0x02) != 0 {
+  if memory && (flags & 0x02) != 0 {
     out.write_string(" shared")
   }
   if (flags & 0x08) != 0 {
@@ -209,10 +238,10 @@ fn core_type_entries(
   let count = reader.u32()
   for _ in 0..<count {
     let start = reader.position
-    ignore(core_type(reader, 0, 0)) catch {
-      PrintFailure(None, code, message) =>
-        raise PrintFailure(at(base, start), code, message)
-      error => raise error
+    match @core_types.scan_declaration(payload, start, payload.length()) {
+      Ok((end, _)) => reader.position = end
+      Err(error) =>
+        raise PrintFailure(at(base, error.offset), "WIT-D001", error.message)
     }
     entries.push(payload[start:reader.position].to_owned())
   }
@@ -244,12 +273,8 @@ fn core_type(
   scope~ : Scope = Scope::new(),
 ) -> String raise PrintFailure {
   let pad = indent(depth)
-  match reader.byte() {
-    0x60 => {
-      let signature = reader.func_type(compatibility=scope.compatibility)
-      scope.core_signatures[index] = signature[5:signature.length() - 1].to_owned()
-      "\{pad}(core type \{scope.declaration(0x110, index)} \{signature})\n"
-    }
+  let opcode = reader.byte()
+  match opcode {
     0x50 => {
       let out = StringBuilder()
       out.write_string(
@@ -272,15 +297,15 @@ fn core_type(
             )
           }
           0x01 => {
-            guard reader.byte() == 0x60 else {
-              unsupported(
-                "module type definitions other than functions are outside the print profile",
-              )
-            }
-            let signature = reader.func_type(compatibility=scope.compatibility)
-            scope.core_signatures[types] = signature[5:signature.length() - 1].to_owned()
-            out.write_string("\{inner}(type (;\{types};) \{signature})\n")
-            types += 1
+            let (text, count) = reader.heap_group_text(
+              reader.byte(),
+              depth + 2,
+              types,
+              false,
+              scope,
+            )
+            out.write_string(text)
+            types += count
           }
           0x02 => {
             guard reader.byte() == 0x10 && reader.byte() == 0x01 else {
@@ -318,6 +343,12 @@ fn core_type(
       out.write_string("\{pad}  )\n\{pad})\n")
       out.to_string()
     }
-    _ => unsupported("core type form is outside the print profile")
+    _ => {
+      let (text, count) = reader.heap_group_text(
+        opcode, depth, index, true, scope,
+      )
+      scope.counts[0x110] = index + count
+      text
+    }
   }
 }

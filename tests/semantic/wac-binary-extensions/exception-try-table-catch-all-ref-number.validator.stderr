@@ -1,0 +1,4 @@
+error: func 0 failed to validate
+
+Caused by:
+    0: type mismatch: catch_all_ref label must a subtype of (ref exn) (at offset 0x23)

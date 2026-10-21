@@ -1,0 +1,3 @@
+package test:extension-client;
+let dep = new test:extensions {};
+export dep...;

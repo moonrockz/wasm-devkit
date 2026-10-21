@@ -8,129 +8,65 @@ fn Parser::resolve_heap_type_as_ref_value_type(
   heap_type : Int32,
   nullable : Bool,
 ) -> @types.ValueType raise ParserError {
-  fn resolve_typed_ref(
-    type_idx : Int32,
-    nullable : Bool,
-  ) -> @types.ValueType raise ParserError {
-    if type_idx < 0 || type_idx >= self.types.length() {
+  if heap_type >= 0 {
+    guard self.types.get(heap_type) is Some(type_) else {
       raise ParseError("invalid heap type")
     }
-    match self.types[type_idx].composite {
-      Cont(_) =>
-        if nullable {
-          RefNullContTyped(type_idx)
-        } else {
-          RefContTyped(type_idx)
-        }
-      Func(_) =>
-        if nullable {
-          RefNullFuncTyped(type_idx)
-        } else {
-          RefFuncTyped(type_idx)
-        }
-      Struct(_) =>
-        if nullable {
-          RefNullStruct(type_idx)
-        } else {
-          RefStruct(type_idx)
-        }
-      Array(_) =>
-        if nullable {
-          RefNullArray(type_idx)
-        } else {
-          RefArray(type_idx)
-        }
-    }
-  }
-
-  if heap_type < 0 {
+    @types.typed_reference(type_.composite, nullable, heap_type)
+  } else {
     match @types.ValueType::from_abstract_heap_type(heap_type, nullable) {
       Some(value) => value
       None => raise ParseError("invalid heap type")
     }
-  } else {
-    resolve_typed_ref(heap_type, nullable)
   }
 }
 
 ///|
 fn Parser::read_value_type(self : Parser) -> @types.ValueType raise ParserError {
-  fn resolve_typed_ref(
-    type_idx : Int32,
-    nullable : Bool,
-  ) -> @types.ValueType raise ParserError {
-    self.resolve_heap_type_as_ref_value_type(type_idx, nullable)
-  }
-
-  fn resolve_abstract_heap(
-    heap_type : Int32,
-    nullable : Bool,
-  ) -> @types.ValueType raise ParserError {
-    self.resolve_heap_type_as_ref_value_type(heap_type, nullable)
-  }
-
   let start = self.pos
   let byte = self.read_byte()
   let result : @types.ValueType = match byte {
-    0x7F => I32
-    0x7E => I64
-    0x7D => F32
-    0x7C => F64
-    0x7B => V128
-
-    // Reference shorthands
-    0x70 => FuncRef
-    0x6F => ExternRef
-    0x6E => AnyRef
-    0x6D => RefNullEq
-    0x6C => RefNullI31
-    0x6B => StructRef
-    0x6A => ArrayRef
-    0x69 => ExnRef
-    0x68 => ContRef
-    0x75 => NullContRef
-    0x71 => NullRef
-    0x72 => NullExternRef
-    0x73 => NullFuncRef
-    0x74 => NullExnRef
-
-    // ref heaptype
-    0x64 => {
-      let heap_type = self.read_heap_type()
-      if heap_type < 0 {
-        resolve_abstract_heap(heap_type, false)
-      } else {
-        resolve_typed_ref(heap_type, false)
-      }
-    }
-
-    // ref shared heaptype (shared reference types proposal)
+    0x7f => I32
+    0x7e => I64
+    0x7d => F32
+    0x7c => F64
+    0x7b => V128
+    0x63 | 0x64 => self.read_heap_reference(byte == 0x63)
     0x65 => {
-      self.read_heap_type() |> ignore
-      raise ParseError("shared reference types not supported")
+      self.pos -= 1
+      self.read_heap_reference(true)
     }
-
-    // ref null shared heaptype (shared reference types proposal)
-    0x62 => {
-      self.read_heap_type() |> ignore
-      raise ParseError("shared reference types not supported")
-    }
-
-    // ref null heaptype
-    0x63 => {
-      let heap_type = self.read_heap_type()
-      if heap_type < 0 {
-        resolve_abstract_heap(heap_type, true)
-      } else {
-        resolve_typed_ref(heap_type, true)
+    _ =>
+      match @types.ValueType::from_abstract_heap_type(byte - 128, true) {
+        Some(value) => value
+        None => raise InvalidValueType(byte)
       }
-    }
-    _ => raise InvalidValueType(byte)
   }
   if self.capture_text {
     self.text_values.push((start, self.value_text(start)))
   }
   result
+}
+
+///|
+fn Parser::read_heap_reference(
+  self : Parser,
+  nullable : Bool,
+) -> @types.ValueType raise ParserError {
+  if self.peek_byte() == 0x65 {
+    self.skip(1)
+    let heap = self.read_byte() - 128
+    guard @types.ValueType::from_abstract_heap_type(heap, nullable) is Some(_) else {
+      raise ParseError("invalid shared heap type")
+    }
+    return HeapRef(nullable, true, heap)
+  }
+  let first = self.peek_byte()
+  let heap = self.read_i32()
+  if heap < 0 && first >= 128 {
+    raise ParseError("invalid abstract heap type encoding")
+  }
+  self.resolve_heap_type_as_ref_value_type(heap, nullable)
 }
 
 ///|
@@ -141,6 +77,9 @@ fn Parser::read_heap_type(self : Parser) -> Int32 raise ParserError {
   //   -0x10 (0x70) = func
   //   -0x11 (0x6F) = extern
   // Positive values represent type indices
+  if self.peek_byte() == 0x65 {
+    self.skip(1)
+  }
   self.read_i32()
 }
 
@@ -183,9 +122,13 @@ fn Parser::read_block_type(self : Parser) -> @types.BlockType raise ParserError 
 // has no distinct variants for a few non-null abstract bottom/reference types.
 fn Parser::value_text(self : Parser, start : Int32) -> String raise ParserError {
   let byte = self.data[start].to_int()
-  if byte == 0x63 || byte == 0x64 {
+  if byte == 0x63 || byte == 0x64 || byte == 0x65 {
     let reader = Parser(self.data)
-    reader.pos = start + 1
+    reader.pos = start + (if byte == 0x65 { 0 } else { 1 })
+    let shared = reader.peek_byte() == 0x65
+    if shared {
+      reader.skip(1)
+    }
     let heap = reader.read_heap_type()
     let name = match heap {
       -16 => "func"
@@ -204,6 +147,9 @@ fn Parser::value_text(self : Parser, start : Int32) -> String raise ParserError 
       -11 => "nocont"
       index if index >= 0 => index.to_string()
       _ => raise ParseError("unknown abstract heap type")
+    }
+    if shared {
+      return "(ref \{if byte == 0x64 { "" } else { "null " }}(shared \{name}))"
     }
     if byte == 0x64 {
       return "(ref \{name})"

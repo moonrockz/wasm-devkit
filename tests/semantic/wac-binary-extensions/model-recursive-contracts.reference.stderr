@@ -1,0 +1,4 @@
+
+thread 'main' (276033455) panicked at /Users/damian/.cargo/git/checkouts/wac-3beaeb5c194f5763/5a7480c/crates/wac-types/src/core.rs:352:56:
+called `Option::unwrap()` on a `None` value
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

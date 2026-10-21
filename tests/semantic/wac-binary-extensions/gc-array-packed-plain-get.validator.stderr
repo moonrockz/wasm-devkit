@@ -1,0 +1,4 @@
+error: func 0 failed to validate
+
+Caused by:
+    0: cannot use array.get with packed storage types (at offset 0x28)

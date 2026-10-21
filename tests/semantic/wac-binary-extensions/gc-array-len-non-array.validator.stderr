@@ -1,0 +1,4 @@
+error: func 0 failed to validate
+
+Caused by:
+    0: type mismatch: expected subtype of arrayref, found structref (at offset 0x23)

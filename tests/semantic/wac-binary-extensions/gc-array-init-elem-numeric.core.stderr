@@ -1,0 +1,1 @@
+type mismatch: array.init_elem can only create arrays with reference elements (at offset 0x28)

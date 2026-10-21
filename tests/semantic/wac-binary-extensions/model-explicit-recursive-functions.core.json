@@ -1,0 +1,97 @@
+{
+  "exports": [
+    {
+      "name": "b",
+      "signature": {
+        "identity": {
+          "index": 1,
+          "types": [
+            {
+              "composite": {
+                "kind": "func",
+                "params": [
+                  {
+                    "kind": "scalar",
+                    "name": "i32"
+                  }
+                ],
+                "results": []
+              },
+              "final": true,
+              "group-size": 2,
+              "group-start": 0,
+              "shared": false,
+              "supertype": null
+            },
+            {
+              "composite": {
+                "kind": "func",
+                "params": [],
+                "results": [
+                  {
+                    "kind": "scalar",
+                    "name": "i64"
+                  }
+                ]
+              },
+              "final": true,
+              "group-size": 2,
+              "group-start": 0,
+              "shared": false,
+              "supertype": null
+            }
+          ]
+        },
+        "kind": "func"
+      }
+    }
+  ],
+  "imports": [
+    {
+      "module": "env",
+      "name": "a",
+      "signature": {
+        "identity": {
+          "index": 0,
+          "types": [
+            {
+              "composite": {
+                "kind": "func",
+                "params": [
+                  {
+                    "kind": "scalar",
+                    "name": "i32"
+                  }
+                ],
+                "results": []
+              },
+              "final": true,
+              "group-size": 2,
+              "group-start": 0,
+              "shared": false,
+              "supertype": null
+            },
+            {
+              "composite": {
+                "kind": "func",
+                "params": [],
+                "results": [
+                  {
+                    "kind": "scalar",
+                    "name": "i64"
+                  }
+                ]
+              },
+              "final": true,
+              "group-size": 2,
+              "group-start": 0,
+              "shared": false,
+              "supertype": null
+            }
+          ]
+        },
+        "kind": "func"
+      }
+    }
+  ]
+}

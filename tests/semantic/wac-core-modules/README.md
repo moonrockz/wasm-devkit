@@ -26,8 +26,9 @@ these cases. Valid merged models compare exactly with the reference.
 
 `typed-ref.wat` validates with wasm-tools but makes the pinned WAC loader panic
 while converting a concrete heap type in `wac-types/src/core.rs`. The product
-returns `WAC-B002`. Concrete GC references and shared heap types remain unsupported.
-Concrete modules support function-only recursive groups without concrete references.
+retains the complete concrete type graph. The independent wasmparser oracle in
+[the extension suite](../wac-binary-extensions/README.md) checks these contracts.
+Recursive groups, shared heap types and declared supertypes are supported.
 Nested declarations and concrete modules now share the root core-type limit
 profile, including full UInt64 limits and custom memory pages. The separate
 [core limits suite](../wac-core-limits/README.md) gates these encodings and their
@@ -37,7 +38,8 @@ The separate deep fixture traverses 41 component type scopes. Unit contracts
 also exercise 50,000 function parameters, truncated limits, overflowing u64 LEBs
 and immutable module graphs. `SHA256SUMS` covers all retained sources and tables.
 Separate suites cover runtime core bodies, values and export annotations.
-Concrete GC and reference types and exception instructions stay outside the documented profile.
+Concrete GC/reference types and exception instructions have additional coverage
+in the extension suite.
 
 Eight text-only cases reject duplicate type identifiers/aliases, invalid global
 syntax and malformed/overflowing limits against the pinned text parser.

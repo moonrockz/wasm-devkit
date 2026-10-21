@@ -1,0 +1,73 @@
+{
+  "definitions": [],
+  "instance": 0,
+  "name": "test:extensions",
+  "types": {
+    "defined": [],
+    "funcs": [],
+    "interfaces": [
+      {
+        "exports": [
+          [
+            "m",
+            {
+              "module": 0
+            }
+          ]
+        ],
+        "id": null,
+        "uses": []
+      }
+    ],
+    "modules": [
+      {
+        "exports": [
+          [
+            "target",
+            {
+              "memory": {
+                "initial": 2,
+                "maximum": null,
+                "memory64": true,
+                "pageSizeLog2": null,
+                "shared": false
+              }
+            }
+          ],
+          [
+            "load",
+            {
+              "func": {
+                "params": [
+                  "i64"
+                ],
+                "results": [
+                  "i64"
+                ]
+              }
+            }
+          ]
+        ],
+        "imports": []
+      }
+    ],
+    "resources": [],
+    "worlds": [
+      {
+        "exports": [
+          [
+            "m",
+            {
+              "module": 0
+            }
+          ]
+        ],
+        "id": null,
+        "imports": [],
+        "uses": []
+      }
+    ]
+  },
+  "version": null,
+  "world": 0
+}

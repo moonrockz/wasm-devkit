@@ -1,0 +1,4 @@
+error: func 0 failed to validate
+
+Caused by:
+    0: unknown label: branch depth too large (at offset 0x21)

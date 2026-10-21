@@ -104,8 +104,12 @@ nesting up to 256 and validation work. The retained core parser and validator
 then check the module. The profile includes MVP instructions, multi-value,
 reference types, bulk memory, tail calls, memory64, multiple memories and
 `v128.const`. Scalar/vector globals retain mutability and shared flags.
-It rejects GC types, thread instructions, exceptions and other SIMD instructions.
-WABT compatibility rejects shared globals explicitly.
+It includes recursive GC/reference types, declared supertypes, shared heap types,
+typed calls, GC instructions and modern/legacy exception handling. Thread
+instructions other than `ref.i31_shared`, custom descriptors, continuation
+instructions and other SIMD instructions reject explicitly. Compatibility modes
+retain their separately documented input bounds. WABT rejects GC/shared types.
+See the [extension fixtures](../../../../tests/semantic/wac-binary-extensions/README.md).
 
 `f32.const` immediates that are signaling NaNs are also rejected. The JavaScript
 target cannot represent their payloads as `Float` values, so no target prints them.
@@ -142,8 +146,9 @@ survive. Strings keep printable ASCII other than quotes and backslashes and use
 
 Printed text uses only forms that the retained
 [component text compiler](../component_text/README.md) accepts. Values of type
-`error-context`, resource representations other than `i32` and `i64`, and
-concrete or GC core references have no such form, and fail with `WIT-D003`. The text compiler rejects core control nesting deeper than 64. Such components
+`error-context` and resource representations other than `i32` and `i64`
+have no such form and fail with `WIT-D003`. Concrete GC/reference declarations
+retain their complete groups and shared types in printed WAT. The text compiler rejects core control nesting deeper than 64. Such components
 print, but their text does not compile again. Extended constant global
 initializers print as flat instructions and round trip through both text paths.
 

@@ -1,0 +1,1843 @@
+--- a/block_types.mbt
++++ b/block_types.mbt
+@@ -37,9 +37,7 @@
+-    body.map(fn(instruction) {
+-      match instruction {
+-        Block(signature, body) => Block(resolve(signature), instructions(body))
+-        Loop(signature, body) => Loop(resolve(signature), instructions(body))
+-        If(signature, yes, no) =>
+-          If(resolve(signature), instructions(yes), instructions(no))
+-        TryTable(signature, handlers, body) =>
+-          TryTable(resolve(signature), handlers, instructions(body))
+-        _ => instruction
++    let output = []
++    let pending : Array[
++      (Array[@types.Instruction], Array[@types.Instruction], Int32),
++    ] = [(body, output, 0)]
++    while pending.pop() is Some((source, target, index)) {
++      if index >= source.length() {
++        continue
+@@ -47 +45,46 @@
+-    })
++      pending.push((source, target, index + 1))
++      let rewritten = match source[index] {
++        Block(bt, body) => {
++          let child = []
++          let bt = resolve(bt)
++          pending.push((body, child, 0))
++          @types.Instruction::Block(bt, child)
++        }
++        Loop(bt, body) => {
++          let child = []
++          let bt = resolve(bt)
++          pending.push((body, child, 0))
++          @types.Instruction::Loop(bt, child)
++        }
++        If(bt, yes, no) => {
++          let first = []
++          let second = []
++          let bt = resolve(bt)
++          pending.push((no, second, 0))
++          pending.push((yes, first, 0))
++          @types.Instruction::If(bt, first, second)
++        }
++        TryTable(bt, handlers, body) => {
++          let child = []
++          let bt = resolve(bt)
++          pending.push((body, child, 0))
++          @types.Instruction::TryTable(bt, handlers, child)
++        }
++        LegacyTry(bt, body, catches, delegate) => {
++          let child = []
++          let bt = resolve(bt)
++          let arms : Array[@types.LegacyCatch] = catches.map(arm => {
++            tag: arm.tag,
++            body: [],
++          })
++          for i = arms.length() - 1; i >= 0; i = i - 1 {
++            pending.push((catches[i].body, arms[i].body, 0))
++          }
++          pending.push((body, child, 0))
++          @types.Instruction::LegacyTry(bt, child, arms, delegate)
++        }
++        other => other
++      }
++      target.push(rewritten)
++    }
++    output
+@@ -52 +95,30 @@
+-  { ..module_, types, type_rec_groups: groups, codes, }
++  let globals = module_.globals.map(global => {
++    ..global,
++    init: instructions(global.init),
++  })
++  let tables = module_.tables.map(table => {
++    ..table,
++    init: table.init.map(instructions),
++  })
++  let elems = module_.elems.map(elem => {
++    ..elem,
++    mode: match elem.mode {
++      Active(index, offset) => Active(index, instructions(offset))
++      other => other
++    },
++    init: elem.init.map(instructions),
++  })
++  let datas = module_.datas.map(data => {
++    ..data,
++    offset: instructions(data.offset),
++  })
++  {
++    ..module_,
++    types,
++    type_rec_groups: groups,
++    codes,
++    globals,
++    tables,
++    elems,
++    datas,
++  }
+--- a/encoder.mbt
++++ b/encoder.mbt
+@@ -12 +12 @@
+-  buf : Array[Int]
++  buf : Array[Int32]
+@@ -21 +21 @@
+-fn BinaryWriter::write_byte(self : BinaryWriter, b : Int) -> Unit {
++fn BinaryWriter::write_byte(self : BinaryWriter, b : Int32) -> Unit {
+@@ -26 +26 @@
+-fn BinaryWriter::write_array(self : BinaryWriter, bytes : Array[Int]) -> Unit {
++fn BinaryWriter::write_array(self : BinaryWriter, bytes : Array[Int32]) -> Unit {
+@@ -34 +34 @@
+-fn BinaryWriter::write_u32(self : BinaryWriter, val : Int) -> Unit {
++fn BinaryWriter::write_u32(self : BinaryWriter, val : Int32) -> Unit {
+@@ -71 +71 @@
+-fn BinaryWriter::write_s32(self : BinaryWriter, val : Int) -> Unit {
++fn BinaryWriter::write_s32(self : BinaryWriter, val : Int32) -> Unit {
+@@ -106,2 +106,2 @@
+-fn string_to_bytes(s : String) -> Array[Int] {
+-  let result : Array[Int] = []
++fn string_to_bytes(s : String) -> Array[Int32] {
++  let result : Array[Int32] = []
+@@ -182 +182 @@
+-fn BinaryWriter::to_bytes(self : BinaryWriter) -> Array[Int] {
++fn BinaryWriter::to_bytes(self : BinaryWriter) -> Array[Int32] {
+@@ -191,0 +192,7 @@
++    HeapRef(nullable, shared, heap) => {
++      w.write_byte(if nullable { 0x63 } else { 0x64 })
++      if shared && heap < 0 {
++        w.write_byte(0x65)
++      }
++      w.write_s32(heap)
++    }
+@@ -287 +294 @@
+-      w.write_s32(idx)
++      w.write_s32(if idx == -1 { -21 } else { idx })
+@@ -291 +298 @@
+-      w.write_s32(idx)
++      w.write_s32(if idx == -1 { -21 } else { idx })
+@@ -295 +302 @@
+-      w.write_s32(idx)
++      w.write_s32(if idx == -1 { -22 } else { idx })
+@@ -299 +306 @@
+-      w.write_s32(idx)
++      w.write_s32(if idx == -1 { -22 } else { idx })
+@@ -359,0 +367,3 @@
++  if ct.is_shared() {
++    w.write_byte(0x65)
++  }
+@@ -361,3 +371,3 @@
+-    Func(ft) => encode_func_type(w, ft)
+-    Struct(st) => encode_struct_type(w, st)
+-    Array(at) => encode_array_type(w, at)
++    Func(ft) | SharedFunc(ft) => encode_func_type(w, ft)
++    Struct(st) | SharedStruct(st) => encode_struct_type(w, st)
++    Array(at) | SharedArray(at) => encode_array_type(w, at)
+@@ -402,0 +413 @@
++  is_shared : Bool,
+@@ -405 +416 @@
+-  let mut flags = 0x00
++  let mut flags = if is_shared { 2 } else { 0 }
+@@ -430 +441 @@
+-  encode_table_limits(w, tt.limits, tt.is_table64)
++  encode_table_limits(w, tt.limits, tt.is_table64, tt.is_shared)
+@@ -478 +489,3 @@
+-  w.write_byte(if gt.mutable { 1 } else { 0 })
++  w.write_byte(
++    (if gt.mutable { 1 } else { 0 }) | (if gt.is_shared { 2 } else { 0 }),
++  )
+@@ -485 +498,4 @@
+-fn encode_block_type(w : BinaryWriter, bt : @types.BlockType) -> Unit {
++fn encode_block_type(
++  w : BinaryWriter,
++  bt : @types.BlockType,
++) -> Unit raise EncodingError {
+@@ -490 +506,2 @@
+-    MultiValue(_) | InlineType(_, _) => abort("unresolved block signature")
++    MultiValue(_) | InlineType(_, _) =>
++      raise EncodingError("unresolved block signature")
+@@ -498,2 +515,2 @@
+-  _memidx : Int,
+-  align : Int,
++  memidx : Int32,
++  align : Int32,
+@@ -502 +519,4 @@
+-  w.write_u32(align)
++  w.write_u32(align | (if memidx != 0 { 0x40 } else { 0 }))
++  if memidx != 0 {
++    w.write_u32(memidx)
++  }
+@@ -507,0 +528,9 @@
++priv enum InstructionEncodingWork {
++  Sequence(Array[@types.Instruction], Int32)
++  One(@types.Instruction)
++  Byte(Int32)
++  U32(Int32)
++}
++
++///|
++// Encode structured bodies with continuations rather than input recursion.
+@@ -511,428 +540,12 @@
+-) -> Unit {
+-  for instr in instrs {
+-    encode_instruction(w, instr)
+-  }
+-}
+-
+-///|
+-/// Encode a single instruction
+-fn encode_instruction(w : BinaryWriter, instr : @types.Instruction) -> Unit {
+-  match instr {
+-    // Control instructions
+-    Unreachable => w.write_byte(0x00)
+-    Nop => w.write_byte(0x01)
+-    Block(bt, body) => {
+-      w.write_byte(0x02)
+-      encode_block_type(w, bt)
+-      encode_instructions(w, body)
+-      w.write_byte(0x0B) // end
+-    }
+-    Loop(bt, body) => {
+-      w.write_byte(0x03)
+-      encode_block_type(w, bt)
+-      encode_instructions(w, body)
+-      w.write_byte(0x0B) // end
+-    }
+-    If(bt, then_body, else_body) => {
+-      w.write_byte(0x04)
+-      encode_block_type(w, bt)
+-      encode_instructions(w, then_body)
+-      if !else_body.is_empty() {
+-        w.write_byte(0x05) // else
+-        encode_instructions(w, else_body)
+-      }
+-      w.write_byte(0x0B) // end
+-    }
+-    Br(label) => {
+-      w.write_byte(0x0C)
+-      w.write_u32(label)
+-    }
+-    BrIf(label) => {
+-      w.write_byte(0x0D)
+-      w.write_u32(label)
+-    }
+-    BrTable(labels, default) => {
+-      w.write_byte(0x0E)
+-      w.write_u32(labels.length())
+-      for l in labels {
+-        w.write_u32(l)
+-      }
+-      w.write_u32(default)
+-    }
+-    Return => w.write_byte(0x0F)
+-    Call(idx) => {
+-      w.write_byte(0x10)
+-      w.write_u32(idx)
+-    }
+-    CallIndirect(type_idx, table_idx) => {
+-      w.write_byte(0x11)
+-      w.write_u32(type_idx)
+-      w.write_u32(table_idx)
+-    }
+-    ReturnCall(idx) => {
+-      w.write_byte(0x12)
+-      w.write_u32(idx)
+-    }
+-    ReturnCallIndirect(type_idx, table_idx) => {
+-      w.write_byte(0x13)
+-      w.write_u32(type_idx)
+-      w.write_u32(table_idx)
+-    }
+-    CallRef(type_idx) => {
+-      w.write_byte(0x14)
+-      w.write_u32(type_idx)
+-    }
+-    ReturnCallRef(type_idx) => {
+-      w.write_byte(0x15)
+-      w.write_u32(type_idx)
+-    }
+-
+-    // Exception handling
+-    Throw(tag_idx) => {
+-      w.write_byte(0x08)
+-      w.write_u32(tag_idx)
+-    }
+-    ThrowRef => w.write_byte(0x0A)
+-    ContNew(index) => {
+-      w.write_byte(0xE0)
+-      w.write_u32(index)
+-    }
+-    ContBind(input, output) => {
+-      w.write_byte(0xE1)
+-      w.write_u32(input)
+-      w.write_u32(output)
+-    }
+-    Suspend(tag) => {
+-      w.write_byte(0xE2)
+-      w.write_u32(tag)
+-    }
+-    Resume(index, handlers) => {
+-      w.write_byte(0xE3)
+-      w.write_u32(index)
+-      encode_resume_handlers(w, handlers)
+-    }
+-    ResumeThrow(index, tag, handlers) => {
+-      w.write_byte(0xE4)
+-      w.write_u32(index)
+-      w.write_u32(tag)
+-      encode_resume_handlers(w, handlers)
+-    }
+-    ResumeThrowRef(index, handlers) => {
+-      w.write_byte(0xE5)
+-      w.write_u32(index)
+-      encode_resume_handlers(w, handlers)
+-    }
+-    Switch(index, tag) => {
+-      w.write_byte(0xE6)
+-      w.write_u32(index)
+-      w.write_u32(tag)
+-    }
+-    TryTable(bt, handlers, body) => {
+-      w.write_byte(0x1F)
+-      encode_block_type(w, bt)
+-      w.write_u32(handlers.length())
+-      for handler in handlers {
+-        encode_catch_handler(w, handler)
+-      }
+-      encode_instructions(w, body)
+-      w.write_byte(0x0B) // end
+-    }
+-
+-    // Parametric instructions
+-    Drop => w.write_byte(0x1A)
+-    Select => w.write_byte(0x1B)
+-    SelectTyped(types) => {
+-      w.write_byte(0x1C)
+-      w.write_u32(types.length())
+-      for t in types {
+-        encode_valtype(w, t)
+-      }
+-    }
+-
+-    // Variable instructions
+-    LocalGet(idx) => {
+-      w.write_byte(0x20)
+-      w.write_u32(idx)
+-    }
+-    LocalSet(idx) => {
+-      w.write_byte(0x21)
+-      w.write_u32(idx)
+-    }
+-    LocalTee(idx) => {
+-      w.write_byte(0x22)
+-      w.write_u32(idx)
+-    }
+-    GlobalGet(idx) => {
+-      w.write_byte(0x23)
+-      w.write_u32(idx)
+-    }
+-    GlobalSet(idx) => {
+-      w.write_byte(0x24)
+-      w.write_u32(idx)
+-    }
+-
+-    // Table instructions
+-    TableGet(idx) => {
+-      w.write_byte(0x25)
+-      w.write_u32(idx)
+-    }
+-    TableSet(idx) => {
+-      w.write_byte(0x26)
+-      w.write_u32(idx)
+-    }
+-    TableSize(idx) => {
+-      w.write_byte(0xFC)
+-      w.write_u32(16)
+-      w.write_u32(idx)
+-    }
+-    TableGrow(idx) => {
+-      w.write_byte(0xFC)
+-      w.write_u32(15)
+-      w.write_u32(idx)
+-    }
+-    TableFill(idx) => {
+-      w.write_byte(0xFC)
+-      w.write_u32(17)
+-      w.write_u32(idx)
+-    }
+-    TableCopy(dst, src) => {
+-      w.write_byte(0xFC)
+-      w.write_u32(14)
+-      w.write_u32(dst)
+-      w.write_u32(src)
+-    }
+-    TableInit(table_idx, elem_idx) => {
+-      w.write_byte(0xFC)
+-      w.write_u32(12)
+-      w.write_u32(elem_idx)
+-      w.write_u32(table_idx)
+-    }
+-
+-    // Memory instructions
+-    I32Load(memidx, align, offset) => {
+-      w.write_byte(0x28)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    I64Load(memidx, align, offset) => {
+-      w.write_byte(0x29)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    F32Load(memidx, align, offset) => {
+-      w.write_byte(0x2A)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    F64Load(memidx, align, offset) => {
+-      w.write_byte(0x2B)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    I32Load8S(memidx, align, offset) => {
+-      w.write_byte(0x2C)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    I32Load8U(memidx, align, offset) => {
+-      w.write_byte(0x2D)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    I32Load16S(memidx, align, offset) => {
+-      w.write_byte(0x2E)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    I32Load16U(memidx, align, offset) => {
+-      w.write_byte(0x2F)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    I64Load8S(memidx, align, offset) => {
+-      w.write_byte(0x30)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    I64Load8U(memidx, align, offset) => {
+-      w.write_byte(0x31)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    I64Load16S(memidx, align, offset) => {
+-      w.write_byte(0x32)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    I64Load16U(memidx, align, offset) => {
+-      w.write_byte(0x33)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    I64Load32S(memidx, align, offset) => {
+-      w.write_byte(0x34)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    I64Load32U(memidx, align, offset) => {
+-      w.write_byte(0x35)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    I32Store(memidx, align, offset) => {
+-      w.write_byte(0x36)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    I64Store(memidx, align, offset) => {
+-      w.write_byte(0x37)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    F32Store(memidx, align, offset) => {
+-      w.write_byte(0x38)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    F64Store(memidx, align, offset) => {
+-      w.write_byte(0x39)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    I32Store8(memidx, align, offset) => {
+-      w.write_byte(0x3A)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    I32Store16(memidx, align, offset) => {
+-      w.write_byte(0x3B)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    I64Store8(memidx, align, offset) => {
+-      w.write_byte(0x3C)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    I64Store16(memidx, align, offset) => {
+-      w.write_byte(0x3D)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    I64Store32(memidx, align, offset) => {
+-      w.write_byte(0x3E)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    MemorySize(memidx) => {
+-      w.write_byte(0x3F)
+-      w.write_u32(memidx)
+-    }
+-    MemoryGrow(memidx) => {
+-      w.write_byte(0x40)
+-      w.write_u32(memidx)
+-    }
+-    Atomic(subopcode, memidx, align, offset) => {
+-      w.write_byte(0xFE)
+-      w.write_u32(subopcode)
+-      if subopcode == 3 {
+-        w.write_byte(0)
+-      } else {
+-        encode_memarg(w, memidx, align, offset)
+-      }
+-    }
+-    MemoryInit(memidx, data_idx) => {
+-      w.write_byte(0xFC)
+-      w.write_u32(8)
+-      w.write_u32(data_idx)
+-      w.write_u32(memidx)
+-    }
+-    DataDrop(data_idx) => {
+-      w.write_byte(0xFC)
+-      w.write_u32(9)
+-      w.write_u32(data_idx)
+-    }
+-    MemoryCopy(dst, src) => {
+-      w.write_byte(0xFC)
+-      w.write_u32(10)
+-      w.write_u32(dst)
+-      w.write_u32(src)
+-    }
+-    MemoryFill(memidx) => {
+-      w.write_byte(0xFC)
+-      w.write_u32(11)
+-      w.write_u32(memidx)
+-    }
+-    ElemDrop(elem_idx) => {
+-      w.write_byte(0xFC)
+-      w.write_u32(13)
+-      w.write_u32(elem_idx)
+-    }
+-
+-    // Reference instructions
+-    RefNull(vt) => {
+-      w.write_byte(0xD0)
+-      encode_heaptype(w, vt)
+-    }
+-    RefIsNull => w.write_byte(0xD1)
+-    RefFunc(idx) => {
+-      w.write_byte(0xD2)
+-      w.write_u32(idx)
+-    }
+-    RefAsNonNull => w.write_byte(0xD4)
+-    RefEqInstr => w.write_byte(0xD3)
+-    BrOnNull(label) => {
+-      w.write_byte(0xD5)
+-      w.write_u32(label)
+-    }
+-    BrOnNonNull(label) => {
+-      w.write_byte(0xD6)
+-      w.write_u32(label)
+-    }
+-
+-    // Numeric constants
+-    I32Const(val) => {
+-      w.write_byte(0x41)
+-      w.write_s32(val)
+-    }
+-    I64Const(val) => {
+-      w.write_byte(0x42)
+-      w.write_s64(val)
+-    }
+-    F32Const(val) => {
+-      w.write_byte(0x43)
+-      w.write_f32(val)
+-    }
+-    F64Const(val) => {
+-      w.write_byte(0x44)
+-      w.write_f64(val)
+-    }
+-
+-    // i32 operations
+-    I32Eqz => w.write_byte(0x45)
+-    I32Eq => w.write_byte(0x46)
+-    I32Ne => w.write_byte(0x47)
+-    I32LtS => w.write_byte(0x48)
+-    I32LtU => w.write_byte(0x49)
+-    I32GtS => w.write_byte(0x4A)
+-    I32GtU => w.write_byte(0x4B)
+-    I32LeS => w.write_byte(0x4C)
+-    I32LeU => w.write_byte(0x4D)
+-    I32GeS => w.write_byte(0x4E)
+-    I32GeU => w.write_byte(0x4F)
+-    I32Clz => w.write_byte(0x67)
+-    I32Ctz => w.write_byte(0x68)
+-    I32Popcnt => w.write_byte(0x69)
+-    I32Add => w.write_byte(0x6A)
+-    I32Sub => w.write_byte(0x6B)
+-    I32Mul => w.write_byte(0x6C)
+-    I32DivS => w.write_byte(0x6D)
+-    I32DivU => w.write_byte(0x6E)
+-    I32RemS => w.write_byte(0x6F)
+-    I32RemU => w.write_byte(0x70)
+-    I32And => w.write_byte(0x71)
+-    I32Or => w.write_byte(0x72)
+-    I32Xor => w.write_byte(0x73)
+-    I32Shl => w.write_byte(0x74)
+-    I32ShrS => w.write_byte(0x75)
+-    I32ShrU => w.write_byte(0x76)
+-    I32Rotl => w.write_byte(0x77)
+-    I32Rotr => w.write_byte(0x78)
+-    I32Extend8S => w.write_byte(0xC0)
+-    I32Extend16S => w.write_byte(0xC1)
+-
+-    // i64 operations
+-    I64Eqz => w.write_byte(0x50)
+-    I64Eq => w.write_byte(0x51)
+-    I64Ne => w.write_byte(0x52)
+-    I64LtS => w.write_byte(0x53)
+-    I64LtU => w.write_byte(0x54)
+-    I64GtS => w.write_byte(0x55)
+-    I64GtU => w.write_byte(0x56)
+-    I64LeS => w.write_byte(0x57)
+-    I64LeU => w.write_byte(0x58)
+-    I64GeS => w.write_byte(0x59)
+-    I64GeU => w.write_byte(0x5A)
+-    I64Clz => w.write_byte(0x79)
+-    I64Ctz => w.write_byte(0x7A)
+-    I64Popcnt => w.write_byte(0x7B)
+-    I64Add128 | I64Sub128 | I64MulWideS | I64MulWideU => {
+-      w.write_byte(0xFC)
+-      w.write_u32(
++) -> Unit raise EncodingError {
++  let work : Array[InstructionEncodingWork] = [Sequence(instrs, 0)]
++  while work.pop() is Some(task) {
++    match task {
++      U32(value) => w.write_u32(value)
++      Byte(byte) => w.write_byte(byte)
++      Sequence(instructions, index) =>
++        if index < instructions.length() {
++          work.push(Sequence(instructions, index + 1))
++          work.push(One(instructions[index]))
++        }
++      One(instr) =>
+@@ -940,324 +553,777 @@
+-          I64Add128 => 19
+-          I64Sub128 => 20
+-          I64MulWideS => 21
+-          _ => 22
+-        },
+-      )
+-    }
+-    I64Add => w.write_byte(0x7C)
+-    I64Sub => w.write_byte(0x7D)
+-    I64Mul => w.write_byte(0x7E)
+-    I64DivS => w.write_byte(0x7F)
+-    I64DivU => w.write_byte(0x80)
+-    I64RemS => w.write_byte(0x81)
+-    I64RemU => w.write_byte(0x82)
+-    I64And => w.write_byte(0x83)
+-    I64Or => w.write_byte(0x84)
+-    I64Xor => w.write_byte(0x85)
+-    I64Shl => w.write_byte(0x86)
+-    I64ShrS => w.write_byte(0x87)
+-    I64ShrU => w.write_byte(0x88)
+-    I64Rotl => w.write_byte(0x89)
+-    I64Rotr => w.write_byte(0x8A)
+-    I64Extend8S => w.write_byte(0xC2)
+-    I64Extend16S => w.write_byte(0xC3)
+-    I64Extend32S => w.write_byte(0xC4)
+-
+-    // f32 operations
+-    F32Eq => w.write_byte(0x5B)
+-    F32Ne => w.write_byte(0x5C)
+-    F32Lt => w.write_byte(0x5D)
+-    F32Gt => w.write_byte(0x5E)
+-    F32Le => w.write_byte(0x5F)
+-    F32Ge => w.write_byte(0x60)
+-    F32Abs => w.write_byte(0x8B)
+-    F32Neg => w.write_byte(0x8C)
+-    F32Ceil => w.write_byte(0x8D)
+-    F32Floor => w.write_byte(0x8E)
+-    F32Trunc => w.write_byte(0x8F)
+-    F32Nearest => w.write_byte(0x90)
+-    F32Sqrt => w.write_byte(0x91)
+-    F32Add => w.write_byte(0x92)
+-    F32Sub => w.write_byte(0x93)
+-    F32Mul => w.write_byte(0x94)
+-    F32Div => w.write_byte(0x95)
+-    F32Min => w.write_byte(0x96)
+-    F32Max => w.write_byte(0x97)
+-    F32Copysign => w.write_byte(0x98)
+-
+-    // f64 operations
+-    F64Eq => w.write_byte(0x61)
+-    F64Ne => w.write_byte(0x62)
+-    F64Lt => w.write_byte(0x63)
+-    F64Gt => w.write_byte(0x64)
+-    F64Le => w.write_byte(0x65)
+-    F64Ge => w.write_byte(0x66)
+-    F64Abs => w.write_byte(0x99)
+-    F64Neg => w.write_byte(0x9A)
+-    F64Ceil => w.write_byte(0x9B)
+-    F64Floor => w.write_byte(0x9C)
+-    F64Trunc => w.write_byte(0x9D)
+-    F64Nearest => w.write_byte(0x9E)
+-    F64Sqrt => w.write_byte(0x9F)
+-    F64Add => w.write_byte(0xA0)
+-    F64Sub => w.write_byte(0xA1)
+-    F64Mul => w.write_byte(0xA2)
+-    F64Div => w.write_byte(0xA3)
+-    F64Min => w.write_byte(0xA4)
+-    F64Max => w.write_byte(0xA5)
+-    F64Copysign => w.write_byte(0xA6)
+-
+-    // Conversions
+-    I32WrapI64 => w.write_byte(0xA7)
+-    I32TruncF32S => w.write_byte(0xA8)
+-    I32TruncF32U => w.write_byte(0xA9)
+-    I32TruncF64S => w.write_byte(0xAA)
+-    I32TruncF64U => w.write_byte(0xAB)
+-    I64ExtendI32S => w.write_byte(0xAC)
+-    I64ExtendI32U => w.write_byte(0xAD)
+-    I64TruncF32S => w.write_byte(0xAE)
+-    I64TruncF32U => w.write_byte(0xAF)
+-    I64TruncF64S => w.write_byte(0xB0)
+-    I64TruncF64U => w.write_byte(0xB1)
+-    F32ConvertI32S => w.write_byte(0xB2)
+-    F32ConvertI32U => w.write_byte(0xB3)
+-    F32ConvertI64S => w.write_byte(0xB4)
+-    F32ConvertI64U => w.write_byte(0xB5)
+-    F32DemoteF64 => w.write_byte(0xB6)
+-    F64ConvertI32S => w.write_byte(0xB7)
+-    F64ConvertI32U => w.write_byte(0xB8)
+-    F64ConvertI64S => w.write_byte(0xB9)
+-    F64ConvertI64U => w.write_byte(0xBA)
+-    F64PromoteF32 => w.write_byte(0xBB)
+-    I32ReinterpretF32 => w.write_byte(0xBC)
+-    I64ReinterpretF64 => w.write_byte(0xBD)
+-    F32ReinterpretI32 => w.write_byte(0xBE)
+-    F64ReinterpretI64 => w.write_byte(0xBF)
+-
+-    // Saturating truncation
+-    I32TruncSatF32S => {
+-      w.write_byte(0xFC)
+-      w.write_u32(0)
+-    }
+-    I32TruncSatF32U => {
+-      w.write_byte(0xFC)
+-      w.write_u32(1)
+-    }
+-    I32TruncSatF64S => {
+-      w.write_byte(0xFC)
+-      w.write_u32(2)
+-    }
+-    I32TruncSatF64U => {
+-      w.write_byte(0xFC)
+-      w.write_u32(3)
+-    }
+-    I64TruncSatF32S => {
+-      w.write_byte(0xFC)
+-      w.write_u32(4)
+-    }
+-    I64TruncSatF32U => {
+-      w.write_byte(0xFC)
+-      w.write_u32(5)
+-    }
+-    I64TruncSatF64S => {
+-      w.write_byte(0xFC)
+-      w.write_u32(6)
+-    }
+-    I64TruncSatF64U => {
+-      w.write_byte(0xFC)
+-      w.write_u32(7)
+-    }
+-
+-    // GC instructions
+-    StructNew(type_idx) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(0)
+-      w.write_u32(type_idx)
+-    }
+-    StructNewDefault(type_idx) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(1)
+-      w.write_u32(type_idx)
+-    }
+-    StructGet(type_idx, field_idx) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(2)
+-      w.write_u32(type_idx)
+-      w.write_u32(field_idx)
+-    }
+-    StructGetS(type_idx, field_idx) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(3)
+-      w.write_u32(type_idx)
+-      w.write_u32(field_idx)
+-    }
+-    StructGetU(type_idx, field_idx) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(4)
+-      w.write_u32(type_idx)
+-      w.write_u32(field_idx)
+-    }
+-    StructSet(type_idx, field_idx) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(5)
+-      w.write_u32(type_idx)
+-      w.write_u32(field_idx)
+-    }
+-    ArrayNew(type_idx) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(6)
+-      w.write_u32(type_idx)
+-    }
+-    ArrayNewDefault(type_idx) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(7)
+-      w.write_u32(type_idx)
+-    }
+-    ArrayNewFixed(type_idx, len) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(8)
+-      w.write_u32(type_idx)
+-      w.write_u32(len)
+-    }
+-    ArrayNewData(type_idx, data_idx) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(9)
+-      w.write_u32(type_idx)
+-      w.write_u32(data_idx)
+-    }
+-    ArrayNewElem(type_idx, elem_idx) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(10)
+-      w.write_u32(type_idx)
+-      w.write_u32(elem_idx)
+-    }
+-    ArrayGet(type_idx) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(11)
+-      w.write_u32(type_idx)
+-    }
+-    ArrayGetS(type_idx) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(12)
+-      w.write_u32(type_idx)
+-    }
+-    ArrayGetU(type_idx) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(13)
+-      w.write_u32(type_idx)
+-    }
+-    ArraySet(type_idx) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(14)
+-      w.write_u32(type_idx)
+-    }
+-    ArrayLen => {
+-      w.write_byte(0xFB)
+-      w.write_u32(15)
+-    }
+-    ArrayFill(type_idx) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(16)
+-      w.write_u32(type_idx)
+-    }
+-    ArrayCopy(dst_type, src_type) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(17)
+-      w.write_u32(dst_type)
+-      w.write_u32(src_type)
+-    }
+-    ArrayInitData(type_idx, data_idx) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(18)
+-      w.write_u32(type_idx)
+-      w.write_u32(data_idx)
+-    }
+-    ArrayInitElem(type_idx, elem_idx) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(19)
+-      w.write_u32(type_idx)
+-      w.write_u32(elem_idx)
+-    }
+-    RefTest(vt) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(20)
+-      encode_heaptype(w, vt)
+-    }
+-    RefTestNull(vt) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(21)
+-      encode_heaptype(w, vt)
+-    }
+-    RefCast(vt) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(22)
+-      encode_heaptype(w, vt)
+-    }
+-    RefCastNull(vt) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(23)
+-      encode_heaptype(w, vt)
+-    }
+-    BrOnCast(label, from_type, to_type) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(24)
+-      // Cast flags: bit 0 = from nullable, bit 1 = to nullable
+-      let from_null = if from_type.is_nullable() { 1 } else { 0 }
+-      let to_null = if to_type.is_nullable() { 2 } else { 0 }
+-      w.write_byte(from_null | to_null)
+-      w.write_u32(label)
+-      encode_heaptype(w, from_type)
+-      encode_heaptype(w, to_type)
+-    }
+-    BrOnCastFail(label, from_type, to_type) => {
+-      w.write_byte(0xFB)
+-      w.write_u32(25)
+-      let from_null = if from_type.is_nullable() { 1 } else { 0 }
+-      let to_null = if to_type.is_nullable() { 2 } else { 0 }
+-      w.write_byte(from_null | to_null)
+-      w.write_u32(label)
+-      encode_heaptype(w, from_type)
+-      encode_heaptype(w, to_type)
+-    }
+-    RefI31 => {
+-      w.write_byte(0xFB)
+-      w.write_u32(28)
+-    }
+-    I31GetS => {
+-      w.write_byte(0xFB)
+-      w.write_u32(29)
+-    }
+-    I31GetU => {
+-      w.write_byte(0xFB)
+-      w.write_u32(30)
+-    }
+-    AnyConvertExtern => {
+-      w.write_byte(0xFB)
+-      w.write_u32(26)
+-    }
+-    ExternConvertAny => {
+-      w.write_byte(0xFB)
+-      w.write_u32(27)
+-    }
+-
+-    // SIMD - V128 constant and load/store
+-    V128Const(bytes) => {
+-      w.write_byte(0xFD)
+-      w.write_u32(12)
+-      for i in 0..<16 {
+-        w.write_byte(bytes[i].to_int())
+-      }
+-    }
+-    V128Load(memidx, align, offset) => {
+-      w.write_byte(0xFD)
+-      w.write_u32(0)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-    V128Store(memidx, align, offset) => {
+-      w.write_byte(0xFD)
+-      w.write_u32(11)
+-      encode_memarg(w, memidx, align, offset)
+-    }
+-
+-    // For unhandled SIMD instructions, use unreachable as placeholder
+-    _ => w.write_byte(0x00)
++          // Control instructions
++          Unreachable => w.write_byte(0x00)
++          Nop => w.write_byte(0x01)
++          Block(bt, body) => {
++            w.write_byte(0x02)
++            encode_block_type(w, bt)
++            work.push(Byte(0x0B))
++            work.push(Sequence(body, 0))
++          }
++          Loop(bt, body) => {
++            w.write_byte(0x03)
++            encode_block_type(w, bt)
++            work.push(Byte(0x0B))
++            work.push(Sequence(body, 0))
++          }
++          If(bt, then_body, else_body) => {
++            w.write_byte(0x04)
++            encode_block_type(w, bt)
++            work.push(Byte(0x0B))
++            if !else_body.is_empty() {
++              work.push(Sequence(else_body, 0))
++              work.push(Byte(0x05))
++            }
++            work.push(Sequence(then_body, 0))
++          }
++          Br(label) => {
++            w.write_byte(0x0C)
++            w.write_u32(label)
++          }
++          BrIf(label) => {
++            w.write_byte(0x0D)
++            w.write_u32(label)
++          }
++          BrTable(labels, default) => {
++            w.write_byte(0x0E)
++            w.write_u32(labels.length())
++            for l in labels {
++              w.write_u32(l)
++            }
++            w.write_u32(default)
++          }
++          Return => w.write_byte(0x0F)
++          Call(idx) => {
++            w.write_byte(0x10)
++            w.write_u32(idx)
++          }
++          CallIndirect(type_idx, table_idx) => {
++            w.write_byte(0x11)
++            w.write_u32(type_idx)
++            w.write_u32(table_idx)
++          }
++          ReturnCall(idx) => {
++            w.write_byte(0x12)
++            w.write_u32(idx)
++          }
++          ReturnCallIndirect(type_idx, table_idx) => {
++            w.write_byte(0x13)
++            w.write_u32(type_idx)
++            w.write_u32(table_idx)
++          }
++          CallRef(type_idx) => {
++            w.write_byte(0x14)
++            w.write_u32(type_idx)
++          }
++          ReturnCallRef(type_idx) => {
++            w.write_byte(0x15)
++            w.write_u32(type_idx)
++          }
++
++          // Exception handling
++          Throw(tag_idx) => {
++            w.write_byte(0x08)
++            w.write_u32(tag_idx)
++          }
++          ThrowRef => w.write_byte(0x0A)
++          ContNew(index) => {
++            w.write_byte(0xE0)
++            w.write_u32(index)
++          }
++          ContBind(input, output) => {
++            w.write_byte(0xE1)
++            w.write_u32(input)
++            w.write_u32(output)
++          }
++          Suspend(tag) => {
++            w.write_byte(0xE2)
++            w.write_u32(tag)
++          }
++          Resume(index, handlers) => {
++            w.write_byte(0xE3)
++            w.write_u32(index)
++            encode_resume_handlers(w, handlers)
++          }
++          ResumeThrow(index, tag, handlers) => {
++            w.write_byte(0xE4)
++            w.write_u32(index)
++            w.write_u32(tag)
++            encode_resume_handlers(w, handlers)
++          }
++          ResumeThrowRef(index, handlers) => {
++            w.write_byte(0xE5)
++            w.write_u32(index)
++            encode_resume_handlers(w, handlers)
++          }
++          Switch(index, tag) => {
++            w.write_byte(0xE6)
++            w.write_u32(index)
++            w.write_u32(tag)
++          }
++          Rethrow(depth) => {
++            w.write_byte(0x09)
++            w.write_u32(depth)
++          }
++          LegacyTry(bt, body, catches, delegate) => {
++            w.write_byte(0x06)
++            encode_block_type(w, bt)
++            match delegate {
++              Some(depth) => {
++                work.push(U32(depth))
++                work.push(Byte(0x18))
++              }
++              None => work.push(Byte(0x0B))
++            }
++            for i = catches.length() - 1; i >= 0; i = i - 1 {
++              let arm = catches[i]
++              work.push(Sequence(arm.body, 0))
++              match arm.tag {
++                None => work.push(Byte(0x19))
++                Some(tag) => {
++                  work.push(U32(tag))
++                  work.push(Byte(0x07))
++                }
++              }
++            }
++            work.push(Sequence(body, 0))
++          }
++          TryTable(bt, handlers, body) => {
++            w.write_byte(0x1F)
++            encode_block_type(w, bt)
++            w.write_u32(handlers.length())
++            for handler in handlers {
++              encode_catch_handler(w, handler)
++            }
++            work.push(Byte(0x0B))
++            work.push(Sequence(body, 0))
++          }
++
++          // Parametric instructions
++          Drop => w.write_byte(0x1A)
++          Select => w.write_byte(0x1B)
++          SelectTyped(types) => {
++            w.write_byte(0x1C)
++            w.write_u32(types.length())
++            for t in types {
++              encode_valtype(w, t)
++            }
++          }
++
++          // Variable instructions
++          LocalGet(idx) => {
++            w.write_byte(0x20)
++            w.write_u32(idx)
++          }
++          LocalSet(idx) => {
++            w.write_byte(0x21)
++            w.write_u32(idx)
++          }
++          LocalTee(idx) => {
++            w.write_byte(0x22)
++            w.write_u32(idx)
++          }
++          GlobalGet(idx) => {
++            w.write_byte(0x23)
++            w.write_u32(idx)
++          }
++          GlobalSet(idx) => {
++            w.write_byte(0x24)
++            w.write_u32(idx)
++          }
++
++          // Table instructions
++          TableGet(idx) => {
++            w.write_byte(0x25)
++            w.write_u32(idx)
++          }
++          TableSet(idx) => {
++            w.write_byte(0x26)
++            w.write_u32(idx)
++          }
++          TableSize(idx) => {
++            w.write_byte(0xFC)
++            w.write_u32(16)
++            w.write_u32(idx)
++          }
++          TableGrow(idx) => {
++            w.write_byte(0xFC)
++            w.write_u32(15)
++            w.write_u32(idx)
++          }
++          TableFill(idx) => {
++            w.write_byte(0xFC)
++            w.write_u32(17)
++            w.write_u32(idx)
++          }
++          TableCopy(dst, src) => {
++            w.write_byte(0xFC)
++            w.write_u32(14)
++            w.write_u32(dst)
++            w.write_u32(src)
++          }
++          TableInit(table_idx, elem_idx) => {
++            w.write_byte(0xFC)
++            w.write_u32(12)
++            w.write_u32(elem_idx)
++            w.write_u32(table_idx)
++          }
++
++          // Memory instructions
++          I32Load(memidx, align, offset) => {
++            w.write_byte(0x28)
++            encode_memarg(w, memidx, align, offset)
++          }
++          I64Load(memidx, align, offset) => {
++            w.write_byte(0x29)
++            encode_memarg(w, memidx, align, offset)
++          }
++          F32Load(memidx, align, offset) => {
++            w.write_byte(0x2A)
++            encode_memarg(w, memidx, align, offset)
++          }
++          F64Load(memidx, align, offset) => {
++            w.write_byte(0x2B)
++            encode_memarg(w, memidx, align, offset)
++          }
++          I32Load8S(memidx, align, offset) => {
++            w.write_byte(0x2C)
++            encode_memarg(w, memidx, align, offset)
++          }
++          I32Load8U(memidx, align, offset) => {
++            w.write_byte(0x2D)
++            encode_memarg(w, memidx, align, offset)
++          }
++          I32Load16S(memidx, align, offset) => {
++            w.write_byte(0x2E)
++            encode_memarg(w, memidx, align, offset)
++          }
++          I32Load16U(memidx, align, offset) => {
++            w.write_byte(0x2F)
++            encode_memarg(w, memidx, align, offset)
++          }
++          I64Load8S(memidx, align, offset) => {
++            w.write_byte(0x30)
++            encode_memarg(w, memidx, align, offset)
++          }
++          I64Load8U(memidx, align, offset) => {
++            w.write_byte(0x31)
++            encode_memarg(w, memidx, align, offset)
++          }
++          I64Load16S(memidx, align, offset) => {
++            w.write_byte(0x32)
++            encode_memarg(w, memidx, align, offset)
++          }
++          I64Load16U(memidx, align, offset) => {
++            w.write_byte(0x33)
++            encode_memarg(w, memidx, align, offset)
++          }
++          I64Load32S(memidx, align, offset) => {
++            w.write_byte(0x34)
++            encode_memarg(w, memidx, align, offset)
++          }
++          I64Load32U(memidx, align, offset) => {
++            w.write_byte(0x35)
++            encode_memarg(w, memidx, align, offset)
++          }
++          I32Store(memidx, align, offset) => {
++            w.write_byte(0x36)
++            encode_memarg(w, memidx, align, offset)
++          }
++          I64Store(memidx, align, offset) => {
++            w.write_byte(0x37)
++            encode_memarg(w, memidx, align, offset)
++          }
++          F32Store(memidx, align, offset) => {
++            w.write_byte(0x38)
++            encode_memarg(w, memidx, align, offset)
++          }
++          F64Store(memidx, align, offset) => {
++            w.write_byte(0x39)
++            encode_memarg(w, memidx, align, offset)
++          }
++          I32Store8(memidx, align, offset) => {
++            w.write_byte(0x3A)
++            encode_memarg(w, memidx, align, offset)
++          }
++          I32Store16(memidx, align, offset) => {
++            w.write_byte(0x3B)
++            encode_memarg(w, memidx, align, offset)
++          }
++          I64Store8(memidx, align, offset) => {
++            w.write_byte(0x3C)
++            encode_memarg(w, memidx, align, offset)
++          }
++          I64Store16(memidx, align, offset) => {
++            w.write_byte(0x3D)
++            encode_memarg(w, memidx, align, offset)
++          }
++          I64Store32(memidx, align, offset) => {
++            w.write_byte(0x3E)
++            encode_memarg(w, memidx, align, offset)
++          }
++          MemorySize(memidx) => {
++            w.write_byte(0x3F)
++            w.write_u32(memidx)
++          }
++          MemoryGrow(memidx) => {
++            w.write_byte(0x40)
++            w.write_u32(memidx)
++          }
++          Atomic(subopcode, memidx, align, offset) => {
++            w.write_byte(0xFE)
++            w.write_u32(subopcode)
++            if subopcode == 3 {
++              w.write_byte(0)
++            } else {
++              encode_memarg(w, memidx, align, offset)
++            }
++          }
++          MemoryInit(memidx, data_idx) => {
++            w.write_byte(0xFC)
++            w.write_u32(8)
++            w.write_u32(data_idx)
++            w.write_u32(memidx)
++          }
++          DataDrop(data_idx) => {
++            w.write_byte(0xFC)
++            w.write_u32(9)
++            w.write_u32(data_idx)
++          }
++          MemoryCopy(dst, src) => {
++            w.write_byte(0xFC)
++            w.write_u32(10)
++            w.write_u32(dst)
++            w.write_u32(src)
++          }
++          MemoryFill(memidx) => {
++            w.write_byte(0xFC)
++            w.write_u32(11)
++            w.write_u32(memidx)
++          }
++          ElemDrop(elem_idx) => {
++            w.write_byte(0xFC)
++            w.write_u32(13)
++            w.write_u32(elem_idx)
++          }
++
++          // Reference instructions
++          RefNull(vt) => {
++            w.write_byte(0xD0)
++            encode_heaptype(w, vt)
++          }
++          RefIsNull => w.write_byte(0xD1)
++          RefFunc(idx) => {
++            w.write_byte(0xD2)
++            w.write_u32(idx)
++          }
++          RefAsNonNull => w.write_byte(0xD4)
++          RefEqInstr => w.write_byte(0xD3)
++          BrOnNull(label) => {
++            w.write_byte(0xD5)
++            w.write_u32(label)
++          }
++          BrOnNonNull(label) => {
++            w.write_byte(0xD6)
++            w.write_u32(label)
++          }
++
++          // Numeric constants
++          I32Const(val) => {
++            w.write_byte(0x41)
++            w.write_s32(val)
++          }
++          I64Const(val) => {
++            w.write_byte(0x42)
++            w.write_s64(val)
++          }
++          F32Const(val) => {
++            w.write_byte(0x43)
++            w.write_f32(val)
++          }
++          F64Const(val) => {
++            w.write_byte(0x44)
++            w.write_f64(val)
++          }
++
++          // i32 operations
++          I32Eqz => w.write_byte(0x45)
++          I32Eq => w.write_byte(0x46)
++          I32Ne => w.write_byte(0x47)
++          I32LtS => w.write_byte(0x48)
++          I32LtU => w.write_byte(0x49)
++          I32GtS => w.write_byte(0x4A)
++          I32GtU => w.write_byte(0x4B)
++          I32LeS => w.write_byte(0x4C)
++          I32LeU => w.write_byte(0x4D)
++          I32GeS => w.write_byte(0x4E)
++          I32GeU => w.write_byte(0x4F)
++          I32Clz => w.write_byte(0x67)
++          I32Ctz => w.write_byte(0x68)
++          I32Popcnt => w.write_byte(0x69)
++          I32Add => w.write_byte(0x6A)
++          I32Sub => w.write_byte(0x6B)
++          I32Mul => w.write_byte(0x6C)
++          I32DivS => w.write_byte(0x6D)
++          I32DivU => w.write_byte(0x6E)
++          I32RemS => w.write_byte(0x6F)
++          I32RemU => w.write_byte(0x70)
++          I32And => w.write_byte(0x71)
++          I32Or => w.write_byte(0x72)
++          I32Xor => w.write_byte(0x73)
++          I32Shl => w.write_byte(0x74)
++          I32ShrS => w.write_byte(0x75)
++          I32ShrU => w.write_byte(0x76)
++          I32Rotl => w.write_byte(0x77)
++          I32Rotr => w.write_byte(0x78)
++          I32Extend8S => w.write_byte(0xC0)
++          I32Extend16S => w.write_byte(0xC1)
++
++          // i64 operations
++          I64Eqz => w.write_byte(0x50)
++          I64Eq => w.write_byte(0x51)
++          I64Ne => w.write_byte(0x52)
++          I64LtS => w.write_byte(0x53)
++          I64LtU => w.write_byte(0x54)
++          I64GtS => w.write_byte(0x55)
++          I64GtU => w.write_byte(0x56)
++          I64LeS => w.write_byte(0x57)
++          I64LeU => w.write_byte(0x58)
++          I64GeS => w.write_byte(0x59)
++          I64GeU => w.write_byte(0x5A)
++          I64Clz => w.write_byte(0x79)
++          I64Ctz => w.write_byte(0x7A)
++          I64Popcnt => w.write_byte(0x7B)
++          I64Add128 | I64Sub128 | I64MulWideS | I64MulWideU => {
++            w.write_byte(0xFC)
++            w.write_u32(
++              match instr {
++                I64Add128 => 19
++                I64Sub128 => 20
++                I64MulWideS => 21
++                _ => 22
++              },
++            )
++          }
++          I64Add => w.write_byte(0x7C)
++          I64Sub => w.write_byte(0x7D)
++          I64Mul => w.write_byte(0x7E)
++          I64DivS => w.write_byte(0x7F)
++          I64DivU => w.write_byte(0x80)
++          I64RemS => w.write_byte(0x81)
++          I64RemU => w.write_byte(0x82)
++          I64And => w.write_byte(0x83)
++          I64Or => w.write_byte(0x84)
++          I64Xor => w.write_byte(0x85)
++          I64Shl => w.write_byte(0x86)
++          I64ShrS => w.write_byte(0x87)
++          I64ShrU => w.write_byte(0x88)
++          I64Rotl => w.write_byte(0x89)
++          I64Rotr => w.write_byte(0x8A)
++          I64Extend8S => w.write_byte(0xC2)
++          I64Extend16S => w.write_byte(0xC3)
++          I64Extend32S => w.write_byte(0xC4)
++
++          // f32 operations
++          F32Eq => w.write_byte(0x5B)
++          F32Ne => w.write_byte(0x5C)
++          F32Lt => w.write_byte(0x5D)
++          F32Gt => w.write_byte(0x5E)
++          F32Le => w.write_byte(0x5F)
++          F32Ge => w.write_byte(0x60)
++          F32Abs => w.write_byte(0x8B)
++          F32Neg => w.write_byte(0x8C)
++          F32Ceil => w.write_byte(0x8D)
++          F32Floor => w.write_byte(0x8E)
++          F32Trunc => w.write_byte(0x8F)
++          F32Nearest => w.write_byte(0x90)
++          F32Sqrt => w.write_byte(0x91)
++          F32Add => w.write_byte(0x92)
++          F32Sub => w.write_byte(0x93)
++          F32Mul => w.write_byte(0x94)
++          F32Div => w.write_byte(0x95)
++          F32Min => w.write_byte(0x96)
++          F32Max => w.write_byte(0x97)
++          F32Copysign => w.write_byte(0x98)
++
++          // f64 operations
++          F64Eq => w.write_byte(0x61)
++          F64Ne => w.write_byte(0x62)
++          F64Lt => w.write_byte(0x63)
++          F64Gt => w.write_byte(0x64)
++          F64Le => w.write_byte(0x65)
++          F64Ge => w.write_byte(0x66)
++          F64Abs => w.write_byte(0x99)
++          F64Neg => w.write_byte(0x9A)
++          F64Ceil => w.write_byte(0x9B)
++          F64Floor => w.write_byte(0x9C)
++          F64Trunc => w.write_byte(0x9D)
++          F64Nearest => w.write_byte(0x9E)
++          F64Sqrt => w.write_byte(0x9F)
++          F64Add => w.write_byte(0xA0)
++          F64Sub => w.write_byte(0xA1)
++          F64Mul => w.write_byte(0xA2)
++          F64Div => w.write_byte(0xA3)
++          F64Min => w.write_byte(0xA4)
++          F64Max => w.write_byte(0xA5)
++          F64Copysign => w.write_byte(0xA6)
++
++          // Conversions
++          I32WrapI64 => w.write_byte(0xA7)
++          I32TruncF32S => w.write_byte(0xA8)
++          I32TruncF32U => w.write_byte(0xA9)
++          I32TruncF64S => w.write_byte(0xAA)
++          I32TruncF64U => w.write_byte(0xAB)
++          I64ExtendI32S => w.write_byte(0xAC)
++          I64ExtendI32U => w.write_byte(0xAD)
++          I64TruncF32S => w.write_byte(0xAE)
++          I64TruncF32U => w.write_byte(0xAF)
++          I64TruncF64S => w.write_byte(0xB0)
++          I64TruncF64U => w.write_byte(0xB1)
++          F32ConvertI32S => w.write_byte(0xB2)
++          F32ConvertI32U => w.write_byte(0xB3)
++          F32ConvertI64S => w.write_byte(0xB4)
++          F32ConvertI64U => w.write_byte(0xB5)
++          F32DemoteF64 => w.write_byte(0xB6)
++          F64ConvertI32S => w.write_byte(0xB7)
++          F64ConvertI32U => w.write_byte(0xB8)
++          F64ConvertI64S => w.write_byte(0xB9)
++          F64ConvertI64U => w.write_byte(0xBA)
++          F64PromoteF32 => w.write_byte(0xBB)
++          I32ReinterpretF32 => w.write_byte(0xBC)
++          I64ReinterpretF64 => w.write_byte(0xBD)
++          F32ReinterpretI32 => w.write_byte(0xBE)
++          F64ReinterpretI64 => w.write_byte(0xBF)
++
++          // Saturating truncation
++          I32TruncSatF32S => {
++            w.write_byte(0xFC)
++            w.write_u32(0)
++          }
++          I32TruncSatF32U => {
++            w.write_byte(0xFC)
++            w.write_u32(1)
++          }
++          I32TruncSatF64S => {
++            w.write_byte(0xFC)
++            w.write_u32(2)
++          }
++          I32TruncSatF64U => {
++            w.write_byte(0xFC)
++            w.write_u32(3)
++          }
++          I64TruncSatF32S => {
++            w.write_byte(0xFC)
++            w.write_u32(4)
++          }
++          I64TruncSatF32U => {
++            w.write_byte(0xFC)
++            w.write_u32(5)
++          }
++          I64TruncSatF64S => {
++            w.write_byte(0xFC)
++            w.write_u32(6)
++          }
++          I64TruncSatF64U => {
++            w.write_byte(0xFC)
++            w.write_u32(7)
++          }
++
++          // GC instructions
++          StructNew(type_idx) => {
++            w.write_byte(0xFB)
++            w.write_u32(0)
++            w.write_u32(type_idx)
++          }
++          StructNewDefault(type_idx) => {
++            w.write_byte(0xFB)
++            w.write_u32(1)
++            w.write_u32(type_idx)
++          }
++          StructGet(type_idx, field_idx) => {
++            w.write_byte(0xFB)
++            w.write_u32(2)
++            w.write_u32(type_idx)
++            w.write_u32(field_idx)
++          }
++          StructGetS(type_idx, field_idx) => {
++            w.write_byte(0xFB)
++            w.write_u32(3)
++            w.write_u32(type_idx)
++            w.write_u32(field_idx)
++          }
++          StructGetU(type_idx, field_idx) => {
++            w.write_byte(0xFB)
++            w.write_u32(4)
++            w.write_u32(type_idx)
++            w.write_u32(field_idx)
++          }
++          StructSet(type_idx, field_idx) => {
++            w.write_byte(0xFB)
++            w.write_u32(5)
++            w.write_u32(type_idx)
++            w.write_u32(field_idx)
++          }
++          ArrayNew(type_idx) => {
++            w.write_byte(0xFB)
++            w.write_u32(6)
++            w.write_u32(type_idx)
++          }
++          ArrayNewDefault(type_idx) => {
++            w.write_byte(0xFB)
++            w.write_u32(7)
++            w.write_u32(type_idx)
++          }
++          ArrayNewFixed(type_idx, len) => {
++            w.write_byte(0xFB)
++            w.write_u32(8)
++            w.write_u32(type_idx)
++            w.write_u32(len)
++          }
++          ArrayNewData(type_idx, data_idx) => {
++            w.write_byte(0xFB)
++            w.write_u32(9)
++            w.write_u32(type_idx)
++            w.write_u32(data_idx)
++          }
++          ArrayNewElem(type_idx, elem_idx) => {
++            w.write_byte(0xFB)
++            w.write_u32(10)
++            w.write_u32(type_idx)
++            w.write_u32(elem_idx)
++          }
++          ArrayGet(type_idx) => {
++            w.write_byte(0xFB)
++            w.write_u32(11)
++            w.write_u32(type_idx)
++          }
++          ArrayGetS(type_idx) => {
++            w.write_byte(0xFB)
++            w.write_u32(12)
++            w.write_u32(type_idx)
++          }
++          ArrayGetU(type_idx) => {
++            w.write_byte(0xFB)
++            w.write_u32(13)
++            w.write_u32(type_idx)
++          }
++          ArraySet(type_idx) => {
++            w.write_byte(0xFB)
++            w.write_u32(14)
++            w.write_u32(type_idx)
++          }
++          ArrayLen => {
++            w.write_byte(0xFB)
++            w.write_u32(15)
++          }
++          ArrayFill(type_idx) => {
++            w.write_byte(0xFB)
++            w.write_u32(16)
++            w.write_u32(type_idx)
++          }
++          ArrayCopy(dst_type, src_type) => {
++            w.write_byte(0xFB)
++            w.write_u32(17)
++            w.write_u32(dst_type)
++            w.write_u32(src_type)
++          }
++          ArrayInitData(type_idx, data_idx) => {
++            w.write_byte(0xFB)
++            w.write_u32(18)
++            w.write_u32(type_idx)
++            w.write_u32(data_idx)
++          }
++          ArrayInitElem(type_idx, elem_idx) => {
++            w.write_byte(0xFB)
++            w.write_u32(19)
++            w.write_u32(type_idx)
++            w.write_u32(elem_idx)
++          }
++          RefTest(vt) => {
++            w.write_byte(0xFB)
++            w.write_u32(20)
++            encode_heaptype(w, vt)
++          }
++          RefTestNull(vt) => {
++            w.write_byte(0xFB)
++            w.write_u32(21)
++            encode_heaptype(w, vt)
++          }
++          RefCast(vt) => {
++            w.write_byte(0xFB)
++            w.write_u32(22)
++            encode_heaptype(w, vt)
++          }
++          RefCastNull(vt) => {
++            w.write_byte(0xFB)
++            w.write_u32(23)
++            encode_heaptype(w, vt)
++          }
++          BrOnCast(label, from_type, to_type) => {
++            w.write_byte(0xFB)
++            w.write_u32(24)
++            // Cast flags: bit 0 = from nullable, bit 1 = to nullable
++            let from_null = if from_type.is_nullable() { 1 } else { 0 }
++            let to_null = if to_type.is_nullable() { 2 } else { 0 }
++            w.write_byte(from_null | to_null)
++            w.write_u32(label)
++            encode_heaptype(w, from_type)
++            encode_heaptype(w, to_type)
++          }
++          BrOnCastFail(label, from_type, to_type) => {
++            w.write_byte(0xFB)
++            w.write_u32(25)
++            let from_null = if from_type.is_nullable() { 1 } else { 0 }
++            let to_null = if to_type.is_nullable() { 2 } else { 0 }
++            w.write_byte(from_null | to_null)
++            w.write_u32(label)
++            encode_heaptype(w, from_type)
++            encode_heaptype(w, to_type)
++          }
++          RefI31Shared => {
++            w.write_byte(0xFE)
++            w.write_u32(0x72)
++          }
++          RefI31 => {
++            w.write_byte(0xFB)
++            w.write_u32(28)
++          }
++          I31GetS => {
++            w.write_byte(0xFB)
++            w.write_u32(29)
++          }
++          I31GetU => {
++            w.write_byte(0xFB)
++            w.write_u32(30)
++          }
++          AnyConvertExtern => {
++            w.write_byte(0xFB)
++            w.write_u32(26)
++          }
++          ExternConvertAny => {
++            w.write_byte(0xFB)
++            w.write_u32(27)
++          }
++
++          // SIMD - V128 constant and load/store
++          V128Const(bytes) => {
++            if bytes.length() != 16 {
++              raise EncodingError("v128.const requires exactly 16 bytes")
++            }
++            w.write_byte(0xFD)
++            w.write_u32(12)
++            for i in 0..<16 {
++              w.write_byte(bytes[i].to_int())
++            }
++          }
++          V128Load(memidx, align, offset) => {
++            w.write_byte(0xFD)
++            w.write_u32(0)
++            encode_memarg(w, memidx, align, offset)
++          }
++          V128Store(memidx, align, offset) => {
++            w.write_byte(0xFD)
++            w.write_u32(11)
++            encode_memarg(w, memidx, align, offset)
++          }
++          _ => raise EncodingError("instruction cannot be encoded: \{instr}")
++        }
++    }
+@@ -1301,2 +1367,2 @@
+-  section_id : Int,
+-  content : Array[Int],
++  section_id : Int32,
++  content : Array[Int32],
+@@ -1311 +1377 @@
+-fn encode_type_section(mod : @types.Module) -> Array[Int] {
++fn encode_type_section(mod : @types.Module) -> Array[Int32] {
+@@ -1316 +1382 @@
+-  let groups : Array[(Int, Int)] = []
++  let groups : Array[(Int32, Int32)] = []
+@@ -1344 +1410 @@
+-fn encode_import_section(mod : @types.Module) -> Array[Int] {
++fn encode_import_section(mod : @types.Module) -> Array[Int32] {
+@@ -1382 +1448 @@
+-fn encode_function_section(mod : @types.Module) -> Array[Int] {
++fn encode_function_section(mod : @types.Module) -> Array[Int32] {
+@@ -1396 +1462,3 @@
+-fn encode_table_section(mod : @types.Module) -> Array[Int] {
++fn encode_table_section(
++  mod : @types.Module,
++) -> Array[Int32] raise EncodingError {
+@@ -1420 +1488 @@
+-fn encode_memory_section(mod : @types.Module) -> Array[Int] {
++fn encode_memory_section(mod : @types.Module) -> Array[Int32] {
+@@ -1434 +1502,3 @@
+-fn encode_global_section(mod : @types.Module) -> Array[Int] {
++fn encode_global_section(
++  mod : @types.Module,
++) -> Array[Int32] raise EncodingError {
+@@ -1450 +1520 @@
+-fn encode_export_section(mod : @types.Module) -> Array[Int] {
++fn encode_export_section(mod : @types.Module) -> Array[Int32] {
+@@ -1486 +1556 @@
+-fn encode_start_section(mod : @types.Module) -> Array[Int] {
++fn encode_start_section(mod : @types.Module) -> Array[Int32] {
+@@ -1499 +1569,3 @@
+-fn encode_element_section(mod : @types.Module) -> Array[Int] {
++fn encode_element_section(
++  mod : @types.Module,
++) -> Array[Int32] raise EncodingError {
+@@ -1508 +1580,3 @@
+-        if table_idx == 0 && elem.type_ is FuncRef {
++        if table_idx == 0 &&
++          elem.type_ is FuncRef &&
++          elem.init.all(expr => expr is [RefFunc(_)]) {
+@@ -1519 +1593,4 @@
+-              _ => w.write_u32(0) // fallback
++              _ =>
++                raise EncodingError(
++                  "invalid compact function element initializer",
++                )
+@@ -1560 +1637 @@
+-fn encode_code_section(mod : @types.Module) -> Array[Int] {
++fn encode_code_section(mod : @types.Module) -> Array[Int32] raise EncodingError {
+@@ -1571 +1648 @@
+-    let compressed_locals : Array[(Int, @types.ValueType)] = []
++    let compressed_locals : Array[(Int32, @types.ValueType)] = []
+@@ -1605 +1682 @@
+-fn encode_data_section(mod : @types.Module) -> Array[Int] {
++fn encode_data_section(mod : @types.Module) -> Array[Int32] raise EncodingError {
+@@ -1638 +1715 @@
+-fn encode_datacount_section(mod : @types.Module) -> Array[Int] {
++fn encode_datacount_section(mod : @types.Module) -> Array[Int32] {
+@@ -1649 +1726 @@
+-fn encode_tag_section(mod : @types.Module) -> Array[Int] {
++fn encode_tag_section(mod : @types.Module) -> Array[Int32] {
+@@ -1666 +1743 @@
+-pub fn encode(mod : @types.Module) -> Array[Int] {
++pub fn encode(mod : @types.Module) -> Array[Int32] raise EncodingError {
+@@ -1785,0 +1863,7 @@
++  if ty.heap() is Some((_, shared, heap)) {
++    if shared && heap < 0 {
++      w.write_byte(0x65)
++    }
++    w.write_s32(heap)
++    return
++  }
+@@ -1786,0 +1871 @@
++    HeapRef(_, _, index) => index
+--- a/encoder_test.mbt
++++ b/encoder_test.mbt
+@@ -4 +4 @@
+-    encode(@types.Module::empty()),
++    @core_encoder.encode(@types.Module::empty()),
+@@ -14 +14 @@
+-    encode(module_),
++    @core_encoder.encode(module_),
+--- a/moon.pkg
++++ b/moon.pkg
+@@ -2 +2,2 @@
+-  "Milky2018/wasm_core/types",
++  "moonbitlang/core/debug",
++  "moonrockz/wit/binary/core_model" @types,
+@@ -3,0 +5,6 @@
++
++import {
++  "moonrockz/wit/binary/core_encoder",
++  "moonrockz/wit/binary/core_parser",
++  "moonrockz/wit/binary/core_text" @wat,
++} for "test"

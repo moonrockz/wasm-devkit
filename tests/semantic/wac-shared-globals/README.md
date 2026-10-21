@@ -20,9 +20,10 @@ the same contract. No additional instructions enter the verification profile.
 The pinned WAC loader skips function bodies and some concrete module matching.
 It accepts both shared-flag mismatches in ascriptions and instantiation, plus
 `immutable-set` and `bad-body`. wasm-tools rejects these original binaries, as
-does the product. Both references accept `exception` and `atomic`, which remain
-explicit product exclusions. Concrete GC/shared heap references also remain
-unsupported. Malformed flags, missing bytes and invalid initializers reject.
+does the product. Both references accept `exception` and `atomic`. Exceptions now validate;
+atomic operations remain explicit exclusions. `gc-reference` uses an unshared
+struct in a shared global and remains invalid. Valid shared GC references have
+complete contract coverage in [the extension suite](../wac-binary-extensions/README.md). Malformed flags, missing bytes and invalid initializers reject.
 These exclusions and reference differences are recorded on the Beads task.
 
 `shared_globals_profile_test.mbt` checks complete ordered normalized models from

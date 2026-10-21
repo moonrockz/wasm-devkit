@@ -1,4 +1,4 @@
-# id	kind	local-profile	wasm-tools-print	wabt-print	wasm-tools-readback	wabt-readback
+# id	kind	local-profile	wasm-tools-print	wabt-print	wasm-tools-readback	wabt-readback	compatibility-profile
 branch-hint-raw	core	accepted	success	success	success	reject
 branch-hints	core	accepted	success	success	success	success
 code-metadata-callback	core	accepted	success	success	success	success
@@ -66,7 +66,7 @@ references	core	accepted	success	reject	success	n/a
 rich	core	accepted	success	success	success	success
 subtyping	core	accepted	success	reject	success	n/a
 tags	core	accepted	success	success	success	success
-try-table	core	rejected	success	success	success	success
+try-table	core	accepted	success	success	success	success	rejected
 unicode	core	accepted	success	success	success	reject
 unknown-dylink	core	accepted	reject	success	n/a	success
 wide-memory-offset	core	accepted	success	success	success	success

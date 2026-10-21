@@ -1403,10 +1403,10 @@ test "shared concrete globals gc-reference" {
     assert_true(errors[0].code.has_prefix("WAC-B"))
     assert_true(!errors[0].message.is_empty())
   }
-  assert_eq(text.unwrap_err()[0].code, "WAC-B002")
+  assert_eq(text.unwrap_err()[0].code, "WAC-B003")
   assert_eq(
     @verifier.decode_component_package(bytes).unwrap_err()[0].code,
-    "WAC-B002",
+    "WAC-B003",
   )
   assert_true(
     @binary_validation.validate_declarative_component(bytes) is Err(_),
@@ -1424,19 +1424,13 @@ test "shared concrete globals exception" {
     "(component (core module $m (global (shared i32) (i32.const 0)) (tag $t) (func throw $t)) (export \"m\" (core module $m)))",
     source_id="exception.wat",
   )
-  for result in [binary, text] {
-    let errors = result.unwrap_err()
-    assert_true(errors[0].code.has_prefix("WAC-B"))
-    assert_true(!errors[0].message.is_empty())
-  }
-  assert_eq(text.unwrap_err()[0].code, "WAC-B002")
+  assert_true(binary is Ok(_))
+  assert_true(text is Ok(_))
   assert_eq(
-    @verifier.decode_component_package(bytes).unwrap_err()[0].code,
-    "WAC-B002",
+    binary_projection(binary.unwrap()),
+    binary_projection(text.unwrap()),
   )
-  assert_true(
-    @binary_validation.validate_declarative_component(bytes) is Err(_),
-  )
+  assert_true(@binary_validation.validate_declarative_component(bytes) is Ok(_))
 }
 
 ///|

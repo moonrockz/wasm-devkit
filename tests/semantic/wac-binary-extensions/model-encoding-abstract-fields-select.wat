@@ -1,0 +1,1 @@
+(component (core module $m (type (struct (field structref) (field arrayref))) (type (array arrayref)) (func (export "id") (param structref structref i32) (result structref) local.get 0 local.get 1 local.get 2 select (result structref)) (global (export "g") arrayref (ref.null array))) (export "m" (core module $m)))

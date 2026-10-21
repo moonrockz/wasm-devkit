@@ -1,0 +1,615 @@
+{
+  "exports": [
+    {
+      "name": "table",
+      "signature": {
+        "index64": false,
+        "kind": "table",
+        "max": null,
+        "min": "1",
+        "shared": false,
+        "value": {
+          "identity": {
+            "index": 1,
+            "types": [
+              {
+                "composite": {
+                  "fields": [
+                    {
+                      "mutable": false,
+                      "storage": {
+                        "heap": 1,
+                        "kind": "reference",
+                        "nullable": true,
+                        "shared": false
+                      }
+                    }
+                  ],
+                  "kind": "struct"
+                },
+                "final": true,
+                "group-size": 2,
+                "group-start": 0,
+                "shared": false,
+                "supertype": null
+              },
+              {
+                "composite": {
+                  "field": {
+                    "mutable": true,
+                    "storage": {
+                      "heap": 0,
+                      "kind": "reference",
+                      "nullable": true,
+                      "shared": false
+                    }
+                  },
+                  "kind": "array"
+                },
+                "final": true,
+                "group-size": 2,
+                "group-start": 0,
+                "shared": false,
+                "supertype": null
+              },
+              {
+                "composite": {
+                  "kind": "func",
+                  "params": [
+                    {
+                      "heap": 0,
+                      "kind": "reference",
+                      "nullable": true,
+                      "shared": false
+                    }
+                  ],
+                  "results": [
+                    {
+                      "heap": 1,
+                      "kind": "reference",
+                      "nullable": true,
+                      "shared": false
+                    }
+                  ]
+                },
+                "final": true,
+                "group-size": 1,
+                "group-start": 2,
+                "shared": false,
+                "supertype": null
+              },
+              {
+                "composite": {
+                  "kind": "func",
+                  "params": [
+                    {
+                      "heap": 0,
+                      "kind": "reference",
+                      "nullable": true,
+                      "shared": false
+                    }
+                  ],
+                  "results": []
+                },
+                "final": true,
+                "group-size": 1,
+                "group-start": 3,
+                "shared": false,
+                "supertype": null
+              }
+            ]
+          },
+          "kind": "concrete-reference",
+          "nullable": true
+        }
+      }
+    },
+    {
+      "name": "g",
+      "signature": {
+        "kind": "global",
+        "mutable": false,
+        "shared": false,
+        "value": {
+          "identity": {
+            "index": 0,
+            "types": [
+              {
+                "composite": {
+                  "fields": [
+                    {
+                      "mutable": false,
+                      "storage": {
+                        "heap": 1,
+                        "kind": "reference",
+                        "nullable": true,
+                        "shared": false
+                      }
+                    }
+                  ],
+                  "kind": "struct"
+                },
+                "final": true,
+                "group-size": 2,
+                "group-start": 0,
+                "shared": false,
+                "supertype": null
+              },
+              {
+                "composite": {
+                  "field": {
+                    "mutable": true,
+                    "storage": {
+                      "heap": 0,
+                      "kind": "reference",
+                      "nullable": true,
+                      "shared": false
+                    }
+                  },
+                  "kind": "array"
+                },
+                "final": true,
+                "group-size": 2,
+                "group-start": 0,
+                "shared": false,
+                "supertype": null
+              },
+              {
+                "composite": {
+                  "kind": "func",
+                  "params": [
+                    {
+                      "heap": 0,
+                      "kind": "reference",
+                      "nullable": true,
+                      "shared": false
+                    }
+                  ],
+                  "results": [
+                    {
+                      "heap": 1,
+                      "kind": "reference",
+                      "nullable": true,
+                      "shared": false
+                    }
+                  ]
+                },
+                "final": true,
+                "group-size": 1,
+                "group-start": 2,
+                "shared": false,
+                "supertype": null
+              },
+              {
+                "composite": {
+                  "kind": "func",
+                  "params": [
+                    {
+                      "heap": 0,
+                      "kind": "reference",
+                      "nullable": true,
+                      "shared": false
+                    }
+                  ],
+                  "results": []
+                },
+                "final": true,
+                "group-size": 1,
+                "group-start": 3,
+                "shared": false,
+                "supertype": null
+              }
+            ]
+          },
+          "kind": "concrete-reference",
+          "nullable": true
+        }
+      }
+    },
+    {
+      "name": "run",
+      "signature": {
+        "identity": {
+          "index": 2,
+          "types": [
+            {
+              "composite": {
+                "fields": [
+                  {
+                    "mutable": false,
+                    "storage": {
+                      "heap": 1,
+                      "kind": "reference",
+                      "nullable": true,
+                      "shared": false
+                    }
+                  }
+                ],
+                "kind": "struct"
+              },
+              "final": true,
+              "group-size": 2,
+              "group-start": 0,
+              "shared": false,
+              "supertype": null
+            },
+            {
+              "composite": {
+                "field": {
+                  "mutable": true,
+                  "storage": {
+                    "heap": 0,
+                    "kind": "reference",
+                    "nullable": true,
+                    "shared": false
+                  }
+                },
+                "kind": "array"
+              },
+              "final": true,
+              "group-size": 2,
+              "group-start": 0,
+              "shared": false,
+              "supertype": null
+            },
+            {
+              "composite": {
+                "kind": "func",
+                "params": [
+                  {
+                    "heap": 0,
+                    "kind": "reference",
+                    "nullable": true,
+                    "shared": false
+                  }
+                ],
+                "results": [
+                  {
+                    "heap": 1,
+                    "kind": "reference",
+                    "nullable": true,
+                    "shared": false
+                  }
+                ]
+              },
+              "final": true,
+              "group-size": 1,
+              "group-start": 2,
+              "shared": false,
+              "supertype": null
+            },
+            {
+              "composite": {
+                "kind": "func",
+                "params": [
+                  {
+                    "heap": 0,
+                    "kind": "reference",
+                    "nullable": true,
+                    "shared": false
+                  }
+                ],
+                "results": []
+              },
+              "final": true,
+              "group-size": 1,
+              "group-start": 3,
+              "shared": false,
+              "supertype": null
+            }
+          ]
+        },
+        "kind": "func"
+      }
+    },
+    {
+      "name": "e",
+      "signature": {
+        "identity": {
+          "index": 3,
+          "types": [
+            {
+              "composite": {
+                "fields": [
+                  {
+                    "mutable": false,
+                    "storage": {
+                      "heap": 1,
+                      "kind": "reference",
+                      "nullable": true,
+                      "shared": false
+                    }
+                  }
+                ],
+                "kind": "struct"
+              },
+              "final": true,
+              "group-size": 2,
+              "group-start": 0,
+              "shared": false,
+              "supertype": null
+            },
+            {
+              "composite": {
+                "field": {
+                  "mutable": true,
+                  "storage": {
+                    "heap": 0,
+                    "kind": "reference",
+                    "nullable": true,
+                    "shared": false
+                  }
+                },
+                "kind": "array"
+              },
+              "final": true,
+              "group-size": 2,
+              "group-start": 0,
+              "shared": false,
+              "supertype": null
+            },
+            {
+              "composite": {
+                "kind": "func",
+                "params": [
+                  {
+                    "heap": 0,
+                    "kind": "reference",
+                    "nullable": true,
+                    "shared": false
+                  }
+                ],
+                "results": [
+                  {
+                    "heap": 1,
+                    "kind": "reference",
+                    "nullable": true,
+                    "shared": false
+                  }
+                ]
+              },
+              "final": true,
+              "group-size": 1,
+              "group-start": 2,
+              "shared": false,
+              "supertype": null
+            },
+            {
+              "composite": {
+                "kind": "func",
+                "params": [
+                  {
+                    "heap": 0,
+                    "kind": "reference",
+                    "nullable": true,
+                    "shared": false
+                  }
+                ],
+                "results": []
+              },
+              "final": true,
+              "group-size": 1,
+              "group-start": 3,
+              "shared": false,
+              "supertype": null
+            }
+          ]
+        },
+        "kind": "tag"
+      }
+    },
+    {
+      "name": "memory",
+      "signature": {
+        "index64": false,
+        "kind": "memory",
+        "max": "2",
+        "min": "1",
+        "page-size-log2": null,
+        "shared": false
+      }
+    }
+  ],
+  "imports": [
+    {
+      "module": "env",
+      "name": "f",
+      "signature": {
+        "identity": {
+          "index": 2,
+          "types": [
+            {
+              "composite": {
+                "fields": [
+                  {
+                    "mutable": false,
+                    "storage": {
+                      "heap": 1,
+                      "kind": "reference",
+                      "nullable": true,
+                      "shared": false
+                    }
+                  }
+                ],
+                "kind": "struct"
+              },
+              "final": true,
+              "group-size": 2,
+              "group-start": 0,
+              "shared": false,
+              "supertype": null
+            },
+            {
+              "composite": {
+                "field": {
+                  "mutable": true,
+                  "storage": {
+                    "heap": 0,
+                    "kind": "reference",
+                    "nullable": true,
+                    "shared": false
+                  }
+                },
+                "kind": "array"
+              },
+              "final": true,
+              "group-size": 2,
+              "group-start": 0,
+              "shared": false,
+              "supertype": null
+            },
+            {
+              "composite": {
+                "kind": "func",
+                "params": [
+                  {
+                    "heap": 0,
+                    "kind": "reference",
+                    "nullable": true,
+                    "shared": false
+                  }
+                ],
+                "results": [
+                  {
+                    "heap": 1,
+                    "kind": "reference",
+                    "nullable": true,
+                    "shared": false
+                  }
+                ]
+              },
+              "final": true,
+              "group-size": 1,
+              "group-start": 2,
+              "shared": false,
+              "supertype": null
+            },
+            {
+              "composite": {
+                "kind": "func",
+                "params": [
+                  {
+                    "heap": 0,
+                    "kind": "reference",
+                    "nullable": true,
+                    "shared": false
+                  }
+                ],
+                "results": []
+              },
+              "final": true,
+              "group-size": 1,
+              "group-start": 3,
+              "shared": false,
+              "supertype": null
+            }
+          ]
+        },
+        "kind": "func"
+      }
+    },
+    {
+      "module": "env",
+      "name": "g",
+      "signature": {
+        "kind": "global",
+        "mutable": false,
+        "shared": false,
+        "value": {
+          "identity": {
+            "index": 0,
+            "types": [
+              {
+                "composite": {
+                  "fields": [
+                    {
+                      "mutable": false,
+                      "storage": {
+                        "heap": 1,
+                        "kind": "reference",
+                        "nullable": true,
+                        "shared": false
+                      }
+                    }
+                  ],
+                  "kind": "struct"
+                },
+                "final": true,
+                "group-size": 2,
+                "group-start": 0,
+                "shared": false,
+                "supertype": null
+              },
+              {
+                "composite": {
+                  "field": {
+                    "mutable": true,
+                    "storage": {
+                      "heap": 0,
+                      "kind": "reference",
+                      "nullable": true,
+                      "shared": false
+                    }
+                  },
+                  "kind": "array"
+                },
+                "final": true,
+                "group-size": 2,
+                "group-start": 0,
+                "shared": false,
+                "supertype": null
+              },
+              {
+                "composite": {
+                  "kind": "func",
+                  "params": [
+                    {
+                      "heap": 0,
+                      "kind": "reference",
+                      "nullable": true,
+                      "shared": false
+                    }
+                  ],
+                  "results": [
+                    {
+                      "heap": 1,
+                      "kind": "reference",
+                      "nullable": true,
+                      "shared": false
+                    }
+                  ]
+                },
+                "final": true,
+                "group-size": 1,
+                "group-start": 2,
+                "shared": false,
+                "supertype": null
+              },
+              {
+                "composite": {
+                  "kind": "func",
+                  "params": [
+                    {
+                      "heap": 0,
+                      "kind": "reference",
+                      "nullable": true,
+                      "shared": false
+                    }
+                  ],
+                  "results": []
+                },
+                "final": true,
+                "group-size": 1,
+                "group-start": 3,
+                "shared": false,
+                "supertype": null
+              }
+            ]
+          },
+          "kind": "concrete-reference",
+          "nullable": true
+        }
+      }
+    }
+  ]
+}

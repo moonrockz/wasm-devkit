@@ -1,0 +1,4 @@
+error: func 0 failed to validate
+
+Caused by:
+    0: unknown field: field index out of bounds (at offset 0x29)

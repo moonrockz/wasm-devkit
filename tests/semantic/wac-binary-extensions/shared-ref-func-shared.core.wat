@@ -1,0 +1,1 @@
+(module (type $caller (shared (func))) (type $callee (shared (func))) (func $callee (export "callee") (type $callee)) (func (type $caller) ref.func $callee drop))

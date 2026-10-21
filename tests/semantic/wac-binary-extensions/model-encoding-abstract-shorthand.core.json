@@ -1,0 +1,37 @@
+{
+  "exports": [
+    {
+      "name": "id",
+      "signature": {
+        "kind": "func",
+        "signature": {
+          "params": [
+            {
+              "heap": "struct",
+              "kind": "reference",
+              "nullable": true
+            },
+            {
+              "heap": "array",
+              "kind": "reference",
+              "nullable": true
+            }
+          ],
+          "results": [
+            {
+              "heap": "struct",
+              "kind": "reference",
+              "nullable": true
+            },
+            {
+              "heap": "array",
+              "kind": "reference",
+              "nullable": true
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "imports": []
+}

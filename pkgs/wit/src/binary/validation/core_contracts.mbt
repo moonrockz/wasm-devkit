@@ -19,11 +19,11 @@ fn CoreContractWork::charge(
 ///|
 fn core_contract_kind(kind : @core_types.External) -> Int32 {
   match kind {
-    Func(_) => 0
+    Func(_) | TypedFunc(_) => 0
     Table(_, _, _, _, _) => 1
     Memory(_, _, _, _, _) => 2
     Global(_, _, _) => 3
-    Tag(_) => 4
+    Tag(_) | TypedTag(_) => 4
   }
 }
 

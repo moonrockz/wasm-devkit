@@ -615,7 +615,9 @@ fn canon_options(
 }
 
 ///|
-fn core_value_type(type_ : @types.ValueType) -> String raise PrintFailure {
+fn core_value_type(
+  type_ : @legacy_types.ValueType,
+) -> String raise PrintFailure {
   match type_ {
     I32 => "i32"
     I64 => "i64"

@@ -1,0 +1,4 @@
+error: func 0 failed to validate
+
+Caused by:
+    0: type mismatch: br_on_non_null target does not end with heap type (at offset 0x25)

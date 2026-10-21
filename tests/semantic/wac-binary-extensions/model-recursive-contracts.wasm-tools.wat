@@ -1,0 +1,22 @@
+(module
+  (rec
+    (type $s (;0;) (struct (field (ref null $a))))
+    (type $a (;1;) (array (mut (ref null $s))))
+  )
+  (type $f (;2;) (func (param (ref null $s)) (result (ref null $a))))
+  (type (;3;) (func (param (ref null $s))))
+  (import "env" "f" (func (;0;) (type $f) (param (ref null $s)) (result (ref null $a))))
+  (import "env" "g" (global (;0;) (ref null $s)))
+  (table (;0;) 1 (ref null $a))
+  (memory (;0;) 1 2)
+  (tag (;0;) (type 3) (param (ref null $s)))
+  (global (;1;) (ref null $s) ref.null $s)
+  (export "table" (table 0))
+  (export "g" (global 1))
+  (export "run" (func 1))
+  (export "e" (tag 0))
+  (export "memory" (memory 0))
+  (func (;1;) (type $f) (param (ref null $s)) (result (ref null $a))
+    ref.null $a
+  )
+)

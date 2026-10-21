@@ -1,4 +1,5 @@
 import {
+  "moonrockz/wit/binary/core_model" @model,
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/debug",
 }

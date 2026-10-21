@@ -1,0 +1,1 @@
+type mismatch: array.new_elem can only create arrays with reference elements (at offset 0x24)

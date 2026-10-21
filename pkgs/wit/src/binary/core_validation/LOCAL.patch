@@ -1,6 +1,12 @@
 --- a/const_expr.mbt
 +++ b/const_expr.mbt
-@@ -9,4 +9,4 @@
+@@ -2,3 +2,2 @@
+-/// Validate a constant expression (used in data/elem offsets and global init)
+-/// Returns the result type of the expression
+-/// Supports extended-const proposal: allows i32/i64 arithmetic (add, sub, mul)
++/// Constant expressions use the ordinary bounded operand/type checker after
++/// a flat whitelist check. No operation executes the expression.
+@@ -9,4 +8,4 @@
 -  funcs? : Array[Int] = [],
 -  types? : Array[@types.SubType] = [],
 -  subtyping_ctx? : @types.SubtypingContext? = None,
@@ -9,68 +15,504 @@
 +  types~ : Array[@types.SubType] = [],
 +  subtyping_ctx~ : @types.SubtypingContext? = None,
 +  stack_switching~ : Bool = false,
-@@ -170 +170 @@
+@@ -17,14 +16,22 @@
+-
+-  // Use stack-based type checking for extended constant expressions
+-  let type_stack : Array[@types.ValueType] = []
+-  fn pop_expected(
+-    expected : @types.ValueType,
+-    op : String,
+-  ) -> Unit raise ValidationError {
+-    if type_stack.length() < 1 {
+-      raise StackUnderflow("\{op} in constant expression")
+-    }
+-    let actual = type_stack.pop().unwrap()
+-    if !is_const_expr_type_compatible(actual, expected, subtyping_ctx~) {
+-      raise TypeMismatch("\{op}: expected \{expected}, got \{actual}")
+-    }
++  let subtyping = subtyping_ctx.unwrap_or_else(() => {
++    @types.SubtypingContext::same_module(types)
++  })
++  let ctx : ValidationContext = {
++    constant: true,
++    shared: false,
++    bulk_memory: true,
++    stack_switching,
++    types,
++    funcs,
++    globals,
++    tables: [],
++    mems: [],
++    tags: [],
++    elems: [],
++    data_count: 0,
++    locals: [],
++    labels: [],
++    returns: [],
++    local_init: [],
++    declared_funcs: @hashset.HashSet([]),
++    subtyping_ctx: subtyping,
+@@ -32,25 +39,27 @@
+-  for instr in expr {
+-    match instr {
+-      I32Const(_) => type_stack.push(I32)
+-      I64Const(_) => type_stack.push(I64)
+-      F32Const(_) => type_stack.push(F32)
+-      F64Const(_) => type_stack.push(F64)
+-      V128Const(_) => type_stack.push(V128)
+-      RefNull(t) => {
+-        validate_value_type(t, types.length(), stack_switching~)
+-        type_stack.push(t)
+-      }
+-      RefFunc(func_idx) => {
+-        if func_idx >= funcs.length() {
+-          raise InvalidFunctionIndex(func_idx)
+-        }
+-        // ref.func produces (ref $t) where $t is the function's type index
+-        let type_idx = funcs[func_idx]
+-        type_stack.push(RefFuncTyped(type_idx))
+-      }
+-      GlobalGet(idx) => {
+-        if idx >= globals.length() {
+-          raise InvalidGlobalIndex(idx)
+-        }
+-        let global = globals[idx]
+-        if global.mutable {
++  let stack = OperandStack::new_with_subtyping(subtyping)
++  for instruction in expr {
++    match instruction {
++      I32Const(_)
++      | I64Const(_)
++      | F32Const(_)
++      | F64Const(_)
++      | V128Const(_)
++      | RefNull(_)
++      | RefFunc(_)
++      | RefI31
++      | RefI31Shared
++      | AnyConvertExtern
++      | ExternConvertAny
++      | StructNew(_)
++      | StructNewDefault(_)
++      | ArrayNew(_)
++      | ArrayNewDefault(_)
++      | ArrayNewFixed(_, _)
++      | I32Add
++      | I32Sub
++      | I32Mul
++      | I64Add
++      | I64Sub
++      | I64Mul => ()
++      GlobalGet(index) =>
++        if ctx.get_global_type(index).mutable {
+@@ -59 +68,11 @@
+-        type_stack.push(global.value_type)
++      _ => raise ConstantExpressionRequired
++    }
++    validate_instr(ctx, stack, instruction)
++  }
++  stack.check_height(1, "constant expression")
++  match stack.pop_operand(None) {
++    Known(actual) =>
++      if !stack.matches(actual, expected_type) {
++        raise TypeMismatch(
++          "constant expression: expected \{expected_type}, got \{actual}",
++        )
+@@ -61,78 +80 @@
+-      RefI31 => {
+-        pop_expected(I32, "ref.i31")
+-        type_stack.push(RefI31)
+-      }
+-      AnyConvertExtern => {
+-        pop_expected(ExternRef, "any.convert_extern")
+-        type_stack.push(AnyRef)
+-      }
+-      ExternConvertAny => {
+-        pop_expected(AnyRef, "extern.convert_any")
+-        type_stack.push(ExternRef)
+-      }
+-      StructNew(type_idx) => {
+-        let struct_type = get_const_expr_struct_type(types, type_idx)
+-        for i = struct_type.fields.length() - 1; i >= 0; i = i - 1 {
+-          let field_ty = const_expr_storage_type_to_value_type(
+-            struct_type.fields[i].storage_type,
+-          )
+-          pop_expected(field_ty, "struct.new")
+-        }
+-        type_stack.push(RefStruct(type_idx))
+-      }
+-      StructNewDefault(type_idx) => {
+-        ignore(get_const_expr_struct_type(types, type_idx))
+-        type_stack.push(RefStruct(type_idx))
+-      }
+-      ArrayNew(type_idx) => {
+-        let array_type = get_const_expr_array_type(types, type_idx)
+-        pop_expected(I32, "array.new length")
+-        let elem_ty = const_expr_storage_type_to_value_type(
+-          array_type.element.storage_type,
+-        )
+-        pop_expected(elem_ty, "array.new value")
+-        type_stack.push(RefArray(type_idx))
+-      }
+-      ArrayNewDefault(type_idx) => {
+-        ignore(get_const_expr_array_type(types, type_idx))
+-        pop_expected(I32, "array.new_default length")
+-        type_stack.push(RefArray(type_idx))
+-      }
+-      ArrayNewFixed(type_idx, len) => {
+-        let array_type = get_const_expr_array_type(types, type_idx)
+-        let elem_ty = const_expr_storage_type_to_value_type(
+-          array_type.element.storage_type,
+-        )
+-        for _ in 0..<len {
+-          pop_expected(elem_ty, "array.new_fixed value")
+-        }
+-        type_stack.push(RefArray(type_idx))
+-      }
+-      // Extended-const: i32 arithmetic
+-      I32Add | I32Sub | I32Mul => {
+-        if type_stack.length() < 2 {
+-          raise StackUnderflow("i32 arithmetic in constant expression")
+-        }
+-        let b = type_stack.pop().unwrap()
+-        let a = type_stack.pop().unwrap()
+-        if a != I32 || b != I32 {
+-          raise TypeMismatch("i32 arithmetic requires i32 operands")
+-        }
+-        type_stack.push(I32)
+-      }
+-      // Extended-const: i64 arithmetic
+-      I64Add | I64Sub | I64Mul => {
+-        if type_stack.length() < 2 {
+-          raise StackUnderflow("i64 arithmetic in constant expression")
+-        }
+-        let b = type_stack.pop().unwrap()
+-        let a = type_stack.pop().unwrap()
+-        if a != I64 || b != I64 {
+-          raise TypeMismatch("i64 arithmetic requires i64 operands")
+-        }
+-        type_stack.push(I64)
+-      }
+-      _ =>
+-        // Any other instruction is not allowed in constant expressions
+-        raise ConstantExpressionRequired
+-    }
++    _ => raise ConstantExpressionRequired
+@@ -140,14 +82,2 @@
+-
+-  // Constant expression must produce exactly one value
+-  if type_stack.length() != 1 {
+-    raise TypeMismatch(
+-      "constant expression must produce exactly one value, got \{type_stack.length()}",
+-    )
+-  }
+-
+-  // Check the result type matches expected (with subtyping for references)
+-  let result_type = type_stack[0]
+-  if !is_const_expr_type_compatible(result_type, expected_type, subtyping_ctx~) {
+-    raise TypeMismatch(
+-      "constant expression: expected \{expected_type}, got \{result_type}",
+-    )
++  if subtyping.work_exhausted() {
++    raise TypeWorkLimit
+@@ -156,59 +85,0 @@
+-
+-///|
+-fn const_expr_storage_type_to_value_type(
+-  storage_type : @types.StorageType,
+-) -> @types.ValueType {
+-  match storage_type {
+-    Val(v) => v
+-    Packed(_) => I32
+-  }
+-}
+-
+-///|
+-fn get_const_expr_struct_type(
+-  types : Array[@types.SubType],
 -  type_idx : Int,
-+  type_idx : Int32,
-@@ -187 +187 @@
+-) -> @types.StructType raise ValidationError {
+-  if type_idx < 0 || type_idx >= types.length() {
+-    raise InvalidTypeIndex(type_idx)
+-  }
+-  match types[type_idx].composite {
+-    Struct(s) => s
+-    _ =>
+-      raise TypeMismatch(
+-        "constant expression type \{type_idx} is not a struct type",
+-      )
+-  }
+-}
+-
+-///|
+-fn get_const_expr_array_type(
+-  types : Array[@types.SubType],
 -  type_idx : Int,
-+  type_idx : Int32,
-@@ -206 +206 @@
+-) -> @types.ArrayType raise ValidationError {
+-  if type_idx < 0 || type_idx >= types.length() {
+-    raise InvalidTypeIndex(type_idx)
+-  }
+-  match types[type_idx].composite {
+-    Array(a) => a
+-    _ =>
+-      raise TypeMismatch(
+-        "constant expression type \{type_idx} is not an array type",
+-      )
+-  }
+-}
+-
+-///|
+-/// Check if a result type is compatible with an expected type in constant expressions
+-fn is_const_expr_type_compatible(
+-  result : @types.ValueType,
+-  expected : @types.ValueType,
 -  subtyping_ctx? : @types.SubtypingContext? = None,
-+  subtyping_ctx~ : @types.SubtypingContext? = None,
+-) -> Bool {
+-  if subtyping_ctx is Some(ctx) {
+-    if ctx.value_type_subtype(result, expected) {
+-      return true
+-    }
+-  }
+-  is_type_subtype(result, expected)
+-}
 --- a/context.mbt
 +++ b/context.mbt
-@@ -21 +21 @@
+@@ -11,0 +12,2 @@
++  LegacyTryLabel
++  LegacyCatchLabel
+@@ -13 +15 @@
+-}
++} derive(Eq)
+@@ -17,0 +20,2 @@
++  constant : Bool
++  shared : Bool
+@@ -21 +25 @@
 -  funcs : Array[Int] // type indices
 +  funcs : Array[Int32] // type indices
-@@ -27 +27 @@
+@@ -24 +28 @@
+-  globals : Array[@types.GlobalType]
++  globals : ArrayView[@types.GlobalType]
+@@ -27 +31 @@
 -  data_count : Int // number of data segments
 +  data_count : Int32 // number of data segments
-@@ -32 +32 @@
+@@ -32 +36 @@
 -  declared_funcs : @hashset.HashSet[Int] // functions declared in elem/global (for ref.func validation)
 +  declared_funcs : @hashset.HashSet[Int32] // functions declared in elem/global (for ref.func validation)
-@@ -54 +54 @@
+@@ -54 +58 @@
 -  idx : Int,
 +  idx : Int32,
-@@ -69 +69 @@
+@@ -59 +63,4 @@
+-  match self.types[idx].composite {
++  if self.shared && !self.types[idx].composite.is_shared() {
++    raise TypeMismatch("shared functions cannot access unshared functions")
++  }
++  match self.types[idx].composite.unshared() {
+@@ -69 +76 @@
 -  idx : Int,
 +  idx : Int32,
-@@ -84 +84 @@
+@@ -74 +81,4 @@
+-  match self.types[idx].composite {
++  if self.shared && !self.types[idx].composite.is_shared() {
++    raise TypeMismatch("shared functions cannot access unshared structs")
++  }
++  match self.types[idx].composite.unshared() {
+@@ -84 +94 @@
 -  idx : Int,
 +  idx : Int32,
-@@ -142 +142 @@
+@@ -89 +99,4 @@
+-  match self.types[idx].composite {
++  if self.shared && !self.types[idx].composite.is_shared() {
++    raise TypeMismatch("shared functions cannot access unshared arrays")
++  }
++  match self.types[idx].composite.unshared() {
+@@ -114 +127 @@
+-    Func(ft) => {
++    Func(ft) | SharedFunc(ft) => {
+@@ -122 +135 @@
+-    Struct(st) =>
++    Struct(st) | SharedStruct(st) =>
+@@ -129 +142 @@
+-    Array(at) =>
++    Array(at) | SharedArray(at) =>
+@@ -142 +155 @@
 -  declared : @hashset.HashSet[Int],
 +  declared : @hashset.HashSet[Int32],
-@@ -154,2 +154,2 @@
+@@ -154,2 +167,2 @@
 -  bulk_memory? : Bool = true,
 -  stack_switching? : Bool = false,
 +  bulk_memory~ : Bool = true,
 +  stack_switching~ : Bool = false,
-@@ -158 +158 @@
+@@ -158 +171 @@
 -  let funcs : Array[Int] = []
 +  let funcs : Array[Int32] = []
-@@ -207 +207 @@
+@@ -207 +220 @@
 -  fn tag_type(type_idx : Int) -> @types.FuncType raise ValidationError {
 +  fn tag_type(type_idx : Int32) -> @types.FuncType raise ValidationError {
-@@ -227 +227 @@
+@@ -227 +240 @@
 -  let declared_funcs : @hashset.HashSet[Int] = HashSet([])
 +  let declared_funcs : @hashset.HashSet[Int32] = HashSet([])
-@@ -310,2 +310,2 @@
+@@ -237,0 +251,5 @@
++  for table in mod.tables {
++    if table.init is Some(init) {
++      collect_declared_funcs(init, declared_funcs)
++    }
++  }
+@@ -244,4 +262,8 @@
+-  let canonical = @types.compute_canonical_type_indices(
+-    mod.types,
+-    type_rec_groups=mod.type_rec_groups,
+-  )
++  let canonical = match
++    @types.compute_canonical_type_indices_checked(
++      mod.types,
++      type_rec_groups=mod.type_rec_groups,
++    ) {
++    Ok(indices) => indices
++    Err(_) => raise TypeWorkLimit
++  }
+@@ -253 +275 @@
+-    globals,
++    globals: globals[:],
+@@ -255,0 +278,2 @@
++    constant: false,
++    shared: false,
+@@ -275,13 +299,5 @@
+-  match ty {
+-    RefFunc
+-    | RefExtern
+-    | RefFuncTyped(_)
+-    | RefCont
+-    | RefNoCont
+-    | RefContTyped(_) => true
+-    _ => false
+-  }
+-}
+-
+-///|
+-/// Check if a value type is any reference type (nullable or non-nullable)
++  ty.heap() is Some((false, _, _))
++}
++
++///|
++/// Check if a value type is any reference type.
+@@ -289,15 +305 @@
+-  match ty {
+-    FuncRef
+-    | ExternRef
+-    | RefFunc
+-    | RefExtern
+-    | RefFuncTyped(_)
+-    | RefNullFuncTyped(_)
+-    | ContRef
+-    | RefCont
+-    | RefNoCont
+-    | NullContRef
+-    | RefContTyped(_)
+-    | RefNullContTyped(_) => true
+-    _ => false
+-  }
++  ty.heap() is Some(_)
+@@ -310,2 +312,2 @@
 -  num_types : Int,
 -  stack_switching? : Bool = false,
 +  num_types : Int32,
 +  stack_switching~ : Bool = false,
-@@ -316 +316 @@
+@@ -316 +318 @@
 -  let idx : Int? = match ty {
 +  let idx : Int32? = match ty {
-@@ -338,2 +338,2 @@
+@@ -324,0 +327 @@
++    HeapRef(_, _, i) => if i < 0 { None } else { Some(i) }
+@@ -338,2 +341,2 @@
 -  type_idx : Int,
 -  type_rec_groups : Array[Int],
 +  type_idx : Int32,
 +  type_rec_groups : Array[Int32],
-@@ -341 +341 @@
+@@ -341 +344 @@
 -  let ref_idx : Int? = match ty {
 +  let ref_idx : Int32? = match ty {
+@@ -348,0 +352 @@
++    HeapRef(_, _, i) => if i < 0 { None } else { Some(i) }
+@@ -364,0 +369,80 @@
++
++///|
++fn validate_reference_metadata(
++  ty : @types.ValueType,
++  types : Array[@types.SubType],
++) -> Unit raise ValidationError {
++  guard ty.heap() is Some((_, shared, heap)) else { return }
++  if heap < 0 {
++    if @types.ValueType::from_abstract_heap_type(heap, true) is None {
++      raise TypeMismatch("invalid abstract heap type")
++    }
++    return
++  }
++  guard types.get(heap) is Some(target) else { raise InvalidTypeIndex(heap) }
++  if shared != target.composite.is_shared() {
++    raise TypeMismatch(
++      "concrete reference sharedness differs from its heap type",
++    )
++  }
++  let kind_matches = match ty {
++    RefFuncTyped(_) | RefNullFuncTyped(_) =>
++      target.composite.unshared() is Func(_)
++    RefStruct(_) | RefNullStruct(_) => target.composite.unshared() is Struct(_)
++    RefArray(_) | RefNullArray(_) => target.composite.unshared() is Array(_)
++    RefContTyped(_) | RefNullContTyped(_) =>
++      target.composite.unshared() is Cont(_)
++    _ => true
++  }
++  if !kind_matches {
++    raise TypeMismatch("concrete reference has the wrong heap type kind")
++  }
++}
++
++///|
++fn ValidationContext::get_global_type(
++  self : ValidationContext,
++  index : Int32,
++) -> @types.GlobalType raise ValidationError {
++  guard self.globals.get(index) is Some(global) else {
++    raise InvalidGlobalIndex(index)
++  }
++  if self.shared && !global.is_shared {
++    raise TypeMismatch("shared functions cannot access unshared globals")
++  }
++  global
++}
++
++///|
++fn ValidationContext::get_table_type(
++  self : ValidationContext,
++  index : Int32,
++) -> @types.TableType raise ValidationError {
++  guard self.tables.get(index) is Some(table) else {
++    raise InvalidTableIndex(index)
++  }
++  if self.shared && !table.is_shared {
++    raise TypeMismatch("shared functions cannot access unshared tables")
++  }
++  table
++}
++
++///|
++fn ValidationContext::reference(
++  self : ValidationContext,
++  nullable : Bool,
++  index : Int32,
++) -> @types.ValueType raise ValidationError {
++  guard self.types.get(index) is Some(type_) else {
++    raise InvalidTypeIndex(index)
++  }
++  @types.typed_reference(type_.composite, nullable, index)
++}
++
++///|
++fn is_shared_value_type(value : @types.ValueType) -> Bool {
++  match value.heap() {
++    None => true
++    Some((_, shared, _)) => shared
++  }
++}
 --- a/continuations.mbt
 +++ b/continuations.mbt
 @@ -56,2 +56,2 @@
@@ -113,7 +555,9 @@
 +    try @core_validation.validate_module(invalid, stack_switching=true) catch {
 --- a/error.mbt
 +++ b/error.mbt
-@@ -9,11 +9,11 @@
+@@ -5,0 +6 @@
++  TypeWorkLimit
+@@ -9,11 +10,11 @@
 -  InvalidFunctionIndex(Int)
 -  InvalidTypeIndex(Int)
 -  InvalidLocalIndex(Int)
@@ -136,38 +580,80 @@
 +  InvalidDataIndex(Int32) // Unknown data segment index
 +  UnknownTag(Int32) // Unknown tag index
 +  UnknownType(Int32) // Forward type reference outside rec group
-@@ -25 +25 @@
+@@ -25 +26 @@
 -  InvalidLaneIndex(Int, Int) // lane index, max lanes
 +  InvalidLaneIndex(Int32, Int32) // lane index, max lanes
-@@ -30 +30 @@
+@@ -30 +31 @@
 -  UninitializedLocal(Int) // Non-nullable ref local read before initialization
 +  UninitializedLocal(Int32) // Non-nullable ref local read before initialization
-@@ -32 +32 @@
+@@ -32 +33 @@
 -  UndeclaredFunctionReference(Int) // ref.func used on function not declared in elem/global
 +  UndeclaredFunctionReference(Int32) // ref.func used on function not declared in elem/global
-@@ -49,2 +49,2 @@
+@@ -49,2 +50,2 @@
 -  func_idx : Int? // The function index where validation failed
 -  instr_offset : Int? // The instruction offset within the function body
 +  func_idx : Int32? // The function index where validation failed
 +  instr_offset : Int32? // The instruction offset within the function body
-@@ -103 +103 @@
+@@ -65,0 +67 @@
++    TypeWorkLimit => "core type comparison work exceeds 1000000"
+@@ -103 +105 @@
 -  idx : Int,
 +  idx : Int32,
-@@ -111 +111 @@
+@@ -111 +113 @@
 -  offset : Int,
 +  offset : Int32,
 --- a/function_validate.mbt
 +++ b/function_validate.mbt
-@@ -7 +7 @@
+@@ -2,2 +2 @@
+-/// Validate a function body with instruction offset tracking
+-fn validate_function_with_offset(
++fn function_context(
+@@ -7,2 +6,2 @@
+-  func_idx : Int,
+-) -> Unit raise ValidationError {
++  shared : Bool,
++) -> ValidationContext raise ValidationError {
+@@ -17,0 +17 @@
++    validate_reference_metadata(local_type, ctx.types)
+@@ -36,18 +36,13 @@
+-  let func_ctx : ValidationContext = {
+-    bulk_memory: ctx.bulk_memory,
+-    stack_switching: ctx.stack_switching,
+-    types: ctx.types,
+-    funcs: ctx.funcs,
+-    tables: ctx.tables,
+-    mems: ctx.mems,
+-    globals: ctx.globals,
+-    tags: ctx.tags,
+-    elems: ctx.elems,
+-    data_count: ctx.data_count,
+-    locals,
+-    labels: [],
+-    returns: func_type.results,
+-    local_init,
+-    declared_funcs: ctx.declared_funcs,
+-    subtyping_ctx: ctx.subtyping_ctx,
+-  }
++  { ..ctx, shared, locals, local_init, labels: [], returns: func_type.results, }
++}
++
++///|
++/// Validate a function body with instruction offset tracking
++fn validate_function_with_offset(
++  ctx : ValidationContext,
++  func_type : @types.FuncType,
++  code : @types.FunctionCode,
++  func_idx : Int32,
++  shared~ : Bool = false,
++) -> Unit raise ValidationError {
++  let func_ctx = function_context(ctx, func_type, code, shared)
+@@ -87 +82 @@
 -  func_idx : Int,
 +  func_idx : Int32,
-@@ -87 +87 @@
--  func_idx : Int,
-+  func_idx : Int32,
-@@ -90 +90 @@
+@@ -90 +85 @@
 -    validate_instr(ctx, stack, instr) catch {
 +    validate_expr(ctx, stack, [instr]) catch {
-@@ -96 +96,9 @@
+@@ -96 +91,10 @@
 -          .with_instruction(instr.to_string()),
 +          .with_instruction(
 +            match instr {
@@ -175,13 +661,73 @@
 +              Loop(_, _) => "loop"
 +              If(_, _, _) => "if"
 +              TryTable(_, _, _) => "try_table"
++              LegacyTry(_, _, _, _) => "try"
 +              _ => instr.to_string()
 +            },
 +          ),
-@@ -172 +180,47 @@
+@@ -108,46 +112,3 @@
+-) -> Unit raise ValidationError {
+-  let num_types = ctx.types.length()
+-
+-  // Validate type indices in local types
+-  for local_type in code.locals {
+-    validate_value_type(
+-      local_type,
+-      num_types,
+-      stack_switching=ctx.stack_switching,
+-    )
+-  }
+-
+-  // Set up locals: params + declared locals
+-  let locals : Array[@types.ValueType] = []
+-  let local_init : Array[Bool] = []
+-  // Parameters are always initialized (provided by caller)
+-  for param in func_type.params {
+-    locals.push(param)
+-    local_init.push(true)
+-  }
+-  // Declared locals: initialized only if they have a default value (not non-nullable ref)
+-  for local_type in code.locals {
+-    locals.push(local_type)
+-    // Non-nullable reference types don't have a default value, so they start uninitialized
+-    local_init.push(!is_non_nullable_ref(local_type))
+-  }
+-
+-  // Create validation context for this function
+-  let func_ctx : ValidationContext = {
+-    bulk_memory: ctx.bulk_memory,
+-    stack_switching: ctx.stack_switching,
+-    types: ctx.types,
+-    funcs: ctx.funcs,
+-    tables: ctx.tables,
+-    mems: ctx.mems,
+-    globals: ctx.globals,
+-    tags: ctx.tags,
+-    elems: ctx.elems,
+-    data_count: ctx.data_count,
+-    locals,
+-    labels: [],
+-    returns: func_type.results,
+-    local_init,
+-    declared_funcs: ctx.declared_funcs,
+-    subtyping_ctx: ctx.subtyping_ctx,
+-  }
++  shared~ : Bool = false,
++) -> Unit raise ValidationError {
++  let func_ctx = function_context(ctx, func_type, code, shared)
+@@ -172 +133,56 @@
 -/// Validate an expression (sequence of instructions)
 +priv enum ExpressionWork {
 +  Sequence(OperandStack, Array[@types.Instruction], Int32)
++  LegacyNext(
++    OperandStack,
++    OperandStack,
++    Array[@types.ValueType],
++    Array[@types.LegacyCatch],
++    Int32,
++    Array[Bool],
++    Int32?
++  )
 +  Exit(OperandStack, OperandStack, Array[@types.ValueType], Array[Bool], String)
 +  Else(
 +    OperandStack,
@@ -227,7 +773,7 @@
 +///|
 +// Traverse instruction bodies with explicit continuations. A label stays active
 +// until its matching Exit; each if arm starts from the same local-init state.
-@@ -178,4 +232,64 @@
+@@ -178,4 +194,121 @@
 -  for instr in instrs {
 -    validate_instr(ctx, stack, instr)
 -  }
@@ -262,6 +808,28 @@
 +            work.push(Exit(outer, inner, results, saved, context))
 +            work.push(Sequence(inner, body, 0))
 +          }
++          LegacyTry(bt, body, catches, delegate) => {
++            if delegate is Some(_) && !catches.is_empty() {
++              raise TypeMismatch("delegate cannot follow catch")
++            }
++            for i, arm in catches {
++              if arm.tag is None && i + 1 < catches.length() {
++                raise TypeMismatch("catch cannot follow catch_all")
++              }
++            }
++            let params = get_block_params(ctx, bt)
++            let results = get_block_results(ctx, bt)
++            for i = params.length() - 1; i >= 0; i = i - 1 {
++              outer.pop(params[i])
++            }
++            let inner = control_stack(ctx, params)
++            let saved = ctx.local_init.copy()
++            ctx.labels.push({ kind: LegacyTryLabel, block_type: bt, })
++            work.push(
++              LegacyNext(outer, inner, results, catches, 0, saved, delegate),
++            )
++            work.push(Sequence(inner, body, 0))
++          }
 +          If(bt, then_body, else_body) => {
 +            outer.pop(I32)
 +            let params = get_block_params(ctx, bt)
@@ -276,6 +844,41 @@
 +            work.push(Sequence(inner, then_body, 0))
 +          }
 +          _ => validate_instr(ctx, outer, instruction)
++        }
++      }
++      LegacyNext(outer, inner, results, catches, index, saved, delegate) => {
++        check_control_results(inner, results, "legacy try arm exit")
++        restore_local_init(ctx, saved)
++        if index < catches.length() {
++          let arm = catches[index]
++          let params = match arm.tag {
++            Some(tag) => ctx.exception_tag_type(tag).params
++            None => []
++          }
++          let inner = control_stack(ctx, params)
++          let last = ctx.labels.length() - 1
++          ctx.labels[last] = { ..ctx.labels[last], kind: LegacyCatchLabel, }
++          work.push(
++            LegacyNext(
++              outer,
++              inner,
++              results,
++              catches,
++              index + 1,
++              saved,
++              delegate,
++            ),
++          )
++          work.push(Sequence(inner, arm.body, 0))
++        } else {
++          ignore(ctx.labels.pop())
++          if delegate is Some(depth) &&
++            (depth < 0 || depth > ctx.labels.length()) {
++            raise InvalidLabelIndex(depth)
++          }
++          for result in results {
++            outer.push(result)
++          }
 +        }
 +      }
 +      Else(outer, then_stack, params, results, else_body, saved) => {
@@ -298,10 +901,172 @@
 +}
 --- a/instr_validate.mbt
 +++ b/instr_validate.mbt
+@@ -69 +69 @@
+-      stack.push(ctx.globals[idx].value_type)
++      stack.push(ctx.get_global_type(idx).value_type)
+@@ -76 +76 @@
+-      if !ctx.globals[idx].mutable {
++      if !ctx.get_global_type(idx).mutable {
+@@ -79 +79 @@
+-      stack.pop(ctx.globals[idx].value_type)
++      stack.pop(ctx.get_global_type(idx).value_type)
 @@ -612 +612 @@
 -        natural : Int,
 +        natural : Int32,
-@@ -1244,122 +1244,4 @@
+@@ -830 +830 @@
+-      let table = ctx.tables[idx]
++      let table = ctx.get_table_type(idx)
+@@ -839 +839 @@
+-      let table = ctx.tables[idx]
++      let table = ctx.get_table_type(idx)
+@@ -848 +848 @@
+-      let table = ctx.tables[idx]
++      let table = ctx.get_table_type(idx)
+@@ -859 +859 @@
+-      let table = ctx.tables[idx]
++      let table = ctx.get_table_type(idx)
+@@ -869 +869 @@
+-      let table = ctx.tables[idx]
++      let table = ctx.get_table_type(idx)
+@@ -883,3 +883,6 @@
+-      let dst_table = ctx.tables[dst_idx]
+-      let src_table = ctx.tables[src_idx]
+-      if !is_type_subtype(src_table.elem_type, dst_table.elem_type) {
++      let dst_table = ctx.get_table_type(dst_idx)
++      let src_table = ctx.get_table_type(src_idx)
++      if !ctx.subtyping_ctx.value_type_subtype(
++          src_table.elem_type,
++          dst_table.elem_type,
++        ) {
+@@ -911 +914 @@
+-      let table = ctx.tables[table_idx]
++      let table = ctx.get_table_type(table_idx)
+@@ -913 +916 @@
+-      if !is_type_subtype(elem_type, table.elem_type) {
++      if !ctx.subtyping_ctx.value_type_subtype(elem_type, table.elem_type) {
+@@ -937 +940,2 @@
+-      stack.push(ref_type)
++      validate_reference_metadata(ref_type, ctx.types)
++      stack.push(to_nullable_ref_type(ref_type))
+@@ -940 +944 @@
+-      stack.pop_any() |> ignore // any ref type
++      ignore(stack.pop_ref_any())
+@@ -944,14 +948,6 @@
+-      // ref.eq: compares two references for equality
+-      // Both operands must be subtypes of eqref
+-      let val2 = stack.pop_any()
+-      let val1 = stack.pop_any()
+-      // Check that both operands are subtypes of eqref
+-      if !is_subtype_of_eqref(val1) {
+-        raise TypeMismatch(
+-          "ref.eq operand must be subtype of eqref, got \{val1}",
+-        )
+-      }
+-      if !is_subtype_of_eqref(val2) {
+-        raise TypeMismatch(
+-          "ref.eq operand must be subtype of eqref, got \{val2}",
+-        )
++      let a = stack.pop_maybe_shared_ref(-19)
++      let b = stack.pop_maybe_shared_ref(-19)
++      if a is Known(at) &&
++        b is Known(bt) &&
++        at.heap().unwrap().1 != bt.heap().unwrap().1 {
++        raise TypeMismatch("ref.eq operands must have matching sharedness")
+@@ -966 +962 @@
+-      if !ctx.declared_funcs.contains(func_idx) {
++      if !ctx.constant && !ctx.declared_funcs.contains(func_idx) {
+@@ -971 +967 @@
+-      stack.push(RefFuncTyped(type_idx))
++      stack.push(ctx.reference(false, type_idx))
+@@ -976 +972 @@
+-      stack.push(to_non_nullable_ref_type(nullable_ref))
++      stack.push_operand(non_nullable_operand(nullable_ref))
+@@ -990,7 +986,2 @@
+-      for i = branch_types.length() - 1; i >= 0; i = i - 1 {
+-        stack.pop(branch_types[i])
+-      }
+-      for ty in branch_types {
+-        stack.push(ty)
+-      }
+-      stack.push(to_non_nullable_ref_type(nullable_ref))
++      stack.pop_push_types(branch_types)
++      stack.push_operand(non_nullable_operand(nullable_ref))
+@@ -1012,0 +1004,3 @@
++      if !is_reference_type(branch_ref) {
++        raise TypeMismatch("br_on_non_null target must carry a reference value")
++      }
+@@ -1014,12 +1008,2 @@
+-      let actual_ref = stack.pop_ref_any()
+-      if !is_type_subtype(actual_ref, expected_nullable_ref) {
+-        raise TypeMismatch(
+-          "br_on_non_null operand type \{actual_ref} not subtype of \{expected_nullable_ref}",
+-        )
+-      }
+-      for i = branch_types.length() - 2; i >= 0; i = i - 1 {
+-        stack.pop(branch_types[i])
+-      }
+-      for i in 0..<(branch_types.length() - 1) {
+-        stack.push(branch_types[i])
+-      }
++      ignore(stack.pop_operand(Some(expected_nullable_ref)))
++      stack.pop_push_types(branch_types[:branch_types.length() - 1])
+@@ -1031 +1015 @@
+-    Drop => stack.pop_any() |> ignore
++    Drop => ignore(stack.pop_operand(None))
+@@ -1034,8 +1018,11 @@
+-      let t2_opt = stack.pop_any_or_unknown()
+-      let t1_opt = stack.pop_any_or_unknown()
+-      let selected_type = match (t1_opt, t2_opt) {
+-        (Some(t1), Some(t2)) => {
+-          if t1 != t2 {
+-            raise TypeMismatch(
+-              "select operands must have same type: \{t1} vs \{t2}",
+-            )
++      let a = stack.pop_operand(None)
++      let b = stack.pop_operand(None)
++      match (a, b) {
++        (UnknownRef(_), _) | (_, UnknownRef(_)) =>
++          raise TypeMismatch("untyped select requires numeric operands")
++        (Known(ty), _) | (_, Known(ty)) if is_reference_type(ty) =>
++          raise TypeMismatch("untyped select requires numeric operands")
++        (Bottom, other) | (other, Bottom) => stack.push_operand(other)
++        (Known(a), Known(b)) => {
++          if a != b {
++            raise TypeMismatch("select operands have different types")
+@@ -1043,15 +1030,3 @@
+-          // Untyped select (without explicit result type) only works with numeric types.
+-          // For reference types, the typed form `select t*` must be used.
+-          if is_ref_type(t1) {
+-            raise TypeMismatch(
+-              "type mismatch: select with reference type requires explicit type annotation",
+-            )
+-          }
+-          t1
+-        }
+-        // In polymorphic-unreachable contexts, missing operands are unconstrained.
+-        (Some(t1), None) => t1
+-        (None, Some(t2)) => t2
+-        (None, None) => I32
+-      }
+-      stack.push(selected_type)
++          stack.push(a)
++        }
++      }
+@@ -1067,0 +1043 @@
++        validate_reference_metadata(ty, ctx.types)
+@@ -1104 +1080 @@
+-      let table = ctx.tables[table_idx]
++      let table = ctx.get_table_type(table_idx)
+@@ -1133 +1109 @@
+-      stack.pop(RefNullFuncTyped(type_idx))
++      stack.pop(ctx.reference(true, type_idx))
+@@ -1179 +1155 @@
+-      let table = ctx.tables[table_idx]
++      let table = ctx.get_table_type(table_idx)
+@@ -1219 +1195 @@
+-      stack.pop(RefNullFuncTyped(type_idx))
++      stack.pop(ctx.reference(true, type_idx))
+@@ -1244,122 +1220,8 @@
 -    Block(bt, body) => {
 -      let results = get_block_results(ctx, bt)
 -      let params = get_block_params(ctx, bt)
@@ -424,15 +1189,29 @@
 -        stack.push(result)
 -      }
 -    }
-+    Block(_, _) | Loop(_, _) | If(_, _, _) | TryTable(_, _, _) =>
++    Block(_, _)
++    | Loop(_, _)
++    | If(_, _, _)
++    | TryTable(_, _, _)
++    | LegacyTry(_, _, _, _) =>
 +      raise TypeMismatch(
 +        "structured instruction requires expression work stack",
 +      )
-@@ -1433,0 +1316,3 @@
+@@ -1433,0 +1296,3 @@
 +        // Every target must accept the original operands, including when
 +        // unreachable operands are polymorphic. Checking arity alone is unsafe.
 +        stack.check_branch_values(label_types)
-@@ -1468,163 +1352,0 @@
+@@ -1462,0 +1328,9 @@
++    Rethrow(depth) => {
++      if depth < 0 || depth >= ctx.labels.length() {
++        raise InvalidLabelIndex(depth)
++      }
++      if ctx.labels[ctx.labels.length() - 1 - depth].kind != LegacyCatchLabel {
++        raise TypeMismatch("rethrow label must name a legacy catch")
++      }
++      stack.set_polymorphic()
++    }
+@@ -1468,163 +1341,0 @@
 -    TryTable(bt, handlers, body) => {
 -      let results = get_block_results(ctx, bt)
 -      let params = get_block_params(ctx, bt)
@@ -596,7 +1375,379 @@
 -      }
 -    }
 -
-@@ -2164,0 +1887,119 @@
+@@ -1640 +1351 @@
+-      stack.push(RefStruct(type_idx))
++      stack.push(ctx.reference(false, type_idx))
+@@ -1643,5 +1354,5 @@
+-      // Default field values are implicit, so nothing is read from the type.
+-      // The lookup stays because it *is* the rule that `type_idx` must name a
+-      // struct: it raises otherwise, and that is the only reason to call it.
+-      ignore(ctx.get_struct_type(type_idx))
+-      stack.push(RefStruct(type_idx))
++      let struct_type = ctx.get_struct_type(type_idx)
++      for field in struct_type.fields {
++        require_defaultable(field.storage_type)
++      }
++      stack.push(ctx.reference(false, type_idx))
+@@ -1655,3 +1366,10 @@
+-      stack.pop(RefNullStruct(type_idx))
+-      let field_type = struct_type.fields[field_idx].storage_type
+-      stack.push(storage_type_to_value_type(field_type))
++      stack.pop(ctx.reference(true, type_idx))
++      guard struct_type.fields.get(field_idx) is Some(field) else {
++        raise TypeMismatch("unknown struct field \{field_idx}")
++      }
++      let packed_get = match instr {
++        StructGetS(_, _) | StructGetU(_, _) => true
++        _ => false
++      }
++      require_get_storage(field.storage_type, packed_get)
++      stack.push(storage_type_to_value_type(field.storage_type))
+@@ -1662 +1380,3 @@
+-      let field = struct_type.fields[field_idx]
++      guard struct_type.fields.get(field_idx) is Some(field) else {
++        raise TypeMismatch("unknown struct field \{field_idx}")
++      }
+@@ -1668 +1388 @@
+-      stack.pop(RefNullStruct(type_idx))
++      stack.pop(ctx.reference(true, type_idx))
+@@ -1679 +1399 @@
+-      stack.push(RefArray(type_idx))
++      stack.push(ctx.reference(false, type_idx))
+@@ -1682,5 +1402,4 @@
+-      // Pop length (i32), push array ref. Nothing is read from the type, so
+-      // this lookup is here only as the rule that `type_idx` names an array.
+-      ignore(ctx.get_array_type(type_idx))
+-      stack.pop(I32)
+-      stack.push(RefArray(type_idx))
++      let array_type = ctx.get_array_type(type_idx)
++      require_defaultable(array_type.element.storage_type)
++      stack.pop(I32)
++      stack.push(ctx.reference(false, type_idx))
+@@ -1694 +1413,7 @@
+-      for _ in 0..<len {
++      // An immediate u32 count can exceed Int32. Empty unreachable stacks
++      // supply every remaining operand without iterating over that count.
++      let mut remaining = len.reinterpret_as_uint()
++      while remaining > 0U {
++        if stack.polymorphic && stack.stack.is_empty() {
++          break
++        }
+@@ -1696,2 +1421,3 @@
+-      }
+-      stack.push(RefArray(type_idx))
++        remaining -= 1U
++      }
++      stack.push(ctx.reference(false, type_idx))
+@@ -1712 +1438 @@
+-      stack.push(RefArray(type_idx))
++      stack.push(ctx.reference(false, type_idx))
+@@ -1724 +1450,2 @@
+-      if !is_type_subtype(elem_type, array_elem_type) {
++      if !is_reference_type(array_elem_type) ||
++        !ctx.subtyping_ctx.value_type_subtype(elem_type, array_elem_type) {
+@@ -1731 +1458 @@
+-      stack.push(RefArray(type_idx))
++      stack.push(ctx.reference(false, type_idx))
+@@ -1736,2 +1463,7 @@
+-      stack.pop(I32)
+-      stack.pop(RefNullArray(type_idx))
++      let packed_get = match instr {
++        ArrayGetS(_) | ArrayGetU(_) => true
++        _ => false
++      }
++      require_get_storage(array_type.element.storage_type, packed_get)
++      stack.pop(I32)
++      stack.pop(ctx.reference(true, type_idx))
+@@ -1749 +1481 @@
+-      stack.pop(RefNullArray(type_idx))
++      stack.pop(ctx.reference(true, type_idx))
+@@ -1754 +1486 @@
+-      stack.pop(RefNullArray(-1))
++      ignore(stack.pop_maybe_shared_ref(-22))
+@@ -1767 +1499 @@
+-      stack.pop(RefNullArray(type_idx))
++      stack.pop(ctx.reference(true, type_idx))
+@@ -1780 +1512,6 @@
+-      if dst_elem != src_elem {
++      let compatible = match (src_elem, dst_elem) {
++        (Packed(a), Packed(b)) => a == b
++        (Val(src), Val(dst)) => ctx.subtyping_ctx.value_type_subtype(src, dst)
++        _ => false
++      }
++      if !compatible {
+@@ -1785,3 +1522,3 @@
+-      stack.pop(RefNullArray(src_type))
+-      stack.pop(I32)
+-      stack.pop(RefNullArray(dst_type))
++      stack.pop(ctx.reference(true, src_type))
++      stack.pop(I32)
++      stack.pop(ctx.reference(true, dst_type))
+@@ -1808 +1545 @@
+-      stack.pop(RefNullArray(type_idx))
++      stack.pop(ctx.reference(true, type_idx))
+@@ -1826 +1563,2 @@
+-      if !is_type_subtype(elem_type, array_elem_type) {
++      if !is_reference_type(array_elem_type) ||
++        !ctx.subtyping_ctx.value_type_subtype(elem_type, array_elem_type) {
+@@ -1834,18 +1572,13 @@
+-      stack.pop(RefNullArray(type_idx))
+-    }
+-
+-    // GC instructions - reference casting (simplified validation)
+-    RefTest(_) | RefTestNull(_) => {
+-      // Pop ref, push i32
+-      ignore(stack.pop_any())
+-      stack.push(I32)
+-    }
+-    RefCast(target_type) => {
+-      // Pop ref, push target type
+-      ignore(stack.pop_any())
+-      stack.push(target_type)
+-    }
+-    RefCastNull(target_type) => {
+-      // Pop ref, push nullable target type
+-      ignore(stack.pop_any())
+-      stack.push(target_type)
++      stack.pop(ctx.reference(true, type_idx))
++    }
++
++    // GC instructions - reference casting
++    RefTest(target) | RefTestNull(target) => {
++      validate_cast_type(ctx, target)
++      stack.pop(cast_top_type(ctx, target))
++      stack.push(I32)
++    }
++    RefCast(target) | RefCastNull(target) => {
++      validate_cast_type(ctx, target)
++      stack.pop(cast_top_type(ctx, target))
++      stack.push(target)
+@@ -1853,0 +1587,2 @@
++      validate_cast_type(ctx, source_type)
++      validate_cast_type(ctx, target_type)
+@@ -1873,0 +1609,3 @@
++      if branch_types.is_empty() {
++        raise TypeMismatch("branch cast target must carry a reference")
++      }
+@@ -1884,11 +1622 @@
+-      if branch_types.length() > 1 {
+-        for i = branch_types.length() - 2; i >= 0; i = i - 1 {
+-          stack.pop(branch_types[i])
+-        }
+-      }
+-      // Fallthrough keeps the same prefix values and refines the cast value to diff.
+-      if branch_types.length() > 1 {
+-        for i in 0..<(branch_types.length() - 1) {
+-          stack.push(branch_types[i])
+-        }
+-      }
++      stack.pop_push_types(branch_types[:branch_types.length() - 1])
+@@ -1897,0 +1626,2 @@
++      validate_cast_type(ctx, source_type)
++      validate_cast_type(ctx, target_type)
+@@ -1919,0 +1650,3 @@
++      if branch_types.is_empty() {
++        raise TypeMismatch("branch cast target must carry a reference")
++      }
+@@ -1930,11 +1663 @@
+-      if branch_types.length() > 1 {
+-        for i = branch_types.length() - 2; i >= 0; i = i - 1 {
+-          stack.pop(branch_types[i])
+-        }
+-      }
+-      // Fallthrough keeps prefix values and refines to target type.
+-      if branch_types.length() > 1 {
+-        for i in 0..<(branch_types.length() - 1) {
+-          stack.push(branch_types[i])
+-        }
+-      }
++      stack.pop_push_types(branch_types[:branch_types.length() - 1])
+@@ -1949,0 +1673,4 @@
++    RefI31Shared => {
++      stack.pop(I32)
++      stack.push(HeapRef(false, true, -20))
++    }
+@@ -1952 +1679 @@
+-      stack.pop(RefNullI31)
++      ignore(stack.pop_maybe_shared_ref(-20))
+@@ -1957 +1684 @@
+-    AnyConvertExtern => {
++    AnyConvertExtern =>
+@@ -1959,4 +1686,4 @@
+-      stack.pop(ExternRef)
+-      stack.push(AnyRef)
+-    }
+-    ExternConvertAny => {
++      stack.push_operand(
++        convert_reference(stack.pop_maybe_shared_ref(-17), -18),
++      )
++    ExternConvertAny =>
+@@ -1964,3 +1691,3 @@
+-      stack.pop(AnyRef)
+-      stack.push(ExternRef)
+-    }
++      stack.push_operand(
++        convert_reference(stack.pop_maybe_shared_ref(-18), -17),
++      )
+@@ -1993,40 +1720,3 @@
+-  match ty {
+-    // Nullable function/extern refs
+-    FuncRef => RefFunc
+-    ExternRef => RefExtern
+-
+-    // Typed refs
+-    ContRef => RefCont
+-    NullContRef => RefNoCont
+-    RefNullContTyped(idx) => RefContTyped(idx)
+-    RefNullFuncTyped(idx) => RefFuncTyped(idx)
+-    RefNullStruct(idx) => RefStruct(idx)
+-    RefNullArray(idx) => RefArray(idx)
+-
+-    // Abstract refs
+-    AnyRef => RefAny
+-    RefNullEq => RefEq
+-    RefNullI31 => RefI31
+-    StructRef => RefStructAbs
+-    ArrayRef => RefArrayAbs
+-
+-    // Exn has no dedicated non-null type in current representation.
+-    ExnRef => ExnRef
+-    NullRef | NullFuncRef | NullExnRef | NullExternRef => RefNone
+-
+-    // Already non-null
+-    RefFunc
+-    | RefExtern
+-    | RefFuncTyped(_)
+-    | RefCont
+-    | RefNoCont
+-    | RefContTyped(_)
+-    | RefStruct(_)
+-    | RefArray(_)
+-    | RefAny
+-    | RefEq
+-    | RefI31
+-    | RefStructAbs
+-    | RefArrayAbs
+-    | RefNone => ty
+-    _ => raise TypeMismatch("Expected reference type, got \{ty}")
++  match ty.with_nullable(false) {
++    Some(reference) => reference
++    None => raise TypeMismatch("expected reference type")
+@@ -2040,37 +1730,3 @@
+-  match ty {
+-    // Non-null to nullable
+-    RefCont => ContRef
+-    RefNoCont => NullContRef
+-    RefContTyped(idx) => RefNullContTyped(idx)
+-    RefFunc => FuncRef
+-    RefExtern => ExternRef
+-    RefFuncTyped(idx) => RefNullFuncTyped(idx)
+-    RefStruct(idx) => RefNullStruct(idx)
+-    RefArray(idx) => RefNullArray(idx)
+-    RefAny => AnyRef
+-    RefEq => RefNullEq
+-    RefI31 => RefNullI31
+-    RefStructAbs => StructRef
+-    RefArrayAbs => ArrayRef
+-    RefNone => NullRef
+-
+-    // Already nullable
+-    FuncRef
+-    | ExternRef
+-    | AnyRef
+-    | ExnRef
+-    | StructRef
+-    | ArrayRef
+-    | RefNullFuncTyped(_)
+-    | ContRef
+-    | NullContRef
+-    | RefNullContTyped(_)
+-    | RefNullStruct(_)
+-    | RefNullArray(_)
+-    | RefNullEq
+-    | RefNullI31
+-    | NullRef
+-    | NullFuncRef
+-    | NullExnRef
+-    | NullExternRef => ty
+-    _ => raise TypeMismatch("Expected reference type, got \{ty}")
++  match ty.with_nullable(true) {
++    Some(reference) => reference
++    None => raise TypeMismatch("expected reference type")
+@@ -2077,0 +1734,68 @@
++}
++
++///|
++fn non_nullable_operand(operand : Operand) -> Operand raise ValidationError {
++  match operand {
++    Known(ty) => Known(to_non_nullable_ref_type(ty))
++    other => other
++  }
++}
++
++///|
++fn convert_reference(operand : Operand, heap : Int32) -> Operand {
++  match operand {
++    Known(ty) => {
++      let (nullable, shared, _) = ty.heap().unwrap()
++      Known(HeapRef(nullable, shared, heap))
++    }
++    _ => UnknownRef(Some(heap))
++  }
++}
++
++///|
++fn validate_cast_type(
++  ctx : ValidationContext,
++  target : @types.ValueType,
++) -> Unit raise ValidationError {
++  validate_value_type(
++    target,
++    ctx.types.length(),
++    stack_switching=ctx.stack_switching,
++  )
++  validate_reference_metadata(target, ctx.types)
++  if !is_reference_type(target) {
++    raise TypeMismatch("cast target must be a reference type")
++  }
++  let (_, _, heap) = cast_top_type(ctx, target).heap().unwrap()
++  if heap == -24 {
++    raise TypeMismatch("casts cannot target continuation types")
++  }
++}
++
++///|
++fn cast_top_type(
++  ctx : ValidationContext,
++  target : @types.ValueType,
++) -> @types.ValueType raise ValidationError {
++  guard target.heap() is Some((_, shared, heap)) else {
++    raise TypeMismatch("cast target must be a reference type")
++  }
++  let heap = if heap >= 0 {
++    guard ctx.types.get(heap) is Some(type_) else {
++      raise InvalidTypeIndex(heap)
++    }
++    match type_.composite.unshared() {
++      Func(_) => -16
++      Struct(_) | Array(_) => -18
++      _ => -24
++    }
++  } else {
++    match heap {
++      -15 | -18 | -19 | -20 | -21 | -22 => -18
++      -13 | -16 => -16
++      -14 | -17 => -17
++      -12 | -23 => -23
++      _ => -24
++    }
++  }
++  HeapRef(true, shared, heap)
+@@ -2161 +1885,2 @@
+-    BlockLabel => get_block_results(ctx, label.block_type)
++    BlockLabel | LegacyTryLabel | LegacyCatchLabel =>
++      get_block_results(ctx, label.block_type)
+@@ -2164,0 +1890,62 @@
 +
 +///|
 +fn validate_catch_handlers(
@@ -604,116 +1755,59 @@
 +  handlers : Array[@types.CatchHandler],
 +) -> Unit raise ValidationError {
 +  for handler in handlers {
-+    match handler {
-+      Catch(tag_idx, label_idx) => {
-+        // Validate tag index
-+        if tag_idx < 0 || tag_idx >= ctx.tags.length() {
-+          raise UnknownTag(tag_idx)
-+        }
-+        // Validate label index (labels are indexed from innermost)
-+        if label_idx > ctx.labels.length() {
-+          raise InvalidLabelIndex(label_idx)
-+        }
-+        // Get expected types at label
-+        let expected_types = if label_idx == ctx.labels.length() {
-+          ctx.returns
-+        } else {
-+          let target_label = ctx.labels[ctx.labels.length() - 1 - label_idx]
-+          get_label_types(ctx, target_label)
-+        }
-+        // Catch provides tag params
-+        let tag_type = ctx.exception_tag_type(tag_idx)
-+        if tag_type.params.length() != expected_types.length() {
-+          raise TypeMismatch(
-+            "catch handler arity mismatch: tag has \{tag_type.params.length()} params, label expects \{expected_types.length()}",
-+          )
-+        }
-+        // Check that each tag param is a subtype of the expected label type
-+        for i, param_type in tag_type.params {
-+          if !ctx.subtyping_ctx.value_type_subtype(
-+              param_type,
-+              expected_types[i],
-+            ) {
-+            raise TypeMismatch(
-+              "catch handler type mismatch: tag param \{i} has type \{param_type}, label expects \{expected_types[i]}",
-+            )
-+          }
-+        }
++    let (label, provided) = match handler {
++      Catch(tag, label) => (label, ctx.exception_tag_type(tag).params)
++      CatchRef(tag, label) => {
++        let types = ctx.exception_tag_type(tag).params.copy()
++        types.push(HeapRef(false, false, -23))
++        (label, types)
 +      }
-+      CatchRef(tag_idx, label_idx) => {
-+        // Validate tag index
-+        if tag_idx < 0 || tag_idx >= ctx.tags.length() {
-+          raise UnknownTag(tag_idx)
-+        }
-+        // Validate label index
-+        if label_idx > ctx.labels.length() {
-+          raise InvalidLabelIndex(label_idx)
-+        }
-+        // Get expected types at label
-+        let expected_types = if label_idx == ctx.labels.length() {
-+          ctx.returns
-+        } else {
-+          let target_label = ctx.labels[ctx.labels.length() - 1 - label_idx]
-+          get_label_types(ctx, target_label)
-+        }
-+        // CatchRef provides tag params + exnref
-+        let tag_type = ctx.exception_tag_type(tag_idx)
-+        let expected_arity = tag_type.params.length() + 1
-+        if expected_arity != expected_types.length() {
-+          raise TypeMismatch(
-+            "catch_ref handler arity mismatch: tag has \{tag_type.params.length()} params + exnref, label expects \{expected_types.length()}",
-+          )
-+        }
-+        // Check that each tag param is a subtype of the expected label type
-+        for i, param_type in tag_type.params {
-+          if !ctx.subtyping_ctx.value_type_subtype(
-+              param_type,
-+              expected_types[i],
-+            ) {
-+            raise TypeMismatch(
-+              "catch_ref handler type mismatch: tag param \{i} has type \{param_type}, label expects \{expected_types[i]}",
-+            )
-+          }
-+        }
-+        // The last expected type should be ExnRef (exnref is always a subtype of itself)
-+      }
-+      CatchAll(label_idx) => {
-+        // Validate label index
-+        if label_idx > ctx.labels.length() {
-+          raise InvalidLabelIndex(label_idx)
-+        }
-+        // CatchAll provides no values
-+        let expected_types = if label_idx == ctx.labels.length() {
-+          ctx.returns
-+        } else {
-+          let target_label = ctx.labels[ctx.labels.length() - 1 - label_idx]
-+          get_label_types(ctx, target_label)
-+        }
-+        if expected_types.length() != 0 {
-+          raise TypeMismatch(
-+            "catch_all handler arity mismatch: provides 0 values, label expects \{expected_types.length()}",
-+          )
-+        }
-+      }
-+      CatchAllRef(label_idx) => {
-+        // Validate label index
-+        if label_idx > ctx.labels.length() {
-+          raise InvalidLabelIndex(label_idx)
-+        }
-+        // CatchAllRef provides exnref only
-+        let expected_types = if label_idx == ctx.labels.length() {
-+          ctx.returns
-+        } else {
-+          let target_label = ctx.labels[ctx.labels.length() - 1 - label_idx]
-+          get_label_types(ctx, target_label)
-+        }
-+        if expected_types.length() != 1 {
-+          raise TypeMismatch(
-+            "catch_all_ref handler arity mismatch: provides 1 value (exnref), label expects \{expected_types.length()}",
-+          )
-+        }
++      CatchAll(label) => (label, [])
++      CatchAllRef(label) =>
++        (label, [@types.ValueType::HeapRef(false, false, -23)])
++    }
++    if label < 0 || label > ctx.labels.length() {
++      raise InvalidLabelIndex(label)
++    }
++    let expected = if label == ctx.labels.length() {
++      ctx.returns
++    } else {
++      get_label_types(ctx, ctx.labels[ctx.labels.length() - 1 - label])
++    }
++    if provided.length() != expected.length() {
++      raise TypeMismatch("catch handler arity mismatch")
++    }
++    for i, actual in provided {
++      if !ctx.subtyping_ctx.value_type_subtype(actual, expected[i]) {
++        raise TypeMismatch("catch handler type mismatch")
 +      }
 +    }
++  }
++}
++
++///|
++fn require_defaultable(
++  storage : @types.StorageType,
++) -> Unit raise ValidationError {
++  let ty = storage_type_to_value_type(storage)
++  if ty.heap() is Some((false, _, _)) {
++    raise TypeMismatch("default initializer requires nullable reference fields")
++  }
++}
++
++///|
++fn require_get_storage(
++  storage : @types.StorageType,
++  packed_get : Bool,
++) -> Unit raise ValidationError {
++  let packed = match storage {
++    Packed(_) => true
++    Val(_) => false
++  }
++  if packed != packed_get {
++    raise TypeMismatch(
++      "packed storage requires get_s or get_u; unpacked storage requires get",
++    )
 +  }
 +}
 --- a/limits.mbt
@@ -721,16 +1815,27 @@
 @@ -53 +53 @@
 -  is_table64? : Bool = false,
 +  is_table64~ : Bool = false,
-@@ -108 +108 @@
+@@ -92,9 +92 @@
+-  match ty {
+-    RefFunc
+-    | RefExtern
+-    | RefFuncTyped(_)
+-    | RefCont
+-    | RefContTyped(_)
+-    | RefNoCont => true
+-    _ => false
+-  }
++  ty.heap() is Some((false, _, _))
+@@ -108 +100 @@
 -  func_addrs : Array[Int],
 +  func_addrs : Array[Int32],
-@@ -134 +134 @@
+@@ -134 +126 @@
 -fn count_func_imports(imports : Array[@types.Import]) -> Int {
 +fn count_func_imports(imports : Array[@types.Import]) -> Int32 {
-@@ -145 +145 @@
+@@ -145 +137 @@
 -fn count_global_imports(imports : Array[@types.Import]) -> Int {
 +fn count_global_imports(imports : Array[@types.Import]) -> Int32 {
-@@ -156 +156 @@
+@@ -156 +148 @@
 -fn count_tag_imports(imports : Array[@types.Import]) -> Int {
 +fn count_tag_imports(imports : Array[@types.Import]) -> Int32 {
 --- a/module_validate.mbt
@@ -740,25 +1845,739 @@
 -  stack_switching? : Bool = false,
 +  bulk_memory~ : Bool = true,
 +  stack_switching~ : Bool = false,
-@@ -266,2 +266,2 @@
+@@ -12,0 +13,15 @@
++  errdefer (if ctx.subtyping_ctx.work_exhausted() { raise TypeWorkLimit })
++  validate_module_in_scope(mod, ctx, bulk_memory, stack_switching, false)
++  if ctx.subtyping_ctx.work_exhausted() {
++    raise TypeWorkLimit
++  }
++}
++
++///|
++fn validate_module_in_scope(
++  mod : @types.Module,
++  ctx : ValidationContext,
++  bulk_memory : Bool,
++  stack_switching : Bool,
++  with_context : Bool,
++) -> Unit raise ValidationError {
+@@ -21,0 +37 @@
++    ignore(ctx.get_func_type(type_idx))
+@@ -28,0 +45,6 @@
++      validate_reference_metadata(vt, mod.types)
++      if subtype.composite.is_shared() && vt.heap() is Some((_, false, _)) {
++        raise TypeMismatch(
++          "shared composite types require shared reference fields and signatures",
++        )
++      }
+@@ -41,9 +63,2 @@
+-  let canonical = @types.compute_canonical_type_indices(
+-    mod.types,
+-    type_rec_groups=mod.type_rec_groups,
+-  )
+-  let subtyping_ctx = @types.SubtypingContext::same_module(
+-    mod.types,
+-    rec_groups=mod.type_rec_groups,
+-    canonical~,
+-  )
++  let subtyping_ctx = ctx.subtyping_ctx
++  let subtype_depths = Array::make(num_types, 0)
+@@ -50,0 +66,3 @@
++    if subtype.supertypes.length() > 1 {
++      raise TypeMismatch("multiple core supertypes are invalid")
++    }
+@@ -54,0 +73,7 @@
++      if super_idx >= type_idx {
++        raise TypeMismatch("core supertypes must precede their subtypes")
++      }
++      subtype_depths[type_idx] = subtype_depths[super_idx] + 1
++      if subtype_depths[type_idx] > 63 {
++        raise TypeMismatch("core subtype depth exceeds 63")
++      }
+@@ -62 +87,2 @@
+-      let valid_kind = match (subtype.composite, supertype.composite) {
++      let valid_kind = match
++        (subtype.composite.unshared(), supertype.composite.unshared()) {
+@@ -85,2 +111,6 @@
+-  for global in mod.globals {
+-    validate_value_type(global.type_.value_type, num_types, stack_switching~)
++  for global in ctx.globals {
++    validate_value_type(global.value_type, num_types, stack_switching~)
++    validate_reference_metadata(global.value_type, mod.types)
++    if global.is_shared && !is_shared_value_type(global.value_type) {
++      raise TypeMismatch("shared globals require shared values")
++    }
+@@ -90,2 +120,10 @@
+-  for table in mod.tables {
+-    validate_value_type(table.type_.elem_type, num_types, stack_switching~)
++  for table in ctx.tables {
++    validate_value_type(table.elem_type, num_types, stack_switching~)
++    validate_reference_metadata(table.elem_type, mod.types)
++    validate_table_limits(table.limits, is_table64=table.is_table64)
++    if table.is_shared && !is_shared_value_type(table.elem_type) {
++      raise TypeMismatch("shared tables require shared references")
++    }
++    if !is_ref_type(table.elem_type) {
++      raise TypeMismatch("core table requires a reference type")
++    }
+@@ -96,0 +135 @@
++    validate_reference_metadata(elem.type_, mod.types)
+@@ -110,0 +150,4 @@
++  let table_ctx : ValidationContext = {
++    ..ctx,
++    globals: ctx.globals[:count_global_imports(mod.imports)],
++  }
+@@ -112 +155 @@
+-    validate_table_type(table, ctx, ctx.funcs)
++    validate_table_type(table, table_ctx, ctx.funcs)
+@@ -163 +206 @@
+-      if !is_type_subtype(elem.type_, table_elem_type) {
++      if !ctx.subtyping_ctx.value_type_subtype(elem.type_, table_elem_type) {
+@@ -258 +301,16 @@
+-    validate_function(ctx, func_type, code)
++    if with_context {
++      validate_function_with_offset(
++        ctx,
++        func_type,
++        code,
++        func_idx,
++        shared=ctx.types[type_idx].composite.is_shared(),
++      )
++    } else {
++      validate_function(
++        ctx,
++        func_type,
++        code,
++        shared=ctx.types[type_idx].composite.is_shared(),
++      )
++    }
+@@ -266,2 +324,2 @@
 -  bulk_memory? : Bool = true,
 -  stack_switching? : Bool = false,
 +  bulk_memory~ : Bool = true,
 +  stack_switching~ : Bool = false,
+@@ -274,203 +332,8 @@
+-  validate_segment_features(mod, bulk_memory)
+-  validate_continuation_types(mod, stack_switching)
+-
+-  // Validate that all function type indices are valid
+-  for i, type_idx in ctx.funcs {
+-    if type_idx < 0 || type_idx >= ctx.types.length() {
+-      raise WithContext(
+-        ValidationErrorContext::from_error(InvalidTypeIndex(type_idx)),
+-      )
+-    }
+-    ignore(i)
+-  }
+-
+-  // Validate subtype declarations: supertypes must not be final, must have matching kind,
+-  // and must satisfy structural subtyping rules
+-  let num_types = ctx.types.length()
+-  let canonical = @types.compute_canonical_type_indices(
+-    mod.types,
+-    type_rec_groups=mod.type_rec_groups,
+-  )
+-  let subtyping_ctx = @types.SubtypingContext::same_module(
+-    mod.types,
+-    rec_groups=mod.type_rec_groups,
+-    canonical~,
+-  )
+-  for type_idx, subtype in mod.types {
+-    for super_idx in subtype.supertypes {
+-      if super_idx < 0 || super_idx >= num_types {
+-        raise WithContext(
+-          ValidationErrorContext::from_error(InvalidTypeIndex(super_idx)),
+-        )
+-      }
+-      let supertype = mod.types[super_idx]
+-      if supertype.final_ {
+-        raise WithContext(
+-          ValidationErrorContext::from_error(
+-            TypeMismatch(
+-              "sub type: type \{type_idx} cannot extend final type \{super_idx}",
+-            ),
+-          ),
+-        )
+-      }
+-      // Validate composite type kinds match
+-      let valid_kind = match (subtype.composite, supertype.composite) {
+-        (Func(_), Func(_)) => true
+-        (Struct(_), Struct(_)) => true
+-        (Array(_), Array(_)) => true
+-        (Cont(_), Cont(_)) => true
+-        _ => false
+-      }
+-      if !valid_kind {
+-        raise WithContext(
+-          ValidationErrorContext::from_error(
+-            TypeMismatch(
+-              "sub type: type \{type_idx} has incompatible kind with supertype \{super_idx}",
+-            ),
+-          ),
+-        )
+-      }
+-      // Validate structural subtyping: subtype's structure must be compatible with supertype
+-      if !subtyping_ctx.validate_declared_subtype(type_idx, super_idx) {
+-        raise WithContext(
+-          ValidationErrorContext::from_error(
+-            TypeMismatch(
+-              "sub type: type \{type_idx} is not a valid structural subtype of \{super_idx}",
+-            ),
+-          ),
+-        )
+-      }
+-    }
+-    ignore(type_idx)
+-  }
+-
+-  // Multi-memory support is now enabled (WebAssembly multi-memory proposal)
+-
+-  // Multi-table support is now enabled (WebAssembly reference types proposal)
+-
+-  // Validate memory limits
+-  for mem in ctx.mems {
+-    validate_memory_limits(mem) catch {
+-      e => raise WithContext(ValidationErrorContext::from_error(e))
+-    }
+-  }
+-
+-  // Validate table types and limits
+-  for table in mod.tables {
+-    validate_table_type(table, ctx, ctx.funcs) catch {
+-      e => raise WithContext(ValidationErrorContext::from_error(e))
+-    }
+-  }
+-
+-  // Validate data segments reference valid memory and have valid offset expressions
+-  for data in mod.datas {
+-    if data.memory_idx < 0 {
+-      continue
+-    }
+-    if data.memory_idx < 0 || data.memory_idx >= ctx.mems.length() {
+-      raise WithContext(
+-        ValidationErrorContext::from_error(InvalidMemoryIndex(data.memory_idx)),
+-      )
+-    }
+-    let offset_type = ctx.mems[data.memory_idx].addr_type()
+-    validate_const_expr(
+-      ctx.globals,
+-      data.offset,
+-      offset_type,
+-      types=ctx.types,
+-      subtyping_ctx=Some(ctx.subtyping_ctx),
+-      stack_switching=ctx.stack_switching,
+-    ) catch {
+-      e => raise WithContext(ValidationErrorContext::from_error(e))
+-    }
+-  }
+-
+-  // Validate elem segments
+-  for elem in mod.elems {
+-    // Validate offset expression for active elem segments
+-    if elem.mode is Active(table_idx, offset_expr) {
+-      // Check table index is valid
+-      if table_idx >= ctx.tables.length() {
+-        raise WithContext(
+-          ValidationErrorContext::from_error(InvalidTableIndex(table_idx)),
+-        )
+-      }
+-      // Check element type matches table element type
+-      let table_elem_type = ctx.tables[table_idx].elem_type
+-      if !is_type_subtype(elem.type_, table_elem_type) {
+-        raise WithContext(
+-          ValidationErrorContext::from_error(
+-            TypeMismatch(
+-              "element segment type \{elem.type_} is not subtype of table element type \{table_elem_type}",
+-            ),
+-          ),
+-        )
+-      }
+-      // Validate offset expression - i32 for table32, i64 for table64
+-      let offset_type = if ctx.tables[table_idx].is_table64 {
+-        @types.ValueType::I64
+-      } else {
+-        I32
+-      }
+-      validate_const_expr(
+-        ctx.globals,
+-        offset_expr,
+-        offset_type,
+-        types=ctx.types,
+-        subtyping_ctx=Some(ctx.subtyping_ctx),
+-        stack_switching=ctx.stack_switching,
+-      ) catch {
+-        e => raise WithContext(ValidationErrorContext::from_error(e))
+-      }
+-    }
+-    // Validate each init expression is a constant expression producing the element type
+-    for init in elem.init {
+-      validate_const_expr(
+-        ctx.globals,
+-        init,
+-        elem.type_,
+-        funcs=ctx.funcs,
+-        types=ctx.types,
+-        subtyping_ctx=Some(ctx.subtyping_ctx),
+-        stack_switching=ctx.stack_switching,
+-      ) catch {
+-        e => raise WithContext(ValidationErrorContext::from_error(e))
+-      }
+-    }
+-  }
+-
+-  // Validate start function if present
+-  if mod.start is Some(start_idx) {
+-    // Check that the function index is valid
+-    if start_idx >= ctx.funcs.length() {
+-      raise WithContext(
+-        ValidationErrorContext::from_error(InvalidFunctionIndex(start_idx)),
+-      )
+-    }
+-    // Get the function type
+-    let type_idx = ctx.funcs[start_idx]
+-    let func_type = ctx.get_func_type(type_idx)
+-    // Start function must have type [] -> [] (no params, no results)
+-    if func_type.params.length() != 0 || func_type.results.length() != 0 {
+-      raise WithContext(
+-        ValidationErrorContext::from_error(
+-          InvalidStartFunction("start function"),
+-        ),
+-      )
+-    }
+-  }
+-
+-  // Validate all function bodies with location tracking
+-  let num_imports = count_func_imports(mod.imports)
+-  for i, code in mod.codes {
+-    let func_idx = num_imports + i
+-    let type_idx = ctx.funcs[func_idx]
+-    if type_idx < 0 || type_idx >= ctx.types.length() {
+-      raise WithContext(
+-        ValidationErrorContext::from_error(InvalidTypeIndex(type_idx)).with_func_idx(
+-          func_idx,
+-        ),
+-      )
+-    }
+-    let func_type = ctx.get_func_type(type_idx)
+-    validate_function_with_offset(ctx, func_type, code, func_idx)
++  errdefer (if ctx.subtyping_ctx.work_exhausted() { raise TypeWorkLimit })
++  validate_module_in_scope(mod, ctx, bulk_memory, stack_switching, true) catch {
++    WithContext(context) => raise WithContext(context)
++    TypeWorkLimit => raise TypeWorkLimit
++    error => raise WithContext(ValidationErrorContext::from_error(error))
++  }
++  if ctx.subtyping_ctx.work_exhausted() {
++    raise TypeWorkLimit
 --- a/moon.pkg
 +++ b/moon.pkg
-@@ -9 +9 @@
+@@ -2 +2 @@
+-  "Milky2018/wasm_core/types",
++  "moonrockz/wit/binary/core_model" @types,
+@@ -7,3 +7,4 @@
+-  "Milky2018/wasm_core/wat",
+-  "Milky2018/wasm_core/encoder",
 -  "Milky2018/wasm_core/parser",
++  "moonrockz/wit/binary/core_validation",
++  "moonrockz/wit/binary/core_text" @wat,
++  "moonrockz/wit/binary/core_encoder" @encoder,
 +  "moonrockz/wit/binary/core_parser" @parser,
 --- a/stack.mbt
 +++ b/stack.mbt
-@@ -7 +7 @@
+@@ -0,0 +1,7 @@
++///|
++priv enum Operand {
++  Known(@types.ValueType)
++  Bottom
++  UnknownRef(Int32?)
++}
++
+@@ -5 +12 @@
+-  stack : Array[@types.ValueType]
++  stack : Array[Operand]
+@@ -7 +14 @@
 -  mut underflow_limit : Int // stack height at which polymorphism was enabled
 +  mut underflow_limit : Int32 // stack height at which polymorphism was enabled
-@@ -322 +322 @@
+@@ -25 +32 @@
+-  self.stack.push(ty)
++  self.stack.push(Known(ty))
+@@ -33,16 +40,60 @@
+-  if self.polymorphic && self.stack.is_empty() {
+-    return // Polymorphic stack accepts any type
+-  }
+-  if self.stack.is_empty() {
+-    raise StackUnderflow("Expected \{expected}, but stack is empty")
+-  }
+-  let actual = self.stack.pop()
+-  match actual {
+-    Some(a) => {
+-      let basic_subtype = is_type_subtype(a, expected)
+-      let ctx_subtype = if basic_subtype {
+-        true
+-      } else if self.subtyping_ctx is Some(subtyping_ctx) {
+-        subtyping_ctx.value_type_subtype(a, expected)
+-      } else {
+-        false
++  ignore(self.pop_operand(Some(expected)))
++}
++
++///|
++fn OperandStack::push_operand(self : OperandStack, operand : Operand) -> Unit {
++  self.stack.push(operand)
++}
++
++///|
++fn OperandStack::matches(
++  self : OperandStack,
++  actual : @types.ValueType,
++  expected : @types.ValueType,
++) -> Bool {
++  match self.subtyping_ctx {
++    Some(ctx) => ctx.value_type_subtype(actual, expected)
++    None => is_type_subtype(actual, expected)
++  }
++}
++
++///|
++fn OperandStack::pop_operand(
++  self : OperandStack,
++  expected : @types.ValueType?,
++) -> Operand raise ValidationError {
++  let actual = if self.polymorphic && self.stack.is_empty() {
++    Bottom
++  } else {
++    match self.stack.pop() {
++      Some(v) => v
++      None =>
++        raise StackUnderflow(
++          match expected {
++            Some(ty) => "Expected \{ty}, but stack is empty"
++            None => "Expected value, but stack is empty"
++          },
++        )
++    }
++  }
++  if expected is Some(expected) {
++    let compatible = match actual {
++      Bottom => true
++      Known(ty) => self.matches(ty, expected)
++      UnknownRef(heap) =>
++        match expected.heap() {
++          None => false
++          Some((_, shared, _)) =>
++            match heap {
++              None => true
++              Some(heap) => self.matches(HeapRef(false, shared, heap), expected)
++            }
++        }
++    }
++    if !compatible {
++      match actual {
++        Known(ty) => raise TypeMismatch("Expected \{expected}, got \{ty}")
++        _ =>
++          raise TypeMismatch(
++            "reference operand does not match expected type \{expected}",
++          )
+@@ -50,5 +101,16 @@
+-      if !ctx_subtype {
+-        raise TypeMismatch("Expected \{expected}, got \{a}")
+-      }
+-    }
+-    None => raise StackUnderflow("Expected \{expected}, but stack is empty")
++    }
++  }
++  actual
++}
++
++///|
++fn OperandStack::pop_push_types(
++  self : OperandStack,
++  expected : ArrayView[@types.ValueType],
++) -> Unit raise ValidationError {
++  let popped = []
++  for i = expected.length() - 1; i >= 0; i = i - 1 {
++    popped.push(self.pop_operand(Some(expected[i])))
++  }
++  for i = popped.length() - 1; i >= 0; i = i - 1 {
++    self.push_operand(popped[i])
+@@ -69,17 +131 @@
+-  match ty {
+-    ContRef => RefCont
+-    NullContRef => RefNoCont
+-    RefNullContTyped(idx) => RefContTyped(idx)
+-    FuncRef => RefFunc
+-    ExternRef => RefExtern
+-    AnyRef => RefAny
+-    StructRef => RefStruct(-1)
+-    ArrayRef => RefArray(-1)
+-    RefNullFuncTyped(idx) => RefFuncTyped(idx)
+-    RefNullStruct(idx) => if idx < 0 { RefStruct(-1) } else { RefStruct(idx) }
+-    RefNullArray(idx) => if idx < 0 { RefArray(-1) } else { RefArray(idx) }
+-    RefNullEq => RefEq
+-    RefNullI31 => RefI31
+-    NullRef | NullFuncRef | NullExternRef | NullExnRef => RefNone
+-    _ => ty
+-  }
++  ty.with_nullable(false).unwrap_or(ty)
+@@ -119,130 +165,42 @@
+-  if actual.is_continuation_ref() || expected.is_continuation_ref() {
+-    return match (actual, expected) {
+-      (RefNoCont, _) => expected.is_continuation_ref()
+-      (NullContRef, _) =>
+-        expected.is_continuation_ref() && expected.is_nullable()
+-      (RefCont | RefContTyped(_) | RefNullContTyped(_), ContRef) => true
+-      (RefContTyped(_), RefCont) => true
+-      (RefContTyped(a), RefNullContTyped(b)) => a == b
+-      _ => false
+-    }
+-  }
+-  // Bottom types for reference hierarchies.
+-  if actual == RefNone && is_reference_type(expected) {
+-    return true
+-  }
+-  if actual == NullRef && expected.is_nullable() {
+-    return true
+-  }
+-  // Helper: check if a type is a subtype of anyref (AnyRef = ref null any)
+-  fn is_internal_ref(t : @types.ValueType) -> Bool {
+-    match t {
+-      RefAny | AnyRef | RefEq | RefNullEq | RefI31 | RefNullI31 => true
+-      RefStruct(_) | RefNullStruct(_) | RefArray(_) | RefNullArray(_) => true
+-      _ => false
+-    }
+-  }
+-
+-  match (actual, expected) {
+-    // Null bottoms for specific hierarchies
+-    (NullFuncRef, FuncRef) => true
+-    (NullFuncRef, RefNullFuncTyped(_)) => true
+-    (NullExternRef, ExternRef) => true
+-    (NullExnRef, ExnRef) => true
+-
+-    // Non-null to nullable of same base type
+-    (RefFuncTyped(t1), RefNullFuncTyped(t2)) => t1 == t2
+-    (RefStruct(t1), RefNullStruct(t2)) => t1 == t2 || t2 == -1
+-    (RefArray(t1), RefNullArray(t2)) => t1 == t2 || t2 == -1
+-    (RefI31, RefNullI31) => true
+-    (RefEq, RefNullEq) => true
+-    (RefAny, AnyRef) => true
+-    (RefFunc, FuncRef) => true
+-    (RefExtern, ExternRef) => true
+-
+-    // Typed to abstract struct/array
+-    (RefStruct(_), RefStruct(-1)) => true
+-    (RefNullStruct(_), RefNullStruct(-1)) => true
+-    (RefArray(_), RefArray(-1)) => true
+-    (RefNullArray(_), RefNullArray(-1)) => true
+-
+-    // Struct/array/i31 to eqref (RefEq = ref eq, RefNullEq = ref null eq)
+-    (RefStruct(_), RefEq) => true
+-    (RefStruct(_), RefNullEq) => true
+-    (RefNullStruct(_), RefNullEq) => true
+-    (RefArray(_), RefEq) => true
+-    (RefArray(_), RefNullEq) => true
+-    (RefNullArray(_), RefNullEq) => true
+-    (RefI31, RefEq) => true
+-    (RefI31, RefNullEq) => true
+-    (RefNullI31, RefNullEq) => true
+-
+-    // Everything internal to anyref (RefAny = ref any, AnyRef = ref null any)
+-    (_, RefAny) => is_internal_ref(actual) && !actual.is_nullable()
+-    (_, AnyRef) => is_internal_ref(actual)
+-
+-    // RefFuncTyped to funcref hierarchy
+-    (RefFuncTyped(_), FuncRef) => true
+-    (RefNullFuncTyped(_), FuncRef) => true
+-    (RefFuncTyped(_), RefFunc) => true
+-    _ => false
+-  }
+-}
+-
+-///|
+-/// Check if a type is a subtype of eqref.
+-/// eqref hierarchy: eqref > i31ref, structref, arrayref
+-/// anyref is NOT a subtype of eqref (it's a supertype)
+-/// funcref and externref are NOT subtypes of eqref
+-fn is_subtype_of_eqref(value_type : @types.ValueType) -> Bool {
+-  match value_type {
+-    // Direct eqref types
+-    RefEq | RefNullEq => true
+-    // i31ref is subtype of eqref
+-    RefI31 | RefNullI31 => true
+-    // structref is subtype of eqref
+-    RefStruct(_) | RefNullStruct(_) => true
+-    // arrayref is subtype of eqref
+-    RefArray(_) | RefNullArray(_) => true
+-    // Bottom types are subtypes of everything
+-    RefNone | NullRef => true
+-    // anyref is a SUPERtype of eqref, not subtype
+-    AnyRef | RefAny => false
+-    // funcref and externref are not related to eqref
+-    FuncRef | RefFunc | RefFuncTyped(_) | RefNullFuncTyped(_) | NullFuncRef =>
+-      false
+-    ExternRef | RefExtern | NullExternRef => false
+-    // Other types
+-    _ => false
+-  }
+-}
+-
+-///|
+-fn OperandStack::pop_any(
+-  self : OperandStack,
+-) -> @types.ValueType raise ValidationError {
+-  if self.polymorphic && self.stack.is_empty() {
+-    return I32 // Return arbitrary type for polymorphic stack
+-  }
+-  if self.stack.is_empty() {
+-    raise StackUnderflow("Expected value, but stack is empty")
+-  }
+-  match self.stack.pop() {
+-    Some(v) => v
+-    None => raise StackUnderflow("Expected value, but stack is empty")
+-  }
+-}
+-
+-///|
+-/// Pop any value type from stack, or return `None` for synthesized values
+-/// in polymorphic-unreachable context.
+-fn OperandStack::pop_any_or_unknown(
+-  self : OperandStack,
+-) -> @types.ValueType? raise ValidationError {
+-  if self.polymorphic && self.stack.is_empty() {
+-    return None
+-  }
+-  if self.stack.is_empty() {
+-    raise StackUnderflow("Expected value, but stack is empty")
+-  }
+-  self.stack.pop()
++  guard actual.heap() is Some((an, ash, ah)) &&
++    expected.heap() is Some((bn, bsh, bh)) else {
++    return false
++  }
++  if ash != bsh || (an && !bn) {
++    return false
++  }
++  if ah >= 0 && bh >= 0 {
++    return ah == bh
++  }
++  fn kind(ty : @types.ValueType) -> Int32? {
++    match ty {
++      RefFuncTyped(_) | RefNullFuncTyped(_) => Some(-16)
++      RefStruct(_) | RefNullStruct(_) => Some(-21)
++      RefArray(_) | RefNullArray(_) => Some(-22)
++      RefContTyped(_) | RefNullContTyped(_) => Some(-24)
++      _ => None
++    }
++  }
++  let aheap = if ah >= 0 {
++    match kind(actual) {
++      Some(h) => h
++      None => return false
++    }
++  } else {
++    ah
++  }
++  let bheap = if bh >= 0 {
++    if ah != -15 && ah != -14 && ah != -13 && ah != -12 && ah != -11 {
++      return false
++    }
++    match kind(expected) {
++      Some(h) => h
++      None => return false
++    }
++  } else {
++    bh
++  }
++  @types.SubtypingContext::same_module([]).value_type_subtype(
++    HeapRef(an, ash, aheap),
++    HeapRef(bn, bsh, bheap),
++  )
+@@ -253,35 +211 @@
+-  match ty {
+-    FuncRef
+-    | ExternRef
+-    | RefFunc
+-    | RefExtern
+-    | RefFuncTyped(_)
+-    | RefNullFuncTyped(_)
+-    | ContRef
+-    | RefCont
+-    | RefContTyped(_)
+-    | RefNullContTyped(_)
+-    | NullContRef
+-    | RefNoCont
+-    | AnyRef
+-    | ExnRef
+-    | StructRef
+-    | ArrayRef
+-    | RefStruct(_)
+-    | RefNullStruct(_)
+-    | RefArray(_)
+-    | RefNullArray(_)
+-    | RefAny
+-    | RefEq
+-    | RefNullEq
+-    | RefI31
+-    | RefNullI31
+-    | RefStructAbs
+-    | RefArrayAbs
+-    | RefNone
+-    | NullRef
+-    | NullFuncRef
+-    | NullExnRef
+-    | NullExternRef => true
+-    _ => false
+-  }
++  ty.heap() is Some(_)
+@@ -295,9 +219,36 @@
+-) -> @types.ValueType raise ValidationError {
+-  if self.polymorphic && self.stack.is_empty() {
+-    return NullRef
+-  }
+-  let actual = self.pop_any()
+-  if !is_reference_type(actual) {
+-    raise TypeMismatch("Expected reference type, got \{actual}")
+-  }
+-  actual
++) -> Operand raise ValidationError {
++  match self.pop_operand(None) {
++    Bottom => UnknownRef(None)
++    Known(ty) =>
++      if is_reference_type(ty) {
++        Known(ty)
++      } else {
++        raise TypeMismatch("expected reference operand")
++      }
++    operand => operand
++  }
++}
++
++///|
++fn OperandStack::pop_maybe_shared_ref(
++  self : OperandStack,
++  heap : Int32,
++) -> Operand raise ValidationError {
++  let operand = self.pop_ref_any()
++  match operand {
++    Known(ty) => {
++      let shared = ty.heap().unwrap().1
++      if !self.matches(ty, HeapRef(true, shared, heap)) {
++        raise TypeMismatch("reference operand has incompatible heap type")
++      }
++    }
++    UnknownRef(Some(actual)) =>
++      if !is_type_subtype(
++          HeapRef(false, false, actual),
++          HeapRef(true, false, heap),
++        ) {
++        raise TypeMismatch("reference operand has incompatible heap type")
++      }
++    _ => ()
++  }
++  operand
+@@ -322 +273 @@
 -  expected : Int,
 +  expected : Int32,
-@@ -341,0 +342,18 @@
+@@ -341,0 +293,18 @@
 +
 +///|
 +fn OperandStack::check_branch_values(
@@ -779,15 +2598,66 @@
 +}
 --- a/validator_wbtest.mbt
 +++ b/validator_wbtest.mbt
-@@ -1518 +1518 @@
+@@ -190 +190,5 @@
+-  let global_type : @types.GlobalType = { value_type: I32, mutable: true, }
++  let global_type : @types.GlobalType = {
++    is_shared: false,
++    value_type: I32,
++    mutable: true,
++  }
+@@ -985 +989,4 @@
+-      { type_: { value_type: I32, mutable: true, }, init: [I32Const(0)], },
++      {
++        type_: { is_shared: false, value_type: I32, mutable: true, },
++        init: [I32Const(0)],
++      },
+@@ -1047 +1054,4 @@
+-      { type_: { value_type: I32, mutable: false, }, init: [I32Const(0)], },
++      {
++        type_: { is_shared: false, value_type: I32, mutable: false, },
++        init: [I32Const(0)],
++      },
+@@ -1074,0 +1085 @@
++          is_shared: false,
+@@ -1109,0 +1121 @@
++          is_shared: false,
+@@ -1142,0 +1155 @@
++          is_shared: false,
+@@ -1175,0 +1189 @@
++          is_shared: false,
+@@ -1185 +1199,4 @@
+-      { type_: { value_type: I32, mutable: true, }, init: [I32Const(0)], },
++      {
++        type_: { is_shared: false, value_type: I32, mutable: true, },
++        init: [I32Const(0)],
++      },
+@@ -1234,0 +1252 @@
++          is_shared: false,
+@@ -1267,0 +1286 @@
++          is_shared: false,
+@@ -1298,0 +1318 @@
++          is_shared: false,
+@@ -1339,0 +1360 @@
++          is_shared: false,
+@@ -1518 +1539 @@
 -  rec_groups : Array[Int],
 +  rec_groups : Array[Int32],
-@@ -1542 +1542 @@
+@@ -1542 +1563 @@
 -  mutable? : Bool = false,
 +  mutable~ : Bool = false,
-@@ -1695 +1695 @@
+@@ -1695 +1716 @@
 -  is_memory64? : Bool = false,
 +  is_memory64~ : Bool = false,
-@@ -1726 +1726 @@
+@@ -1726 +1747 @@
 -  is_table64? : Bool = false,
 +  is_table64~ : Bool = false,
+@@ -1729,0 +1751 @@
++    is_shared: false,
+@@ -1857,2 +1879,5 @@
+-test "validator: nullref is subtype of nullable typed funcref" {
+-  inspect(is_type_subtype(NullRef, RefNullFuncTyped(0)), content="true")
++test "validator: reference bottoms stay inside their heap hierarchy" {
++  inspect(is_type_subtype(NullRef, RefNullFuncTyped(0)), content="false")
++  assert_true(is_type_subtype(NullFuncRef, RefNullFuncTyped(0)))
++  assert_true(is_type_subtype(NullRef, RefNullStruct(0)))
++  assert_false(is_type_subtype(RefNone, ExnRef))

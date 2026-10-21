@@ -65,7 +65,7 @@
 +fn int_to_hex(n : Int32) -> String {
 --- a/instructions.mbt
 +++ b/instructions.mbt
-@@ -19,14 +19,5 @@
+@@ -19,14 +19,6 @@
 -fn Parser::read_expr(
 -  self : Parser,
 -) -> Array[@types.Instruction] raise ParserError {
@@ -85,7 +85,8 @@
 +  Loop(@types.BlockType)
 +  If(@types.BlockType)
 +  Try(@types.BlockType, Array[@types.CatchHandler])
-@@ -36,3 +27,11 @@
++  LegacyTry(@types.BlockType)
+@@ -36,3 +28,14 @@
 -/// Read if-then body, stopping at either 0x05 (else) or 0x0B (end)
 -/// Returns (body, has_else) where has_else is true if we stopped at else
 -fn Parser::read_if_then_body(
@@ -94,13 +95,16 @@
 +  head : ExpressionHead
 +  outer : Array[@types.Instruction]
 +  mut then_body : Array[@types.Instruction]?
++  mut try_body : Array[@types.Instruction]?
++  mut catch_tag : Int32?
++  catches : Array[@types.LegacyCatch]
 +}
 +
 +///|
 +// Build structured instruction trees with an explicit stack. The physical
 +// nesting cap also bounds recursive destruction in third-party model backends.
 +fn Parser::read_expr(
-@@ -40,3 +39,6 @@
+@@ -40,3 +43,6 @@
 -) -> (Array[@types.Instruction], Bool) raise ParserError {
 -  let instructions : Array[@types.Instruction] = []
 -  let mut has_else = false
@@ -110,9 +114,9 @@
 +  let mut ordinal = 0
 +  let frames : Array[ExpressionFrame] = []
 +  let mut body : Array[@types.Instruction] = []
-@@ -43,0 +46 @@
+@@ -43,0 +50 @@
 +    instruction_offsets.push(self.pos)
-@@ -45,11 +48,45 @@
+@@ -45,11 +52,100 @@
 -    if opcode == 0x0B {
 -      // end - no else clause
 -      has_else = false
@@ -136,6 +140,16 @@
 +              None => @types.Instruction::If(bt, body, [])
 +            }
 +          Try(bt, handlers) => @types.Instruction::TryTable(bt, handlers, body)
++          LegacyTry(bt) => {
++            let initial = match frame.try_body {
++              None => body
++              Some(initial) => {
++                frame.catches.push({ tag: frame.catch_tag, body, })
++                initial
++              }
++            }
++            @types.Instruction::LegacyTry(bt, initial, frame.catches, None)
++          }
 +        }
 +        body = frame.outer
 +        body.push(instruction)
@@ -150,7 +164,43 @@
 +        frame.then_body = Some(body)
 +        body = []
 +      }
-+      0x02 | 0x03 | 0x04 | 0x1f => {
++      0x07 | 0x19 => {
++        guard frames.last() is Some(frame) && frame.head is LegacyTry(_) else {
++          raise ParseError("unexpected legacy catch")
++        }
++        match frame.try_body {
++          None => frame.try_body = Some(body)
++          Some(_) => {
++            if frame.catch_tag is None {
++              raise ParseError("catch follows catch_all")
++            }
++            frame.catches.push({ tag: frame.catch_tag, body, })
++          }
++        }
++        frame.catch_tag = if opcode == 0x07 {
++          Some(self.read_u32())
++        } else {
++          None
++        }
++        body = []
++      }
++      0x18 => {
++        guard frames.pop() is Some(frame) &&
++          frame.head is LegacyTry(bt) &&
++          frame.try_body is None else {
++          raise ParseError("unexpected legacy delegate")
++        }
++        let depth = self.read_u32()
++        let instruction = @types.Instruction::LegacyTry(
++          bt,
++          body,
++          [],
++          Some(depth),
++        )
++        body = frame.outer
++        body.push(instruction)
++      }
++      0x02 | 0x03 | 0x04 | 0x06 | 0x1f => {
 +        if frames.length() >= 256 {
 +          raise ParseError("core control nesting exceeds 256")
 +        }
@@ -159,9 +209,18 @@
 +          0x02 => ExpressionHead::Block(bt)
 +          0x03 => ExpressionHead::Loop(bt)
 +          0x04 => ExpressionHead::If(bt)
++          0x06 => ExpressionHead::LegacyTry(bt)
 +          _ => ExpressionHead::Try(bt, self.read_catch_handlers())
 +        }
-+        frames.push({ head, ordinal, outer: body, then_body: None, })
++        frames.push({
++          head,
++          ordinal,
++          outer: body,
++          then_body: None,
++          try_body: None,
++          catch_tag: None,
++          catches: [],
++        })
 +        ordinal += 1
 +        body = []
 +      }
@@ -169,7 +228,7 @@
 +    }
 +  } nobreak {
 +    body
-@@ -57 +94,20 @@
+@@ -57 +153,20 @@
 -  (instructions, has_else)
 +}
 +
@@ -191,10 +250,10 @@
 +    )
 +  }
 +  handlers
-@@ -63 +119 @@
+@@ -63 +178 @@
 -  opcode : Int,
 +  opcode : Int32,
-@@ -69,22 +125,2 @@
+@@ -69,22 +184,2 @@
 -    0x02 => {
 -      let bt = self.read_block_type()
 -      let body = self.read_expr()
@@ -217,9 +276,11 @@
 -        If(bt, then_body, [])
 -      }
 -    }
-+    0x02 | 0x03 | 0x04 | 0x1f =>
++    0x02 | 0x03 | 0x04 | 0x06 | 0x1f =>
 +      raise ParseError("structured opcode outside expression reader")
-@@ -94,37 +129,0 @@
+@@ -92,0 +188 @@
++    0x09 => Rethrow(self.read_u32())
+@@ -94,37 +189,0 @@
 -    0x1F => {
 -      // try_table: blocktype, catch_handlers*, body
 -      let bt = self.read_block_type()
@@ -257,13 +318,106 @@
 -      let body = self.read_expr()
 -      TryTable(bt, handlers, body)
 -    }
-@@ -581 +580 @@
+@@ -157,0 +217 @@
++    0x1C => SelectTyped(self.read_vec(() => self.read_value_type()))
+@@ -413,35 +473 @@
+-    0xD0 => {
+-      // ref.null: heaptype immediate (signed LEB)
+-      let heap_type = self.read_heap_type()
+-      if heap_type < 0 {
+-        let nullable_ref_ty = match heap_type {
+-          -16 => @types.ValueType::FuncRef
+-          -17 => ExternRef
+-          -18 => AnyRef
+-          -19 => RefNullEq
+-          -20 => RefNullI31
+-          -21 => StructRef
+-          -22 => ArrayRef
+-          -23 => ExnRef
+-          -15 => NullRef
+-          -14 => NullExternRef
+-          -13 => NullFuncRef
+-          -12 => NullExnRef
+-          -24 => ContRef
+-          -11 => NullContRef
+-          _ => raise ParseError("invalid heap type")
+-        }
+-        RefNull(nullable_ref_ty)
+-      } else {
+-        if heap_type >= self.types.length() {
+-          raise ParseError("invalid heap type")
+-        }
+-        let nullable_ref_ty = match self.types[heap_type].composite {
+-          Func(_) => @types.ValueType::RefNullFuncTyped(heap_type)
+-          Struct(_) => RefNullStruct(heap_type)
+-          Array(_) => RefNullArray(heap_type)
+-          Cont(_) => RefNullContTyped(heap_type)
+-        }
+-        RefNull(nullable_ref_ty)
+-      }
+-    }
++    0xD0 => RefNull(self.read_heap_reference(true))
+@@ -561 +587,3 @@
+-      if subopcode == 3 {
++      if subopcode == 0x72 {
++        RefI31Shared
++      } else if subopcode == 3 {
+@@ -581 +609 @@
 -  subopcode : Int,
 +  subopcode : Int32,
-@@ -685 +684 @@
+@@ -613,0 +642,3 @@
++      if !self.has_data_count {
++        raise DataCountRequired
++      }
+@@ -634,0 +666,3 @@
++      if !self.has_data_count {
++        raise DataCountRequired
++      }
+@@ -644,16 +678,4 @@
+-    20 =>
+-      RefTest(
+-        self.resolve_heap_type_as_ref_value_type(self.read_heap_type(), false),
+-      )
+-    21 =>
+-      RefTestNull(
+-        self.resolve_heap_type_as_ref_value_type(self.read_heap_type(), true),
+-      )
+-    22 =>
+-      RefCast(
+-        self.resolve_heap_type_as_ref_value_type(self.read_heap_type(), false),
+-      )
+-    23 =>
+-      RefCastNull(
+-        self.resolve_heap_type_as_ref_value_type(self.read_heap_type(), true),
+-      )
++    20 => RefTest(self.read_heap_reference(false))
++    21 => RefTestNull(self.read_heap_reference(true))
++    22 => RefCast(self.read_heap_reference(false))
++    23 => RefCastNull(self.read_heap_reference(true))
+@@ -660,0 +683,4 @@
++      let flags = self.read_byte()
++      if flags > 3 {
++        raise ParseError("invalid branch cast flags")
++      }
+@@ -662,2 +688,2 @@
+-      let from_t = self.read_value_type()
+-      let to_t = self.read_value_type()
++      let from_t = self.read_heap_reference((flags & 1) != 0)
++      let to_t = self.read_heap_reference((flags & 2) != 0)
+@@ -666,0 +693,4 @@
++      let flags = self.read_byte()
++      if flags > 3 {
++        raise ParseError("invalid branch cast flags")
++      }
+@@ -668,2 +698,2 @@
+-      let from_t = self.read_value_type()
+-      let to_t = self.read_value_type()
++      let from_t = self.read_heap_reference((flags & 1) != 0)
++      let to_t = self.read_heap_reference((flags & 2) != 0)
+@@ -685 +715 @@
 -  subopcode : Int,
 +  subopcode : Int32,
-@@ -756 +755 @@
+@@ -756 +786 @@
 -      let lanes : FixedArray[Int] = FixedArray::make(16, 0)
 +      let lanes : FixedArray[Int32] = FixedArray::make(16, 0)
 --- a/leb128.mbt
@@ -276,7 +430,9 @@
 +fn Parser::read_leb128_i32(self : Parser) -> Int32 raise ParserError {
 --- a/moon.pkg
 +++ b/moon.pkg
-@@ -2,0 +3,4 @@
+@@ -2 +2,5 @@
+-  "Milky2018/wasm_core/types",
++  "moonrockz/wit/binary/core_model" @types,
 +}
 +
 +import {
@@ -324,43 +480,50 @@
 @@ -137 +137 @@
 -  let table_section : FixedArray[Int] = [0x04, 0x04, 0x01, 0x70, 0x08, 0x01]
 +  let table_section : FixedArray[Int32] = [0x04, 0x04, 0x01, 0x70, 0x08, 0x01]
-@@ -143 +143 @@
+@@ -142,2 +142,2 @@
+-test "binary parse table - shared flag 0x03 rejected for tables" {
 -  let table_section : FixedArray[Int] = [
++test "binary parse table - shared flag 0x03 retained" {
 +  let table_section : FixedArray[Int32] = [
-@@ -155 +155,3 @@
+@@ -146 +146,3 @@
+-  inspect(parse_wasm([table_section]) is None, content="true")
++  let parsed = parse_wasm([table_section]).unwrap()
++  assert_true(parsed.tables[0].type_.is_shared)
++  assert_eq(parsed.tables[0].type_.limits.max, Some(4L))
+@@ -155 +157,3 @@
 -  let mem_section : FixedArray[Int] = [0x05, 0x05, 0x02, 0x00, 0x01, 0x04, 0x02]
 +  let mem_section : FixedArray[Int32] = [
 +    0x05, 0x05, 0x02, 0x00, 0x01, 0x04, 0x02,
 +  ]
-@@ -166 +168 @@
+@@ -166 +170 @@
 -  let table_section : FixedArray[Int] = [
 +  let table_section : FixedArray[Int32] = [
-@@ -185 +187 @@
+@@ -185 +189 @@
 -  let type_section : FixedArray[Int] = [
 +  let type_section : FixedArray[Int32] = [
-@@ -188,2 +190,2 @@
+@@ -188,2 +192,2 @@
 -  let func_section : FixedArray[Int] = [0x03, 0x02, 0x01, 0x00]
 -  let export_section : FixedArray[Int] = [
 +  let func_section : FixedArray[Int32] = [0x03, 0x02, 0x01, 0x00]
 +  let export_section : FixedArray[Int32] = [
-@@ -192 +194 @@
+@@ -192 +196 @@
 -  let code_section : FixedArray[Int] = [
 +  let code_section : FixedArray[Int32] = [
-@@ -214 +216 @@
+@@ -214 +218 @@
 -  let type_section : FixedArray[Int] = [
 +  let type_section : FixedArray[Int32] = [
-@@ -217,2 +219,2 @@
+@@ -217,2 +221,2 @@
 -  let func_section : FixedArray[Int] = [0x03, 0x02, 0x01, 0x00]
 -  let export_section : FixedArray[Int] = [
 +  let func_section : FixedArray[Int32] = [0x03, 0x02, 0x01, 0x00]
 +  let export_section : FixedArray[Int32] = [
-@@ -221 +223 @@
+@@ -221 +225 @@
 -  let code_section : FixedArray[Int] = [
 +  let code_section : FixedArray[Int32] = [
-@@ -244 +246 @@
+@@ -244 +248 @@
 -  let type_section : FixedArray[Int] = [
 +  let type_section : FixedArray[Int32] = [
-@@ -268,3 +270,3 @@
+@@ -268,3 +272,3 @@
 -  let type_section : FixedArray[Int] = [0x01, 0x04, 0x01, 0x60, 0x00, 0x00]
 -  let tag_section : FixedArray[Int] = [0x0d, 0x03, 0x01, 0x00, 0x00]
 -  let global_section : FixedArray[Int] = [
@@ -369,27 +532,162 @@
 +  let global_section : FixedArray[Int32] = [
 --- a/rec_group_types.mbt
 +++ b/rec_group_types.mbt
-@@ -72 +72 @@
+@@ -42,0 +43,4 @@
++  let shared = self.peek_byte() == 0x65
++  if shared {
++    self.skip(1)
++  }
+@@ -44 +48 @@
+-  match tag {
++  let result : @types.CompositeType = match tag {
+@@ -54,0 +59,9 @@
++  if !shared {
++    return result
++  }
++  match result {
++    Func(f) => SharedFunc(f)
++    Struct(t) => SharedStruct(t)
++    Array(t) => SharedArray(t)
++    _ => raise ParseError("unsupported shared composite type")
++  }
+@@ -59,4 +71,0 @@
+-  // WasmGC binary subtype encoding:
+-  // - 0x50: subtype header with flags + optional supertype
+-  // - 0x4f: final subtype header with optional supertype
+-  // - otherwise: implicit final subtype without supertypes
+@@ -64 +73 @@
+-  if tag == 0x50 {
++  if tag == 0x50 || tag == 0x4f {
+@@ -66,27 +75,6 @@
+-    let flags = self.read_byte()
+-    let has_supertype = (flags & 0x01) != 0
+-    let final_ = (flags & 0x02) != 0
+-    if (flags & 0xFC) != 0 {
+-      raise ParseError("malformed subtype flags")
+-    }
 -    let supertypes : Array[Int] = if has_supertype {
-+    let supertypes : Array[Int32] = if has_supertype {
-@@ -86 +86 @@
+-      [self.read_u32()]
+-    } else {
+-      []
+-    }
+-    let composite = self.read_composite_type()
+-    { final_, supertypes, composite, }
+-  } else if tag == 0x4f {
+-    self.skip(1)
+-    let flags = self.read_byte()
+-    let has_supertype = (flags & 0x01) != 0
+-    if (flags & 0xFE) != 0 {
+-      raise ParseError("malformed subtype flags")
+-    }
 -    let supertypes : Array[Int] = if has_supertype {
-+    let supertypes : Array[Int32] = if has_supertype {
-@@ -109 +109 @@
+-      [self.read_u32()]
+-    } else {
+-      []
+-    }
+-    let composite = self.read_composite_type()
+-    { final_: true, supertypes, composite, }
++    let count = self.read_u32()
++    if count < 0 || count > 1 {
++      raise ParseError("invalid supertype count")
++    }
++    let supertypes = if count == 1 { [self.read_u32()] } else { [] }
++    { final_: tag == 0x4f, supertypes, composite: self.read_composite_type(), }
+@@ -94,3 +82 @@
+-    // Implicit final subtype
+-    let composite = self.read_composite_type()
+-    { final_: true, supertypes: [], composite, }
++    { final_: true, supertypes: [], composite: self.read_composite_type(), }
+@@ -109 +95 @@
 -    composite_tag : Int,
 +    composite_tag : Int32,
-@@ -171 +171 @@
+@@ -111 +97,2 @@
+-    let composite : @types.CompositeType = match composite_tag {
++    let shared = (composite_tag & 256) != 0
++    let composite : @types.CompositeType = match composite_tag & 255 {
+@@ -122,0 +110,10 @@
++    }
++    let composite = if shared {
++      match composite {
++        Func(f) => @types.CompositeType::SharedFunc(f)
++        Struct(t) => SharedStruct(t)
++        Array(t) => SharedArray(t)
++        _ => raise ParseError("unsupported shared composite type")
++      }
++    } else {
++      composite
+@@ -152,4 +149 @@
+-      0x65 | 0x62 => {
+-        self.read_heap_type() |> ignore
+-        raise ParseError("shared reference types not supported")
+-      }
++      0x65 => self.read_heap_type() |> ignore
+@@ -171 +165,5 @@
 -  fn skip_composite_type_no_resolve(self : Parser) -> Int raise ParserError {
 +  fn skip_composite_type_no_resolve(self : Parser) -> Int32 raise ParserError {
-@@ -209 +209 @@
++    let shared = self.peek_byte() == 0x65
++    if shared {
++      self.skip(1)
++    }
+@@ -173 +171 @@
+-    match tag {
++    let result = match tag {
+@@ -204,0 +203 @@
++    result | (if shared { 256 } else { 0 })
+@@ -209 +208 @@
 -  ) -> Int raise ParserError {
 +  ) -> Int32 raise ParserError {
-@@ -247,0 +248,2 @@
+@@ -211,25 +210,11 @@
+-    if tag == 0x50 {
+-      self.skip(1)
+-      let flags = self.read_byte()
+-      let has_supertype = (flags & 0x01) != 0
+-      if (flags & 0xFC) != 0 {
+-        raise ParseError("malformed subtype flags")
+-      }
+-      if has_supertype {
+-        self.read_u32() |> ignore
+-      }
+-      skip_composite_type_no_resolve(self)
+-    } else if tag == 0x4f {
+-      self.skip(1)
+-      let flags = self.read_byte()
+-      let has_supertype = (flags & 0x01) != 0
+-      if (flags & 0xFE) != 0 {
+-        raise ParseError("malformed subtype flags")
+-      }
+-      if has_supertype {
+-        self.read_u32() |> ignore
+-      }
+-      skip_composite_type_no_resolve(self)
+-    } else {
+-      skip_composite_type_no_resolve(self)
+-    }
++    if tag == 0x50 || tag == 0x4f {
++      self.skip(1)
++      let count = self.read_u32()
++      if count < 0 || count > 1 {
++        raise ParseError("invalid supertype count")
++      }
++      if count == 1 {
++        ignore(self.read_u32())
++      }
++    }
++    skip_composite_type_no_resolve(self)
+@@ -247,0 +233,2 @@
 +      capture_text: false,
 +      text_values: [],
-@@ -253 +255 @@
+@@ -253 +240 @@
 -    let composite_tags : Array[Int] = []
 +    let composite_tags : Array[Int32] = []
+@@ -267,0 +255,5 @@
++    let scan = Parser(self.data)
++    scan.pos = self.pos
++    let kind = skip_subtype_and_get_composite_tag(scan)
++    let index = self.types.length()
++    self.types.push(placeholder_subtype_by_composite_tag(kind))
+@@ -269 +261 @@
+-    self.types.push(subtype)
++    self.types[index] = subtype
 --- a/sections.mbt
 +++ b/sections.mbt
 @@ -26 +26 @@
@@ -433,58 +731,238 @@
 +fn Parser::read_bytes(self : Parser, n : Int32) -> Bytes raise ParserError {
 --- a/table_memory_types.mbt
 +++ b/table_memory_types.mbt
-@@ -49 +49 @@
+@@ -17 +17 @@
+-    let (limits, is_table64) = self.read_table_limits()
++    let (limits, is_table64, is_shared) = self.read_table_limits()
+@@ -20 +20 @@
+-    { type_: { elem_type, limits, is_table64, }, init: Some(init), }
++    { type_: { elem_type, limits, is_table64, is_shared, }, init: Some(init), }
+@@ -24,2 +24,2 @@
+-    let (limits, is_table64) = self.read_table_limits()
+-    { type_: { elem_type, limits, is_table64, }, init: None, }
++    let (limits, is_table64, is_shared) = self.read_table_limits()
++    { type_: { elem_type, limits, is_table64, is_shared, }, init: None, }
+@@ -33,2 +33,2 @@
+-  let (limits, is_table64) = self.read_table_limits()
+-  { elem_type, limits, is_table64, }
++  let (limits, is_table64, is_shared) = self.read_table_limits()
++  { elem_type, limits, is_table64, is_shared, }
+@@ -42,6 +42 @@
+-) -> (@types.Limits, Bool) raise ParserError {
+-  // Table limits flags:
+-  // Bit 0: has max (0x01)
+-  // Bit 2: table64 (0x04)
+-  // Valid combinations: 0x00, 0x01, 0x04, 0x05
+-  // Tables don't support shared bit (0x02)
++) -> (@types.Limits, Bool, Bool) raise ParserError {
+@@ -49,7 +44 @@
 -  let valid_table_flags : FixedArray[Int] = [
-+  let valid_table_flags : FixedArray[Int32] = [
-@@ -96 +96 @@
+-    LIMITS_NO_MAX,
+-    LIMITS_HAS_MAX,
+-    LIMITS_64_NO_MAX,
+-    LIMITS_64_HAS_MAX,
+-  ]
+-  if !valid_table_flags.contains(flags) {
++  if flags > 7 {
+@@ -75 +64 @@
+-  ({ min, max, }, is_table64)
++  ({ min, max, }, is_table64, (flags & 2) != 0)
+@@ -96 +85 @@
 -  let valid_memory_flags : FixedArray[Int] = [
 +  let valid_memory_flags : FixedArray[Int32] = [
-@@ -155,2 +155,3 @@
+@@ -155,2 +144,2 @@
 -  // Mutability must be 0 (const) or 1 (var)
 -  if mutability != 0x00 && mutability != 0x01 {
-+  // The legacy AST stores mutability only. The complete core contract checks
-+  // shared value types, and text metadata retains the original flags.
++  // Preserve both mutability and sharedness for instruction validation.
 +  if mutability > 0x03 {
-@@ -159 +160 @@
+@@ -159 +148,5 @@
 -  { value_type, mutable: mutability == 0x01, }
-+  { value_type, mutable: (mutability & 1) != 0, }
++  {
++    value_type,
++    mutable: (mutability & 1) != 0,
++    is_shared: (mutability & 2) != 0,
++  }
 --- a/value_types.mbt
 +++ b/value_types.mbt
 @@ -8 +8 @@
 -  heap_type : Int,
 +  heap_type : Int32,
-@@ -12 +12 @@
+@@ -11,5 +11,2 @@
+-  fn resolve_typed_ref(
 -    type_idx : Int,
-+    type_idx : Int32,
-@@ -59 +59 @@
+-    nullable : Bool,
+-  ) -> @types.ValueType raise ParserError {
+-    if type_idx < 0 || type_idx >= self.types.length() {
++  if heap_type >= 0 {
++    guard self.types.get(heap_type) is Some(type_) else {
+@@ -18,29 +15,2 @@
+-    match self.types[type_idx].composite {
+-      Cont(_) =>
+-        if nullable {
+-          RefNullContTyped(type_idx)
+-        } else {
+-          RefContTyped(type_idx)
+-        }
+-      Func(_) =>
+-        if nullable {
+-          RefNullFuncTyped(type_idx)
+-        } else {
+-          RefFuncTyped(type_idx)
+-        }
+-      Struct(_) =>
+-        if nullable {
+-          RefNullStruct(type_idx)
+-        } else {
+-          RefStruct(type_idx)
+-        }
+-      Array(_) =>
+-        if nullable {
+-          RefNullArray(type_idx)
+-        } else {
+-          RefArray(type_idx)
+-        }
+-    }
+-  }
+-
+-  if heap_type < 0 {
++    @types.typed_reference(type_.composite, nullable, heap_type)
++  } else {
+@@ -51,2 +20,0 @@
+-  } else {
+-    resolve_typed_ref(heap_type, nullable)
+@@ -58,5 +26,18 @@
+-  fn resolve_typed_ref(
 -    type_idx : Int,
-+    type_idx : Int32,
-@@ -66 +66 @@
--    heap_type : Int,
-+    heap_type : Int32,
-@@ -71,0 +72 @@
+-    nullable : Bool,
+-  ) -> @types.ValueType raise ParserError {
+-    self.resolve_heap_type_as_ref_value_type(type_idx, nullable)
 +  let start = self.pos
-@@ -73 +74 @@
--  match byte {
++  let byte = self.read_byte()
 +  let result : @types.ValueType = match byte {
-@@ -128,0 +130,4 @@
++    0x7f => I32
++    0x7e => I64
++    0x7d => F32
++    0x7c => F64
++    0x7b => V128
++    0x63 | 0x64 => self.read_heap_reference(byte == 0x63)
++    0x65 => {
++      self.pos -= 1
++      self.read_heap_reference(true)
++    }
++    _ =>
++      match @types.ValueType::from_abstract_heap_type(byte - 128, true) {
++        Some(value) => value
++        None => raise InvalidValueType(byte)
++      }
+@@ -63,0 +45,5 @@
 +  if self.capture_text {
 +    self.text_values.push((start, self.value_text(start)))
 +  }
 +  result
-@@ -133 +138 @@
++}
+@@ -65,5 +51,12 @@
+-  fn resolve_abstract_heap(
+-    heap_type : Int,
+-    nullable : Bool,
+-  ) -> @types.ValueType raise ParserError {
+-    self.resolve_heap_type_as_ref_value_type(heap_type, nullable)
++///|
++fn Parser::read_heap_reference(
++  self : Parser,
++  nullable : Bool,
++) -> @types.ValueType raise ParserError {
++  if self.peek_byte() == 0x65 {
++    self.skip(1)
++    let heap = self.read_byte() - 128
++    guard @types.ValueType::from_abstract_heap_type(heap, nullable) is Some(_) else {
++      raise ParseError("invalid shared heap type")
++    }
++    return HeapRef(nullable, true, heap)
+@@ -71,57 +64,4 @@
+-
+-  let byte = self.read_byte()
+-  match byte {
+-    0x7F => I32
+-    0x7E => I64
+-    0x7D => F32
+-    0x7C => F64
+-    0x7B => V128
+-
+-    // Reference shorthands
+-    0x70 => FuncRef
+-    0x6F => ExternRef
+-    0x6E => AnyRef
+-    0x6D => RefNullEq
+-    0x6C => RefNullI31
+-    0x6B => StructRef
+-    0x6A => ArrayRef
+-    0x69 => ExnRef
+-    0x68 => ContRef
+-    0x75 => NullContRef
+-    0x71 => NullRef
+-    0x72 => NullExternRef
+-    0x73 => NullFuncRef
+-    0x74 => NullExnRef
+-
+-    // ref heaptype
+-    0x64 => {
+-      let heap_type = self.read_heap_type()
+-      if heap_type < 0 {
+-        resolve_abstract_heap(heap_type, false)
+-      } else {
+-        resolve_typed_ref(heap_type, false)
+-      }
+-    }
+-
+-    // ref shared heaptype (shared reference types proposal)
+-    0x65 => {
+-      self.read_heap_type() |> ignore
+-      raise ParseError("shared reference types not supported")
+-    }
+-
+-    // ref null shared heaptype (shared reference types proposal)
+-    0x62 => {
+-      self.read_heap_type() |> ignore
+-      raise ParseError("shared reference types not supported")
+-    }
+-
+-    // ref null heaptype
+-    0x63 => {
+-      let heap_type = self.read_heap_type()
+-      if heap_type < 0 {
+-        resolve_abstract_heap(heap_type, true)
+-      } else {
+-        resolve_typed_ref(heap_type, true)
+-      }
+-    }
+-    _ => raise InvalidValueType(byte)
++  let first = self.peek_byte()
++  let heap = self.read_i32()
++  if heap < 0 && first >= 128 {
++    raise ParseError("invalid abstract heap type encoding")
+@@ -128,0 +69 @@
++  self.resolve_heap_type_as_ref_value_type(heap, nullable)
+@@ -133 +74 @@
 -fn Parser::read_heap_type(self : Parser) -> Int raise ParserError {
 +fn Parser::read_heap_type(self : Parser) -> Int32 raise ParserError {
-@@ -174,0 +180,72 @@
+@@ -138,0 +80,3 @@
++  if self.peek_byte() == 0x65 {
++    self.skip(1)
++  }
+@@ -174,0 +119,79 @@
 +
 +///|
 +// Retain text spelling independently of the third-party ValueType enum, which
 +// has no distinct variants for a few non-null abstract bottom/reference types.
 +fn Parser::value_text(self : Parser, start : Int32) -> String raise ParserError {
 +  let byte = self.data[start].to_int()
-+  if byte == 0x63 || byte == 0x64 {
++  if byte == 0x63 || byte == 0x64 || byte == 0x65 {
 +    let reader = Parser(self.data)
-+    reader.pos = start + 1
++    reader.pos = start + (if byte == 0x65 { 0 } else { 1 })
++    let shared = reader.peek_byte() == 0x65
++    if shared {
++      reader.skip(1)
++    }
 +    let heap = reader.read_heap_type()
 +    let name = match heap {
 +      -16 => "func"
@@ -503,6 +981,9 @@
 +      -11 => "nocont"
 +      index if index >= 0 => index.to_string()
 +      _ => raise ParseError("unknown abstract heap type")
++    }
++    if shared {
++      return "(ref \{if byte == 0x64 { "" } else { "null " }}(shared \{name}))"
 +    }
 +    if byte == 0x64 {
 +      return "(ref \{name})"

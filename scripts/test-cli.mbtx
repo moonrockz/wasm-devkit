@@ -1285,7 +1285,7 @@ async fn main {
         ("instantiate-01", 1),
         ("wrong-init", 1),
         ("malformed-flags", 1),
-        ("exception", 1),
+        ("exception", 0),
       ] {
       let (_, diagnostic) = run(
         [
@@ -1311,6 +1311,30 @@ async fn main {
     assert_true(
       printed.contains("i64 18446744073709551615 18446744073709551615"),
     )
+  }
+  for extension in ["wasm", "wat"] {
+    for
+      (name, status) in [
+        ("model-encoding-memory32-index", 0),
+        ("model-encoding-abstract-shorthand", 0),
+        ("model-recursive-contracts", 0),
+        ("model-shared-contracts", 0),
+        ("model-exception-contracts", 0),
+        ("model-legacy-exception-contracts", 0),
+        ("gc-struct-field-out-of-range", 1),
+        ("exception-try-table-catch-ref-number", 1),
+      ] {
+      let _ = run(
+        [
+          "verify",
+          "tests/semantic/wac-binary-extensions/package.wac",
+          "--dep",
+          "test:extensions=" + name + "." + extension,
+        ],
+        status,
+        wit,
+      )
+    }
   }
   for extension in ["wasm", "wat"] {
     for

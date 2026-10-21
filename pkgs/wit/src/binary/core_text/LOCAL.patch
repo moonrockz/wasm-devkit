@@ -1,0 +1,1571 @@
+--- a/lexer.mbt
++++ b/lexer.mbt
+@@ -16,4 +16,4 @@
+-  start_line : Int
+-  start_column : Int
+-  end_line : Int
+-  end_column : Int
++  start_line : Int32
++  start_column : Int32
++  end_line : Int32
++  end_column : Int32
+@@ -59 +59 @@
+-fn extract_substring(s : String, start : Int, end : Int) -> String {
++fn extract_substring(s : String, start : Int32, end : Int32) -> String {
+@@ -71,6 +71,6 @@
+-  mut pos : Int
+-  mut line : Int
+-  mut column : Int
+-  mut token_start_line : Int
+-  mut token_start_column : Int
+-  mut token_start_pos : Int
++  mut pos : Int32
++  mut line : Int32
++  mut column : Int32
++  mut token_start_line : Int32
++  mut token_start_column : Int32
++  mut token_start_pos : Int32
+@@ -477 +477 @@
+-  let bytes : Array[Int] = []
++  let bytes : Array[Int32] = []
+@@ -574 +574 @@
+-fn encode_utf8_codepoint(bytes : Array[Int], cp : Int) -> Unit {
++fn encode_utf8_codepoint(bytes : Array[Int32], cp : Int32) -> Unit {
+@@ -594 +594 @@
+-fn decode_utf8_bytes(bytes : Array[Int]) -> String {
++fn decode_utf8_bytes(bytes : Array[Int32]) -> String {
+@@ -654 +654 @@
+-fn parse_hex_codepoint(s : String) -> Int? {
++fn parse_hex_codepoint(s : String) -> Int32? {
+@@ -671 +671 @@
+-fn parse_hex_byte(s : String) -> Int? {
++fn parse_hex_byte(s : String) -> Int32? {
+@@ -686 +686 @@
+-fn hex_digit_value(c : Char) -> Int? {
++fn hex_digit_value(c : Char) -> Int32? {
+--- a/moon.pkg
++++ b/moon.pkg
+@@ -2,2 +2,2 @@
+-  "Milky2018/wasm_core/types",
+-  "Milky2018/wasm_core/parser",
++  "moonrockz/wit/binary/core_model" @types,
++  "moonrockz/wit/binary/core_parser" @parser,
+@@ -4,0 +5,6 @@
++  "moonbitlang/core/string",
++  "moonrockz/wit/binary/core_printer",
++}
++
++import {
++  "moonrockz/wit/binary/core_text",
+@@ -6,4 +12 @@
+-  "moonbitlang/core/encoding/utf8",
+-  "moonbitlang/core/string",
+-  "moonbitlang/core/strconv",
+-}
++} for "test"
+--- a/numeric_memarg_wbtest.mbt
++++ b/numeric_memarg_wbtest.mbt
+@@ -21,2 +21,2 @@
+-      #|  I32Load(1, 0, 0),
+-      #|  I32Store(1, 0, 0),
++      #|  I32Load(1, 2, 0),
++      #|  I32Store(1, 2, 0),
+--- a/parse.mbt
++++ b/parse.mbt
+@@ -37,2 +37,2 @@
+-  line : Int
+-  column : Int
++  line : Int32
++  column : Int32
+--- a/parse_test.mbt
++++ b/parse_test.mbt
+@@ -6 +6 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -17 +17 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -33 +33 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -49 +49 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -63 +63 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -73 +73 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -84 +84 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -94 +94 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -105 +105 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -119 +119 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -136 +136 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -147 +147 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -161 +161 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -177 +177 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -187 +187 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -203 +203 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -216 +216 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -230 +230 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -244 +244 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -252 +252 @@
+-  try parse(wat) catch {
++  try @core_text.parse(wat) catch {
+@@ -271 +271 @@
+-  let err = WatError::InvalidInstruction("invalid.instruction", {
++  let err = @core_text.WatError::InvalidInstruction("invalid.instruction", {
+@@ -275 +275 @@
+-  let formatted = format_wat_error(err, source)
++  let formatted = @core_text.format_wat_error(err, source)
+@@ -297 +297 @@
+-  let err = WatError::UndefinedIdentifier("func $undefined_func", {
++  let err = @core_text.WatError::UndefinedIdentifier("func $undefined_func", {
+@@ -301 +301 @@
+-  let formatted = format_wat_error(err, source)
++  let formatted = @core_text.format_wat_error(err, source)
+@@ -309,5 +309,5 @@
+-  let err = WatError::UnexpectedToken("expected ')', got 'unexpected'", {
+-    line: 1,
+-    column: 9,
+-  })
+-  let formatted = format_wat_error(err, source)
++  let err = @core_text.WatError::UnexpectedToken(
++    "expected ')', got 'unexpected'",
++    { line: 1, column: 9, },
++  )
++  let formatted = @core_text.format_wat_error(err, source)
+@@ -324 +324 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -337 +337 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -355 +355 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -378 +378 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -408 +408 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -443 +443 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -468 +468 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -505 +505 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -522 +522 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -539 +539 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -556 +556 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -579 +579 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -598 +598 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -616 +616 @@
+-  let mod_ = try! parse(wat)
++  let mod_ = try! @core_text.parse(wat)
+@@ -630 +630 @@
+-  let mod_ = try! parse(wat)
++  let mod_ = try! @core_text.parse(wat)
+@@ -650 +650 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -665 +665 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -677 +677 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -691 +691 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -703 +703 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -717 +717 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -731 +731 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -743 +743 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -757 +757 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -783 +783 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -798 +798 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -814 +814 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -836 +836 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -852 +852 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -865 +865 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -882 +882 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -901 +901 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -914 +914 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -927 +927 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -937 +937 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -949 +949 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -969 +969 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -987 +987 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -1000 +1000 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -1013 +1013 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -1023 +1023 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -1035 +1035 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -1056 +1056 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -1073 +1073 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -1085 +1085 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -1098 +1098 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -1111 +1111 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -1126 +1126 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+@@ -1144 +1144 @@
+-  let mod_ = parse(wat)
++  let mod_ = @core_text.parse(wat)
+--- a/parser_defs.mbt
++++ b/parser_defs.mbt
+@@ -367 +367 @@
+-fn Parser::parse_optional_page_size_log2(self : Parser) -> Int raise WatError {
++fn Parser::parse_optional_page_size_log2(self : Parser) -> Int32 raise WatError {
+@@ -461,25 +461 @@
+-        let (value_type, mutable) = if self.current.token == LParen {
+-          let saved3 = self.lexer.pos
+-          let saved3_line = self.lexer.line
+-          let saved3_column = self.lexer.column
+-          let saved3_token_start_line = self.lexer.token_start_line
+-          let saved3_token_start_column = self.lexer.token_start_column
+-          self.advance()
+-          if self.current.token == Keyword("mut") {
+-            self.advance()
+-            let vt = self.parse_value_type()
+-            self.expect_rparen()
+-            (vt, true)
+-          } else {
+-            // Not (mut ...), restore and parse as ref type
+-            self.lexer.pos = saved3
+-            self.lexer.line = saved3_line
+-            self.lexer.column = saved3_column
+-            self.lexer.token_start_line = saved3_token_start_line
+-            self.lexer.token_start_column = saved3_token_start_column
+-            self.current = LocatedToken::synthetic(LParen)
+-            (self.parse_value_type(), false)
+-          }
+-        } else {
+-          (self.parse_value_type(), false)
+-        }
++        let global_type = self.parse_global_type()
+@@ -492 +468 @@
+-          desc: Global({ value_type, mutable, }),
++          desc: Global(global_type),
+@@ -571,24 +547 @@
+-        let (value_type, mutable) = if self.current.token == LParen {
+-          let saved3 = self.lexer.pos
+-          let saved3_line = self.lexer.line
+-          let saved3_column = self.lexer.column
+-          let saved3_token_start_line = self.lexer.token_start_line
+-          let saved3_token_start_column = self.lexer.token_start_column
+-          self.advance()
+-          if self.current.token == Keyword("mut") {
+-            self.advance()
+-            let vt = self.parse_value_type()
+-            self.expect_rparen()
+-            (vt, true)
+-          } else {
+-            self.lexer.pos = saved3
+-            self.lexer.line = saved3_line
+-            self.lexer.column = saved3_column
+-            self.lexer.token_start_line = saved3_token_start_line
+-            self.lexer.token_start_column = saved3_token_start_column
+-            self.current = LocatedToken::synthetic(LParen)
+-            (self.parse_value_type(), false)
+-          }
+-        } else {
+-          (self.parse_value_type(), false)
+-        }
++        let global_type = self.parse_global_type()
+@@ -599 +552 @@
+-          desc: Global({ value_type, mutable, }),
++          desc: Global(global_type),
+@@ -612,25 +565 @@
+-  let (value_type, mutable) = if self.current.token == LParen {
+-    let saved = self.lexer.pos
+-    let saved_line = self.lexer.line
+-    let saved_column = self.lexer.column
+-    let saved_token_start_line = self.lexer.token_start_line
+-    let saved_token_start_column = self.lexer.token_start_column
+-    self.advance()
+-    if self.current.token == Keyword("mut") {
+-      self.advance()
+-      let vt = self.parse_value_type()
+-      self.expect_rparen()
+-      (vt, true)
+-    } else {
+-      // Not (mut ...), restore and parse as ref type
+-      self.lexer.pos = saved
+-      self.lexer.line = saved_line
+-      self.lexer.column = saved_column
+-      self.lexer.token_start_line = saved_token_start_line
+-      self.lexer.token_start_column = saved_token_start_column
+-      self.current = LocatedToken::synthetic(LParen)
+-      (self.parse_value_type(), false)
+-    }
+-  } else {
+-    (self.parse_value_type(), false)
+-  }
++  let global_type = self.parse_global_type()
+@@ -641 +570 @@
+-  GlobalDef({ type_: { value_type, mutable, }, init, }, export_names)
++  GlobalDef({ type_: global_type, init, }, export_names)
+@@ -734,0 +664,4 @@
++        let is_shared = self.current.token == Keyword("shared")
++        if is_shared {
++          self.advance()
++        }
+@@ -737 +670 @@
+-        if is_table64 {
++        if is_table64 || self.current.token == Keyword("i32") {
+@@ -766 +699,6 @@
+-          desc: Table({ elem_type, limits: { min, max, }, is_table64, }),
++          desc: Table({
++            is_shared,
++            elem_type,
++            limits: { min, max, },
++            is_table64,
++          }),
+@@ -782,0 +721,4 @@
++  let is_shared = self.current.token == Keyword("shared")
++  if is_shared {
++    self.advance()
++  }
+@@ -873,0 +816 @@
++                is_shared,
+@@ -904,0 +848 @@
++              is_shared,
+@@ -922 +866 @@
+-      if is_table64 {
++      if is_table64 || self.current.token == Keyword("i32") {
+@@ -1006,0 +951 @@
++                      is_shared,
+@@ -1029,0 +975 @@
++                    is_shared,
+@@ -1063 +1008,0 @@
+-      // Check for optional default init expression (ref.func $f) or (ref.null func) or (global.get $g)
+@@ -1065,39 +1010,2 @@
+-        LParen {
+-        // Parse the init expression - validate global.get references
+-        // Table init expressions can only reference imported globals, not module-defined globals
+-        self.advance()
+-        match self.current.token {
+-          Keyword("ref.func") => {
+-            self.advance()
+-            let idx = self.parse_func_idx()
+-            self.expect_rparen()
+-            Some([RefFunc(idx)])
+-          }
+-          Keyword("ref.null") => {
+-            self.advance()
+-            let ref_type = self.parse_ref_type()
+-            self.expect_rparen()
+-            Some([RefNull(ref_type)])
+-          }
+-          Keyword("global.get") => {
+-            self.advance()
+-            // Parse and validate the global index
+-            let global_idx = self.parse_global_idx()
+-            // Check if this global is imported (only imported globals can be used in table init)
+-            let num_imported_globals = count_global_imports(mod_.imports)
+-            if global_idx >= num_imported_globals {
+-              raise UndefinedIdentifier(
+-                "unknown global (table init can only reference imported globals)",
+-                self.loc(),
+-              )
+-            }
+-            self.expect_rparen()
+-            Some([GlobalGet(global_idx)])
+-          }
+-          _ => {
+-            // General expression - parse it as a folded instruction
+-            // We already consumed the opening (, so parse_folded_instructions handles the rest
+-            let expr = self.parse_folded_instructions()
+-            Some(expr)
+-          }
+-        }
++        RParen {
++        None
+@@ -1105 +1013 @@
+-        None
++        Some(self.parse_instructions())
+@@ -1110 +1018 @@
+-          type_: { elem_type, limits: { min, max, }, is_table64, },
++          type_: { is_shared, elem_type, limits: { min, max, }, is_table64, },
+@@ -1307,0 +1216,4 @@
++      let is_shared = self.current.token == Keyword("shared")
++      if is_shared {
++        self.advance()
++      }
+@@ -1309 +1221 @@
+-      if is_table64 {
++      if is_table64 || self.current.token == Keyword("i32") {
+@@ -1330 +1242 @@
+-      Table({ elem_type, limits: { min, max, }, is_table64, })
++      Table({ is_shared, elem_type, limits: { min, max, }, is_table64, })
+@@ -1339,26 +1251,2 @@
+-      let (value_type, mutable) = if self.current.token == LParen {
+-        let saved_pos = self.lexer.pos
+-        let saved_line = self.lexer.line
+-        let saved_column = self.lexer.column
+-        let saved_token_start_line = self.lexer.token_start_line
+-        let saved_token_start_column = self.lexer.token_start_column
+-        self.advance()
+-        if self.current.token == Keyword("mut") {
+-          self.advance()
+-          let vt = self.parse_value_type()
+-          self.expect_rparen()
+-          (vt, true)
+-        } else {
+-          // Not (mut ...), restore and parse as ref type
+-          self.lexer.pos = saved_pos
+-          self.lexer.line = saved_line
+-          self.lexer.column = saved_column
+-          self.lexer.token_start_line = saved_token_start_line
+-          self.lexer.token_start_column = saved_token_start_column
+-          self.current = LocatedToken::synthetic(LParen)
+-          (self.parse_value_type(), false)
+-        }
+-      } else {
+-        (self.parse_value_type(), false)
+-      }
+-      Global({ value_type, mutable, })
++      let global_type = self.parse_global_type()
++      Global(global_type)
+@@ -1430 +1318 @@
+-  data_idx? : Int = -1,
++  data_idx~ : Int32 = -1,
+@@ -1534 +1422 @@
+-  elem_idx? : Int = -1,
++  elem_idx~ : Int32 = -1,
+@@ -1859 +1747 @@
+-) -> Int raise WatError {
++) -> Int32 raise WatError {
+@@ -1902 +1790 @@
+-fn Parser::parse_tag_idx(self : Parser) -> Int raise WatError {
++fn Parser::parse_tag_idx(self : Parser) -> Int32 raise WatError {
+--- a/parser_instr.mbt
++++ b/parser_instr.mbt
+@@ -17 +17,5 @@
+-        if kw == "end" || kw == "else" {
++        if kw == "end" ||
++          kw == "else" ||
++          kw == "catch" ||
++          kw == "catch_all" ||
++          kw == "delegate" {
+@@ -37,0 +42,4 @@
++      if kw == "try" {
++        self.advance()
++        return [self.parse_legacy_try(true)]
++      }
+@@ -332 +340 @@
+-      let labels : Array[Int] = []
++      let labels : Array[Int32] = []
+@@ -348,0 +357,2 @@
++    "rethrow" => Rethrow(self.parse_label_idx())
++    "try" => self.parse_legacy_try(false)
+@@ -364,0 +375,7 @@
++      let label = match self.current.token {
++        Id(name) => {
++          self.advance()
++          Some(name)
++        }
++        _ => None
++      }
+@@ -405,0 +423 @@
++      self.push_label(label)
+@@ -406,0 +425 @@
++      self.pop_label()
+@@ -424 +443 @@
+-      let mut type_idx : Int? = None
++      let mut type_idx : Int32? = None
+@@ -510 +529 @@
+-      let mut type_idx : Int? = None
++      let mut type_idx : Int32? = None
+@@ -817,0 +837 @@
++    "ref.i31_shared" => RefI31Shared
+@@ -874 +894 @@
+-fn atomic_subopcode(keyword : String) -> Int? {
++fn atomic_subopcode(keyword : String) -> Int32? {
+@@ -949 +969 @@
+-fn parse_mem_arg_tuple(parser : Parser) -> (Int, Int, Int64) raise WatError {
++fn parse_mem_arg_tuple(parser : Parser) -> (Int32, Int32, Int64) raise WatError {
+@@ -1018,2 +1038,2 @@
+-  instr : (Int, Int, Int64) -> @types.Instruction,
+-  default_align? : Int = 0,
++  instr : (Int32, Int32, Int64) -> @types.Instruction,
++  default_align~ : Int32 = 0,
+@@ -1075 +1095 @@
+-fn log2(n : Int) -> Int {
++fn log2(n : Int32) -> Int32 {
+@@ -1089 +1109 @@
+-  let mut type_idx : Int? = None
++  let mut type_idx : Int32? = None
+@@ -1162 +1182 @@
+-) -> Int {
++) -> Int32 {
+--- a/parser_instr_scalar.mbt
++++ b/parser_instr_scalar.mbt
+@@ -11 +11,2 @@
+-    "i32.load" => parse_mem_arg(self, fn(m, a, o) { I32Load(m, a, o) })
++    "i32.load" =>
++      parse_mem_arg(self, fn(m, a, o) { I32Load(m, a, o) }, default_align=2)
+@@ -14,3 +15,6 @@
+-    "i32.load16_s" => parse_mem_arg(self, fn(m, a, o) { I32Load16S(m, a, o) })
+-    "i32.load16_u" => parse_mem_arg(self, fn(m, a, o) { I32Load16U(m, a, o) })
+-    "i32.store" => parse_mem_arg(self, fn(m, a, o) { I32Store(m, a, o) })
++    "i32.load16_s" =>
++      parse_mem_arg(self, fn(m, a, o) { I32Load16S(m, a, o) }, default_align=1)
++    "i32.load16_u" =>
++      parse_mem_arg(self, fn(m, a, o) { I32Load16U(m, a, o) }, default_align=1)
++    "i32.store" =>
++      parse_mem_arg(self, fn(m, a, o) { I32Store(m, a, o) }, default_align=2)
+@@ -18 +22,2 @@
+-    "i32.store16" => parse_mem_arg(self, fn(m, a, o) { I32Store16(m, a, o) })
++    "i32.store16" =>
++      parse_mem_arg(self, fn(m, a, o) { I32Store16(m, a, o) }, default_align=1)
+@@ -80 +85,2 @@
+-    "i64.load" => parse_mem_arg(self, fn(m, a, o) { I64Load(m, a, o) })
++    "i64.load" =>
++      parse_mem_arg(self, fn(m, a, o) { I64Load(m, a, o) }, default_align=3)
+@@ -83,5 +89,10 @@
+-    "i64.load16_s" => parse_mem_arg(self, fn(m, a, o) { I64Load16S(m, a, o) })
+-    "i64.load16_u" => parse_mem_arg(self, fn(m, a, o) { I64Load16U(m, a, o) })
+-    "i64.load32_s" => parse_mem_arg(self, fn(m, a, o) { I64Load32S(m, a, o) })
+-    "i64.load32_u" => parse_mem_arg(self, fn(m, a, o) { I64Load32U(m, a, o) })
+-    "i64.store" => parse_mem_arg(self, fn(m, a, o) { I64Store(m, a, o) })
++    "i64.load16_s" =>
++      parse_mem_arg(self, fn(m, a, o) { I64Load16S(m, a, o) }, default_align=1)
++    "i64.load16_u" =>
++      parse_mem_arg(self, fn(m, a, o) { I64Load16U(m, a, o) }, default_align=1)
++    "i64.load32_s" =>
++      parse_mem_arg(self, fn(m, a, o) { I64Load32S(m, a, o) }, default_align=2)
++    "i64.load32_u" =>
++      parse_mem_arg(self, fn(m, a, o) { I64Load32U(m, a, o) }, default_align=2)
++    "i64.store" =>
++      parse_mem_arg(self, fn(m, a, o) { I64Store(m, a, o) }, default_align=3)
+@@ -89,2 +100,4 @@
+-    "i64.store16" => parse_mem_arg(self, fn(m, a, o) { I64Store16(m, a, o) })
+-    "i64.store32" => parse_mem_arg(self, fn(m, a, o) { I64Store32(m, a, o) })
++    "i64.store16" =>
++      parse_mem_arg(self, fn(m, a, o) { I64Store16(m, a, o) }, default_align=1)
++    "i64.store32" =>
++      parse_mem_arg(self, fn(m, a, o) { I64Store32(m, a, o) }, default_align=2)
+@@ -152,2 +165,4 @@
+-    "f32.load" => parse_mem_arg(self, fn(m, a, o) { F32Load(m, a, o) })
+-    "f32.store" => parse_mem_arg(self, fn(m, a, o) { F32Store(m, a, o) })
++    "f32.load" =>
++      parse_mem_arg(self, fn(m, a, o) { F32Load(m, a, o) }, default_align=2)
++    "f32.store" =>
++      parse_mem_arg(self, fn(m, a, o) { F32Store(m, a, o) }, default_align=2)
+@@ -193,2 +208,4 @@
+-    "f64.load" => parse_mem_arg(self, fn(m, a, o) { F64Load(m, a, o) })
+-    "f64.store" => parse_mem_arg(self, fn(m, a, o) { F64Store(m, a, o) })
++    "f64.load" =>
++      parse_mem_arg(self, fn(m, a, o) { F64Load(m, a, o) }, default_align=3)
++    "f64.store" =>
++      parse_mem_arg(self, fn(m, a, o) { F64Store(m, a, o) }, default_align=3)
+--- a/parser_instr_simd.mbt
++++ b/parser_instr_simd.mbt
+@@ -16,2 +16,4 @@
+-    "v128.load" => parse_mem_arg(self, fn(m, a, o) { V128Load(m, a, o) })
+-    "v128.store" => parse_mem_arg(self, fn(m, a, o) { V128Store(m, a, o) })
++    "v128.load" =>
++      parse_mem_arg(self, fn(m, a, o) { V128Load(m, a, o) }, default_align=4)
++    "v128.store" =>
++      parse_mem_arg(self, fn(m, a, o) { V128Store(m, a, o) }, default_align=4)
+@@ -19 +21,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load8x8S(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load8x8S(m, a, o) },
++        default_align=3,
++      )
+@@ -21 +27,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load8x8U(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load8x8U(m, a, o) },
++        default_align=3,
++      )
+@@ -23 +33,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load16x4S(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load16x4S(m, a, o) },
++        default_align=3,
++      )
+@@ -25 +39,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load16x4U(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load16x4U(m, a, o) },
++        default_align=3,
++      )
+@@ -27 +45,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load32x2S(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load32x2S(m, a, o) },
++        default_align=3,
++      )
+@@ -29 +51,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load32x2U(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load32x2U(m, a, o) },
++        default_align=3,
++      )
+@@ -33 +59,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load16Splat(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load16Splat(m, a, o) },
++        default_align=1,
++      )
+@@ -35 +65,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load32Splat(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load32Splat(m, a, o) },
++        default_align=2,
++      )
+@@ -37 +71,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load64Splat(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load64Splat(m, a, o) },
++        default_align=3,
++      )
+@@ -39 +77,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load32Zero(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load32Zero(m, a, o) },
++        default_align=2,
++      )
+@@ -41 +83,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load64Zero(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load64Zero(m, a, o) },
++        default_align=3,
++      )
+@@ -105 +151 @@
+-      let lanes : FixedArray[Int] = FixedArray::make(16, 0)
++      let lanes : FixedArray[Int32] = FixedArray::make(16, 0)
+--- a/parser_module.mbt
++++ b/parser_module.mbt
+@@ -5 +5 @@
+-  FuncDef(Int, @types.FunctionCode, Array[String])
++  FuncDef(Int32, @types.FunctionCode, Array[String])
+@@ -45,9 +45,9 @@
+-  func_names : Map[String, Int]
+-  type_names : Map[String, Int]
+-  local_names : Map[String, Int]
+-  global_names : Map[String, Int]
+-  memory_names : Map[String, Int]
+-  table_names : Map[String, Int]
+-  tag_names : Map[String, Int]
+-  data_names : Map[String, Int]
+-  elem_names : Map[String, Int]
++  func_names : Map[String, Int32]
++  type_names : Map[String, Int32]
++  local_names : Map[String, Int32]
++  global_names : Map[String, Int32]
++  memory_names : Map[String, Int32]
++  table_names : Map[String, Int32]
++  tag_names : Map[String, Int32]
++  data_names : Map[String, Int32]
++  elem_names : Map[String, Int32]
+@@ -60 +60 @@
+-  mut type_rec_groups : Array[Int]
++  mut type_rec_groups : Array[Int32]
+@@ -62 +62 @@
+-  field_names : Map[Int, Map[String, Int]]
++  field_names : Map[Int32, Map[String, Int32]]
+@@ -97 +97,4 @@
+-fn is_singleton_rec_group(type_rec_groups : Array[Int], type_idx : Int) -> Bool {
++fn is_singleton_rec_group(
++  type_rec_groups : Array[Int32],
++  type_idx : Int32,
++) -> Bool {
+@@ -126 +129 @@
+-fn Parser::resolve_label(self : Parser, name : String) -> Int? {
++fn Parser::resolve_label(self : Parser, name : String) -> Int32? {
+@@ -139 +142 @@
+-fn Parser::resolve_memory(self : Parser, name : String) -> Int raise WatError {
++fn Parser::resolve_memory(self : Parser, name : String) -> Int32 raise WatError {
+@@ -148 +151,4 @@
+-fn Parser::parse_field_idx(self : Parser, type_idx : Int) -> Int raise WatError {
++fn Parser::parse_field_idx(
++  self : Parser,
++  type_idx : Int32,
++) -> Int32 raise WatError {
+@@ -180 +186 @@
+-fn Parser::parse_optional_memidx(self : Parser) -> Int raise WatError {
++fn Parser::parse_optional_memidx(self : Parser) -> Int32 raise WatError {
+@@ -265 +271 @@
+-fn Parser::parse_u32(self : Parser) -> Int raise WatError {
++fn Parser::parse_u32(self : Parser) -> Int32 raise WatError {
+@@ -290 +296 @@
+-fn Parser::parse_i32(self : Parser) -> Int raise WatError {
++fn Parser::parse_i32(self : Parser) -> Int32 raise WatError {
+@@ -425 +430,0 @@
+-      // Handle (ref ...) types
+@@ -428,3 +433,2 @@
+-      // Check for nullable: (ref null ...) vs non-null: (ref ...)
+-      let is_nullable = self.current.token == Keyword("null")
+-      if is_nullable {
++      let nullable = self.current.token == Keyword("null")
++      if nullable {
+@@ -433,140 +437,3 @@
+-      // Parse heap type: func, extern, any, exn, none, nofunc, noexn, noextern, or $typeidx
+-      match self.current.token {
+-        Keyword("func") => {
+-          self.advance()
+-          self.expect_rparen()
+-          if is_nullable {
+-            FuncRef
+-          } else {
+-            RefFunc
+-          }
+-        }
+-        Keyword("extern") => {
+-          self.advance()
+-          self.expect_rparen()
+-          if is_nullable {
+-            ExternRef
+-          } else {
+-            RefExtern
+-          }
+-        }
+-        Keyword("any") => {
+-          self.advance()
+-          self.expect_rparen()
+-          if is_nullable {
+-            AnyRef
+-          } else {
+-            RefAny
+-          }
+-        }
+-        Keyword("exn") => {
+-          self.advance()
+-          self.expect_rparen()
+-          ExnRef // exn only has nullable form in current spec
+-        }
+-        Keyword("none") => {
+-          self.advance()
+-          self.expect_rparen()
+-          if is_nullable {
+-            NullRef
+-          } else {
+-            RefNone
+-          } // bottom type for any
+-        }
+-        Keyword("nofunc") => {
+-          self.advance()
+-          self.expect_rparen()
+-          NullFuncRef // bottom type for func
+-        }
+-        Keyword("cont") => {
+-          self.advance()
+-          self.expect_rparen()
+-          if is_nullable {
+-            ContRef
+-          } else {
+-            RefCont
+-          }
+-        }
+-        Keyword("nocont") => {
+-          self.advance()
+-          self.expect_rparen()
+-          if is_nullable {
+-            NullContRef
+-          } else {
+-            RefNoCont
+-          }
+-        }
+-        Keyword("noexn") => {
+-          self.advance()
+-          self.expect_rparen()
+-          NullExnRef // bottom type for exn
+-        }
+-        Keyword("noextern") => {
+-          self.advance()
+-          self.expect_rparen()
+-          NullExternRef // bottom type for extern
+-        }
+-        // GC abstract heap types
+-        Keyword("struct") => {
+-          self.advance()
+-          self.expect_rparen()
+-          if is_nullable {
+-            RefNullStruct(-1) // -1 means abstract struct type
+-          } else {
+-            RefStruct(-1)
+-          }
+-        }
+-        Keyword("array") => {
+-          self.advance()
+-          self.expect_rparen()
+-          if is_nullable {
+-            RefNullArray(-1) // -1 means abstract array type
+-          } else {
+-            RefArray(-1)
+-          }
+-        }
+-        Keyword("i31") => {
+-          self.advance()
+-          self.expect_rparen()
+-          if is_nullable {
+-            RefNullI31
+-          } else {
+-            RefI31
+-          }
+-        }
+-        Keyword("eq") => {
+-          self.advance()
+-          self.expect_rparen()
+-          if is_nullable {
+-            RefNullEq
+-          } else {
+-            RefEq
+-          }
+-        }
+-        Id(name) => {
+-          // Typed reference like (ref $t)
+-          let type_idx = match self.type_names.get(name) {
+-            Some(idx) => idx
+-            None => raise UnexpectedToken("unknown type \{name}", self.loc())
+-          }
+-          self.advance()
+-          self.expect_rparen()
+-          self.get_typed_ref(type_idx, is_nullable)
+-        }
+-        Number(s) => {
+-          // Typed reference with numeric index like (ref 0)
+-          let type_idx = parse_int(s)
+-          self.advance()
+-          self.expect_rparen()
+-          self.get_typed_ref(type_idx, is_nullable)
+-        }
+-        _ => {
+-          self.expect_rparen()
+-          // Default to FuncRef/RefFunc based on nullability
+-          if is_nullable {
+-            FuncRef
+-          } else {
+-            RefFunc
+-          }
+-        }
+-      }
++      let reference = self.parse_heap_type(nullable)
++      self.expect_rparen()
++      reference
+@@ -611 +478 @@
+-fn count_func_imports(imports : Array[@types.Import]) -> Int {
++fn count_func_imports(imports : Array[@types.Import]) -> Int32 {
+@@ -622 +489 @@
+-fn count_table_imports(imports : Array[@types.Import]) -> Int {
++fn count_table_imports(imports : Array[@types.Import]) -> Int32 {
+@@ -633 +500 @@
+-fn count_global_imports(imports : Array[@types.Import]) -> Int {
++fn count_global_imports(imports : Array[@types.Import]) -> Int32 {
+@@ -644 +511 @@
+-fn count_memory_imports(imports : Array[@types.Import]) -> Int {
++fn count_memory_imports(imports : Array[@types.Import]) -> Int32 {
+@@ -655 +522 @@
+-fn count_tag_imports(imports : Array[@types.Import]) -> Int {
++fn count_tag_imports(imports : Array[@types.Import]) -> Int32 {
+@@ -669 +536 @@
+-  implicit_module? : Bool = false,
++  implicit_module~ : Bool = false,
+--- a/parser_numbers.mbt
++++ b/parser_numbers.mbt
+@@ -2 +2 @@
+-fn parse_int(s : String) -> Int raise WatError {
++fn parse_int(s : String) -> Int32 raise WatError {
+@@ -44 +44 @@
+-fn parse_hex_int(s : String) -> Int raise WatError {
++fn parse_hex_int(s : String) -> Int32 raise WatError {
+@@ -63 +63 @@
+-fn parse_u32(s : String) -> Int raise WatError {
++fn parse_u32(s : String) -> Int32 raise WatError {
+@@ -89 +89 @@
+-fn parse_hex_u32(s : String) -> Int raise WatError {
++fn parse_hex_u32(s : String) -> Int32 raise WatError {
+@@ -276 +276 @@
+-fn BigUInt::from_int(n : Int) -> BigUInt {
++fn BigUInt::from_int(n : Int32) -> BigUInt {
+@@ -360 +360 @@
+-fn BigUInt::compare(self : BigUInt, other : BigUInt) -> Int {
++fn BigUInt::compare(self : BigUInt, other : BigUInt) -> Int32 {
+@@ -450 +450 @@
+-fn BigUInt::bit_length(self : BigUInt) -> Int {
++fn BigUInt::bit_length(self : BigUInt) -> Int32 {
+@@ -469 +469,5 @@
+-fn BigUInt::extract_bits(self : BigUInt, start : Int, count : Int) -> UInt64 {
++fn BigUInt::extract_bits(
++  self : BigUInt,
++  start : Int32,
++  count : Int32,
++) -> UInt64 {
+@@ -496 +500 @@
+-fn BigUInt::has_bits_below(self : BigUInt, n : Int) -> Bool {
++fn BigUInt::has_bits_below(self : BigUInt, n : Int32) -> Bool {
+@@ -533 +537 @@
+-  let digits : Array[Int] = []
++  let digits : Array[Int32] = []
+@@ -752 +756 @@
+-        let sign_bit : UInt = if neg { 0x80000000U } else { 0U }
++        let sign_bit : UInt32 = if neg { 0x80000000U } else { 0U }
+@@ -777 +781 @@
+-      let sign_bit : UInt = if neg { 0x80000000U } else { 0U }
++      let sign_bit : UInt32 = if neg { 0x80000000U } else { 0U }
+@@ -807 +811 @@
+-    let sign_bit : UInt = if neg { 0x80000000U } else { 0U }
++    let sign_bit : UInt32 = if neg { 0x80000000U } else { 0U }
+@@ -857 +861 @@
+-  let sign_bit : UInt = if neg { 0x80000000U } else { 0U }
++  let sign_bit : UInt32 = if neg { 0x80000000U } else { 0U }
+@@ -1097 +1101 @@
+-    let sign_bit : UInt = if neg { 0x80000000U } else { 0U }
++    let sign_bit : UInt32 = if neg { 0x80000000U } else { 0U }
+@@ -1136 +1140 @@
+-  let sign_bit : UInt = if neg { 0x80000000U } else { 0U }
++  let sign_bit : UInt32 = if neg { 0x80000000U } else { 0U }
+--- a/parser_types_and_instr.mbt
++++ b/parser_types_and_instr.mbt
+@@ -4 +4 @@
+-  type_idx : Int,
++  type_idx : Int32,
+@@ -24 +24 @@
+-    let supertypes : Array[Int] = []
++    let supertypes : Array[Int32] = []
+@@ -41,0 +42,5 @@
++  }
++  let shared = self.current.token == Keyword("shared")
++  if shared {
++    self.advance()
++    self.expect_lparen()
+@@ -73,0 +79,12 @@
++  }
++  let composite = if shared {
++    self.expect_rparen()
++    match composite {
++      Func(f) => @types.CompositeType::SharedFunc(f)
++      Struct(st) => SharedStruct(st)
++      Array(a) => SharedArray(a)
++      _ =>
++        raise UnexpectedToken("unsupported shared composite type", self.loc())
++    }
++  } else {
++    composite
+@@ -174,5 +191,27 @@
+-  match self.current.token {
+-    Keyword("func") => {
+-      self.advance()
+-      if is_nullable {
+-        FuncRef
++  let shared = self.current.token == LParen
++  if shared {
++    self.advance()
++    self.expect_keyword("shared")
++  }
++  let reference = match self.current.token {
++    Keyword(name) => {
++      let heap = match name {
++        "func" => -16
++        "extern" => -17
++        "any" => -18
++        "eq" => -19
++        "i31" => -20
++        "struct" => -21
++        "array" => -22
++        "exn" => -23
++        "cont" => -24
++        "none" => -15
++        "noextern" => -14
++        "nofunc" => -13
++        "noexn" => -12
++        "nocont" => -11
++        _ => raise UnexpectedToken("expected abstract heap type", self.loc())
++      }
++      self.advance()
++      if shared {
++        @types.ValueType::HeapRef(is_nullable, true, heap)
+@@ -180,95 +219,11 @@
+-        RefFunc
+-      }
+-    }
+-    Keyword("extern") => {
+-      self.advance()
+-      if is_nullable {
+-        ExternRef
+-      } else {
+-        RefExtern
+-      }
+-    }
+-    Keyword("any") => {
+-      self.advance()
+-      if is_nullable {
+-        AnyRef
+-      } else {
+-        RefAny
+-      }
+-    }
+-    Keyword("eq") => {
+-      self.advance()
+-      if is_nullable {
+-        RefNullEq
+-      } else {
+-        RefEq
+-      }
+-    }
+-    Keyword("i31") => {
+-      self.advance()
+-      if is_nullable {
+-        RefNullI31
+-      } else {
+-        RefI31
+-      }
+-    }
+-    Keyword("struct") => {
+-      self.advance()
+-      // Abstract struct type (not a specific struct)
+-      if is_nullable {
+-        RefNullStruct(-1)
+-      } else {
+-        RefStruct(-1)
+-      }
+-    }
+-    Keyword("array") => {
+-      self.advance()
+-      // Abstract array type (not a specific array)
+-      if is_nullable {
+-        RefNullArray(-1)
+-      } else {
+-        RefArray(-1)
+-      }
+-    }
+-    Keyword("cont") => {
+-      self.advance()
+-      if is_nullable {
+-        ContRef
+-      } else {
+-        RefCont
+-      }
+-    }
+-    Keyword("nocont") => {
+-      self.advance()
+-      if is_nullable {
+-        NullContRef
+-      } else {
+-        RefNoCont
+-      }
+-    }
+-    Keyword("exn") => {
+-      self.advance()
+-      ExnRef
+-    }
+-    Keyword("none") => {
+-      self.advance()
+-      RefNone
+-    }
+-    Keyword("nofunc") => {
+-      self.advance()
+-      NullFuncRef
+-    }
+-    Keyword("noexn") => {
+-      self.advance()
+-      NullExnRef
+-    }
+-    Keyword("noextern") => {
+-      self.advance()
+-      NullExternRef
+-    }
+-    Id(name) => {
+-      let type_idx = match self.type_names.get(name) {
+-        Some(idx) => idx
+-        None => raise UnexpectedToken("unknown type \{name}", self.loc())
+-      }
+-      self.advance()
++        @types.ValueType::from_abstract_heap_type(heap, is_nullable).unwrap()
++      }
++    }
++    Id(_) | Number(_) => {
++      if shared {
++        raise UnexpectedToken(
++          "shared heap syntax requires an abstract heap type",
++          self.loc(),
++        )
++      }
++      let type_idx = self.parse_type_idx()
+@@ -277,11 +232,6 @@
+-    Number(s) => {
+-      let type_idx = parse_int(s)
+-      self.advance()
+-      self.get_typed_ref(type_idx, is_nullable)
+-    }
+-    _ =>
+-      raise UnexpectedToken(
+-        "expected heap type, got \{self.current.token}",
+-        self.loc(),
+-      )
+-  }
++    _ => raise UnexpectedToken("expected heap type", self.loc())
++  }
++  if shared {
++    self.expect_rparen()
++  }
++  reference
+@@ -294 +244 @@
+-  type_idx : Int,
++  type_idx : Int32,
+@@ -310 +260 @@
+-  type_idx : Int,
++  type_idx : Int32,
+@@ -378,13 +328,28 @@
+-fn placeholder_subtype_for_rec_kind(kind : Int) -> @types.SubType {
+-  match kind {
+-    // struct
+-    1 => @types.SubType::simple(Struct({ fields: [], }))
+-    // array
+-    2 =>
+-      @types.SubType::simple(
+-        Array({ element: { storage_type: Val(I32), mutable: false, }, }),
+-      )
+-    3 => @types.SubType::simple(Cont(0))
+-    // func (default)
+-    _ => @types.SubType::simple(Func({ params: [], results: [], }))
+-  }
++fn placeholder_subtype_for_rec_kind(kind : Int32) -> @types.SubType {
++  let shared = kind >= 256
++  let composite : @types.CompositeType = match kind & 255 {
++    1 =>
++      if shared {
++        SharedStruct({ fields: [], })
++      } else {
++        Struct({ fields: [], })
++      }
++    2 => {
++      let array : @types.ArrayType = {
++        element: { storage_type: Val(I32), mutable: false, },
++      }
++      if shared {
++        SharedArray(array)
++      } else {
++        Array(array)
++      }
++    }
++    3 => Cont(0)
++    _ =>
++      if shared {
++        SharedFunc({ params: [], results: [], })
++      } else {
++        Func({ params: [], results: [], })
++      }
++  }
++  @types.SubType::simple(composite)
+@@ -396 +361 @@
+-fn Parser::peek_rec_type_kind(self : Parser) -> Int raise WatError {
++fn Parser::peek_rec_type_kind(self : Parser) -> Int32 raise WatError {
+@@ -407,29 +372,25 @@
+-    self.advance() // enter `( ... )`
+-    match self.current.token {
+-      Keyword("func") => kind = 0
+-      Keyword("struct") => kind = 1
+-      Keyword("array") => kind = 2
+-      Keyword("cont") => kind = 3
+-      Keyword("sub") => {
+-        self.advance()
+-        if self.current.token == Keyword("final") {
+-          self.advance()
+-        }
+-        while true {
+-          match self.current.token {
+-            Id(_) | Number(_) => self.advance()
+-            _ => break
+-          }
+-        }
+-        if self.current.token == LParen {
+-          self.advance()
+-          match self.current.token {
+-            Keyword("func") => kind = 0
+-            Keyword("struct") => kind = 1
+-            Keyword("array") => kind = 2
+-            Keyword("cont") => kind = 3
+-            _ => ()
+-          }
+-        }
+-      }
+-      _ => ()
++    self.advance()
++    if self.current.token == Keyword("sub") {
++      self.advance()
++      if self.current.token == Keyword("final") {
++        self.advance()
++      }
++      while self.current.token is Id(_) || self.current.token is Number(_) {
++        self.advance()
++      }
++      self.expect_lparen()
++    }
++    let shared = self.current.token == Keyword("shared")
++    if shared {
++      self.advance()
++      self.expect_lparen()
++    }
++    kind = match self.current.token {
++      Keyword("func") => 0
++      Keyword("struct") => 1
++      Keyword("array") => 2
++      Keyword("cont") => 3
++      _ => raise UnexpectedToken("expected composite type", self.loc())
++    }
++    if shared {
++      kind += 256
+@@ -470 +431 @@
+-  let rec_type_kinds : Array[Int] = []
++  let rec_type_kinds : Array[Int32] = []
+@@ -915 +876 @@
+-fn Parser::parse_type_idx(self : Parser) -> Int raise WatError {
++fn Parser::parse_type_idx(self : Parser) -> Int32 raise WatError {
+@@ -934 +895 @@
+-fn Parser::parse_func_idx(self : Parser) -> Int raise WatError {
++fn Parser::parse_func_idx(self : Parser) -> Int32 raise WatError {
+@@ -953 +914 @@
+-fn Parser::parse_local_idx(self : Parser) -> Int raise WatError {
++fn Parser::parse_local_idx(self : Parser) -> Int32 raise WatError {
+@@ -972 +933 @@
+-fn Parser::parse_global_idx(self : Parser) -> Int raise WatError {
++fn Parser::parse_global_idx(self : Parser) -> Int32 raise WatError {
+@@ -991 +952 @@
+-fn Parser::parse_table_idx(self : Parser) -> Int raise WatError {
++fn Parser::parse_table_idx(self : Parser) -> Int32 raise WatError {
+@@ -1015 +976 @@
+-fn Parser::parse_index_for_memory_init(self : Parser) -> Int raise WatError {
++fn Parser::parse_index_for_memory_init(self : Parser) -> Int32 raise WatError {
+@@ -1039 +1000 @@
+-fn Parser::parse_data_idx(self : Parser) -> Int raise WatError {
++fn Parser::parse_data_idx(self : Parser) -> Int32 raise WatError {
+@@ -1058 +1019 @@
+-fn Parser::parse_elem_idx(self : Parser) -> Int raise WatError {
++fn Parser::parse_elem_idx(self : Parser) -> Int32 raise WatError {
+@@ -1080 +1041 @@
+-  type_idx : Int,
++  type_idx : Int32,
+@@ -1085,29 +1046,5 @@
+-    match self.types[type_idx].composite {
+-      Cont(_) =>
+-        if is_nullable {
+-          RefNullContTyped(type_idx)
+-        } else {
+-          RefContTyped(type_idx)
+-        }
+-      Struct(_) =>
+-        if is_nullable {
+-          RefNullStruct(type_idx)
+-        } else {
+-          RefStruct(type_idx)
+-        }
+-      Array(_) =>
+-        if is_nullable {
+-          RefNullArray(type_idx)
+-        } else {
+-          RefArray(type_idx)
+-        }
+-      Func(_) =>
+-        if is_nullable {
+-          RefNullFuncTyped(type_idx)
+-        } else {
+-          RefFuncTyped(type_idx)
+-        }
+-    }
+-    // Type not yet defined, assume func type (may need forward reference handling)
+-  } else if is_nullable {
+-    RefNullFuncTyped(type_idx)
++    @types.typed_reference(
++      self.types[type_idx].composite,
++      is_nullable,
++      type_idx,
++    )
+@@ -1115 +1052 @@
+-    RefFuncTyped(type_idx)
++    @types.ValueType::HeapRef(is_nullable, false, type_idx)
+@@ -1124,105 +1061,28 @@
+-      // Handle (ref ...) syntax
+-      self.advance()
+-      self.expect_keyword("ref")
+-      // Check for nullable: (ref null ...) vs non-null: (ref ...)
+-      let is_nullable = self.current.token == Keyword("null")
+-      if is_nullable {
+-        self.advance()
+-      }
+-      // Parse the heap type
+-      let result = match self.current.token {
+-        Keyword("func") => {
+-          self.advance()
+-          if is_nullable {
+-            @types.ValueType::FuncRef
+-          } else {
+-            RefFunc
+-          }
+-        }
+-        Keyword("extern") => {
+-          self.advance()
+-          if is_nullable {
+-            ExternRef
+-          } else {
+-            RefExtern
+-          }
+-        }
+-        Keyword("any") => {
+-          self.advance()
+-          if is_nullable {
+-            AnyRef
+-          } else {
+-            RefAny
+-          }
+-        }
+-        Keyword("eq") => {
+-          self.advance()
+-          if is_nullable {
+-            RefNullEq
+-          } else {
+-            RefEq
+-          }
+-        }
+-        Keyword("i31") => {
+-          self.advance()
+-          if is_nullable {
+-            RefNullI31
+-          } else {
+-            RefI31
+-          }
+-        }
+-        Keyword("struct") => {
+-          self.advance()
+-          if is_nullable {
+-            RefNullStruct(-1)
+-          } else {
+-            RefStruct(-1)
+-          }
+-        }
+-        Keyword("array") => {
+-          self.advance()
+-          if is_nullable {
+-            RefNullArray(-1)
+-          } else {
+-            RefArray(-1)
+-          }
+-        }
+-        Keyword("cont") => {
+-          self.advance()
+-          if is_nullable {
+-            ContRef
+-          } else {
+-            RefCont
+-          }
+-        }
+-        Keyword("nocont") => {
+-          self.advance()
+-          if is_nullable {
+-            NullContRef
+-          } else {
+-            RefNoCont
+-          }
+-        }
+-        Keyword("none") => {
+-          self.advance()
+-          RefNone // bottom type (always non-null when specified as ref none)
+-        }
+-        Id(name) =>
+-          match self.type_names.get(name) {
+-            Some(idx) => {
+-              self.advance()
+-              // Check what kind of type this is
+-              self.get_typed_ref(idx, is_nullable)
+-            }
+-            None => raise UnexpectedToken("unknown type \{name}", self.loc())
+-          }
+-        Number(s) => {
+-          let idx = parse_int(s)
+-          self.advance()
+-          // Check what kind of type this is
+-          self.get_typed_ref(idx, is_nullable)
+-        }
+-        _ => raise UnexpectedToken("expected heap type", self.loc())
+-      }
+-      self.expect_rparen()
+-      result
++      self.advance()
++      if self.current.token == Keyword("shared") {
++        self.advance()
++        guard self.current.token is Keyword(_) else {
++          raise UnexpectedToken(
++            "expected abstract shared heap type",
++            self.loc(),
++          )
++        }
++        let result = self.parse_heap_type(true)
++        self.expect_rparen()
++        guard result.heap() is Some((_, _, heap)) && heap < 0 else {
++          raise UnexpectedToken(
++            "shared heap syntax requires an abstract heap type",
++            self.loc(),
++          )
++        }
++        HeapRef(true, true, heap)
++      } else {
++        self.expect_keyword("ref")
++        let nullable = self.current.token == Keyword("null")
++        if nullable {
++          self.advance()
++        }
++        let result = self.parse_heap_type(nullable)
++        self.expect_rparen()
++        result
++      }
+@@ -1309 +1169 @@
+-fn Parser::parse_label_idx(self : Parser) -> Int raise WatError {
++fn Parser::parse_label_idx(self : Parser) -> Int32 raise WatError {
+--- a/parser_wast.mbt
++++ b/parser_wast.mbt
+@@ -5 +5 @@
+-  let commands : Array[(WastCommand, Int)] = []
++  let commands : Array[(WastCommand, Int32)] = []
+@@ -538 +538 @@
+-  let commands : Array[(WastCommand, Int)] = []
++  let commands : Array[(WastCommand, Int32)] = []
+@@ -1253 +1253 @@
+-fn Parser::parse_wast_i32(self : Parser) -> Int raise WatError {
++fn Parser::parse_wast_i32(self : Parser) -> Int32 raise WatError {
+@@ -1327 +1327 @@
+-fn parse_wast_int(s : String) -> Int raise WatError {
++fn parse_wast_int(s : String) -> Int32 raise WatError {
+@@ -1369 +1369 @@
+-fn parse_wast_hex_int(s : String, start : Int) -> Int raise WatError {
++fn parse_wast_hex_int(s : String, start : Int32) -> Int32 raise WatError {
+@@ -1433 +1433 @@
+-fn parse_wast_hex_int64(s : String, start : Int) -> Int64 raise WatError {
++fn parse_wast_hex_int64(s : String, start : Int32) -> Int64 raise WatError {
+--- a/parser_wbtest.mbt
++++ b/parser_wbtest.mbt
+@@ -970 +970 @@
+-  inspect(@debug.to_string(mod_.start), content="Some(0)")
++  debug_inspect(mod_.start, content="Some(0)")
+--- a/wast_parser.mbt
++++ b/wast_parser.mbt
+@@ -24 +24 @@
+-  Thread(String, String?, Array[(WastCommand, Int)])
++  Thread(String, String?, Array[(WastCommand, Int32)])
+@@ -47 +47 @@
+-  I32(Int)
++  I32(Int32)
+@@ -59 +59 @@
+-  RefExtern(Int)
++  RefExtern(Int32)
+@@ -61 +61 @@
+-  RefHost(Int) // (ref.host <idx>) - host reference for testing
++  RefHost(Int32) // (ref.host <idx>) - host reference for testing
+@@ -63 +63 @@
+-  RefFuncIndex(Int)
++  RefFuncIndex(Int32)
+@@ -95 +95 @@
+-  commands : Array[(WastCommand, Int)]
++  commands : Array[(WastCommand, Int32)]

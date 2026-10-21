@@ -1,0 +1,1 @@
+(component (core module $m (type (sub (func))) (type (sub 0 (func))) (table 1 (ref null 0)) (table 1 (ref null 1)) (func  i32.const 0 i32.const 0 i32.const 0 table.copy 0 1)) (export "m" (core module $m)))

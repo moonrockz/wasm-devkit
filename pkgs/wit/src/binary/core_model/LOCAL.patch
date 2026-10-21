@@ -1,0 +1,1652 @@
+--- a/bit_conversion.mbt
++++ b/bit_conversion.mbt
+@@ -15 +15 @@
+-pub impl ToInt64 for Int with fn to_int64_bits(self) {
++pub impl ToInt64 for Int32 with fn to_int64_bits(self) {
+@@ -40 +40 @@
+-pub impl FromInt64 for Int with fn from_int64_bits(v) {
++pub impl FromInt64 for Int32 with fn from_int64_bits(v) {
+@@ -56 +56 @@
+-pub fn bytes_to_int64_le(bytes : Bytes, offset : Int) -> Int64 {
++pub fn bytes_to_int64_le(bytes : Bytes, offset : Int32) -> Int64 {
+@@ -82 +82 @@
+-pub fn to_hex_byte(b : Int) -> String {
++pub fn to_hex_byte(b : Int32) -> String {
+@@ -100 +100 @@
+-pub fn to_hex_u16(n : Int) -> String {
++pub fn to_hex_u16(n : Int32) -> String {
+@@ -106 +106 @@
+-pub fn int_to_hex(n : Int) -> String {
++pub fn int_to_hex(n : Int32) -> String {
+--- a/equivalence.mbt
++++ b/equivalence.mbt
+@@ -9,3 +9,3 @@
+-  group_by_type : Array[Int]
+-  position_by_type : Array[Int]
+-  groups : Array[Array[Int]]
++  group_by_type : Array[Int32]
++  position_by_type : Array[Int32]
++  groups : Array[Array[Int32]]
+@@ -16,2 +16,2 @@
+-  type_count : Int,
+-  rec_group_ids : Array[Int],
++  type_count : Int32,
++  rec_group_ids : Array[Int32],
+@@ -21,2 +21,2 @@
+-  let groups : Array[Array[Int]] = []
+-  let group_by_id : Map[Int, Int] = Map([])
++  let groups : Array[Array[Int32]] = []
++  let group_by_id : Map[Int32, Int32] = Map([])
+@@ -49 +49 @@
+-fn RecGroupIndex::group_at(self : RecGroupIndex, type_idx : Int) -> Int {
++fn RecGroupIndex::group_at(self : RecGroupIndex, type_idx : Int32) -> Int32 {
+@@ -58 +58,4 @@
+-fn RecGroupIndex::info_at(self : RecGroupIndex, type_idx : Int) -> (Int, Int) {
++fn RecGroupIndex::info_at(
++  self : RecGroupIndex,
++  type_idx : Int32,
++) -> (Int32, Int32) {
+@@ -76 +79,3 @@
+-  visited : Map[(Int, Int), Bool]
++  visited : Map[(Int32, Int32), Bool]
++  mut remaining : Int32
++  mut exhausted : Bool
+@@ -83 +88 @@
+-  type_rec_groups? : Array[Int] = [],
++  type_rec_groups~ : Array[Int32] = [],
+@@ -92,0 +98,2 @@
++    remaining: 1000000,
++    exhausted: false,
+@@ -101,2 +108,2 @@
+-  rec_groups1? : Array[Int] = [],
+-  rec_groups2? : Array[Int] = [],
++  rec_groups1~ : Array[Int32] = [],
++  rec_groups2~ : Array[Int32] = [],
+@@ -111,8 +118,31 @@
+-  }
+-}
+-
+-///|
+-/// Check if two types at given indices are equivalent.
+-/// This is the main entry point for type equivalence checking.
+-/// For isorecursive typing, types are equivalent iff they are in
+-/// pairwise-equivalent rec groups at the same position.
++    remaining: 1000000,
++    exhausted: false,
++  }
++}
++
++///|
++fn TypeEquivalenceContext::charge(
++  self : TypeEquivalenceContext,
++  count : Int32,
++) -> Bool {
++  if count < 0 || count > self.remaining {
++    self.exhausted = true
++    false
++  } else {
++    self.remaining -= count
++    true
++  }
++}
++
++///|
++priv enum EquivalenceWork {
++  Group(Int32, Int32)
++  Node(Int32, Int32)
++  Ref(Int32, Int32, Int32, Int32)
++  Value(ValueType, ValueType, Int32, Int32)
++}
++
++///|
++/// Compare whole isorecursive groups with an explicit obligation stack. Only
++/// completed successful proofs enter the shared cache; a failed descendant
++/// cannot leave optimistic entries that poison a later comparison.
+@@ -121,2 +151,2 @@
+-  idx1 : Int,
+-  idx2 : Int,
++  idx1 : Int32,
++  idx2 : Int32,
+@@ -124,35 +154,157 @@
+-  // Same index in same module is trivially equivalent
+-  if !self.cross_module && idx1 == idx2 {
+-    return true
+-  }
+-  // First check rec group info - types can only be equivalent if
+-  // they have the same position and size within their rec groups
+-  let rec_info1 = self.rec_groups1.info_at(idx1)
+-  let rec_info2 = self.rec_groups2.info_at(idx2)
+-  if rec_info1 != rec_info2 {
+-    return false
+-  }
+-  // Types can only be equivalent if their rec groups are pairwise equivalent
+-  let rec_id1 = self.rec_groups1.group_at(idx1)
+-  let rec_id2 = self.rec_groups2.group_at(idx2)
+-
+-  // For same-module, same rec group ID means same rec group
+-  if !self.cross_module && rec_id1 == rec_id2 {
+-    // Same rec group, same position (since rec_info1 == rec_info2)
+-    return rec_info1.0 == rec_info2.0
+-  }
+-
+-  // Check if the rec groups are pairwise equivalent
+-  // This works for both same-module (different rec groups) and cross-module
+-  rec_groups_equivalent(
+-    self,
+-    self.rec_groups1,
+-    self.rec_groups2,
+-    rec_id1,
+-    rec_id2,
+-  )
+-}
+-
+-///|
+-/// Check if two types are structurally equal (without rec group check).
+-/// Use types_equivalent for full equivalence checking including rec groups.
++  let work : Array[EquivalenceWork] = [Group(idx1, idx2)]
++  let seen : Map[(Int32, Int32), Bool] = Map([])
++  fn compare() -> Bool {
++    while work.pop() is Some(task) {
++      if !self.charge(1) {
++        return false
++      }
++      match task {
++        Group(a, b) => {
++          if a < 0 ||
++            a >= self.types1.length() ||
++            b < 0 ||
++            b >= self.types2.length() {
++            return false
++          }
++          if self.rec_groups1.info_at(a) != self.rec_groups2.info_at(b) {
++            return false
++          }
++          if !self.cross_module && a == b {
++            continue
++          }
++          let g1 = self.rec_groups1.groups[self.rec_groups1.group_at(a)]
++          let g2 = self.rec_groups2.groups[self.rec_groups2.group_at(b)]
++          if !self.charge(g1.length()) {
++            return false
++          }
++          for i, type_index in g1 {
++            work.push(Node(type_index, g2[i]))
++          }
++        }
++        Ref(a, b, owner1, owner2) => {
++          if a < 0 || b < 0 {
++            if a != b {
++              return false
++            }
++            continue
++          }
++          if a >= self.types1.length() || b >= self.types2.length() {
++            return false
++          }
++          let local1 = self.rec_groups1.group_at(a) ==
++            self.rec_groups1.group_at(owner1)
++          let local2 = self.rec_groups2.group_at(b) ==
++            self.rec_groups2.group_at(owner2)
++          if local1 != local2 {
++            return false
++          }
++          if local1 {
++            if self.rec_groups1.position_by_type[a] !=
++              self.rec_groups2.position_by_type[b] {
++              return false
++            }
++          } else {
++            work.push(Group(a, b))
++          }
++        }
++        Value(a, b, owner1, owner2) =>
++          match (a.heap(), b.heap()) {
++            (Some((an, ash, ah)), Some((bn, bsh, bh))) => {
++              if an != bn || ash != bsh {
++                return false
++              }
++              work.push(Ref(ah, bh, owner1, owner2))
++            }
++            (None, None) => if a != b { return false }
++            _ => return false
++          }
++        Node(a, b) => {
++          if seen.contains((a, b)) {
++            continue
++          }
++          match self.visited.get((a, b)) {
++            Some(true) => continue
++            Some(false) => return false
++            None => ()
++          }
++          seen[(a, b)] = true
++          let ta = self.types1[a]
++          let tb = self.types2[b]
++          if ta.final_ != tb.final_ ||
++            ta.composite.is_shared() != tb.composite.is_shared() ||
++            ta.supertypes.length() != tb.supertypes.length() {
++            return false
++          }
++          if !self.charge(ta.supertypes.length()) {
++            return false
++          }
++          for i, supertype in ta.supertypes {
++            work.push(Ref(supertype, tb.supertypes[i], a, b))
++          }
++          fn field(f1 : FieldType, f2 : FieldType) -> Bool {
++            if f1.mutable != f2.mutable {
++              return false
++            }
++            match (f1.storage_type, f2.storage_type) {
++              (Packed(x), Packed(y)) => x == y
++              (Val(x), Val(y)) => {
++                work.push(Value(x, y, a, b))
++                true
++              }
++              _ => false
++            }
++          }
++          match (ta.composite.unshared(), tb.composite.unshared()) {
++            (Func(f1), Func(f2)) => {
++              if f1.params.length() != f2.params.length() ||
++                f1.results.length() != f2.results.length() {
++                return false
++              }
++              if !self.charge(f1.params.length()) ||
++                !self.charge(f1.results.length()) {
++                return false
++              }
++              for i, value in f1.params {
++                work.push(Value(value, f2.params[i], a, b))
++              }
++              for i, value in f1.results {
++                work.push(Value(value, f2.results[i], a, b))
++              }
++            }
++            (Struct(s1), Struct(s2)) => {
++              if s1.fields.length() != s2.fields.length() {
++                return false
++              }
++              if !self.charge(s1.fields.length()) {
++                return false
++              }
++              for i, f in s1.fields {
++                if !field(f, s2.fields[i]) {
++                  return false
++                }
++              }
++            }
++            (Array(a1), Array(a2)) =>
++              if !field(a1.element, a2.element) {
++                return false
++              }
++            (Cont(a1), Cont(a2)) => work.push(Ref(a1, a2, a, b))
++            _ => return false
++          }
++        }
++      }
++    }
++    true
++  }
++  let result = compare()
++  if result {
++    for pair in seen.keys() {
++      self.visited[pair] = true
++    }
++  } else if !self.exhausted {
++    self.visited[(idx1, idx2)] = false
++  }
++  result
++}
++
++///|
+@@ -161,2 +313,2 @@
+-  idx1 : Int,
+-  idx2 : Int,
++  a : Int32,
++  b : Int32,
+@@ -164,285 +316 @@
+-  // Same index in same module means same type
+-  if !self.cross_module && idx1 == idx2 {
+-    return true
+-  }
+-  // Bounds check
+-  if idx1 < 0 ||
+-    idx1 >= self.types1.length() ||
+-    idx2 < 0 ||
+-    idx2 >= self.types2.length() {
+-    return false
+-  }
+-  // Check cache
+-  let key = if self.cross_module {
+-    (idx1, idx2)
+-  } else if idx1 <= idx2 {
+-    (idx1, idx2)
+-  } else {
+-    (idx2, idx1)
+-  }
+-  if self.visited.get(key) is Some(result) {
+-    return result
+-  }
+-  // Assume equal to break cycles (recursive types)
+-  self.visited[key] = true
+-  let t1 = self.types1[idx1]
+-  let t2 = self.types2[idx2]
+-  // Check finality matches
+-  if t1.final_ != t2.final_ {
+-    self.visited[key] = false
+-    return false
+-  }
+-  // Check supertypes match (with proper internal/external reference handling)
+-  if !self.supertypes_equal_with_context(
+-      t1.supertypes,
+-      t2.supertypes,
+-      idx1,
+-      idx2,
+-    ) {
+-    self.visited[key] = false
+-    return false
+-  }
+-  // Check composite types
+-  let result = self.composite_types_equal(
+-    t1.composite,
+-    t2.composite,
+-    idx1,
+-    idx2,
+-  )
+-  self.visited[key] = result
+-  result
+-}
+-
+-///|
+-/// Check if supertypes are equivalent.
+-/// For isorecursive typing, supertype references need special handling:
+-/// - Internal references (within the same rec group) must match by position
+-/// - External references (outside rec group) must refer to equivalent types
+-fn TypeEquivalenceContext::supertypes_equal_with_context(
+-  self : TypeEquivalenceContext,
+-  s1 : Array[Int],
+-  s2 : Array[Int],
+-  idx1 : Int,
+-  idx2 : Int,
+-) -> Bool {
+-  if s1.length() != s2.length() {
+-    return false
+-  }
+-  for i, sup1 in s1 {
+-    // Use type_refs_equal to properly handle internal vs external references
+-    if !self.type_refs_equal(sup1, s2[i], idx1, idx2) {
+-      return false
+-    }
+-  }
+-  true
+-}
+-
+-///|
+-/// Compare composite types for structural equality.
+-fn TypeEquivalenceContext::composite_types_equal(
+-  self : TypeEquivalenceContext,
+-  c1 : CompositeType,
+-  c2 : CompositeType,
+-  idx1 : Int,
+-  idx2 : Int,
+-) -> Bool {
+-  match (c1, c2) {
+-    (Func(f1), Func(f2)) => self.func_types_equal(f1, f2, idx1, idx2)
+-    (Struct(s1), Struct(s2)) => self.struct_types_equal(s1, s2, idx1, idx2)
+-    (Array(a1), Array(a2)) => self.array_types_equal(a1, a2, idx1, idx2)
+-    (Cont(f1), Cont(f2)) => self.type_refs_equal(f1, f2, idx1, idx2)
+-    _ => false // Different composite types are never equivalent
+-  }
+-}
+-
+-///|
+-/// Compare two function types for structural equality.
+-fn TypeEquivalenceContext::func_types_equal(
+-  self : TypeEquivalenceContext,
+-  t1 : FuncType,
+-  t2 : FuncType,
+-  idx1 : Int,
+-  idx2 : Int,
+-) -> Bool {
+-  // Check param/result counts
+-  if t1.params.length() != t2.params.length() ||
+-    t1.results.length() != t2.results.length() {
+-    return false
+-  }
+-  // Compare params
+-  for i, p1 in t1.params {
+-    if !self.value_types_equal(p1, t2.params[i], idx1, idx2) {
+-      return false
+-    }
+-  }
+-  // Compare results
+-  for i, r1 in t1.results {
+-    if !self.value_types_equal(r1, t2.results[i], idx1, idx2) {
+-      return false
+-    }
+-  }
+-  true
+-}
+-
+-///|
+-/// Compare two struct types for structural equality.
+-fn TypeEquivalenceContext::struct_types_equal(
+-  self : TypeEquivalenceContext,
+-  s1 : StructType,
+-  s2 : StructType,
+-  idx1 : Int,
+-  idx2 : Int,
+-) -> Bool {
+-  // Must have same number of fields
+-  if s1.fields.length() != s2.fields.length() {
+-    return false
+-  }
+-  // Each field must be equivalent
+-  for i, f1 in s1.fields {
+-    if !self.field_types_equal(f1, s2.fields[i], idx1, idx2) {
+-      return false
+-    }
+-  }
+-  true
+-}
+-
+-///|
+-/// Compare two array types for structural equality.
+-fn TypeEquivalenceContext::array_types_equal(
+-  self : TypeEquivalenceContext,
+-  a1 : ArrayType,
+-  a2 : ArrayType,
+-  idx1 : Int,
+-  idx2 : Int,
+-) -> Bool {
+-  self.field_types_equal(a1.element, a2.element, idx1, idx2)
+-}
+-
+-///|
+-/// Compare two field types for equality.
+-fn TypeEquivalenceContext::field_types_equal(
+-  self : TypeEquivalenceContext,
+-  f1 : FieldType,
+-  f2 : FieldType,
+-  idx1 : Int,
+-  idx2 : Int,
+-) -> Bool {
+-  // Mutability must match
+-  if f1.mutable != f2.mutable {
+-    return false
+-  }
+-  // Storage types must be equal
+-  self.storage_types_equal(f1.storage_type, f2.storage_type, idx1, idx2)
+-}
+-
+-///|
+-/// Compare two storage types for equality.
+-fn TypeEquivalenceContext::storage_types_equal(
+-  self : TypeEquivalenceContext,
+-  s1 : StorageType,
+-  s2 : StorageType,
+-  idx1 : Int,
+-  idx2 : Int,
+-) -> Bool {
+-  match (s1, s2) {
+-    (Val(v1), Val(v2)) => self.value_types_equal(v1, v2, idx1, idx2)
+-    (Packed(p1), Packed(p2)) => p1 == p2
+-    _ => false
+-  }
+-}
+-
+-///|
+-/// Compare two value types for structural equality.
+-fn TypeEquivalenceContext::value_types_equal(
+-  self : TypeEquivalenceContext,
+-  v1 : ValueType,
+-  v2 : ValueType,
+-  self_idx : Int,
+-  other_idx : Int,
+-) -> Bool {
+-  match (v1, v2) {
+-    // Basic types must match exactly
+-    (I32, I32)
+-    | (I64, I64)
+-    | (F32, F32)
+-    | (F64, F64)
+-    | (V128, V128)
+-    | (FuncRef, FuncRef)
+-    | (ExternRef, ExternRef)
+-    | (RefFunc, RefFunc)
+-    | (RefExtern, RefExtern)
+-    | (AnyRef, AnyRef)
+-    | (ExnRef, ExnRef)
+-    | (NullRef, NullRef)
+-    | (NullFuncRef, NullFuncRef)
+-    | (ContRef, ContRef)
+-    | (RefCont, RefCont)
+-    | (NullContRef, NullContRef)
+-    | (RefNoCont, RefNoCont)
+-    | (NullExnRef, NullExnRef)
+-    | (NullExternRef, NullExternRef)
+-    | (RefAny, RefAny)
+-    | (RefEq, RefEq)
+-    | (RefNullEq, RefNullEq)
+-    | (RefI31, RefI31)
+-    | (RefNullI31, RefNullI31)
+-    | (RefNone, RefNone) => true
+-    // Typed references
+-    (RefFuncTyped(ref1), RefFuncTyped(ref2))
+-    | (RefNullFuncTyped(ref1), RefNullFuncTyped(ref2))
+-    | (RefContTyped(ref1), RefContTyped(ref2))
+-    | (RefNullContTyped(ref1), RefNullContTyped(ref2)) =>
+-      self.type_refs_equal(ref1, ref2, self_idx, other_idx)
+-    (RefStruct(ref1), RefStruct(ref2))
+-    | (RefNullStruct(ref1), RefNullStruct(ref2)) =>
+-      self.type_refs_equal(ref1, ref2, self_idx, other_idx)
+-    (RefArray(ref1), RefArray(ref2))
+-    | (RefNullArray(ref1), RefNullArray(ref2)) =>
+-      self.type_refs_equal(ref1, ref2, self_idx, other_idx)
+-    _ => false
+-  }
+-}
+-
+-///|
+-/// Compare two type references for structural equality.
+-/// Handles references within rec groups (internal) vs outside (external) correctly.
+-/// For isorecursive type equivalence:
+-/// - References to types WITHIN the same rec group must match by position
+-/// - References to types OUTSIDE the rec group must refer to equivalent types
+-fn TypeEquivalenceContext::type_refs_equal(
+-  self : TypeEquivalenceContext,
+-  ref1 : Int,
+-  ref2 : Int,
+-  self_idx : Int,
+-  other_idx : Int,
+-) -> Bool {
+-  // Get rec group info for the types being compared
+-  let rec_id1 = self.rec_groups1.group_at(self_idx)
+-  let rec_id2 = self.rec_groups2.group_at(other_idx)
+-  // Check if ref1 is within self_idx's rec group
+-  let ref1_in_group = ref1 >= 0 &&
+-    ref1 < self.types1.length() &&
+-    rec_id1 >= 0 &&
+-    self.rec_groups1.group_at(ref1) == rec_id1
+-  // Check if ref2 is within other_idx's rec group
+-  let ref2_in_group = ref2 >= 0 &&
+-    ref2 < self.types2.length() &&
+-    rec_id2 >= 0 &&
+-    self.rec_groups2.group_at(ref2) == rec_id2
+-  if ref1_in_group && ref2_in_group {
+-    // Both references are within their respective rec groups
+-    // They must be at the same relative position
+-    let pos1 = self.rec_groups1.position_by_type[ref1]
+-    let pos2 = self.rec_groups2.position_by_type[ref2]
+-    return pos1 == pos2
+-  }
+-  if ref1_in_group || ref2_in_group {
+-    // One reference is within its rec group, the other is external
+-    // They cannot be equivalent
+-    return false
+-  }
+-  // Both references are external (outside their rec groups)
+-  // For isorecursive typing, external references must point to types
+-  // that are in equivalent rec groups at equivalent positions.
+-  // Use types_equivalent which checks rec group info.
+-  self.types_equivalent(ref1, ref2)
++  self.types_equivalent(a, b)
+@@ -455,3 +323,3 @@
+-  rec_groups : Array[Int],
+-  type_idx : Int,
+-) -> (Int, Int) {
++  rec_groups : Array[Int32],
++  type_idx : Int32,
++) -> (Int32, Int32) {
+@@ -480 +348 @@
+-pub fn compute_canonical_type_indices(
++pub fn compute_canonical_type_indices_checked(
+@@ -482,3 +350,3 @@
+-  type_rec_groups? : Array[Int] = [],
+-) -> Array[Int] {
+-  let canonical : Array[Int] = Array::make(types.length(), -1)
++  type_rec_groups~ : Array[Int32] = [],
++) -> Result[Array[Int32], Unit] {
++  let canonical : Array[Int32] = Array::make(types.length(), -1)
+@@ -488,0 +357,3 @@
++      if !ctx.charge(1) {
++        return Err(())
++      }
+@@ -499,0 +371,3 @@
++      if ctx.exhausted {
++        return Err(())
++      }
+@@ -509,25 +383 @@
+-  canonical
+-}
+-
+-///|
+-/// Check if two entire rec groups are pairwise structurally equivalent.
+-fn rec_groups_equivalent(
+-  ctx : TypeEquivalenceContext,
+-  rec_groups1 : RecGroupIndex,
+-  rec_groups2 : RecGroupIndex,
+-  rec_id1 : Int,
+-  rec_id2 : Int,
+-) -> Bool {
+-  let types1 = if rec_id1 >= 0 { rec_groups1.groups[rec_id1] } else { [] }
+-  let types2 = if rec_id2 >= 0 { rec_groups2.groups[rec_id2] } else { [] }
+-  // Must have same number of types
+-  if types1.length() != types2.length() {
+-    return false
+-  }
+-  // All types must be pairwise structurally equivalent
+-  for k, idx1 in types1 {
+-    if !ctx.types_structurally_equal(idx1, types2[k]) {
+-      return false
+-    }
+-  }
+-  true
++  Ok(canonical)
+@@ -563,35 +413,3 @@
+-  match (v1, v2) {
+-    (I32, I32)
+-    | (I64, I64)
+-    | (F32, F32)
+-    | (F64, F64)
+-    | (V128, V128)
+-    | (FuncRef, FuncRef)
+-    | (ExternRef, ExternRef)
+-    | (RefFunc, RefFunc)
+-    | (RefExtern, RefExtern)
+-    | (AnyRef, AnyRef)
+-    | (ExnRef, ExnRef)
+-    | (NullRef, NullRef)
+-    | (NullFuncRef, NullFuncRef)
+-    | (ContRef, ContRef)
+-    | (RefCont, RefCont)
+-    | (NullContRef, NullContRef)
+-    | (RefNoCont, RefNoCont)
+-    | (NullExnRef, NullExnRef)
+-    | (NullExternRef, NullExternRef)
+-    // GC types
+-    | (RefAny, RefAny)
+-    | (RefEq, RefEq)
+-    | (RefNullEq, RefNullEq)
+-    | (RefI31, RefI31)
+-    | (RefNullI31, RefNullI31)
+-    | (RefNone, RefNone) => true
+-    (RefFuncTyped(ref1), RefFuncTyped(ref2)) => ref1 == ref2
+-    (RefNullFuncTyped(ref1), RefNullFuncTyped(ref2)) => ref1 == ref2
+-    (RefContTyped(ref1), RefContTyped(ref2)) => ref1 == ref2
+-    (RefNullContTyped(ref1), RefNullContTyped(ref2)) => ref1 == ref2
+-    (RefStruct(ref1), RefStruct(ref2)) => ref1 == ref2
+-    (RefNullStruct(ref1), RefNullStruct(ref2)) => ref1 == ref2
+-    (RefArray(ref1), RefArray(ref2)) => ref1 == ref2
+-    (RefNullArray(ref1), RefNullArray(ref2)) => ref1 == ref2
++  match (v1.heap(), v2.heap()) {
++    (None, None) => v1 == v2
++    (Some(a), Some(b)) => a == b
+@@ -600,0 +419,41 @@
++
++///|
++/// Compatibility normalization only. Validation uses the checked form so an
++/// exhausted proof never becomes acceptance evidence.
++pub fn compute_canonical_type_indices(
++  types : Array[SubType],
++  type_rec_groups~ : Array[Int32] = [],
++) -> Array[Int32] {
++  match compute_canonical_type_indices_checked(types, type_rec_groups~) {
++    Ok(indices) => indices
++    Err(_) => Array::makei(types.length(), i => i)
++  }
++}
++
++///|
++pub fn SubtypingContext::work_exhausted(self : SubtypingContext) -> Bool {
++  self.equivalence.exhausted
++}
++
++///|
++/// Reduce, never reset, the shared comparison allowance.
++pub fn SubtypingContext::restrict_work_limit(
++  self : SubtypingContext,
++  limit : Int32,
++) -> Unit {
++  self.equivalence.remaining = self.equivalence.remaining.min(limit.max(0))
++}
++
++///|
++pub fn SubtypingContext::remaining_work(self : SubtypingContext) -> Int32 {
++  self.equivalence.remaining
++}
++
++///|
++pub fn SubtypingContext::reference_types_equal(
++  self : SubtypingContext,
++  left : Int32,
++  right : Int32,
++) -> Bool {
++  self.types_equivalent(left, right)
++}
+--- a/equivalence_wbtest.mbt
++++ b/equivalence_wbtest.mbt
+@@ -84 +84 @@
+-  let rec_groups : Array[Int] = [0, 1, 2]
++  let rec_groups : Array[Int32] = [0, 1, 2]
+@@ -94 +94 @@
+-  let rec_groups : Array[Int] = [0, 0, 1]
++  let rec_groups : Array[Int32] = [0, 0, 1]
+@@ -102 +102 @@
+-  let rec_groups : Array[Int] = []
++  let rec_groups : Array[Int32] = []
+@@ -116 +116 @@
+-  let rec_groups : Array[Int] = [0, 0, 1]
++  let rec_groups : Array[Int32] = [0, 0, 1]
+@@ -156 +156 @@
+-  let rec_groups : Array[Int] = [0, 0, 1]
++  let rec_groups : Array[Int32] = [0, 0, 1]
+@@ -186 +186 @@
+-  let rec_groups : Array[Int] = []
++  let rec_groups : Array[Int32] = []
+--- a/heap_type.mbt
++++ b/heap_type.mbt
+@@ -5 +5 @@
+-  heap_type : Int,
++  heap_type : Int32,
+@@ -17 +17 @@
+-      -23 => ExnRef
++      -23 => if nullable { ExnRef } else { HeapRef(false, false, -23) }
+@@ -19,3 +19,3 @@
+-      -14 => NullExternRef
+-      -13 => NullFuncRef
+-      -12 => NullExnRef
++      -14 => if nullable { NullExternRef } else { HeapRef(false, false, -14) }
++      -13 => if nullable { NullFuncRef } else { HeapRef(false, false, -13) }
++      -12 => if nullable { NullExnRef } else { HeapRef(false, false, -12) }
+--- a/numeric_limits.mbt
++++ b/numeric_limits.mbt
+@@ -3 +3 @@
+-pub const I8_MAX : Int = 0x7F
++pub const I8_MAX : Int32 = 0x7F
+@@ -7 +7 @@
+-pub const U8_MAX : Int = 0xFF
++pub const U8_MAX : Int32 = 0xFF
+@@ -11 +11 @@
+-pub const ASCII_DEL : Int = 0x7F
++pub const ASCII_DEL : Int32 = 0x7F
+@@ -15 +15 @@
+-pub const F32_EXP_BIAS : Int = 0x7F
++pub const F32_EXP_BIAS : Int32 = 0x7F
+@@ -19 +19 @@
+-pub const F32_EXP_INF_NAN : Int = 0xFF
++pub const F32_EXP_INF_NAN : Int32 = 0xFF
+@@ -23 +23 @@
+-pub const F32_CANONICAL_NAN_BITS : Int = 0x7FC00000
++pub const F32_CANONICAL_NAN_BITS : Int32 = 0x7FC00000
+@@ -27 +27 @@
+-pub const I32_MIN : Int = -0x80000000
++pub const I32_MIN : Int32 = -0x80000000
+@@ -31 +31 @@
+-pub const I32_MAX : Int = 0x7FFFFFFF
++pub const I32_MAX : Int32 = 0x7FFFFFFF
+@@ -51 +51 @@
+-pub const U32_MAX : UInt = 0xFFFFFFFFU
++pub const U32_MAX : UInt32 = 0xFFFFFFFFU
+@@ -79 +79 @@
+-pub const ONE_MIB_BYTES : Int = 1 << 20
++pub const ONE_MIB_BYTES : Int32 = 1 << 20
+--- a/subtyping.mbt
++++ b/subtyping.mbt
+@@ -17,4 +17,4 @@
+-  rec_groups1 : Array[Int]
+-  rec_groups2 : Array[Int]
+-  canonical1 : Array[Int]
+-  canonical2 : Array[Int]
++  rec_groups1 : Array[Int32]
++  rec_groups2 : Array[Int32]
++  canonical1 : Array[Int32]
++  canonical2 : Array[Int32]
+@@ -22 +22,2 @@
+-  visited : Map[(Int, Int), Bool]
++  visited : Map[(Int32, Int32), Bool]
++  equivalence : TypeEquivalenceContext
+@@ -29,2 +30,2 @@
+-  rec_groups? : Array[Int] = [],
+-  canonical? : Array[Int] = [],
++  rec_groups~ : Array[Int32] = [],
++  canonical~ : Array[Int32] = [],
+@@ -40,0 +42,4 @@
++    equivalence: TypeEquivalenceContext::same_module(
++      types,
++      type_rec_groups=rec_groups,
++    ),
+@@ -49,4 +54,4 @@
+-  rec_groups1? : Array[Int] = [],
+-  rec_groups2? : Array[Int] = [],
+-  canonical1? : Array[Int] = [],
+-  canonical2? : Array[Int] = [],
++  rec_groups1~ : Array[Int32] = [],
++  rec_groups2~ : Array[Int32] = [],
++  canonical1~ : Array[Int32] = [],
++  canonical2~ : Array[Int32] = [],
+@@ -62,0 +68,6 @@
++    equivalence: TypeEquivalenceContext::cross_module(
++      types1,
++      types2,
++      rec_groups1~,
++      rec_groups2~,
++    ),
+@@ -75,17 +86,24 @@
+-  idx1 : Int,
+-  idx2 : Int,
+-) -> Bool {
+-  // Same index in same module means same type
+-  if !self.cross_module && idx1 == idx2 {
+-    return true
+-  }
+-  // Bounds check
+-  if idx1 < 0 ||
+-    idx1 >= self.types1.length() ||
+-    idx2 < 0 ||
+-    idx2 >= self.types2.length() {
+-    return false
+-  }
+-  // Check cache to handle cycles
+-  let key = (idx1, idx2)
+-  if self.visited.get(key) is Some(result) {
++  idx1 : Int32,
++  idx2 : Int32,
++) -> Bool {
++  self.is_subtype_direction(idx1, idx2, false)
++}
++
++///|
++/// Reverse comparisons keep the module of each index explicit, including
++/// contravariant function parameters in cross-module declarations.
++fn SubtypingContext::is_subtype_direction(
++  self : SubtypingContext,
++  subtype : Int32,
++  supertype : Int32,
++  reverse : Bool,
++) -> Bool {
++  let source = if reverse { self.types2 } else { self.types1 }
++  let target = if reverse { self.types1 } else { self.types2 }
++  if subtype < 0 ||
++    subtype >= source.length() ||
++    supertype < 0 ||
++    supertype >= target.length() {
++    return false
++  }
++  if !reverse && self.visited.get((subtype, supertype)) is Some(result) {
+@@ -94,14 +112,26 @@
+-  // Assume true to break cycles (if we reach here again, types are compatible)
+-  self.visited[key] = true
+-
+-  // 1. Check type equality
+-  if self.cross_module {
+-    // For cross-module, use structural equivalence with rec group handling
+-    let equiv_ctx = TypeEquivalenceContext::cross_module(
+-      self.types1,
+-      self.types2,
+-      rec_groups1=self.rec_groups1,
+-      rec_groups2=self.rec_groups2,
+-    )
+-    if equiv_ctx.types_equivalent(idx1, idx2) {
+-      self.visited[key] = true
++  let work = [subtype]
++  let seen : Map[Int32, Bool] = Map([])
++  while work.pop() is Some(index) {
++    if !self.equivalence.charge(1) {
++      return false
++    }
++    if seen.contains(index) {
++      continue
++    }
++    seen[index] = true
++    let equal = if !self.cross_module &&
++      self.canonical1.get(index) is Some(ca) &&
++      self.canonical2.get(supertype) is Some(cb) {
++      ca == cb
++    } else if reverse {
++      self.equivalence.types_equivalent(supertype, index)
++    } else {
++      self.equivalence.types_equivalent(index, supertype)
++    }
++    if self.work_exhausted() {
++      return false
++    }
++    if equal {
++      if !reverse {
++        self.visited[(subtype, supertype)] = true
++      }
+@@ -110,20 +140,12 @@
+-    // For same-module, use canonical indices
+-  } else if self.canonical1.length() > 0 &&
+-    self.canonical2.length() > 0 &&
+-    idx1 < self.canonical1.length() &&
+-    idx2 < self.canonical2.length() {
+-    if self.canonical1[idx1] == self.canonical2[idx2] {
+-      self.visited[key] = true
+-      return true
+-    }
+-  }
+-  let t1 = self.types1[idx1]
+-  // 2. Check if idx2 is in idx1's supertype chain (declared subtyping)
+-  for super_idx in t1.supertypes {
+-    if self.is_subtype(super_idx, idx2) {
+-      self.visited[key] = true
+-      return true
+-    }
+-  }
+-  // Isorecursive types: no structural subtyping at runtime
+-  self.visited[key] = false
++    if !self.equivalence.charge(source[index].supertypes.length()) {
++      return false
++    }
++    for parent in source[index].supertypes {
++      if parent >= 0 && parent < source.length() {
++        work.push(parent)
++      }
++    }
++  }
++  if !reverse {
++    self.visited[(subtype, supertype)] = false
++  }
+@@ -139,4 +161,7 @@
+-  idx1 : Int,
+-  idx2 : Int,
+-) -> Bool {
+-  match (c1, c2) {
++  idx1 : Int32,
++  idx2 : Int32,
++) -> Bool {
++  if c1.is_shared() != c2.is_shared() {
++    return false
++  }
++  match (c1.unshared(), c2.unshared()) {
+@@ -161,2 +186,2 @@
+-  _idx1 : Int,
+-  _idx2 : Int,
++  _idx1 : Int32,
++  _idx2 : Int32,
+@@ -171 +196 @@
+-    if !self.value_type_subtype(p2, f1.params[i]) {
++    if !self.value_type_subtype_direction(p2, f1.params[i], self.cross_module) {
+@@ -193,2 +218,2 @@
+-  idx1 : Int,
+-  idx2 : Int,
++  idx1 : Int32,
++  idx2 : Int32,
+@@ -218,2 +243,2 @@
+-  idx1 : Int,
+-  idx2 : Int,
++  idx1 : Int32,
++  idx2 : Int32,
+@@ -232,2 +257,2 @@
+-  idx1 : Int,
+-  idx2 : Int,
++  idx1 : Int32,
++  idx2 : Int32,
+@@ -254,2 +279,2 @@
+-  _idx1 : Int,
+-  _idx2 : Int,
++  _idx1 : Int32,
++  _idx2 : Int32,
+@@ -270,2 +295,2 @@
+-  idx1 : Int,
+-  idx2 : Int,
++  idx1 : Int32,
++  idx2 : Int32,
+@@ -286,80 +311,35 @@
+-  _idx1? : Int = 0,
+-  _idx2? : Int = 0,
+-) -> Bool {
+-  match (v1, v2) {
+-    (RefContTyped(a), RefContTyped(b))
+-    | (RefContTyped(a), RefNullContTyped(b))
+-    | (RefNullContTyped(a), RefNullContTyped(b)) => return self.is_subtype(a, b)
+-    (RefContTyped(_), RefCont | ContRef) | (RefNullContTyped(_), ContRef) =>
+-      return true
+-    (RefCont, ContRef) => return true
+-    (NullContRef, ContRef | RefNullContTyped(_)) => return true
+-    (
+-      RefNoCont,
+-      ContRef
+-      | RefCont
+-      | NullContRef
+-      | RefContTyped(_)
+-      | RefNullContTyped(_),
+-    ) => return true
+-    _ => ()
+-  }
+-  if v1 == v2 {
+-    return true
+-  }
+-  // Helper: check if a type is an internal reference type
+-  fn is_internal_ref(t : ValueType) -> Bool {
+-    match t {
+-      RefAny | AnyRef | RefEq | RefNullEq | RefI31 | RefNullI31 => true
+-      RefStruct(_) | RefNullStruct(_) | RefArray(_) | RefNullArray(_) => true
+-      RefNone | NullRef => true
+-      _ => false
+-    }
+-  }
+-
+-  match (v1, v2) {
+-    // Non-null to nullable of same base type
+-    (RefFuncTyped(t1), RefNullFuncTyped(t2)) => self.is_subtype(t1, t2)
+-    (RefStruct(t1), RefNullStruct(t2)) => t2 == -1 || self.is_subtype(t1, t2)
+-    (RefArray(t1), RefNullArray(t2)) => t2 == -1 || self.is_subtype(t1, t2)
+-    (RefI31, RefNullI31) => true
+-    (RefEq, RefNullEq) => true
+-    (RefAny, AnyRef) => true
+-    (RefFunc, FuncRef) => true
+-    (RefExtern, ExternRef) => true
+-    // Typed to abstract struct/array
+-    (RefStruct(_), RefStruct(-1)) => true
+-    (RefNullStruct(_), RefNullStruct(-1)) => true
+-    (RefArray(_), RefArray(-1)) => true
+-    (RefNullArray(_), RefNullArray(-1)) => true
+-    // Struct/array/i31 to eqref
+-    (RefStruct(_), RefEq) => true
+-    (RefStruct(_), RefNullEq) => true
+-    (RefNullStruct(_), RefNullEq) => true
+-    (RefArray(_), RefEq) => true
+-    (RefArray(_), RefNullEq) => true
+-    (RefNullArray(_), RefNullEq) => true
+-    (RefI31, RefEq) => true
+-    (RefI31, RefNullEq) => true
+-    (RefNullI31, RefNullEq) => true
+-    // Everything internal to anyref
+-    (_, RefAny) => is_internal_ref(v1) && !v1.is_nullable()
+-    (_, AnyRef) => is_internal_ref(v1)
+-    // Typed func refs to funcref
+-    (RefFuncTyped(_), RefFunc) => true
+-    (RefFuncTyped(_), FuncRef) => true
+-    (RefNullFuncTyped(_), FuncRef) => true
+-    // bottom types
+-    (RefNone, RefNullStruct(_)) => true
+-    (RefNone, RefNullArray(_)) => true
+-    (RefNone, RefNullEq) => true
+-    (RefNone, RefNullI31) => true
+-    (NullFuncRef, FuncRef) => true
+-    (NullExternRef, ExternRef) => true
+-    // Typed references subtyping via declared supertypes
+-    (RefFuncTyped(t1), RefFuncTyped(t2)) => self.is_subtype(t1, t2)
+-    (RefNullFuncTyped(t1), RefNullFuncTyped(t2)) => self.is_subtype(t1, t2)
+-    (RefStruct(t1), RefStruct(t2)) => self.is_subtype(t1, t2)
+-    (RefNullStruct(t1), RefNullStruct(t2)) => self.is_subtype(t1, t2)
+-    (RefArray(t1), RefArray(t2)) => self.is_subtype(t1, t2)
+-    (RefNullArray(t1), RefNullArray(t2)) => self.is_subtype(t1, t2)
++  _idx1~ : Int32 = 0,
++  _idx2~ : Int32 = 0,
++) -> Bool {
++  self.value_type_subtype_direction(v1, v2, false)
++}
++
++///|
++fn SubtypingContext::value_type_subtype_direction(
++  self : SubtypingContext,
++  v1 : ValueType,
++  v2 : ValueType,
++  reverse : Bool,
++) -> Bool {
++  let source = if reverse { self.types2 } else { self.types1 }
++  let target = if reverse { self.types1 } else { self.types2 }
++  match (v1.heap(), v2.heap()) {
++    (None, None) => v1 == v2
++    (Some((an, ash, ah)), Some((bn, bsh, bh))) => {
++      if ash != bsh || (an && !bn) {
++        return false
++      }
++      if ah >= 0 && bh >= 0 {
++        return self.is_subtype_direction(ah, bh, reverse)
++      }
++      if ah >= 0 {
++        guard source.get(ah) is Some(type_) else { return false }
++        abstract_heap_subtype(composite_heap(type_.composite), bh)
++      } else if bh >= 0 {
++        guard target.get(bh) is Some(type_) else { return false }
++        abstract_heap_subtype(ah, composite_heap(type_.composite)) &&
++        is_bottom_heap(ah)
++      } else {
++        abstract_heap_subtype(ah, bh)
++      }
++    }
+@@ -376,18 +356,15 @@
+-  _idx1 : Int,
+-  _idx2 : Int,
+-) -> Bool {
+-  if v1 == v2 {
+-    return true
+-  }
+-  // For typed references, check if they refer to equivalent types
+-  match (v1, v2) {
+-    (RefFuncTyped(t1), RefFuncTyped(t2)) => self.types_equivalent(t1, t2)
+-    (RefNullFuncTyped(t1), RefNullFuncTyped(t2)) =>
+-      self.types_equivalent(t1, t2)
+-    (RefStruct(t1), RefStruct(t2)) => self.types_equivalent(t1, t2)
+-    (RefNullStruct(t1), RefNullStruct(t2)) => self.types_equivalent(t1, t2)
+-    (RefArray(t1), RefArray(t2)) => self.types_equivalent(t1, t2)
+-    (RefContTyped(t1), RefContTyped(t2))
+-    | (RefNullContTyped(t1), RefNullContTyped(t2)) =>
+-      self.types_equivalent(t1, t2)
+-    (RefNullArray(t1), RefNullArray(t2)) => self.types_equivalent(t1, t2)
++  _idx1 : Int32,
++  _idx2 : Int32,
++) -> Bool {
++  match (v1.heap(), v2.heap()) {
++    (None, None) => v1 == v2
++    (Some((an, ash, ah)), Some((bn, bsh, bh))) => {
++      if an != bn || ash != bsh {
++        return false
++      }
++      if ah < 0 || bh < 0 {
++        ah == bh
++      } else {
++        self.types_equivalent(ah, bh)
++      }
++    }
+@@ -404,16 +381,3 @@
+-  t1 : Int,
+-  t2 : Int,
+-) -> Bool {
+-  // Same index in same module
+-  if !self.cross_module && t1 == t2 {
+-    return true
+-  }
+-  // Check canonical indices
+-  if self.canonical1.length() > 0 &&
+-    self.canonical2.length() > 0 &&
+-    t1 < self.canonical1.length() &&
+-    t2 < self.canonical2.length() {
+-    return self.canonical1[t1] == self.canonical2[t2]
+-  }
+-  // For cross-module without canonical indices, require exact structural match
+-  // This is a simplified check; full check would need TypeEquivalenceContext
++  t1 : Int32,
++  t2 : Int32,
++) -> Bool {
+@@ -426 +390,6 @@
+-  self.types1[t1].composite == self.types2[t2].composite
++  if !self.cross_module &&
++    self.canonical1.get(t1) is Some(a) &&
++    self.canonical2.get(t2) is Some(b) {
++    return a == b
++  }
++  self.equivalence.types_equivalent(t1, t2)
+@@ -435,2 +404,2 @@
+-  sub_idx : Int,
+-  super_idx : Int,
++  sub_idx : Int32,
++  super_idx : Int32,
+@@ -451 +420,5 @@
+-  let kind_matches = match (sub_type.composite, super_type.composite) {
++  if sub_type.composite.is_shared() != super_type.composite.is_shared() {
++    return false
++  }
++  let kind_matches = match
++    (sub_type.composite.unshared(), super_type.composite.unshared()) {
+--- a/trait_extensions.mbt
++++ b/trait_extensions.mbt
+@@ -212,0 +213,6 @@
++
++///|
++pub extend LegacyCatch with Debug::{to_repr}
++
++///|
++pub extend LegacyCatch with Eq::{not_equal, equal}
+--- a/types.mbt
++++ b/types.mbt
+@@ -14,0 +15,2 @@
++  // Exact reference form for shared heaps and non-null abstract bottom types.
++  HeapRef(Bool, Bool, Int32) // nullable, shared, signed heap code or type index
+@@ -20,2 +22,2 @@
+-  RefFuncTyped(Int) // non-null typed function reference (ref $t)
+-  RefNullFuncTyped(Int) // nullable typed function reference (ref null $t)
++  RefFuncTyped(Int32) // non-null typed function reference (ref $t)
++  RefNullFuncTyped(Int32) // nullable typed function reference (ref null $t)
+@@ -24,2 +26,2 @@
+-  RefContTyped(Int)
+-  RefNullContTyped(Int)
++  RefContTyped(Int32)
++  RefNullContTyped(Int32)
+@@ -34,4 +36,4 @@
+-  RefStruct(Int) // non-null typed struct reference (ref $t)
+-  RefNullStruct(Int) // nullable typed struct reference (ref null $t)
+-  RefArray(Int) // non-null typed array reference (ref $t)
+-  RefNullArray(Int) // nullable typed array reference (ref null $t)
++  RefStruct(Int32) // non-null typed struct reference (ref $t)
++  RefNullStruct(Int32) // nullable typed struct reference (ref null $t)
++  RefArray(Int32) // non-null typed array reference (ref $t)
++  RefNullArray(Int32) // nullable typed array reference (ref null $t)
+@@ -57,0 +60 @@
++    HeapRef(nullable, _, _) => nullable
+@@ -127 +130,4 @@
+-  Cont(Int)
++  Cont(Int32)
++  SharedFunc(FuncType)
++  SharedStruct(StructType)
++  SharedArray(ArrayType)
+@@ -134 +140 @@
+-  supertypes : Array[Int] // indices of supertypes (0 or 1 for MVP)
++  supertypes : Array[Int32] // indices of supertypes (0 or 1 for MVP)
+@@ -172 +178 @@
+-  I32(Int)
++  I32(Int32)
+@@ -177,3 +183,3 @@
+-  FuncRef(Int) // function index
+-  ExternRef(Int) // external reference
+-  ExnRef(Int) // exception reference (index into exception store)
++  FuncRef(Int32) // function index
++  ExternRef(Int32) // external reference
++  ExnRef(Int32) // exception reference (index into exception store)
+@@ -182,3 +188,3 @@
+-  StructRef(Int) // struct reference (index into GC heap)
+-  ArrayRef(Int) // array reference (index into GC heap)
+-  I31(Int) // i31ref value (31-bit integer, stored directly)
++  StructRef(Int32) // struct reference (index into GC heap)
++  ArrayRef(Int32) // array reference (index into GC heap)
++  I31(Int32) // i31ref value (31-bit integer, stored directly)
+@@ -201,3 +207,3 @@
+-  Br(Int) // label index
+-  BrIf(Int)
+-  BrTable(Array[Int], Int) // labels, default
++  Br(Int32) // label index
++  BrIf(Int32)
++  BrTable(Array[Int32], Int32) // labels, default
+@@ -205,6 +211,6 @@
+-  Call(Int) // function index
+-  CallIndirect(Int, Int) // type index, table index
+-  CallRef(Int) // type index (WasmGC)
+-  ReturnCall(Int) // function index (tail call)
+-  ReturnCallIndirect(Int, Int) // type index, table index (tail call)
+-  ReturnCallRef(Int) // type index (tail call, WasmGC)
++  Call(Int32) // function index
++  CallIndirect(Int32, Int32) // type index, table index
++  CallRef(Int32) // type index (WasmGC)
++  ReturnCall(Int32) // function index (tail call)
++  ReturnCallIndirect(Int32, Int32) // type index, table index (tail call)
++  ReturnCallRef(Int32) // type index (tail call, WasmGC)
+@@ -213 +219 @@
+-  Throw(Int) // tag index - throw exception with tag
++  Throw(Int32) // tag index - throw exception with tag
+@@ -214,0 +221,2 @@
++  Rethrow(Int32) // depth of an enclosing legacy catch
++  LegacyTry(BlockType, Array[Instruction], Array[LegacyCatch], Int32?)
+@@ -216,7 +224,7 @@
+-  ContNew(Int)
+-  ContBind(Int, Int)
+-  Suspend(Int)
+-  Resume(Int, Array[ResumeHandler])
+-  ResumeThrow(Int, Int, Array[ResumeHandler])
+-  ResumeThrowRef(Int, Array[ResumeHandler])
+-  Switch(Int, Int)
++  ContNew(Int32)
++  ContBind(Int32, Int32)
++  Suspend(Int32)
++  Resume(Int32, Array[ResumeHandler])
++  ResumeThrow(Int32, Int32, Array[ResumeHandler])
++  ResumeThrowRef(Int32, Array[ResumeHandler])
++  Switch(Int32, Int32)
+@@ -230,5 +238,5 @@
+-  LocalGet(Int)
+-  LocalSet(Int)
+-  LocalTee(Int)
+-  GlobalGet(Int)
+-  GlobalSet(Int)
++  LocalGet(Int32)
++  LocalSet(Int32)
++  LocalTee(Int32)
++  GlobalGet(Int32)
++  GlobalSet(Int32)
+@@ -237,7 +245,7 @@
+-  TableGet(Int) // table index
+-  TableSet(Int) // table index
+-  TableSize(Int) // table index
+-  TableGrow(Int) // table index
+-  TableFill(Int) // table index
+-  TableCopy(Int, Int) // dest table index, src table index
+-  TableInit(Int, Int) // table index, elem index
++  TableGet(Int32) // table index
++  TableSet(Int32) // table index
++  TableSize(Int32) // table index
++  TableGrow(Int32) // table index
++  TableFill(Int32) // table index
++  TableCopy(Int32, Int32) // dest table index, src table index
++  TableInit(Int32, Int32) // table index, elem index
+@@ -247,30 +255,30 @@
+-  I32Load(Int, Int, Int64) // memidx, align, offset
+-  I64Load(Int, Int, Int64)
+-  F32Load(Int, Int, Int64)
+-  F64Load(Int, Int, Int64)
+-  I32Load8S(Int, Int, Int64)
+-  I32Load8U(Int, Int, Int64)
+-  I32Load16S(Int, Int, Int64)
+-  I32Load16U(Int, Int, Int64)
+-  I64Load8S(Int, Int, Int64)
+-  I64Load8U(Int, Int, Int64)
+-  I64Load16S(Int, Int, Int64)
+-  I64Load16U(Int, Int, Int64)
+-  I64Load32S(Int, Int, Int64)
+-  I64Load32U(Int, Int, Int64)
+-  I32Store(Int, Int, Int64)
+-  I64Store(Int, Int, Int64)
+-  F32Store(Int, Int, Int64)
+-  F64Store(Int, Int, Int64)
+-  I32Store8(Int, Int, Int64)
+-  I32Store16(Int, Int, Int64)
+-  I64Store8(Int, Int, Int64)
+-  I64Store16(Int, Int, Int64)
+-  I64Store32(Int, Int, Int64)
+-  MemorySize(Int) // memidx
+-  MemoryGrow(Int) // memidx
+-  MemoryInit(Int, Int) // memidx, data segment index
+-  DataDrop(Int) // data segment index
+-  MemoryCopy(Int, Int) // dest memidx, src memidx
+-  MemoryFill(Int) // memidx
+-  ElemDrop(Int) // element segment index
++  I32Load(Int32, Int32, Int64) // memidx, align, offset
++  I64Load(Int32, Int32, Int64)
++  F32Load(Int32, Int32, Int64)
++  F64Load(Int32, Int32, Int64)
++  I32Load8S(Int32, Int32, Int64)
++  I32Load8U(Int32, Int32, Int64)
++  I32Load16S(Int32, Int32, Int64)
++  I32Load16U(Int32, Int32, Int64)
++  I64Load8S(Int32, Int32, Int64)
++  I64Load8U(Int32, Int32, Int64)
++  I64Load16S(Int32, Int32, Int64)
++  I64Load16U(Int32, Int32, Int64)
++  I64Load32S(Int32, Int32, Int64)
++  I64Load32U(Int32, Int32, Int64)
++  I32Store(Int32, Int32, Int64)
++  I64Store(Int32, Int32, Int64)
++  F32Store(Int32, Int32, Int64)
++  F64Store(Int32, Int32, Int64)
++  I32Store8(Int32, Int32, Int64)
++  I32Store16(Int32, Int32, Int64)
++  I64Store8(Int32, Int32, Int64)
++  I64Store16(Int32, Int32, Int64)
++  I64Store32(Int32, Int32, Int64)
++  MemorySize(Int32) // memidx
++  MemoryGrow(Int32) // memidx
++  MemoryInit(Int32, Int32) // memidx, data segment index
++  DataDrop(Int32) // data segment index
++  MemoryCopy(Int32, Int32) // dest memidx, src memidx
++  MemoryFill(Int32) // memidx
++  ElemDrop(Int32) // element segment index
+@@ -281 +289 @@
+-  Atomic(Int, Int, Int, Int64)
++  Atomic(Int32, Int32, Int32, Int64)
+@@ -286 +294 @@
+-  RefFunc(Int) // ref.func: push reference to function by index
++  RefFunc(Int32) // ref.func: push reference to function by index
+@@ -289,2 +297,2 @@
+-  BrOnNull(Int) // br_on_null: branch if reference is null
+-  BrOnNonNull(Int) // br_on_non_null: branch if reference is non-null
++  BrOnNull(Int32) // br_on_null: branch if reference is null
++  BrOnNonNull(Int32) // br_on_non_null: branch if reference is non-null
+@@ -293 +301 @@
+-  I32Const(Int)
++  I32Const(Int32)
+@@ -453,6 +461,6 @@
+-  StructNew(Int) // type index
+-  StructNewDefault(Int) // type index
+-  StructGet(Int, Int) // type index, field index
+-  StructGetS(Int, Int) // type index, field index (signed packed)
+-  StructGetU(Int, Int) // type index, field index (unsigned packed)
+-  StructSet(Int, Int) // type index, field index
++  StructNew(Int32) // type index
++  StructNewDefault(Int32) // type index
++  StructGet(Int32, Int32) // type index, field index
++  StructGetS(Int32, Int32) // type index, field index (signed packed)
++  StructGetU(Int32, Int32) // type index, field index (unsigned packed)
++  StructSet(Int32, Int32) // type index, field index
+@@ -461,9 +469,9 @@
+-  ArrayNew(Int) // type index
+-  ArrayNewDefault(Int) // type index
+-  ArrayNewFixed(Int, Int) // type index, length
+-  ArrayNewData(Int, Int) // type index, data index
+-  ArrayNewElem(Int, Int) // type index, elem index
+-  ArrayGet(Int) // type index
+-  ArrayGetS(Int) // type index (signed packed)
+-  ArrayGetU(Int) // type index (unsigned packed)
+-  ArraySet(Int) // type index
++  ArrayNew(Int32) // type index
++  ArrayNewDefault(Int32) // type index
++  ArrayNewFixed(Int32, Int32) // type index, length
++  ArrayNewData(Int32, Int32) // type index, data index
++  ArrayNewElem(Int32, Int32) // type index, elem index
++  ArrayGet(Int32) // type index
++  ArrayGetS(Int32) // type index (signed packed)
++  ArrayGetU(Int32) // type index (unsigned packed)
++  ArraySet(Int32) // type index
+@@ -471,4 +479,4 @@
+-  ArrayFill(Int) // type index
+-  ArrayCopy(Int, Int) // dest type index, src type index
+-  ArrayInitData(Int, Int) // type index, data index
+-  ArrayInitElem(Int, Int) // type index, elem index
++  ArrayFill(Int32) // type index
++  ArrayCopy(Int32, Int32) // dest type index, src type index
++  ArrayInitData(Int32, Int32) // type index, data index
++  ArrayInitElem(Int32, Int32) // type index, elem index
+@@ -481,2 +489,2 @@
+-  BrOnCast(Int, ValueType, ValueType) // label, from type, to type
+-  BrOnCastFail(Int, ValueType, ValueType) // label, from type, to type
++  BrOnCast(Int32, ValueType, ValueType) // label, from type, to type
++  BrOnCastFail(Int32, ValueType, ValueType) // label, from type, to type
+@@ -485,0 +494 @@
++  RefI31Shared // create a shared i31 reference from i32
+@@ -501,14 +510,14 @@
+-  V128Load(Int, Int, Int64)
+-  V128Load8x8S(Int, Int, Int64)
+-  V128Load8x8U(Int, Int, Int64)
+-  V128Load16x4S(Int, Int, Int64)
+-  V128Load16x4U(Int, Int, Int64)
+-  V128Load32x2S(Int, Int, Int64)
+-  V128Load32x2U(Int, Int, Int64)
+-  V128Load8Splat(Int, Int, Int64)
+-  V128Load16Splat(Int, Int, Int64)
+-  V128Load32Splat(Int, Int, Int64)
+-  V128Load64Splat(Int, Int, Int64)
+-  V128Load32Zero(Int, Int, Int64)
+-  V128Load64Zero(Int, Int, Int64)
+-  V128Store(Int, Int, Int64)
++  V128Load(Int32, Int32, Int64)
++  V128Load8x8S(Int32, Int32, Int64)
++  V128Load8x8U(Int32, Int32, Int64)
++  V128Load16x4S(Int32, Int32, Int64)
++  V128Load16x4U(Int32, Int32, Int64)
++  V128Load32x2S(Int32, Int32, Int64)
++  V128Load32x2U(Int32, Int32, Int64)
++  V128Load8Splat(Int32, Int32, Int64)
++  V128Load16Splat(Int32, Int32, Int64)
++  V128Load32Splat(Int32, Int32, Int64)
++  V128Load64Splat(Int32, Int32, Int64)
++  V128Load32Zero(Int32, Int32, Int64)
++  V128Load64Zero(Int32, Int32, Int64)
++  V128Store(Int32, Int32, Int64)
+@@ -517,8 +526,8 @@
+-  V128Load8Lane(Int, Int, Int64, Int)
+-  V128Load16Lane(Int, Int, Int64, Int)
+-  V128Load32Lane(Int, Int, Int64, Int)
+-  V128Load64Lane(Int, Int, Int64, Int)
+-  V128Store8Lane(Int, Int, Int64, Int)
+-  V128Store16Lane(Int, Int, Int64, Int)
+-  V128Store32Lane(Int, Int, Int64, Int)
+-  V128Store64Lane(Int, Int, Int64, Int)
++  V128Load8Lane(Int32, Int32, Int64, Int32)
++  V128Load16Lane(Int32, Int32, Int64, Int32)
++  V128Load32Lane(Int32, Int32, Int64, Int32)
++  V128Load64Lane(Int32, Int32, Int64, Int32)
++  V128Store8Lane(Int32, Int32, Int64, Int32)
++  V128Store16Lane(Int32, Int32, Int64, Int32)
++  V128Store32Lane(Int32, Int32, Int64, Int32)
++  V128Store64Lane(Int32, Int32, Int64, Int32)
+@@ -527 +536 @@
+-  I8x16Shuffle(FixedArray[Int]) // 16 lane indices
++  I8x16Shuffle(FixedArray[Int32]) // 16 lane indices
+@@ -539,8 +548,8 @@
+-  I8x16ExtractLaneS(Int)
+-  I8x16ExtractLaneU(Int)
+-  I16x8ExtractLaneS(Int)
+-  I16x8ExtractLaneU(Int)
+-  I32x4ExtractLane(Int)
+-  I64x2ExtractLane(Int)
+-  F32x4ExtractLane(Int)
+-  F64x2ExtractLane(Int)
++  I8x16ExtractLaneS(Int32)
++  I8x16ExtractLaneU(Int32)
++  I16x8ExtractLaneS(Int32)
++  I16x8ExtractLaneU(Int32)
++  I32x4ExtractLane(Int32)
++  I64x2ExtractLane(Int32)
++  F32x4ExtractLane(Int32)
++  F64x2ExtractLane(Int32)
+@@ -549,6 +558,6 @@
+-  I8x16ReplaceLane(Int)
+-  I16x8ReplaceLane(Int)
+-  I32x4ReplaceLane(Int)
+-  I64x2ReplaceLane(Int)
+-  F32x4ReplaceLane(Int)
+-  F64x2ReplaceLane(Int)
++  I8x16ReplaceLane(Int32)
++  I16x8ReplaceLane(Int32)
++  I32x4ReplaceLane(Int32)
++  I64x2ReplaceLane(Int32)
++  F32x4ReplaceLane(Int32)
++  F64x2ReplaceLane(Int32)
+@@ -805 +814,8 @@
+-  TypeIndex(Int)
++  TypeIndex(Int32)
++} derive(Eq, Debug)
++
++///|
++/// A legacy catch arm. A missing tag is catch_all.
++pub(all) struct LegacyCatch {
++  tag : Int32?
++  body : Array[Instruction]
+@@ -811,4 +827,4 @@
+-  Catch(Int, Int) // (tag_idx, label_idx) - catch specific tag
+-  CatchRef(Int, Int) // (tag_idx, label_idx) - catch specific tag with exnref
+-  CatchAll(Int) // (label_idx) - catch any exception
+-  CatchAllRef(Int) // (label_idx) - catch any exception with exnref
++  Catch(Int32, Int32) // (tag_idx, label_idx) - catch specific tag
++  CatchRef(Int32, Int32) // (tag_idx, label_idx) - catch specific tag with exnref
++  CatchAll(Int32) // (label_idx) - catch any exception
++  CatchAllRef(Int32) // (label_idx) - catch any exception with exnref
+@@ -819,2 +835,2 @@
+-  OnLabel(Int, Int) // tag index and branch label
+-  OnSwitch(Int) // switch tag index
++  OnLabel(Int32, Int32) // tag index and branch label
++  OnSwitch(Int32) // switch tag index
+@@ -837 +853 @@
+-pub fn FuncType::structural_hash(self : FuncType) -> Int {
++pub fn FuncType::structural_hash(self : FuncType) -> Int32 {
+@@ -859 +875 @@
+-fn ValueType::type_code(self : ValueType) -> Int {
++fn ValueType::type_code(self : ValueType) -> Int32 {
+@@ -860,0 +877,5 @@
++    HeapRef(nullable, shared, heap) =>
++      1000 +
++      heap * 4 +
++      (if nullable { 1 } else { 0 }) +
++      (if shared { 2 } else { 0 })
+@@ -909,2 +930,2 @@
+-  self_idx : Int,
+-  other_idx : Int,
++  self_idx : Int32,
++  other_idx : Int32,
+@@ -943,2 +964,2 @@
+-  self_idx : Int,
+-  other_idx : Int,
++  self_idx : Int32,
++  other_idx : Int32,
+@@ -1014 +1035 @@
+-  page_size_log2 : Int // custom-page-sizes proposal (default: 16 for 64KiB)
++  page_size_log2 : Int32 // custom-page-sizes proposal (default: 16 for 64KiB)
+@@ -1032,0 +1054 @@
++  is_shared : Bool
+@@ -1046,0 +1069 @@
++  is_shared : Bool
+@@ -1053 +1076 @@
+-  type_idx : Int // Index into the types array (must be a function type with no results)
++  type_idx : Int32 // Index into the types array (must be a function type with no results)
+@@ -1059 +1082 @@
+-  Func(Int) // type index
++  Func(Int32) // type index
+@@ -1063 +1086 @@
+-  Tag(Int) // type index for exception tag
++  Tag(Int32) // type index for exception tag
+@@ -1077,5 +1100,5 @@
+-  Func(Int) // function index
+-  Table(Int) // table index
+-  Memory(Int) // memory index
+-  Global(Int) // global index
+-  Tag(Int) // tag index
++  Func(Int32) // function index
++  Table(Int32) // table index
++  Memory(Int32) // memory index
++  Global(Int32) // global index
++  Tag(Int32) // tag index
+@@ -1109 +1132 @@
+-  Active(Int, Array[Instruction]) // table_idx, offset_expr
++  Active(Int32, Array[Instruction]) // table_idx, offset_expr
+@@ -1127 +1150 @@
+-  memory_idx : Int
++  memory_idx : Int32
+@@ -1139 +1162 @@
+-  type_rec_groups : Array[Int]
++  type_rec_groups : Array[Int32]
+@@ -1141 +1164 @@
+-  funcs : Array[Int] // type indices for functions
++  funcs : Array[Int32] // type indices for functions
+@@ -1146 +1169 @@
+-  mut start : Int? // start function index
++  mut start : Int32? // start function index
+@@ -1153 +1176 @@
+-  func_names : Map[Int, String]
++  func_names : Map[Int32, String]
+@@ -1389 +1412 @@
+-pub fn Module::func_type_at(self : Module, idx : Int) -> FuncType? {
++pub fn Module::func_type_at(self : Module, idx : Int32) -> FuncType? {
+@@ -1393 +1416 @@
+-  match self.types[idx].composite {
++  match self.types[idx].composite.unshared() {
+@@ -1402 +1425 @@
+-pub fn Module::struct_type_at(self : Module, idx : Int) -> StructType? {
++pub fn Module::struct_type_at(self : Module, idx : Int32) -> StructType? {
+@@ -1406 +1429 @@
+-  match self.types[idx].composite {
++  match self.types[idx].composite.unshared() {
+@@ -1415 +1438 @@
+-pub fn Module::array_type_at(self : Module, idx : Int) -> ArrayType? {
++pub fn Module::array_type_at(self : Module, idx : Int32) -> ArrayType? {
+@@ -1419 +1442 @@
+-  match self.types[idx].composite {
++  match self.types[idx].composite.unshared() {
+@@ -1441 +1464 @@
+-pub fn Module::validated_func_type_at(self : Module, idx : Int) -> FuncType {
++pub fn Module::validated_func_type_at(self : Module, idx : Int32) -> FuncType {
+@@ -1450 +1473,4 @@
+-pub fn Module::validated_struct_type_at(self : Module, idx : Int) -> StructType {
++pub fn Module::validated_struct_type_at(
++  self : Module,
++  idx : Int32,
++) -> StructType {
+@@ -1459 +1485 @@
+-pub fn Module::validated_array_type_at(self : Module, idx : Int) -> ArrayType {
++pub fn Module::validated_array_type_at(self : Module, idx : Int32) -> ArrayType {
+@@ -1468,2 +1494,2 @@
+-pub fn Module::is_func_type(self : Module, idx : Int) -> Bool {
+-  match self.types[idx].composite {
++pub fn Module::is_func_type(self : Module, idx : Int32) -> Bool {
++  match self.types[idx].composite.unshared() {
+@@ -1477,2 +1503,2 @@
+-pub fn Module::is_struct_type(self : Module, idx : Int) -> Bool {
+-  match self.types[idx].composite {
++pub fn Module::is_struct_type(self : Module, idx : Int32) -> Bool {
++  match self.types[idx].composite.unshared() {
+@@ -1486,2 +1512,2 @@
+-pub fn Module::is_array_type(self : Module, idx : Int) -> Bool {
+-  match self.types[idx].composite {
++pub fn Module::is_array_type(self : Module, idx : Int32) -> Bool {
++  match self.types[idx].composite.unshared() {

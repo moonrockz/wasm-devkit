@@ -37,6 +37,9 @@ fn normalize_concrete_limits(
       }
       start += 1
     }
+    if kind == "table" && desc.get(start) is Some(Atom("shared")) {
+      start += 1
+    }
     let wide = desc.get(start) is Some(Atom("i64"))
     if wide || desc.get(start) is Some(Atom("i32")) {
       start += 1

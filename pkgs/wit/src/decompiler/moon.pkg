@@ -6,16 +6,16 @@ import {
   "moonrockz/wit/binary/core_validation",
   "moonrockz/wit/binary/core_printer",
   "Milky2018/wasm_component" @component,
-  "Milky2018/wasm_core/types",
+  "Milky2018/wasm_core/types" @legacy_types,
   "moonbitlang/core/debug",
   "moonbitlang/core/encoding/utf8",
 }
 
 import {
   "moonrockz/wit/decompiler",
-  "Milky2018/wasm_core/wat",
-  "Milky2018/wasm_core/encoder",
-  "Milky2018/wasm_core/types",
+  "moonrockz/wit/binary/core_text" @wat,
+  "moonrockz/wit/binary/core_encoder" @encoder,
+  "moonrockz/wit/binary/core_model" @types,
   "moonrockz/wit/binary/core_parser",
   "moonbitlang/core/quickcheck",
   "moonbitlang/core/encoding/utf8",

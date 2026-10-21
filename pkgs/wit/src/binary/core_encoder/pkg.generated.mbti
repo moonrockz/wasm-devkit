@@ -1,0 +1,25 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonrockz/wit/binary/core_encoder"
+
+import {
+  "moonbitlang/core/debug",
+  "moonrockz/wit/binary/core_model",
+}
+
+// Values
+pub fn encode(@core_model.Module) -> Array[Int] raise EncodingError
+
+// Errors
+pub(all) suberror EncodingError {
+  EncodingError(String)
+} derive(@debug.Debug)
+pub fn EncodingError::output(Self, &Logger) -> Unit
+pub fn EncodingError::to_repr(Self) -> @debug.Repr
+pub fn EncodingError::to_string(Self) -> String
+pub impl Show for EncodingError
+
+// Types and methods
+
+// Type aliases
+
+// Traits

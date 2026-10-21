@@ -1,0 +1,31 @@
+{
+  "exports": [
+    {
+      "name": "target",
+      "signature": {
+        "index64": false,
+        "kind": "memory",
+        "max": null,
+        "min": "2",
+        "page-size-log2": null,
+        "shared": false
+      }
+    },
+    {
+      "name": "load",
+      "signature": {
+        "kind": "func",
+        "signature": {
+          "params": [],
+          "results": [
+            {
+              "kind": "scalar",
+              "name": "i32"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "imports": []
+}

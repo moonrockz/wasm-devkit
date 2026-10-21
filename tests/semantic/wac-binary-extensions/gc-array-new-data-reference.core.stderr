@@ -1,0 +1,1 @@
+type mismatch: array.new_data can only create arrays with numeric and vector elements (at offset 0x21)

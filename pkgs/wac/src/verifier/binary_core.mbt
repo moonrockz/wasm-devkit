@@ -28,9 +28,7 @@ fn BinaryGraph::core_definition(
   let decoded = if section {
     @core_types.decode_section(bytes, current~, outers~)
   } else {
-    @core_types.decode_type(bytes, current~, outers~).map(value => {
-      ReadOnlyArray::from_array([value])
-    })
+    @core_types.decode_declarations(bytes, current~, outers~)
   }
   let definitions = match decoded {
     Ok(values) => values
@@ -41,7 +39,7 @@ fn BinaryGraph::core_definition(
     scope.core_ids.push(
       match definition {
         Module(core) => Some(self.add(Module(core)))
-        Function(_) => None
+        Function(_) | Heap(_) => None
       },
     )
   }

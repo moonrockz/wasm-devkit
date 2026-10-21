@@ -1,0 +1,47 @@
+{
+  "definitions": [],
+  "instance": 0,
+  "name": "test:extensions",
+  "types": {
+    "defined": [],
+    "funcs": [],
+    "interfaces": [
+      {
+        "exports": [
+          [
+            "m",
+            {
+              "module": 0
+            }
+          ]
+        ],
+        "id": null,
+        "uses": []
+      }
+    ],
+    "modules": [
+      {
+        "exports": [],
+        "imports": []
+      }
+    ],
+    "resources": [],
+    "worlds": [
+      {
+        "exports": [
+          [
+            "m",
+            {
+              "module": 0
+            }
+          ]
+        ],
+        "id": null,
+        "imports": [],
+        "uses": []
+      }
+    ]
+  },
+  "version": null,
+  "world": 0
+}

@@ -1,0 +1,149 @@
+{
+  "exports": [
+    {
+      "name": "make",
+      "signature": {
+        "identity": {
+          "index": 2,
+          "types": [
+            {
+              "composite": {
+                "field": {
+                  "mutable": false,
+                  "storage": {
+                    "heap": -18,
+                    "kind": "reference",
+                    "nullable": true,
+                    "shared": false
+                  }
+                },
+                "kind": "array"
+              },
+              "final": false,
+              "group-size": 1,
+              "group-start": 0,
+              "shared": false,
+              "supertype": null
+            },
+            {
+              "composite": {
+                "field": {
+                  "mutable": false,
+                  "storage": {
+                    "heap": -20,
+                    "kind": "reference",
+                    "nullable": true,
+                    "shared": false
+                  }
+                },
+                "kind": "array"
+              },
+              "final": false,
+              "group-size": 1,
+              "group-start": 1,
+              "shared": false,
+              "supertype": 0
+            },
+            {
+              "composite": {
+                "kind": "func",
+                "params": [],
+                "results": [
+                  {
+                    "heap": 0,
+                    "kind": "reference",
+                    "nullable": false,
+                    "shared": false
+                  }
+                ]
+              },
+              "final": true,
+              "group-size": 1,
+              "group-start": 2,
+              "shared": false,
+              "supertype": null
+            }
+          ]
+        },
+        "kind": "func"
+      }
+    },
+    {
+      "name": "child",
+      "signature": {
+        "index64": false,
+        "kind": "table",
+        "max": null,
+        "min": "0",
+        "shared": false,
+        "value": {
+          "identity": {
+            "index": 1,
+            "types": [
+              {
+                "composite": {
+                  "field": {
+                    "mutable": false,
+                    "storage": {
+                      "heap": -18,
+                      "kind": "reference",
+                      "nullable": true,
+                      "shared": false
+                    }
+                  },
+                  "kind": "array"
+                },
+                "final": false,
+                "group-size": 1,
+                "group-start": 0,
+                "shared": false,
+                "supertype": null
+              },
+              {
+                "composite": {
+                  "field": {
+                    "mutable": false,
+                    "storage": {
+                      "heap": -20,
+                      "kind": "reference",
+                      "nullable": true,
+                      "shared": false
+                    }
+                  },
+                  "kind": "array"
+                },
+                "final": false,
+                "group-size": 1,
+                "group-start": 1,
+                "shared": false,
+                "supertype": 0
+              },
+              {
+                "composite": {
+                  "kind": "func",
+                  "params": [],
+                  "results": [
+                    {
+                      "heap": 0,
+                      "kind": "reference",
+                      "nullable": false,
+                      "shared": false
+                    }
+                  ]
+                },
+                "final": true,
+                "group-size": 1,
+                "group-start": 2,
+                "shared": false,
+                "supertype": null
+              }
+            ]
+          },
+          "kind": "concrete-reference",
+          "nullable": true
+        }
+      }
+    }
+  ],
+  "imports": []
+}

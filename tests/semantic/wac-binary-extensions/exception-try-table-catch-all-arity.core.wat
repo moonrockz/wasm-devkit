@@ -1,0 +1,1 @@
+(module  (func  block (result i32) try_table (catch_all 0) unreachable end unreachable end drop))

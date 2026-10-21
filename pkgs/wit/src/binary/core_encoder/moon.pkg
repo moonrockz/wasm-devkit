@@ -1,0 +1,10 @@
+import {
+  "moonbitlang/core/debug",
+  "moonrockz/wit/binary/core_model" @types,
+}
+
+import {
+  "moonrockz/wit/binary/core_encoder",
+  "moonrockz/wit/binary/core_parser",
+  "moonrockz/wit/binary/core_text" @wat,
+} for "test"

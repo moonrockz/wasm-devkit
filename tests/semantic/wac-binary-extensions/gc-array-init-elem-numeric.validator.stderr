@@ -1,0 +1,4 @@
+error: func 0 failed to validate
+
+Caused by:
+    0: type mismatch: array.init_elem can only create arrays with reference elements (at offset 0x32)

@@ -1,0 +1,4 @@
+error: func 0 failed to validate
+
+Caused by:
+    0: type mismatch: expected anyref, found funcref (at offset 0x23)

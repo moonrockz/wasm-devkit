@@ -65,9 +65,9 @@ this external check qualifies fixture or printer changes before landing.
 - WABT rejects some malformed known metadata that wasm-tools recovers from.
   Those failures are recorded per case. wasm-tools recovery comments and raw
   custom-section placement remain part of the exact expected output.
-- `try-table` is valid for both pins but the existing core input profile rejects
-  it before printing. The public API fails in all layouts, and the lower-level
-  compatibility renderer also rejects direct calls with this instruction.
+- `try-table` is valid for both pins and now prints in the default layout.
+  The existing compatibility input profile still rejects exception control,
+  including direct calls to the lower-level compatibility renderer.
 - `component-outer` passes the pinned reference parser but is rejected by the
   repository's existing component validation boundary in both default and
   compatibility modes. It is a profile rejection, not a skipped positive case.
@@ -80,3 +80,7 @@ this external check qualifies fixture or printer changes before landing.
 The normalization, profile boundaries and measured reference/readback boundaries
 have recorded user approval in Beads on 2026-10-20. No additional textual
 normalization applies. Future differences require a new review.
+
+`cases.tsv` records default acceptance separately from the optional eighth
+compatibility-profile column. A rejected compatibility profile still requires
+an explicit failure with no output in each compatibility mode.

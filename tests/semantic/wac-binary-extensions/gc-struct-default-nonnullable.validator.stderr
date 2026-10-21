@@ -1,0 +1,4 @@
+error: func 0 failed to validate
+
+Caused by:
+    0: invalid `struct.new_default`: (ref (id 0)) field is not defaultable (at offset 0x28)

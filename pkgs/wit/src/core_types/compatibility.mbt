@@ -55,17 +55,56 @@ fn external_subtype(
     (Func(a), Func(b)) | (Tag(a), Tag(b)) => {
       budget.charge(a.params.length())
       budget.charge(a.results.length())
-      budget.charge(b.params.length())
-      budget.charge(b.results.length())
-      a == b
+      if a.params.length() != b.params.length() ||
+        a.results.length() != b.results.length() {
+        return false
+      }
+      for i, value in a.params {
+        if !value_subtype(value, b.params[i], true, budget) {
+          return false
+        }
+      }
+      for i, value in a.results {
+        if !value_subtype(value, b.results[i], true, budget) {
+          return false
+        }
+      }
+      true
     }
+    (Func(a), TypedFunc(b)) =>
+      identity_subtype(function_identity(a, budget), b, false, budget)
+    (TypedFunc(a), Func(b)) =>
+      identity_subtype(a, function_identity(b, budget), false, budget)
+    (Tag(a), TypedTag(b)) =>
+      identity_subtype(function_identity(a, budget), b, true, budget)
+    (TypedTag(a), Tag(b)) =>
+      identity_subtype(a, function_identity(b, budget), true, budget)
+    (TypedFunc(a), TypedFunc(b)) => identity_subtype(a, b, false, budget)
+    (TypedTag(a), TypedTag(b)) => identity_subtype(a, b, true, budget)
     (Table(ae, ai, am, a64, ash), Table(be, bi, bm, b64, bsh)) =>
-      ae == be && a64 == b64 && ash == bsh && limits_subtype(ai, am, bi, bm)
+      a64 == b64 &&
+      ash == bsh &&
+      limits_subtype(ai, am, bi, bm) &&
+      value_subtype(ae, be, true, budget)
     (Memory(ai, am, a64, ash, ap), Memory(bi, bm, b64, bsh, bp)) =>
       a64 == b64 && ash == bsh && ap == bp && limits_subtype(ai, am, bi, bm)
     (Global(at, am, ash), Global(bt, bm, bsh)) =>
-      at == bt && am == bm && ash == bsh
+      am == bm && ash == bsh && value_subtype(at, bt, true, budget)
     _ => false
+  }
+}
+
+///|
+/// Compare validated externs while reporting consumed work on both matches and
+/// mismatches. Aggregators use this when trying either subtype direction.
+pub fn compare_external(
+  actual : External,
+  expected : External,
+  work_limit~ : Int32 = 1000000,
+) -> Result[(Bool, Int32), CompatibilityError] {
+  let budget = { remaining: work_limit, }
+  Ok((external_subtype(actual, expected, budget), budget.remaining)) catch {
+    CompatibilityFailure(error) => Err(error)
   }
 }
 
@@ -78,15 +117,10 @@ pub fn check_external_subtype(
   expected : External,
   work_limit~ : Int32 = 1000000,
 ) -> Result[Int32, CompatibilityError] {
-  let budget = { remaining: work_limit, }
-  try {
-    if external_subtype(actual, expected, budget) {
-      Ok(budget.remaining)
-    } else {
-      Err(Mismatch("incompatible core external type"))
-    }
-  } catch {
-    CompatibilityFailure(error) => Err(error)
+  match compare_external(actual, expected, work_limit~) {
+    Ok((true, remaining)) => Ok(remaining)
+    Ok((false, _)) => Err(Mismatch("incompatible core external type"))
+    Err(error) => Err(error)
   }
 }
 

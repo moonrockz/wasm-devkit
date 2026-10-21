@@ -526,17 +526,18 @@ fn componenttype_import_core_module_sigs_of_decls(
           }
           local_core_import_sigs.push(Some(imp_map))
           local_core_export_kinds.push(Some(exp_kinds))
-        } else if op == 0x60 {
-          r.skip_func_type_body()
-          local_core_import_sigs.push(None)
-          local_core_export_kinds.push(None)
         } else {
-          raise SectionParseError(3, "unsupported core type opcode: \{op}")
+          r.pos -= 1
+          let count = r.skip_core_declaration()
+          for _ in 0..<count {
+            local_core_import_sigs.push(None)
+            local_core_export_kinds.push(None)
+          }
         }
         if !r.is_eof() {
           raise SectionParseError(3, "trailing bytes in core type payload")
         }
-        core_type_bound += 1
+        core_type_bound = local_core_import_sigs.length()
       }
       AliasOuter(kind, _count, _idx) =>
         if kind != 0x03 {
@@ -1100,12 +1101,11 @@ fn validate_typedef_step(
         work.push(() => {
           match d {
             CoreType(bytes) => {
-              local_core_type_exports.push(
-                validate_single_core_type(
-                  bytes, local_core_type_bound, outer_core_type_bounds,
-                ),
+              let exports = validate_single_core_type(
+                bytes, local_core_type_bound, outer_core_type_bounds,
               )
-              local_core_type_bound += 1
+              local_core_type_exports.append(exports)
+              local_core_type_bound += exports.length()
             }
             AliasOuter(kind, count, idx) =>
               if kind == 0x03 {
@@ -1456,34 +1456,13 @@ fn validate_typedef_step(
         work.push(() => {
           match d {
             CoreType(bytes) => {
-              let r = CoreTypeReader::CoreTypeReader(bytes)
-              let op = r.read_u8()
-              if op == 0x50 {
-                local_core_type_exports.push(
-                  Some(
-                    parse_core_type_module_exports(
-                      r,
-                      -1,
-                      local_core_type_bound,
-                      [],
-                    ),
-                  ),
-                )
-              } else if op == 0x60 {
-                r.skip_func_type_body()
-                local_core_type_exports.push(None)
-              } else {
-                raise SectionParseError(
-                  3,
-                  "unsupported core type opcode: \{op}",
-                )
-              }
-              if !r.is_eof() {
-                raise SectionParseError(
-                  3, "trailing bytes in core type payload",
-                )
-              }
-              local_core_type_bound += 1
+              let exports = validate_single_core_type(
+                bytes,
+                local_core_type_bound,
+                [],
+              )
+              local_core_type_exports.append(exports)
+              local_core_type_bound += exports.length()
             }
             AliasOuter(kind, count, idx) =>
               if kind == 0x03 {

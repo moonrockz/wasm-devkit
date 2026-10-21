@@ -164,8 +164,11 @@ The command never executes the binary and accepts no `--language` or formatting 
 
 The binary preamble selects the profile. A core module must be flat and inside the
 profile that component verification uses. Shared scalar/vector globals retain
-their flags in default and wasm-tools-compatible output. GC types, thread
-instructions, exceptions, SIMD instructions other than `v128.const` and f32
+their flags in default and wasm-tools-compatible output. Default printing also
+supports concrete GC/reference types and modern/legacy exceptions. Compatibility
+modes retain separate input bounds. Custom descriptors, continuation instructions,
+thread instructions other than `ref.i31_shared`, SIMD instructions other than
+`v128.const` and f32
 signaling NaN constants fail explicitly. WABT compatibility rejects shared globals. Custom sections of core modules are omitted, and one
 `;; custom section omitted: "NAME"` line names each.
 

@@ -1,0 +1,15 @@
+{
+  "exports": [
+    {
+      "name": "callee",
+      "signature": {
+        "kind": "func",
+        "signature": {
+          "params": [],
+          "results": []
+        }
+      }
+    }
+  ],
+  "imports": []
+}

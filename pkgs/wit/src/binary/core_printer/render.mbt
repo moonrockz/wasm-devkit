@@ -104,6 +104,12 @@ fn validate_instructions(
         pending.push((then_body, 0))
       }
       TryTable(_, _, nested) => pending.push((nested, 0))
+      LegacyTry(_, nested, catches, _) => {
+        pending.push((nested, 0))
+        for arm in catches {
+          pending.push((arm.body, 0))
+        }
+      }
       V128Const(bytes) =>
         if bytes.length() != 16 {
           raise InvalidV128ConstantLength(bytes.length())
@@ -323,6 +329,9 @@ pub fn render(
       }
       Table(table_type) => {
         sb.write_string("(table ")
+        if table_type.is_shared {
+          sb.write_string("shared ")
+        }
         if table_type.is_table64 {
           sb.write_string("i64 ")
         }
@@ -353,19 +362,21 @@ pub fn render(
         let shared = metadata
           .bind(m => m.import_global_flags.get(import_index))
           .map(pair => (pair.1 & 2) != 0)
-          .unwrap_or(false)
+          .unwrap_or(global_type.is_shared)
         if shared {
           sb.write_string("(shared ")
         }
         if global_type.mutable {
-          sb.write_string("(mut ")
+          sb.write_string(if shared { "mut " } else { "(mut " })
           sb.write_string(
             own_value_type(
               global_type.value_type,
               metadata.bind(m => m.import_values.get(import_index)),
             ),
           )
-          sb.write_string(")")
+          if !shared {
+            sb.write_string(")")
+          }
         } else {
           sb.write_string(
             own_value_type(
@@ -399,6 +410,9 @@ pub fn render(
     sb.write_string("  (table (;")
     sb.write_string((import_tables + i).to_string())
     sb.write_string(";) ")
+    if table.type_.is_shared {
+      sb.write_string("shared ")
+    }
     if table.type_.is_table64 {
       sb.write_string("i64 ")
     }
@@ -411,9 +425,11 @@ pub fn render(
       ),
     )
     if table.init is Some(init) {
-      sb.write_string(" (")
+      sb.write_string(if init.length() == 1 { " (" } else { " " })
       sb.write_string(instrs_to_wat_inline(init))
-      sb.write_string(")")
+      if init.length() == 1 {
+        sb.write_string(")")
+      }
     }
     sb.write_string(")\n")
   }
@@ -442,19 +458,21 @@ pub fn render(
     let shared = metadata
       .bind(m => m.global_flags.get(i))
       .map(pair => (pair.1 & 2) != 0)
-      .unwrap_or(false)
+      .unwrap_or(global.type_.is_shared)
     if shared {
       sb.write_string("(shared ")
     }
     if global.type_.mutable {
-      sb.write_string("(mut ")
+      sb.write_string(if shared { "mut " } else { "(mut " })
       sb.write_string(
         own_value_type(
           global.type_.value_type,
           metadata.bind(m => m.global_values.get(i)),
         ),
       )
-      sb.write_string(")")
+      if !shared {
+        sb.write_string(")")
+      }
     } else {
       sb.write_string(
         own_value_type(
@@ -527,7 +545,7 @@ pub fn render(
           sb.write_string(table_idx.to_string())
           sb.write_string(") ")
         }
-        sb.write_string("(")
+        sb.write_string(if offset.length() > 1 { "(offset " } else { "(" })
         sb.write_string(instrs_to_wat_inline(offset))
         sb.write_string(") ")
       }
@@ -536,7 +554,7 @@ pub fn render(
       own_value_type(elem.type_, metadata.bind(m => m.element_values.get(i))),
     )
     for init in elem.init {
-      sb.write_string(" (")
+      sb.write_string(if init.length() > 1 { " (item " } else { " (" })
       sb.write_string(instrs_to_wat_inline(init))
       sb.write_string(")")
     }
@@ -563,7 +581,7 @@ pub fn render(
       sb.write_string(") ")
     }
     if data.offset.length() > 0 {
-      sb.write_string("(")
+      sb.write_string(if data.offset.length() > 1 { "(offset " } else { "(" })
       sb.write_string(instrs_to_wat_inline(data.offset))
       sb.write_string(") ")
     }
@@ -661,9 +679,12 @@ fn composite_type_to_wat(
   text~ : @core_parser.FunctionTextTypes? = None,
 ) -> String {
   let sb = StringBuilder::StringBuilder()
+  if composite.is_shared() {
+    sb.write_string("(shared ")
+  }
   match composite {
     Cont(index) => sb.write_string("(cont \{index})")
-    Func(func_type) => {
+    Func(func_type) | SharedFunc(func_type) => {
       sb.write_string("(func")
       for i, param in func_type.params {
         sb.write_string(
@@ -677,7 +698,7 @@ fn composite_type_to_wat(
       }
       sb.write_string(")")
     }
-    Struct(struct_type) => {
+    Struct(struct_type) | SharedStruct(struct_type) => {
       sb.write_string("(struct")
       for field in struct_type.fields {
         sb.write_string(" (field ")
@@ -692,7 +713,7 @@ fn composite_type_to_wat(
       }
       sb.write_string(")")
     }
-    Array(array_type) => {
+    Array(array_type) | SharedArray(array_type) => {
       sb.write_string("(array ")
       if array_type.element.mutable {
         sb.write_string("(mut ")
@@ -703,6 +724,9 @@ fn composite_type_to_wat(
       }
       sb.write_string(")")
     }
+  }
+  if composite.is_shared() {
+    sb.write_string(")")
   }
   sb.to_string()
 }
@@ -760,6 +784,11 @@ fn instrs_to_wat_inline(instrs : Array[@types.Instruction]) -> String {
 ///|
 fn value_type_to_wat(t : @types.ValueType) -> String {
   match t {
+    HeapRef(nullable, shared, heap) => {
+      let name = @types.heap_name(heap)
+      let name = if shared && heap < 0 { "(shared " + name + ")" } else { name }
+      "(ref \{if nullable { "null " } else { "" }}\{name})"
+    }
     I32 => "i32"
     I64 => "i64"
     F32 => "f32"
@@ -871,26 +900,16 @@ fn ref_type_to_wat(t : @types.ValueType) -> String {
 
 ///|
 fn heap_type_to_wat(t : @types.ValueType) -> String {
-  match t {
-    ContRef | RefCont => "cont"
-    NullContRef | RefNoCont => "nocont"
-    RefContTyped(idx) | RefNullContTyped(idx) => idx.to_string()
-    NullRef | RefNone => "none"
-    NullFuncRef => "nofunc"
-    NullExternRef => "noextern"
-    NullExnRef => "noexn"
-    StructRef | RefStructAbs => "struct"
-    ArrayRef | RefArrayAbs => "array"
-    FuncRef | RefFunc => "func"
-    ExternRef | RefExtern => "extern"
-    AnyRef | RefAny => "any"
-    ExnRef => "exn"
-    RefEq | RefNullEq => "eq"
-    RefI31 | RefNullI31 => "i31"
-    RefFuncTyped(idx) | RefNullFuncTyped(idx) => idx.to_string()
-    RefStruct(idx) | RefNullStruct(idx) => idx.to_string()
-    RefArray(idx) | RefNullArray(idx) => idx.to_string()
-    _ => "any"
+  match t.heap() {
+    Some((_, shared, heap)) => {
+      let name = @types.heap_name(heap)
+      if shared && heap < 0 {
+        "(shared " + name + ")"
+      } else {
+        name
+      }
+    }
+    None => value_type_to_wat(t)
   }
 }
 
@@ -908,7 +927,7 @@ fn mem_instr(
     sb.write_string(" \{mem}")
   }
   if offset != 0L {
-    sb.write_string(" offset=\{offset}")
+    sb.write_string(" offset=\{offset.reinterpret_as_uint64()}")
   }
   let align_bytes = 1 << align
   sb.write_string(" align=\{align_bytes}")
@@ -968,6 +987,24 @@ fn instrs_to_wat(
           Block(_, nested) | Loop(_, nested) | TryTable(_, _, nested) => {
             control += 1
             tasks.push(Line(indent_str + "end\n"))
+            tasks.push(Body(nested, 0, depth + 1))
+          }
+          LegacyTry(_, nested, catches, delegate) => {
+            control += 1
+            match delegate {
+              Some(depth_) =>
+                tasks.push(Line(indent_str + "delegate \{depth_}\n"))
+              None => tasks.push(Line(indent_str + "end\n"))
+            }
+            for i = catches.length() - 1; i >= 0; i = i - 1 {
+              let arm = catches[i]
+              tasks.push(Body(arm.body, 0, depth + 1))
+              let header = match arm.tag {
+                Some(tag) => "catch \{tag}"
+                None => "catch_all"
+              }
+              tasks.push(Line(indent_str + header + "\n"))
+            }
             tasks.push(Body(nested, 0, depth + 1))
           }
           If(_, then_body, else_body) => {
@@ -1152,6 +1189,8 @@ fn instr_to_wat(
     ReturnCallRef(type_idx) => "return_call_ref \{type_idx}"
     Throw(idx) => "throw \{idx}"
     ThrowRef => "throw_ref"
+    Rethrow(depth) => "rethrow \{depth}"
+    LegacyTry(bt, _, _, _) => "try\{block_type_to_wat(bt,spellings~)}"
     ContNew(index) => "cont.new \{index}"
     ContBind(input, output) => "cont.bind \{input} \{output}"
     Suspend(tag) => "suspend \{tag}"
@@ -1414,7 +1453,8 @@ fn instr_to_wat(
     StructSet(type_idx, field_idx) => "struct.set \{type_idx} \{field_idx}"
     ArrayNew(idx) => "array.new \{idx}"
     ArrayNewDefault(idx) => "array.new_default \{idx}"
-    ArrayNewFixed(type_idx, len) => "array.new_fixed \{type_idx} \{len}"
+    ArrayNewFixed(type_idx, len) =>
+      "array.new_fixed \{type_idx} \{len.reinterpret_as_uint()}"
     ArrayNewData(type_idx, data_idx) => "array.new_data \{type_idx} \{data_idx}"
     ArrayNewElem(type_idx, elem_idx) => "array.new_elem \{type_idx} \{elem_idx}"
     ArrayGet(idx) => "array.get \{idx}"
@@ -1437,6 +1477,7 @@ fn instr_to_wat(
     BrOnCastFail(label, from, to) =>
       "br_on_cast_fail \{label} \{ref_type_to_wat(from)} \{ref_type_to_wat(to)}"
     RefI31 => "ref.i31"
+    RefI31Shared => "ref.i31_shared"
     I31GetS => "i31.get_s"
     I31GetU => "i31.get_u"
     AnyConvertExtern => "any.convert_extern"

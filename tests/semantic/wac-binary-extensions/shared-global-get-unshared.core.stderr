@@ -1,0 +1,1 @@
+shared functions cannot access unshared globals (at offset 0x21)

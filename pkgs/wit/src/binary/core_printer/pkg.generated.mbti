@@ -2,8 +2,8 @@
 package "moonrockz/wit/binary/core_printer"
 
 import {
-  "Milky2018/wasm_core/types",
   "moonbitlang/core/debug",
+  "moonrockz/wit/binary/core_model",
   "moonrockz/wit/binary/core_parser",
 }
 
@@ -16,11 +16,11 @@ pub fn component_names(Bytes) -> Names
 
 pub fn limit_indentation(String) -> String
 
-pub fn render(@types.Module, metadata? : @core_parser.ModuleTextMetadata?) -> String raise WatPrintError
+pub fn render(@core_model.Module, metadata? : @core_parser.ModuleTextMetadata?) -> String raise WatPrintError
 
-pub fn render_compatible(@types.Module, Bytes, Compatibility, binary_offset? : Int) -> String raise WatPrintError
+pub fn render_compatible(@core_model.Module, Bytes, Compatibility, binary_offset? : Int) -> String raise WatPrintError
 
-pub fn render_function(@types.Module, Int) -> String raise WatPrintError
+pub fn render_function(@core_model.Module, Int) -> String raise WatPrintError
 
 // Errors
 pub(all) suberror WatPrintError {

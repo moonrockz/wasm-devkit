@@ -524,14 +524,34 @@ test "core module package typed-ref" {
     bytes,
     source_id="typed-ref.wasm",
   )
-  assert_eq(
-    result is Ok(_),
-    false,
-    msg=match result {
-      Ok(_) => "accepted"
-      Err(e) => e[0].render()
-    },
-  )
+  let model = result.unwrap()
+  let identity : @core_types.TypeIdentity = {
+    types: [
+      {
+        final_: true,
+        shared: false,
+        supertype: None,
+        group_start: 0,
+        group_size: 1,
+        composite: Function([], []),
+      },
+    ],
+    index: 0,
+  }
+  let expected = @verifier.TypeKind::Module({
+    imports: [],
+    exports: [
+      {
+        name: "t",
+        kind: Table(Concrete(true, identity), 1UL, Some(3UL), false, false),
+      },
+    ],
+  })
+  assert_true(model.types().any(t => t.kind == expected))
+  let text = @verifier.decode_wat_component_package(
+    "(component (core type $m (module (type $f (func)) (export \"t\" (table 1 3 (ref null $f))))) (import \"m\" (core module $m0 (type $m))) (export \"out\" (core module $m0)))",
+  ).unwrap()
+  assert_eq(binary_projection(model), binary_projection(text))
 }
 
 ///|

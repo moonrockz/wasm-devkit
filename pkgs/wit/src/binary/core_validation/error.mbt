@@ -3,6 +3,7 @@
 ///|
 /// Validation error types
 pub(all) suberror ValidationError {
+  TypeWorkLimit
   TypeMismatch(String) // Expected vs actual type mismatch
   StackUnderflow(String) // Not enough values on validation stack
   StackHeightMismatch(String) // Stack height doesn't match expected
@@ -63,6 +64,7 @@ pub fn ValidationErrorContext::from_error(
   error : ValidationError,
 ) -> ValidationErrorContext {
   let msg = match error {
+    TypeWorkLimit => "core type comparison work exceeds 1000000"
     TypeMismatch(m) => "type mismatch: \{m}"
     StackUnderflow(m) => "stack underflow: \{m}"
     StackHeightMismatch(m) => "stack height mismatch: \{m}"
