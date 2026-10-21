@@ -560,6 +560,8 @@ test "comparison output distinguishes equality differences and invalid inputs" {
   assert_eq(different.exit_code, 1)
   assert_true(different.stdout.contains("module.code[0]"))
   assert_true(different.stdout.contains("left_location"))
+  assert_true(different.stdout.contains("\"line\":1"))
+  assert_true(different.stdout.contains("\"column\":9"))
   let invalid = @cli.compare(
     options, "(module (func i32.add))", "(module (unknown))",
   )

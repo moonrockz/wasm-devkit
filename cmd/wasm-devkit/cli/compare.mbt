@@ -27,8 +27,14 @@ fn comparison_location(
       {
         "start": span.start,
         "end": span.end,
-        "line": p.map(p => p.line + 1),
-        "column": p.map(p => p.column + 1),
+        "line": match p {
+          Some(p) => Json::number((p.line + 1).to_double())
+          None => Json::null()
+        },
+        "column": match p {
+          Some(p) => Json::number((p.column + 1).to_double())
+          None => Json::null()
+        },
       }
     }
   }

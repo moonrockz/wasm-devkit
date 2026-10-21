@@ -1,17 +1,41 @@
 ///|
-fn inline_import(field : Field, tokens : Array[Token]) -> Bool {
-  field.first + 3 < field.last &&
-  (
-    (
-      tokens[field.first + 2].text == "(" &&
-      tokens[field.first + 3].text == "import"
-    ) ||
-    (
-      field.first + 4 < field.last &&
-      tokens[field.first + 3].text == "(" &&
-      tokens[field.first + 4].text == "import"
-    )
-  )
+fn inline_import(field : Field, tokens : Array[Token]) -> Bool raise Failure {
+  let mut at = field.first + 2
+  if tokens.get(at) is Some(token) && token.text.has_prefix("$") {
+    at += 1
+  }
+  let mut imported = false
+  while at + 1 < field.last && tokens[at].text == "(" {
+    let kind = tokens[at + 1].text
+    if kind != "import" && kind != "export" {
+      break
+    }
+    guard !imported else {
+      raise Failure(
+        Malformed,
+        Some(tokens[at].span),
+        "inline import must occur once, after export annotations",
+      )
+    }
+    if kind == "import" {
+      imported = true
+    }
+    let mut depth = 0
+    while at < field.last {
+      let text = tokens[at].text
+      at += 1
+      if text == "(" {
+        depth += 1
+      }
+      if text == ")" {
+        depth -= 1
+      }
+      if depth == 0 {
+        break
+      }
+    }
+  }
+  imported
 }
 
 ///|

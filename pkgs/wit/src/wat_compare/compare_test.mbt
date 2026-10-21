@@ -292,3 +292,33 @@ test "quoted identifiers normalize before binding and reference checks" {
     assert_true(@wat_compare.compare(source, source) is Err(_), msg=source)
   }
 }
+
+///|
+test "leading export annotations do not change imported index spaces or spans" {
+  let explicit = "(module (import \"m\" \"f\" (func)) (export \"x\" (func 0)) (export \"y\" (func 0)) (func (result f32) f32.const nan:0x1))"
+  let inline_ = "(module (func $f (export \"x\") (export \"y\") (import \"m\" \"f\")) (func (result f32) f32.const nan:0x1))"
+  assert_true(equal(explicit, inline_))
+  let globals = "(module (global $g (export \"x\") (import \"m\" \"g\") f32) (global f32 (f32.const nan:0x1)))"
+  let explicit_globals = "(module (import \"m\" \"g\" (global f32)) (export \"x\" (global 0)) (global f32 (f32.const nan:0x1)))"
+  assert_true(equal(globals, explicit_globals))
+  let before = "(module (func (export \"x\") (import \"m\" \"f\")) (func (result i32) i32.const 1))"
+  let after = "(module (func (export \"x\") (import \"m\" \"f\")) (func (result i32) i32.const 2))"
+  let diff = @wat_compare.compare(before, after).unwrap().differences[0]
+  assert_eq(diff.path, "module.code[0]")
+  assert_eq(
+    diff.left_span,
+    Some({
+      start: before.find("(func (result").unwrap(),
+      end: before.length() - 1,
+    }),
+  )
+  for
+    invalid in [
+      "(module (func (import \"m\" \"f\") (export \"x\")))", "(module (func (import \"m\" \"f\") (import \"m\" \"g\")))",
+    ] {
+    assert_true(@wat_compare.compare(invalid, invalid) is Err(_))
+  }
+  // A following import is still before the first definition.
+  let imports = "(module (memory (export \"m\") (import \"m\" \"m\") 1) (table (export \"t\") (import \"m\" \"t\") 1 funcref) (func (import \"m\" \"f\")))"
+  assert_true(equal(imports, imports))
+}
