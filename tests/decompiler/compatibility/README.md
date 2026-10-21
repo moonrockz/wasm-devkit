@@ -24,8 +24,9 @@ only f32 NaNs whose payloads every supported target can retain.
 Text comparison normalizes only CRLF/LF outside string literals and exactly one
 terminal newline. It preserves indentation, wrapping, index comments, identifier
 sanitization, number spelling, escapes, nesting and declaration order. Structural
-checks supplement this comparison. They never replace it. Semantic diff remains
-separate work in `wasm-devkit-xqn`.
+checks supplement this comparison. They never replace it. The separate
+[semantic WAT comparison API](../../../pkgs/wit/src/wat_compare/README.mbt.md)
+does not relax these textual compatibility checks.
 
 The embedded MoonBit fixtures run with the ordinary tests on wasm, wasm-gc, JS
 and native. Core tests compare the original and independently re-encoded module

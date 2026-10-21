@@ -5,7 +5,7 @@
 ## Recipes
 
 These executable examples use the following `moon.pkg` test imports. Add the module
-with `moon add moonrockz/wac@0.2.0`, then copy a recipe into `example_test.mbt`
+with `moon add moonrockz/wac@0.3.0`, then copy a recipe into `example_test.mbt`
 and run `moon test`. Application code uses the same imports without `for "test"`.
 
 If your package already has a test import group, merge these entries into it.

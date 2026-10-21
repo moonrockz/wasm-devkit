@@ -27,7 +27,7 @@ These names are checked as strings and never cause network access. Interface
 version suffixes are opaque during resolution, as in the pinned resolver.
 
 Parser-only named results fail with `WAC-S003`. Composition verification covers
-the documented v0.2.0 profile.
+the documented profile below.
 A successful result covers the entire supported input. An unsupported or unresolved
 construct never yields a `Verified` model.
 
