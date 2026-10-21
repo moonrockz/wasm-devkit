@@ -90,13 +90,15 @@ See the [WIT verifier](pkgs/wit/src/verifier/README.mbt.md) and
 Canonical verification also covers selected handle/cancellation intrinsics and
 scalar `gc`/`core-type` lift/lower. The [canonical profile fixtures](tests/semantic/wac-canonical-intrinsics/README.md)
 record exact supported operations and explicit exclusions.
-Dependency and component verification is implemented for the documented v0.2.0 profile.
+Dependency and component verification is implemented for the documented profile.
 Unsupported constructs fail explicitly. Async canonical lift/lower and component
-start sections are in the profile. Concrete GC and reference types, exception
-instructions stay rejected. Concrete scalar and vector globals retain shared
+start sections are in the profile. Concrete GC/reference types, recursive groups,
+supertypes, shared heap types and modern/legacy exception instructions validate
+in binary and WAT. Complete reference contracts and explicit exclusions are in
+the [binary extension fixtures](tests/semantic/wac-binary-extensions/README.md). Concrete scalar and vector globals retain shared
 flags in binary and WAT, including module ascriptions. Nested and concrete
 core declarations retain full UInt64 limits, address-width bounds and custom
-memory pages of 1 or 65536 bytes. Those remaining extensions are tracked in `wasm-devkit-p5m.12`.
+memory pages of 1 or 65536 bytes. The binary extension work is tracked in `wasm-devkit-p5m.12`.
 
 ## Status
 

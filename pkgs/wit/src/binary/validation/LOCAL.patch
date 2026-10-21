@@ -67,17 +67,35 @@
 +      }
 +      Some(context.abi(function, false, canon_has_async(opts), false).core)
 +    }
-@@ -105 +124 @@
+@@ -79,2 +98,15 @@
+-    ContextGet(vt, _) => Some({ params: [], results: [vt], })
+-    ContextSet(vt, _) => Some({ params: [vt], results: [], })
++    ContextGet(vt, _) | ContextSet(vt, _) => {
++      let value : @types.ValueType = match vt {
++        I32 => I32
++        I64 => I64
++        F32 => F32
++        F64 => F64
++        V128 => V128
++        _ => return None
++      }
++      if c is ContextGet(_, _) {
++        Some({ params: [], results: [value], })
++      } else {
++        Some({ params: [value], results: [], })
++      }
++    }
+@@ -105 +137 @@
 -  type_bound : Int,
 +  type_bound : Int32,
-@@ -108,0 +128 @@
+@@ -108,0 +141 @@
 +  budget~ : CanonicalBudget = { remaining: 1000000, },
-@@ -112,0 +133,4 @@
+@@ -112,0 +146,4 @@
 +      // The scalar GC ABI needs the ordered complete core-type metadata.
 +      if opts.any(option => option is Gc || option is CoreType(_)) {
 +        raise UnsupportedCanonical
 +      }
-@@ -141,3 +165,22 @@
+@@ -141,3 +178,22 @@
 -          if canon_has_async(opts) && !ft.is_async {
 -            raise CanonAsyncTypeMismatch(tyidx)
 -          }
@@ -103,18 +121,18 @@
 +            cache: Map([]),
 +          }
 +          let shape = context.abi(ft, true, asynchronous, callback is Some(_))
-@@ -185,5 +228 @@
+@@ -185,5 +241 @@
 -          let needs_memory = if canon_has_async(opts) {
 -            functype_async_lift_needs_memory(ft, type_table)
 -          } else {
 -            functype_needs_memory(ft, type_table)
 -          }
 +          let needs_memory = shape.memory
-@@ -193,2 +232 @@
+@@ -193,2 +245 @@
 -          if functype_needs_realloc_for_lift(ft, type_table) &&
 -            !canon_has_realloc(opts) {
 +          if shape.realloc && !canon_has_realloc(opts) {
-@@ -197,14 +235,11 @@
+@@ -197,14 +248,11 @@
 -          // Async-lifted functions use a callback/event-code ABI and do not
 -          // match the direct lowering signature.
 -          if !canon_has_async(opts) {
@@ -140,10 +158,10 @@
 +                  results: [I32],
 +                }
 +                if callback_type != expected {
-@@ -212 +247 @@
+@@ -212 +260 @@
 -                    "canon lift core signature mismatch",
 +                    "canonical option `callback` uses a core function with an incorrect signature",
-@@ -215,2 +250,12 @@
+@@ -215,2 +263,12 @@
 -              _ => ()
 -            }
 +              }
@@ -158,12 +176,12 @@
 +                )
 +              }
 +            _ => ()
-@@ -224,0 +270,4 @@
+@@ -224,0 +283,4 @@
 +      // The scalar GC ABI needs the ordered complete core-type metadata.
 +      if opts.any(option => option is Gc || option is CoreType(_)) {
 +        raise UnsupportedCanonical
 +      }
-@@ -247,3 +296,26 @@
+@@ -247,3 +309,26 @@
 -          if canon_has_async(opts) && !ft.is_async {
 -            raise CanonAsyncTypeMismatch(func_idx)
 -          }
@@ -193,55 +211,55 @@
 +            cache: Map([]),
 +          }
 +          let shape = context.abi(ft, false, asynchronous, false)
-@@ -273 +345 @@
+@@ -273 +358 @@
 -          if functype_needs_memory(ft, type_table) && !canon_has_memory(opts) {
 +          if shape.memory && !canon_has_memory(opts) {
-@@ -276,2 +348 @@
+@@ -276,2 +361 @@
 -          if functype_needs_realloc_for_lower(ft, type_table) &&
 -            !canon_has_realloc(opts) {
 +          if shape.realloc && !canon_has_realloc(opts) {
-@@ -367 +438 @@
+@@ -367 +451 @@
 -  visiting : Map[Int, Int],
 +  visiting : Map[Int32, Int32],
-@@ -392 +463 @@
+@@ -392 +476 @@
 -  visiting : Map[Int, Int],
 +  visiting : Map[Int32, Int32],
-@@ -495 +566 @@
+@@ -495 +579 @@
 -  visiting : Map[Int, Int],
 +  visiting : Map[Int32, Int32],
-@@ -626 +697 @@
+@@ -626 +710 @@
 -fn clamp_type_size(size : Int) -> Int {
 +fn clamp_type_size(size : Int32) -> Int32 {
-@@ -635 +706 @@
+@@ -635 +719 @@
 -fn add_type_size(acc : Int, delta : Int) -> Int {
 +fn add_type_size(acc : Int32, delta : Int32) -> Int32 {
-@@ -645 +716 @@
+@@ -645 +729 @@
 -fn local_type_size_of(idx : Int, local_sizes : Array[Int]) -> Int {
 +fn local_type_size_of(idx : Int32, local_sizes : Array[Int32]) -> Int32 {
-@@ -655,2 +726,2 @@
+@@ -655,2 +739,2 @@
 -  local_sizes : Array[Int],
 -) -> Int {
 +  local_sizes : Array[Int32],
 +) -> Int32 {
-@@ -670,3 +741,3 @@
+@@ -670,3 +754,3 @@
 -  outer_sizes : Array[Int],
 -) -> Int {
 -  fn valtype_size(ty : @component.ValType) -> Int {
 +  outer_sizes : Array[Int32],
 +) -> Int32 {
 +  fn valtype_size(ty : @component.ValType) -> Int32 {
-@@ -681 +752 @@
+@@ -681 +765 @@
 -      let local_sizes : Array[Int] = []
 +      let local_sizes : Array[Int32] = []
-@@ -688 +759,3 @@
+@@ -688 +772,3 @@
 -              let s = if count == 1 && idx >= 0 && idx < outer_sizes.length() {
 +              let s = if count == 0 && idx >= 0 && idx < local_sizes.length() {
 +                local_sizes[idx]
 +              } else if count == 1 && idx >= 0 && idx < outer_sizes.length() {
-@@ -722 +795 @@
+@@ -722 +808 @@
 -      let local_sizes : Array[Int] = []
 +      let local_sizes : Array[Int32] = []
-@@ -729 +802,3 @@
+@@ -729 +815,3 @@
 -              let s = if count == 1 && idx >= 0 && idx < outer_sizes.length() {
 +              let s = if count == 0 && idx >= 0 && idx < local_sizes.length() {
 +                local_sizes[idx]
@@ -383,29 +401,45 @@
 @@ -488 +522 @@
 -          let exp_kinds : Map[String, Int] = Map([])
 +          let exp_kinds : Map[String, Int32] = Map([])
-@@ -524 +558 @@
+@@ -495,4 +528,0 @@
+-        } else if op == 0x60 {
+-          r.skip_func_type_body()
+-          local_core_import_sigs.push(None)
+-          local_core_export_kinds.push(None)
+@@ -500 +530,6 @@
+-          raise SectionParseError(3, "unsupported core type opcode: \{op}")
++          r.pos -= 1
++          let count = r.skip_core_declaration()
++          for _ in 0..<count {
++            local_core_import_sigs.push(None)
++            local_core_export_kinds.push(None)
++          }
+@@ -505 +540 @@
+-        core_type_bound += 1
++        core_type_bound = local_core_import_sigs.length()
+@@ -524 +559 @@
 -  let export_kinds : Map[String, Map[String, Int]] = Map([])
 +  let export_kinds : Map[String, Map[String, Int32]] = Map([])
-@@ -542 +576,4 @@
+@@ -542 +577,4 @@
 -fn check_typeidx(idx : Int, bound : Int) -> Unit raise ComponentValidationError {
 +fn check_typeidx(
 +  idx : Int32,
 +  bound : Int32,
 +) -> Unit raise ComponentValidationError {
-@@ -552 +589 @@
+@@ -552 +590 @@
 -  type_bound : Int,
 +  type_bound : Int32,
-@@ -687,2 +724,2 @@
+@@ -687,2 +725,2 @@
 -  idx : Int,
 -  bound : Int,
 +  idx : Int32,
 +  bound : Int32,
-@@ -698,2 +735,2 @@
+@@ -698,2 +736,2 @@
 -  count : Int,
 -  idx : Int,
 +  count : Int32,
 +  idx : Int32,
-@@ -711,4 +748,4 @@
+@@ -711,4 +749,4 @@
 -  core_type_outers : Array[Array[Map[String, Int]?]],
 -  count : Int,
 -  idx : Int,
@@ -414,20 +448,20 @@
 +  count : Int32,
 +  idx : Int32,
 +) -> Map[String, Int32]? raise ComponentValidationError {
-@@ -727 +764 @@
+@@ -727 +765 @@
 -  visiting : Map[Int, Int],
 +  visiting : Map[Int32, Int32],
-@@ -808 +845 @@
+@@ -808 +846 @@
 -  visiting : Map[Int, Int],
 +  visiting : Map[Int32, Int32],
-@@ -843,3 +880,3 @@
+@@ -843,3 +881,3 @@
 -  type_outer_depths : Array[Int],
 -  component_depth : Int,
 -  core_type_outers : Array[Array[Map[String, Int]?]],
 +  type_outer_depths : Array[Int32],
 +  component_depth : Int32,
 +  core_type_outers : Array[Array[Map[String, Int32]?]],
-@@ -846,0 +884,23 @@
+@@ -846,0 +885,23 @@
 +) -> Unit raise ComponentValidationError {
 +  // Each scope schedules declarations in reverse. A child completes before its
 +  // type slot is recorded and before the next declaration sees the environment.
@@ -451,25 +485,25 @@
 +  core_type_outers : Array[Array[Map[String, Int32]?]],
 +  allow_resource_defs : Bool,
 +  work : Array[() -> Unit raise ComponentValidationError],
-@@ -856 +916 @@
+@@ -856 +917 @@
 -  let outer_core_type_bounds : Array[Int] = []
 +  let outer_core_type_bounds : Array[Int32] = []
-@@ -872 +932,3 @@
+@@ -872 +933,3 @@
 -      if !is_map_key_type(key, type_table, Map([])) {
 +      // wasmparser 0.258 permits any valid value type as a map key; 0.262
 +      // restricts keys to the component model's primitive keytype grammar.
 +      if cfg.restricted_map_keys && !is_map_key_type(key, type_table, Map([])) {
-@@ -1013,2 +1075,4 @@
+@@ -1013,2 +1076,4 @@
 -      if rep != 0x7f {
 -        raise SectionParseError(7, "resources can only be represented by `i32`")
 +      if rep != 0x7f && rep != 0x7e {
 +        raise SectionParseError(
 +          7, "resources require an i32 or i64 representation",
 +        )
-@@ -1021 +1085 @@
+@@ -1021 +1086 @@
 -      let local_resource_ids : Array[Int?] = []
 +      let local_resource_ids : Array[Int32?] = []
-@@ -1025,37 +1089,14 @@
+@@ -1025,11 +1090,15 @@
 -      let local_named_types : Map[Int, Int] = Map([])
 -      let local_import_resource_names : Map[String, Int] = Map([])
 -      let local_export_resource_names : Map[String, Int] = Map([])
@@ -481,7 +515,22 @@
 -          CoreType(bytes) => {
 -            local_core_type_exports.push(
 -              validate_single_core_type(
--                bytes, local_core_type_bound, outer_core_type_bounds,
++      let import_functions : Map[String, @component.FuncType] = Map([])
++      let export_functions : Map[String, @component.FuncType] = Map([])
++      let local_named_types : Map[Int32, Int32] = Map([])
++      let local_import_resource_names : Map[String, Int32] = Map([])
++      let local_export_resource_names : Map[String, Int32] = Map([])
++      let local_import_resource_type_idxs : Map[Int32, Int32] = Map([])
++      let local_instance_imports : Array[Bool] = []
++      let local_export_resource_type_idxs : Map[Int32, Int32] = Map([])
++      let local_core_type_exports : Array[Map[String, Int32]?] = []
++      for i = decls.length() - 1; i >= 0; i = i - 1 {
++        let d = decls[i]
++        work.push(() => {
++          match d {
++            CoreType(bytes) => {
++              let exports = validate_single_core_type(
+@@ -1037,20 +1106,12 @@
 -              ),
 -            )
 -            local_core_type_bound += 1
@@ -502,41 +551,10 @@
 -                      )
 -                    }
 -                  None => ()
--                }
--              }
--              local_type_table.push(outer)
--              local_resource_ids.push(None)
--            } else if kind == 0x110 {
-+      let import_functions : Map[String, @component.FuncType] = Map([])
-+      let export_functions : Map[String, @component.FuncType] = Map([])
-+      let local_named_types : Map[Int32, Int32] = Map([])
-+      let local_import_resource_names : Map[String, Int32] = Map([])
-+      let local_export_resource_names : Map[String, Int32] = Map([])
-+      let local_import_resource_type_idxs : Map[Int32, Int32] = Map([])
-+      let local_instance_imports : Array[Bool] = []
-+      let local_export_resource_type_idxs : Map[Int32, Int32] = Map([])
-+      let local_core_type_exports : Array[Map[String, Int32]?] = []
-+      for i = decls.length() - 1; i >= 0; i = i - 1 {
-+        let d = decls[i]
-+        work.push(() => {
-+          match d {
-+            CoreType(bytes) => {
-@@ -1063 +1104,3 @@
--                outer_core_type_of_alias(core_type_outers, count, idx),
-+                validate_single_core_type(
-+                  bytes, local_core_type_bound, outer_core_type_bounds,
-+                ),
-@@ -1066,2 +1108,0 @@
--            } else {
--              raise SectionParseError(7, "outer alias may only refer to types")
-@@ -1069,7 +1110,82 @@
--          AliasInstanceExport(kind, _instance_idx, _name) =>
--            if kind == 0x03 {
--              local_type_table.push(None)
--              local_resource_ids.push(None)
--            } else if kind != 0x05 {
--              raise SectionParseError(
--                7, "alias export may only refer to types or instances",
++              )
++              local_core_type_exports.append(exports)
++              local_core_type_bound += exports.length()
++            }
 +            AliasOuter(kind, count, idx) =>
 +              if kind == 0x03 {
 +                // Count zero aliases an earlier type in the current lexical scope.
@@ -545,7 +563,17 @@
 +                  local_type_table[idx]
 +                } else {
 +                  outer_type_of_alias(type_outers, count, idx)
-+                }
+@@ -1058,10 +1119,58 @@
+-              }
+-              local_type_table.push(outer)
+-              local_resource_ids.push(None)
+-            } else if kind == 0x110 {
+-              local_core_type_exports.push(
+-                outer_core_type_of_alias(core_type_outers, count, idx),
+-              )
+-              local_core_type_bound += 1
+-            } else {
+-              raise SectionParseError(7, "outer alias may only refer to types")
 +                if count > 0 && type_outer_depths[count - 1] < component_depth {
 +                  match outer {
 +                    Some(td) =>
@@ -604,7 +632,14 @@
 +                  7, "alias export may only refer to types or instances",
 +                )
 +              }
-+            }
+@@ -1069,7 +1178,14 @@
+-          AliasInstanceExport(kind, _instance_idx, _name) =>
+-            if kind == 0x03 {
+-              local_type_table.push(None)
+-              local_resource_ids.push(None)
+-            } else if kind != 0x05 {
+-              raise SectionParseError(
+-                7, "alias export may only refer to types or instances",
 +            Type(t) => {
 +              work.push(() => {
 +                local_type_table.push(Some(t))
@@ -1058,7 +1093,7 @@
 +      let local_resource_ids : Array[Int32?] = []
 +      let resource_names : Map[String, Int32] = Map([])
 +      let export_functions : Map[String, @component.FuncType] = Map([])
-@@ -1292,17 +1453,34 @@
+@@ -1292,11 +1453,10 @@
 -      let local_core_type_exports : Array[Map[String, Int]?] = []
 -      for d in decls {
 -        match d {
@@ -1070,47 +1105,25 @@
 -                Some(
 -                  parse_core_type_module_exports(r, -1, local_core_type_bound, []),
 -                ),
--              )
--            } else if op == 0x60 {
--              r.skip_func_type_body()
--              local_core_type_exports.push(None)
--            } else {
--              raise SectionParseError(3, "unsupported core type opcode: \{op}")
 +      let local_core_type_exports : Array[Map[String, Int32]?] = []
 +      for i = decls.length() - 1; i >= 0; i = i - 1 {
 +        let d = decls[i]
 +        work.push(() => {
 +          match d {
 +            CoreType(bytes) => {
-+              let r = CoreTypeReader::CoreTypeReader(bytes)
-+              let op = r.read_u8()
-+              if op == 0x50 {
-+                local_core_type_exports.push(
-+                  Some(
-+                    parse_core_type_module_exports(
-+                      r,
-+                      -1,
-+                      local_core_type_bound,
-+                      [],
-+                    ),
-+                  ),
-+                )
-+              } else if op == 0x60 {
-+                r.skip_func_type_body()
-+                local_core_type_exports.push(None)
-+              } else {
-+                raise SectionParseError(
-+                  3,
-+                  "unsupported core type opcode: \{op}",
-+                )
-+              }
-+              if !r.is_eof() {
-+                raise SectionParseError(
-+                  3, "trailing bytes in core type payload",
-+                )
-+              }
-+              local_core_type_bound += 1
-@@ -1310,21 +1488,8 @@
++              let exports = validate_single_core_type(
++                bytes,
++                local_core_type_bound,
++                [],
+@@ -1304,5 +1464,2 @@
+-            } else if op == 0x60 {
+-              r.skip_func_type_body()
+-              local_core_type_exports.push(None)
+-            } else {
+-              raise SectionParseError(3, "unsupported core type opcode: \{op}")
++              local_core_type_exports.append(exports)
++              local_core_type_bound += exports.length()
+@@ -1310,21 +1467,8 @@
 -            if !r.is_eof() {
 -              raise SectionParseError(3, "trailing bytes in core type payload")
 -            }
@@ -1140,7 +1153,7 @@
 +                  local_type_table[idx]
 +                } else {
 +                  outer_type_of_alias(type_outers, count, idx)
-@@ -1332,16 +1497,55 @@
+@@ -1332,16 +1476,55 @@
 -              }
 -              local_type_table.push(outer)
 -            } else if kind == 0x110 {
@@ -1212,7 +1225,7 @@
 +                [local_core_type_exports] + core_type_outers,
 +                false,
 +                work,
-@@ -1350,31 +1554,48 @@
+@@ -1350,31 +1533,48 @@
 -          Type(t) => {
 -            validate_typedef(
 -              t,
@@ -1292,7 +1305,7 @@
 +                      resource_names[name] = new_index
 +                    }
 +                  }
-@@ -1382 +1603,22 @@
+@@ -1382 +1582,22 @@
 -              None => seen_exports.set(key, name)
 +                Value(Type(value)) =>
 +                  if !cfg.borrowed_value_exports &&
@@ -1316,7 +1329,7 @@
 +                  }
 +                _ => ()
 +              }
-@@ -1384,17 +1626,2 @@
+@@ -1384,17 +1605,2 @@
 -            validate_externdesc(desc, local_type_table, local_core_type_bound)
 -            match desc {
 -              CoreModuleType(tyidx) =>
@@ -1336,19 +1349,19 @@
 -        }
 +          }
 +        })
-@@ -1433 +1660 @@
+@@ -1433 +1639 @@
 -  core_type_bound : Int,
 +  core_type_bound : Int32,
-@@ -1578 +1805 @@
+@@ -1578 +1784 @@
 -fn canon_memory_idx(opts : Array[@component.CanonOpt]) -> Int? {
 +fn canon_memory_idx(opts : Array[@component.CanonOpt]) -> Int32? {
-@@ -1588 +1815 @@
+@@ -1588 +1794 @@
 -fn canon_realloc_idx(opts : Array[@component.CanonOpt]) -> Int? {
 +fn canon_realloc_idx(opts : Array[@component.CanonOpt]) -> Int32? {
-@@ -1598 +1825 @@
+@@ -1598 +1804 @@
 -fn canon_post_return_idx(opts : Array[@component.CanonOpt]) -> Int? {
 +fn canon_post_return_idx(opts : Array[@component.CanonOpt]) -> Int32? {
-@@ -1608 +1835,11 @@
+@@ -1608 +1814,11 @@
 -fn functype_needs_memory(
 +fn canon_callback_idx(opts : Array[@component.CanonOpt]) -> Int32? {
 +  for o in opts {
@@ -1361,14 +1374,14 @@
 +
 +///|
 +fn functype_params_need_memory(
-@@ -1611,5 +1848 @@
+@@ -1611,5 +1827 @@
 -) -> Bool {
 -  // Canonical ABI uses linear memory when:
 -  // - any param/result type itself needs memory (e.g. string/list), or
 -  // - the flattened parameter list is too large (>16), or
 -  // - the result can't be represented as a single core value.
 +) -> Bool raise ComponentValidationError {
-@@ -1628,27 +1860,0 @@
+@@ -1628,27 +1839,0 @@
 -  match ft.result {
 -    None => false
 -    Some(r) =>
@@ -1396,10 +1409,10 @@
 -      None => return true
 -    }
 -  }
-@@ -1662 +1868 @@
+@@ -1662 +1847 @@
 -) -> Bool {
 +) -> Bool raise ComponentValidationError {
-@@ -1675,136 +1880,0 @@
+@@ -1675,136 +1859,0 @@
 -
 -///|
 -fn valtype_contains_list_or_string(
@@ -1559,12 +1572,36 @@
 @@ -26 +29 @@
 -        let key = "\{mod_s}:\{name_s}"
 +        let key = (mod_s, name_s)
-@@ -60 +63,3 @@
+@@ -34,4 +37 @@
+-      0x01 => {
+-        r.skip_func_type()
+-        func_type_bound += 1
+-      }
++      0x01 => func_type_bound += r.skip_heap_group()
+@@ -60 +60,3 @@
 -                let bound = if depth <= 1 {
 +                let bound = if depth == 0 {
 +                  func_type_bound - 1
 +                } else if depth == 1 {
-@@ -120,4 +125,4 @@
+@@ -101,17 +102,0 @@
+-fn skip_prefixed_core_subtype(
+-  r : CoreTypeReader,
+-) -> Unit raise ComponentValidationError {
+-  if r.read_u8() != 0x50 {
+-    raise SectionParseError(3, "invalid prefixed core subtype")
+-  }
+-  let supertype_count = r.read_leb_u32()
+-  for _ in 0..<supertype_count {
+-    r.read_leb_u32() |> ignore
+-  }
+-  if r.read_u8() != 0x60 {
+-    raise SectionParseError(3, "unsupported core subtype")
+-  }
+-  r.skip_func_type_body()
+-}
+-
+-///|
+@@ -120,4 +105,4 @@
 -  max_outer_depth : Int,
 -  base_core_type_bound : Int,
 -  outer_core_type_bounds : Array[Int],
@@ -1573,49 +1610,117 @@
 +  base_core_type_bound : Int32,
 +  outer_core_type_bounds : Array[Int32],
 +) -> Array[Map[String, Int32]?] raise ComponentValidationError {
-@@ -126 +131 @@
+@@ -126,2 +111,2 @@
 -  let out : Array[Map[String, Int]?] = []
+-  for i in 0..<n {
 +  let out : Array[Map[String, Int32]?] = []
-@@ -159,3 +164,3 @@
++  for _ in 0..<n {
+@@ -135 +120 @@
+-            base_core_type_bound + i,
++            base_core_type_bound + out.length(),
+@@ -140,6 +124,0 @@
+-    } else if op == 0x60 {
+-      r.skip_func_type_body()
+-      out.push(None)
+-    } else if op == 0x00 {
+-      skip_prefixed_core_subtype(r)
+-      out.push(None)
+@@ -147 +126,5 @@
+-      raise SectionParseError(3, "unsupported core type opcode: \{op}")
++      r.pos -= 1
++      let count = r.skip_core_declaration()
++      for _ in 0..<count {
++        out.push(None)
++      }
+@@ -159,3 +142,3 @@
 -  max_outer_depth : Int,
 -  base_core_type_bound : Int,
 -  outer_core_type_bounds : Array[Int],
 +  max_outer_depth : Int32,
 +  base_core_type_bound : Int32,
 +  outer_core_type_bounds : Array[Int32],
-@@ -199,3 +204,3 @@
+@@ -167 +150 @@
+-  for i in 0..<n {
++  for _ in 0..<n {
+@@ -173 +156 @@
+-        base_core_type_bound + i,
++        base_core_type_bound + imports.length(),
+@@ -178,8 +160,0 @@
+-    } else if op == 0x60 {
+-      r.skip_func_type_body()
+-      imports.push(None)
+-      export_types.push(None)
+-    } else if op == 0x00 {
+-      skip_prefixed_core_subtype(r)
+-      imports.push(None)
+-      export_types.push(None)
+@@ -187 +162,6 @@
+-      raise SectionParseError(3, "unsupported core type opcode: \{op}")
++      r.pos -= 1
++      let count = r.skip_core_declaration()
++      for _ in 0..<count {
++        imports.push(None)
++        export_types.push(None)
++      }
+@@ -199,3 +179,3 @@
 -  current_core_type_bound : Int,
 -  outer_core_type_bounds : Array[Int],
 -) -> Map[String, Int]? raise ComponentValidationError {
 +  current_core_type_bound : Int32,
 +  outer_core_type_bounds : Array[Int32],
-+) -> Map[String, Int32]? raise ComponentValidationError {
-@@ -313 +318 @@
++) -> Array[Map[String, Int32]?] raise ComponentValidationError {
+@@ -208,4 +188,7 @@
+-  let exports = if op == 0x50 {
+-    Some(
+-      parse_core_type_module_exports(
+-        r, max_outer_depth, current_core_type_bound, outer_core_type_bounds,
++  let exports : Array[Map[String, Int32]?] = []
++  if op == 0x50 {
++    exports.push(
++      Some(
++        parse_core_type_module_exports(
++          r, max_outer_depth, current_core_type_bound, outer_core_type_bounds,
++        ),
+@@ -214,6 +196,0 @@
+-  } else if op == 0x60 {
+-    r.skip_func_type_body()
+-    None
+-  } else if op == 0x00 {
+-    skip_prefixed_core_subtype(r)
+-    None
+@@ -221 +198,5 @@
+-    raise SectionParseError(3, "unsupported core type opcode: \{op}")
++    r.pos -= 1
++    let count = r.skip_core_declaration()
++    for _ in 0..<count {
++      exports.push(None)
++    }
+@@ -313 +294 @@
 -  section : Int,
 +  section : Int32,
-@@ -320 +325,2 @@
+@@ -320 +301,2 @@
 -  let mut has_version = false
 +  let mut suffix : Bytes? = None
 +  let mut interface_name = name
-@@ -322,0 +329,6 @@
+@@ -322,0 +305,6 @@
 +    let bytes = match attribute {
 +      Implements(bytes) | VersionSuffix(bytes) | ExternalId(bytes) => bytes
 +    }
 +    (@utf8.decode(bytes, ignore_bom=false) |> ignore) catch {
 +      _ => raise SectionParseError(section, "name attribute is not UTF-8")
 +    }
-@@ -324 +336 @@
+@@ -324 +312 @@
 -      Implements(interface_name) => {
 +      Implements(implemented) => {
-@@ -343,0 +356 @@
+@@ -343,0 +332 @@
 +        interface_name = implemented
-@@ -354 +367 @@
+@@ -354 +343 @@
 -        if has_version {
 +        if suffix is Some(_) {
-@@ -356 +369 @@
+@@ -356 +345 @@
 -            section, "duplicate `versionsuffix` attribute",
 +            section, "duplicate `version-suffix` attribute",
-@@ -359,22 +372,6 @@
+@@ -359,22 +348,6 @@
 -        has_version = true
 -        let mut at = -1
 -        for i in 0..<name.length() {
@@ -1644,7 +1749,7 @@
 +          )
 +        }
 +        suffix = Some(version)
-@@ -389,0 +387,71 @@
+@@ -389,0 +363,71 @@
 +  if !cfg.canonical_version_suffix && has_implements {
 +    return
 +  }
@@ -1716,13 +1821,13 @@
 +      raise SectionParseError(section, "invalid version suffix")
 +    }
 +  }
-@@ -394 +462 @@
+@@ -394 +438 @@
 -  section : Int,
 +  section : Int32,
-@@ -426 +494 @@
+@@ -426 +470 @@
 -  fn parse_resource_prefix(name : String, prefix_len : Int) -> String {
 +  fn parse_resource_prefix(name : String, prefix_len : Int32) -> String {
-@@ -541 +609,7 @@
+@@ -541 +585,7 @@
 -  let s = suffix.to_string()
 +  let raw_suffix = suffix.to_string()
 +  let s = if (p == "method" || p == "static") &&
@@ -1731,32 +1836,32 @@
 +  } else {
 +    raw_suffix
 +  }
-@@ -567 +641 @@
+@@ -567 +617 @@
 -) -> Int? {
 +) -> Int32? {
-@@ -586 +660 @@
+@@ -586 +636 @@
 -) -> Int? {
 +) -> Int32? {
-@@ -603 +677 @@
+@@ -603 +653 @@
 -  section : Int,
 +  section : Int32,
-@@ -607,2 +681,2 @@
+@@ -607,2 +657,2 @@
 -  resource_ids : Array[Int?],
 -  known_resources : Map[String, Int],
 +  resource_ids : Array[Int32?],
 +  known_resources : Map[String, Int32],
-@@ -609,0 +684 @@
+@@ -609,0 +660 @@
 +  validate_accessor_function(section, name, ft, type_table)
-@@ -610,0 +686,3 @@
+@@ -610,0 +662,3 @@
 +  if br is Some(info) && info.kind is Constructor && ft.is_async {
 +    raise SectionParseError(section, "constructor cannot be async")
 +  }
-@@ -702,2 +780,2 @@
+@@ -702,2 +756,2 @@
 -  allowed_resource_type_idxs : Map[Int, Int],
 -  visiting : Map[Int, Int],
 +  allowed_resource_type_idxs : Map[Int32, Int32],
 +  visiting : Map[Int32, Int32],
-@@ -705,23 +783,21 @@
+@@ -705,23 +759,21 @@
 -  match ty {
 -    Prim(_) => false
 -    TypeIdx(idx) =>
@@ -1801,7 +1906,7 @@
 +        for item in cases {
 +          if item.ty is Some(value) {
 +            work.push(value)
-@@ -729,71 +805,23 @@
+@@ -729,71 +781,23 @@
 -          Some(Record(fields)) => {
 -            let mut bad = false
 -            for f in fields {
@@ -1896,53 +2001,53 @@
 +    }
 +  }
 +  false
-@@ -806 +834 @@
+@@ -806 +810 @@
 -  allowed_resource_type_idxs : Map[Int, Int],
 +  allowed_resource_type_idxs : Map[Int32, Int32],
-@@ -808 +836 @@
+@@ -808 +812 @@
 -  let visiting : Map[Int, Int] = Map([])
 +  let visiting : Map[Int32, Int32] = Map([])
-@@ -832 +860 @@
+@@ -832 +836 @@
 -  resource_ids : Array[Int?],
 +  resource_ids : Array[Int32?],
-@@ -834 +862 @@
+@@ -834 +838 @@
 -  let visiting : Map[Int, Int] = Map([])
 +  let visiting : Map[Int32, Int32] = Map([])
-@@ -846 +874,5 @@
+@@ -846 +850,5 @@
 -  { params, result, }
 +  {
 +    params,
 +    result,
 +    complete: complete_function_signature(ft, [], [], type_table, resource_ids),
 +  }
-@@ -853 +885 @@
+@@ -853 +861 @@
 -  local_resource_ids : Array[Int?],
 +  local_resource_ids : Array[Int32?],
-@@ -855,2 +887,2 @@
+@@ -855,2 +863,2 @@
 -  global_resource_ids : Array[Int?],
 -  visiting : Map[Int, Int],
 +  global_resource_ids : Array[Int32?],
 +  visiting : Map[Int32, Int32],
-@@ -973 +1005 @@
+@@ -973 +981 @@
 -  local_resource_ids : Array[Int?],
 +  local_resource_ids : Array[Int32?],
-@@ -975,2 +1007,2 @@
+@@ -975,2 +983,2 @@
 -  global_resource_ids : Array[Int?],
 -  visiting : Map[Int, Int],
 +  global_resource_ids : Array[Int32?],
 +  visiting : Map[Int32, Int32],
-@@ -1024 +1056 @@
+@@ -1024 +1032 @@
 -  local_resource_ids : Array[Int?],
 +  local_resource_ids : Array[Int32?],
-@@ -1026 +1058,3 @@
+@@ -1026 +1034,3 @@
 -  global_resource_ids : Array[Int?],
 +  global_resource_ids : Array[Int32?],
 +  local_origins~ : Map[Int32, Int32] = Map([]),
 +  global_function~ : Bool = false,
-@@ -1028 +1062 @@
+@@ -1028 +1038 @@
 -  let visiting : Map[Int, Int] = Map([])
 +  let visiting : Map[Int32, Int32] = Map([])
-@@ -1053 +1087,13 @@
+@@ -1053 +1063,13 @@
 -  { params, result, }
 +  {
 +    params,
@@ -1957,47 +2062,47 @@
 +      global_function~,
 +    ),
 +  }
-@@ -1060,2 +1106,2 @@
+@@ -1060,2 +1082,2 @@
 -  resource_ids : Array[Int?],
 -  visiting : Map[Int, Int],
 +  resource_ids : Array[Int32?],
 +  visiting : Map[Int32, Int32],
-@@ -1140,2 +1186,2 @@
+@@ -1140,2 +1162,2 @@
 -  resource_ids : Array[Int?],
 -  visiting : Map[Int, Int],
 +  resource_ids : Array[Int32?],
 +  visiting : Map[Int32, Int32],
-@@ -1170,3 +1216,3 @@
+@@ -1170,3 +1192,3 @@
 -  idx : Int,
 -  type_table : Array[@component.TypeDef?],
 -  resource_ids : Array[Int?],
 +  idx : Int32,
 +  type_table : Array[@component.TypeDef?],
 +  resource_ids : Array[Int32?],
-@@ -1178 +1224,4 @@
+@@ -1178 +1200,4 @@
 -fn type_sig_subst_resources(sig : TypeSig, subst : Map[Int, Int]) -> TypeSig {
 +fn type_sig_subst_resources(
 +  sig : TypeSig,
 +  subst : Map[Int32, Int32],
 +) -> TypeSig {
-@@ -1307 +1356 @@
+@@ -1307 +1332 @@
 -  subst : Map[Int, Int],
 +  subst : Map[Int32, Int32],
-@@ -1317 +1366,5 @@
+@@ -1317 +1342,5 @@
 -  { params, result, }
 +  {
 +    params,
 +    result,
 +    complete: complete_signature_substitute(sig.complete, subst),
 +  }
-@@ -1355,3 +1408,3 @@
+@@ -1355,3 +1384,3 @@
 -  resource_ids : Array[Int?],
 -  named_types : Map[Int, Int],
 -  visiting : Map[Int, Int],
 +  _resource_ids : Array[Int32?],
 +  named_types : Map[Int32, Int32],
 +  _visiting : Map[Int32, Int32],
-@@ -1359,112 +1412 @@
+@@ -1359,112 +1388 @@
 -  match ty {
 -    Prim(_) => true
 -    TypeIdx(idx) =>
@@ -2111,14 +2216,14 @@
 -      }
 -  }
 +  interface_value_work(ty, type_table, named_types, false)
-@@ -1477,3 +1419,3 @@
+@@ -1477,3 +1395,3 @@
 -  resource_ids : Array[Int?],
 -  named_types : Map[Int, Int],
 -  visiting : Map[Int, Int],
 +  _resource_ids : Array[Int32?],
 +  named_types : Map[Int32, Int32],
 +  _visiting : Map[Int32, Int32],
-@@ -1481,7 +1423,7 @@
+@@ -1481,7 +1399,7 @@
 -  valtype_valid_for_type_import_export_inner(
 -    ty, type_table, resource_ids, named_types, visiting, false,
 -  )
@@ -2133,14 +2238,14 @@
 +// Type index chains are input-controlled even when physical scopes are shallow.
 +// Keep this check iterative, including fixed lists and maps from WAC packages.
 +fn interface_value_work(
-@@ -1490,4 +1432,2 @@
+@@ -1490,4 +1408,2 @@
 -  resource_ids : Array[Int?],
 -  named_types : Map[Int, Int],
 -  visiting : Map[Int, Int],
 -  nested : Bool,
 +  named_types : Map[Int32, Int32],
 +  type_external : Bool,
-@@ -1495,121 +1435,29 @@
+@@ -1495,121 +1411,29 @@
 -  match ty {
 -    Prim(_) => true
 -    TypeIdx(idx) =>
@@ -2291,7 +2396,7 @@
 +        for case in cases {
 +          if case.ty is Some(value) {
 +            work.push((value, false))
-@@ -1618,2 +1466,32 @@
+@@ -1618,2 +1442,32 @@
 -      }
 -  }
 +      Option(value) | List(value) | FixedList(value, _) =>
@@ -2326,44 +2431,44 @@
 +    }
 +  }
 +  true
-@@ -1626,2 +1504,2 @@
+@@ -1626,2 +1480,2 @@
 -  resource_ids : Array[Int?],
 -  named_types : Map[Int, Int],
 +  resource_ids : Array[Int32?],
 +  named_types : Map[Int32, Int32],
-@@ -1629 +1507 @@
+@@ -1629 +1483 @@
 -  let visiting : Map[Int, Int] = Map([])
 +  let visiting : Map[Int32, Int32] = Map([])
-@@ -1654 +1532 @@
+@@ -1654 +1508 @@
 -  visiting_global : Map[Int, Int],
 +  visiting_global : Map[Int32, Int32],
-@@ -1666,3 +1544,3 @@
+@@ -1666,3 +1520,3 @@
 -  tyidx : Int,
 -  type_table : Array[@component.TypeDef?],
 -  visiting_global : Map[Int, Int],
 +  tyidx : Int32,
 +  type_table : Array[@component.TypeDef?],
 +  visiting_global : Map[Int32, Int32],
-@@ -1687 +1565 @@
+@@ -1687 +1541 @@
 -  tyidx : Int,
 +  tyidx : Int32,
-@@ -1690,2 +1568,2 @@
+@@ -1690,2 +1544,2 @@
 -  visiting_local : Map[Int, Int],
 -  visiting_global : Map[Int, Int],
 +  visiting_local : Map[Int32, Int32],
 +  visiting_global : Map[Int32, Int32],
-@@ -1717 +1595 @@
+@@ -1717 +1571 @@
 -  visiting_global : Map[Int, Int],
 +  visiting_global : Map[Int32, Int32],
-@@ -1724 +1602 @@
+@@ -1724 +1578 @@
 -  let visiting_local : Map[Int, Int] = Map([])
 +  let visiting_local : Map[Int32, Int32] = Map([])
-@@ -1749 +1627 @@
+@@ -1749 +1603 @@
 -  tyidx : Int,
 +  tyidx : Int32,
-@@ -1751,0 +1630 @@
+@@ -1751,0 +1606 @@
 +  named_types : Map[Int32, Int32],
-@@ -1753,16 +1632,25 @@
+@@ -1753,16 +1608,25 @@
 -  if tyidx < 0 || tyidx >= type_table.length() {
 -    return true
 -  }
@@ -2405,7 +2510,7 @@
 +              next_rid += 1
 +            }
 +            _ => local_resource_ids.push(None)
-@@ -1770,31 +1658,17 @@
+@@ -1770,31 +1634,17 @@
 -          _ => local_resource_ids.push(None)
 -        }
 -      }
@@ -2454,7 +2559,7 @@
 +                  outer_type_of_alias(type_outers, count, idx) catch {
 +                    _ => None
 +                  }
-@@ -1802,9 +1676,14 @@
+@@ -1802,9 +1652,14 @@
 -                local_named_types.set(new_idx, 1)
 -                if !valtype_valid_for_type_import_export(
 -                    TypeIdx(new_idx),
@@ -2478,7 +2583,7 @@
 +                } else if named_outers.get(count - 1) is Some(names) &&
 +                  names.contains(idx) {
 +                  local_named_types[local_type_table.length() - 1] = 1
-@@ -1813,8 +1692,14 @@
+@@ -1813,8 +1668,14 @@
 -              FuncType(ft_idx) =>
 -                if ft_idx >= 0 && ft_idx < local_type_table.length() {
 -                  match local_type_table[ft_idx] {
@@ -2501,7 +2606,7 @@
 +                        push_local(local_type_table[src])
 +                      } else {
 +                        push_local(None)
-@@ -1822 +1707,14 @@
+@@ -1822 +1683,14 @@
 -                    _ => ()
 +                    SubResource =>
 +                      push_local(
@@ -2517,7 +2622,7 @@
 +                      Map([]),
 +                    ) {
 +                    return false
-@@ -1825,9 +1723,49 @@
+@@ -1825,9 +1699,49 @@
 -              _ => ()
 -            }
 -          _ => ()
@@ -2576,17 +2681,17 @@
 +    }
 +  }
 +  true
-@@ -1853,2 +1791,2 @@
+@@ -1853,2 +1767,2 @@
 -  let visiting_local : Map[Int, Int] = Map([])
 -  let visiting_global : Map[Int, Int] = Map([])
 +  let visiting_local : Map[Int32, Int32] = Map([])
 +  let visiting_global : Map[Int32, Int32] = Map([])
-@@ -1935,2 +1873,2 @@
+@@ -1935,2 +1849,2 @@
 -  actual : Map[String, Int]?,
 -  expected : Map[String, Int],
 +  actual : Map[String, Int32]?,
 +  expected : Map[String, Int32],
-@@ -1950,0 +1889,85 @@
+@@ -1950,0 +1865,85 @@
 +
 +///|
 +fn validate_accessor_function(
@@ -2678,12 +2783,13 @@
 +  "moonrockz/wit/binary/type_parser",
 +  "moonrockz/wit/core_types",
 +  "moonbitlang/core/encoding/utf8",
-@@ -3 +6 @@
+@@ -3,4 +6,3 @@
 -  "Milky2018/wasm_core/parser",
-+  "moonrockz/wit/binary/core_parser" @parser,
-@@ -5,2 +8 @@
+-  "Milky2018/wasm_core/types",
 -  "Milky2018/wasm_core/validator" @core_validator,
 -  "moonbitlang/core/hashset",
++  "moonrockz/wit/binary/core_parser" @parser,
++  "moonrockz/wit/binary/core_model" @types,
 +  "moonrockz/wit/binary/core_validation" @core_validator,
 --- a/prelude.mbt
 +++ b/prelude.mbt
@@ -3190,11 +3296,15 @@
 +  self : CoreTypeReader,
 +  memory : Bool,
 +) -> (Int32, UInt64, UInt64?, Int32) raise ComponentValidationError {
-@@ -1593,4 +1631,24 @@
+@@ -1593,8 +1631,30 @@
 -  self.read_leb_u32() |> ignore
 -  if (flags & 0x01) != 0 {
 -    self.read_leb_u32() |> ignore
 -  }
+-}
+-
+-///|
+-fn CoreTypeReader::skip_func_type(
 +  if flags > (if memory { 15 } else { 7 }) {
 +    raise SectionParseError(3, "invalid core limits flags")
 +  }
@@ -3204,7 +3314,7 @@
 +  if max is Some(n) && n < min {
 +    raise SectionParseError(3, "core limit maximum is below its minimum")
 +  }
-+  if (flags & 2) != 0 && max is None {
++  if memory && (flags & 2) != 0 && max is None {
 +    raise SectionParseError(3, "shared core limits require a maximum")
 +  }
 +  let page = if memory && (flags & 8) != 0 { self.read_leb_u32() } else { 16 }
@@ -3219,12 +3329,57 @@
 +    }
 +  }
 +  (flags, min, max, page)
-@@ -1627,2 +1685,2 @@
++}
++
++///|
++// Legacy optional signature projections never certify a graph. The complete
++// immutable contract pass resolves identities and checks compatibility.
++fn CoreTypeReader::skip_heap_group(
+@@ -1602,10 +1662,12 @@
+-) -> Unit raise ComponentValidationError {
+-  let form = self.read_u8()
+-  if form != 0x60 {
+-    raise SectionParseError(3, "unsupported core functype form: \{form}")
+-  }
+-  self.skip_func_type_body()
+-}
+-
+-///|
+-fn CoreTypeReader::skip_func_type_body(
++) -> Int32 raise ComponentValidationError {
++  match @core_types.scan_heap_group(self.data, self.pos, self.data.length()) {
++    Ok((end, count)) => {
++      self.pos = end
++      count
++    }
++    Err(error) => raise SectionParseError(3, error.message)
++  }
++}
++
++///|
++fn CoreTypeReader::skip_core_declaration(
+@@ -1613,8 +1675,7 @@
+-) -> Unit raise ComponentValidationError {
+-  let nparams = self.read_leb_u32()
+-  for _i in 0..<nparams {
+-    self.read_core_valtype() |> ignore
+-  }
+-  let nresults = self.read_leb_u32()
+-  for _i in 0..<nresults {
+-    self.read_core_valtype() |> ignore
++) -> Int32 raise ComponentValidationError {
++  match @core_types.scan_declaration(self.data, self.pos, self.data.length()) {
++    Ok((end, count)) => {
++      self.pos = end
++      count
++    }
++    Err(error) => raise SectionParseError(3, error.message)
+@@ -1627,2 +1688,2 @@
 -  kind : Int,
 -  func_type_bound : Int,
 +  kind : Int32,
 +  func_type_bound : Int32,
-@@ -1639,17 +1697,3 @@
+@@ -1639,17 +1700,3 @@
 -      self.skip_limits()
 -    }
 -    0x02 => {
@@ -3245,16 +3400,82 @@
 +      self.read_limits(false) |> ignore
 +    }
 +    0x02 => self.read_limits(true) |> ignore
-@@ -1679 +1723 @@
+@@ -1677,44 +1724,24 @@
+-  let op = self.read_u8()
+-  fn abstract_ref(
 -    heap : Int,
-+    heap : Int32,
-@@ -1748 +1792 @@
+-    nullable : Bool,
+-  ) -> @types.ValueType raise ComponentValidationError {
+-    match @types.ValueType::from_abstract_heap_type(heap, nullable) {
+-      Some(value) => value
+-      None => raise SectionParseError(3, "unsupported core heap type: \{heap}")
+-    }
+-  }
+-  match op {
+-    0x7f => I32
+-    0x7e => I64
+-    0x7d => F32
+-    0x7c => F64
+-    0x7b => V128
+-    0x63 | 0x64 => {
+-      let mut heap = 0L
+-      let mut shift = 0
+-      while true {
+-        let byte = self.read_u8()
+-        let payload = byte & 0x7f
+-        if shift == 28 &&
+-          ((byte & 0x80) != 0 || (payload > 0x0f && payload < 0x70)) {
+-          raise SectionParseError(3, "heap type LEB128 out of range")
+-        }
+-        heap = heap | (payload.to_int64() << shift)
+-        shift += 7
+-        if (byte & 0x80) == 0 {
+-          if (byte & 0x40) != 0 {
+-            heap = heap | (-1L << shift)
+-          }
+-          break
+-        }
+-      }
+-      if heap >= 0L || heap < -64L {
+-        raise SectionParseError(
+-          3,
+-          "unsupported concrete core heap type: \{heap}",
+-        )
+-      }
+-      abstract_ref(heap.to_int(), op == 0x63)
+-    }
+-    _ => abstract_ref(op - 128, true)
++  let value = match
++    @core_types.scan_value(self.data, self.pos, self.data.length()) {
++    Ok((end, value)) => {
++      self.pos = end
++      value
++    }
++    Err(error) => raise SectionParseError(3, error.message)
++  }
++  match value {
++    Number(name) =>
++      match name {
++        "i32" => I32
++        "i64" => I64
++        "f32" => F32
++        "f64" => F64
++        "v128" => V128
++        _ => raise SectionParseError(3, "invalid core scalar")
++      }
++    Ref(nullable, shared, heap) =>
++      if shared || heap >= 0 {
++        HeapRef(nullable, shared, heap)
++      } else {
++        @types.ValueType::from_abstract_heap_type(heap, nullable).unwrap()
++      }
+@@ -1748 +1775 @@
 -  kind : Int,
 +  kind : Int32,
-@@ -1750 +1794 @@
+@@ -1750 +1777 @@
 -  func_type_bound : Int,
 +  func_type_bound : Int32,
-@@ -1775,6 +1819,3 @@
+@@ -1775,6 +1802,3 @@
 -      let flags = self.read_u8()
 -      let min = self.read_leb_u32()
 -      let max = if (flags & 0x01) != 0 {
@@ -3262,9 +3483,9 @@
 -      } else {
 -        None
 +      let (flags, min, max, _) = self.read_limits(false)
-+      if (flags & 2) != 0 {
++      if (flags & 2) != 0 || (elem_ty.heap() is Some((_, _, h)) && h >= 0) {
 +        return None
-@@ -1783,7 +1824,4 @@
+@@ -1783,7 +1807,11 @@
 -        min: min.to_int64(),
 -        max: match max {
 -          Some(v) => Some(v.to_int64())
@@ -3275,8 +3496,15 @@
 +        min: min.reinterpret_as_int64(),
 +        max: max.map(n => n.reinterpret_as_int64()),
 +      }
-+      Some(Table({ elem_type: elem_ty, limits, is_table64: (flags & 4) != 0, }))
-@@ -1792,15 +1830,2 @@
++      Some(
++        Table({
++          is_shared: false,
++          elem_type: elem_ty,
++          limits,
++          is_table64: (flags & 4) != 0,
++        }),
++      )
+@@ -1792,15 +1820,2 @@
 -      // memtype: flags + limits (track memory64 when present)
 -      let flags = self.read_u8()
 -      let min = self.read_leb_u32()
@@ -3294,7 +3522,7 @@
 -      }
 +      let (flags, min, max, page) = self.read_limits(true)
 +      // Retained core limits use Int64 storage as an unsigned bit pattern.
-@@ -1808,7 +1833,3 @@
+@@ -1808,7 +1823,3 @@
 -        min: min.to_int64(),
 -        max: match max {
 -          Some(v) => Some(v.to_int64())
@@ -3305,33 +3533,56 @@
 +        min: min.reinterpret_as_int64(),
 +        max: max.map(n => n.reinterpret_as_int64()),
 +      }
-@@ -1818,3 +1839,3 @@
+@@ -1818,3 +1829,3 @@
 -          is_memory64,
 -          is_shared: (flags & 0x02) != 0,
 -          page_size_log2: 16,
 +          is_memory64: (flags & 4) != 0,
 +          is_shared: (flags & 2) != 0,
 +          page_size_log2: page,
-@@ -1828 +1849,4 @@
+@@ -1828,2 +1839,5 @@
 -      let mutable = mut_ != 0
-+      if (mut_ & 2) != 0 {
+-      Some(Global({ value_type: vt, mutable, }))
++      if (mut_ & 2) != 0 || (vt.heap() is Some((_, _, h)) && h >= 0) {
 +        return None
 +      }
 +      let mutable = (mut_ & 1) != 0
-@@ -1859,3 +1883,3 @@
++      Some(Global({ is_shared: false, value_type: vt, mutable, }))
+@@ -1859,3 +1873,3 @@
 -  max_outer_depth : Int,
 -  current_core_type_bound : Int,
 -  outer_core_type_bounds : Array[Int],
 +  max_outer_depth : Int32,
 +  current_core_type_bound : Int32,
 +  outer_core_type_bounds : Array[Int32],
-@@ -1864 +1888 @@
+@@ -1864 +1878 @@
 -  let seen_imports : Map[String, Int] = Map([])
 +  let seen_imports : Map[(String, String), Int32] = Map([])
-@@ -1883 +1907 @@
+@@ -1883 +1897 @@
 -        let key = "\{mod_s}:\{name_s}"
 +        let key = (mod_s, name_s)
-@@ -1919 +1943,3 @@
+@@ -1894,4 +1908,16 @@
+-      0x01 => {
+-        func_types.push(Some(r.read_core_functype()))
+-        func_type_bound += 1
+-      }
++      0x01 =>
++        if r.pos < r.data.length() && r.data[r.pos] == b'\x60' {
++          let function = r.read_core_functype()
++          let concrete = function.params.any(v => {
++              v.heap() is Some((_, _, h)) && h >= 0
++            }) ||
++            function.results.any(v => v.heap() is Some((_, _, h)) && h >= 0)
++          func_types.push(if concrete { None } else { Some(function) })
++          func_type_bound += 1
++        } else {
++          let count = r.skip_heap_group()
++          for _ in 0..<count {
++            func_types.push(None)
++          }
++          func_type_bound += count
++        }
+@@ -1919 +1945,3 @@
 -                let bound = if depth <= 1 {
 +                let bound = if depth == 0 {
 +                  func_type_bound - 1
@@ -4538,7 +4789,7 @@
 +    if completed is Some(nested_info) {
 +      if nested_info.contract is Some(contract) {
 +        counts.component_contracts[counts.component] = (contract, 0)
-@@ -261,30 +282,101 @@
+@@ -261,30 +282,102 @@
 -      2 => {
 -        let core_instances = @component.parse_core_instance_section(s.payload) catch {
 -          e => raise SectionParseError(2, "\{e}")
@@ -4629,6 +4880,7 @@
 +            seen_imports.set(key, 1)
 +          }
 +          @core_validator.validate_module(core_mod) catch {
++            @core_validator.TypeWorkLimit => raise CoreContractBudgetExceeded
 +            e => raise CoreModuleError("validate core module: \{e}")
 +          }
 +          let exports : Map[String, Int32] = Map([])
@@ -4670,14 +4922,14 @@
 +              Instantiate(module_idx, args) => {
 +                if module_idx < 0 || module_idx >= counts.core_module {
 +                  raise InvalidCoreModuleIndex(module_idx)
-@@ -292,4 +384,2 @@
+@@ -292,4 +385,2 @@
 -                seen_arg_names.set(a.name, 1)
 -                match a.sortidx.sort {
 -                  Core(0x12) => providers.set(a.name, a.sortidx.idx)
 -                  _ => ()
 +                if module_idx >= 0 && module_idx < core_module_exports.length() {
 +                  export_map = core_module_exports[module_idx]
-@@ -297,67 +387,15 @@
+@@ -297,67 +388,15 @@
 -              }
 -              let mod_def = if module_idx >= 0 &&
 -                module_idx < core_module_defs.length() {
@@ -4760,7 +5012,7 @@
 +                    raise CoreModuleError(
 +                      "duplicate module instantiation argument named `\{a.name}`",
 +                    )
-@@ -365,10 +403,16 @@
+@@ -365,10 +404,16 @@
 -                None =>
 -                  match
 -                    (if module_idx >= 0 &&
@@ -4787,7 +5039,7 @@
 +                  match mod_def {
 +                    Some(mod_) =>
 +                      for imp in mod_.imports {
-@@ -386,18 +430,14 @@
+@@ -386,18 +431,14 @@
 -                            let expected_kind = core_kind_of_extern_type(imp.ty)
 -                            if provider_idx < 0 ||
 -                              provider_idx >= core_instance_exports.length() {
@@ -4820,7 +5072,7 @@
 +                                if provider_idx < 0 ||
 +                                  provider_idx >= core_instance_exports.length() {
 +                                  raise InvalidCoreInstanceIndex(provider_idx)
-@@ -405,10 +445,13 @@
+@@ -405,10 +446,13 @@
 -                              None => ()
 -                            }
 -                            match core_instance_export_types[provider_idx] {
@@ -4844,7 +5096,7 @@
 +                                            "module import `\{imp.mod_name}::\{imp.name}` has the wrong type",
 +                                          )
 +                                        }
-@@ -418 +461,17 @@
+@@ -418 +462,17 @@
 -                              None => ()
 +                                // If we also know full types, enforce type compatibility.
 +                                match core_instance_export_types[provider_idx] {
@@ -4863,7 +5115,7 @@
 +                                  None => ()
 +                                }
 +                              }
-@@ -423 +482,65 @@
+@@ -423 +483,65 @@
 -                    None => ()
 +                    None =>
 +                      match
@@ -4930,7 +5182,7 @@
 +                          }
 +                        None => ()
 +                      }
-@@ -424,0 +548,38 @@
+@@ -424,0 +549,38 @@
 +                }
 +              }
 +              InlineExports(inline_exports) => {
@@ -4969,7 +5221,7 @@
 +                }
 +                export_map = Some(map)
 +                export_types = Some(type_map)
-@@ -427,33 +588,47 @@
+@@ -427,33 +589,47 @@
 -            InlineExports(inline_exports) => {
 -              let map : Map[String, Int] = Map([])
 -              let type_map : Map[String, CoreExternType] = Map([])
@@ -5050,7 +5302,7 @@
 +              match scope.binding(4, counts.component) {
 +                Some(Scope(child)) => child
 +                _ => raise UnsupportedComponentAscription
-@@ -461,101 +636,17 @@
+@@ -461,101 +637,17 @@
 -              export_map = Some(map)
 -              export_types = Some(type_map)
 -            }
@@ -5169,7 +5421,7 @@
 +              [counts] + outer_counts,
 +              core_contracts~,
 +            ),
-@@ -563,20 +654,44 @@
+@@ -563,20 +655,44 @@
 -          // Resource types refer to the core-func index space for their dtor.
 -          // Validate bounds/signature here where we have access to the current
 -          // core-func types.
@@ -5234,9 +5486,9 @@
 +                              )
 +                            }
 +                          _ => ()
-@@ -585 +699,0 @@
+@@ -585 +700,0 @@
 -                      _ => ()
-@@ -587,2 +701,21 @@
+@@ -587,2 +702,21 @@
 -                  }
 -                None => ()
 +                  None => ()
@@ -5260,7 +5512,7 @@
 +                counts.owned_resources[next_resource_id] = true
 +                resource_ids.push(Some(next_resource_id))
 +                next_resource_id += 1
-@@ -590,16 +723 @@
+@@ -590,16 +724 @@
 -            _ => ()
 -          }
 -          let size = effective_typedef_size(d, type_sizes)
@@ -5278,7 +5530,7 @@
 -              resource_ids.push(Some(next_resource_id))
 -              next_resource_id += 1
 +              _ => resource_ids.push(None)
-@@ -607,224 +725,10 @@
+@@ -607,224 +726,10 @@
 -            _ => resource_ids.push(None)
 -          }
 -          type_sizes.push(size)
@@ -5513,7 +5765,7 @@
 +            cfg,
 +            is_root,
 +            counts,
-@@ -833 +737,76 @@
+@@ -833 +738,76 @@
 -            type_table.length(),
 +            resource_ids,
 +            type_sizes,
@@ -5591,7 +5843,7 @@
 +            core_module_type_imports,
 +            core_instance_exports,
 +            core_instance_export_types,
-@@ -834,0 +814,107 @@
+@@ -834,0 +815,107 @@
 +            component_import_sorts,
 +            component_import_instance_sigs,
 +            component_import_func_sigs,
@@ -5699,7 +5951,7 @@
 +            import_named_types,
 +            core_module_exports,
 +            core_module_defs,
-@@ -835,0 +922,28 @@
+@@ -835,0 +923,28 @@
 +            core_module_export_types,
 +            core_module_type_imports,
 +            core_instance_exports,
@@ -5728,11 +5980,11 @@
 +            instance_export_func_sigs,
 +            instance_nested_instance_type_sigs,
 +            instance_nested_instance_func_sigs,
-@@ -836,0 +951,3 @@
+@@ -836,0 +952,3 @@
 +            func_sig_shapes,
 +            type_outers,
 +            component_size_outers,
-@@ -838,8 +955,77 @@
+@@ -838,8 +956,77 @@
 -          count_canon(c, counts)
 -          match c {
 -            Lift(_, _, tyidx) =>
@@ -5818,7 +6070,7 @@
 +                } else {
 +                  core_functype_for_canon(
 +                    c, type_table, core_memory_types, func_types, canonical_budget,
-@@ -848,3 +1034,4 @@
+@@ -848,3 +1035,4 @@
 -                _ => {
 -                  func_types.push(None)
 -                  func_sig_shapes.push(None)
@@ -5826,9 +6078,9 @@
 +                  external_contracts[(0, core_func_types.length())] = Func(
 +                    canonical_contract_function(ft),
 +                  )
-@@ -851,0 +1039 @@
+@@ -851,0 +1040 @@
 +                core_func_types.push(signature)
-@@ -853,9 +1041,12 @@
+@@ -853,9 +1042,12 @@
 -            // All non-lift canonical items append a core function to the core-func
 -            // index space. Model known intrinsic signatures so core module
 -            // instantiation validates imports against canonical builtins.
@@ -5850,7 +6102,7 @@
 +          )
 +        }
 +        _ => ()
-@@ -863,7 +1054,6 @@
+@@ -863,7 +1055,6 @@
 -      9 => {
 -        let start = @component.parse_start_section(s.payload) catch {
 -          e => raise SectionParseError(9, "\{e}")
@@ -5864,9 +6116,9 @@
 +        raise SectionParseError(
 +          10, "value was not used as part of an instantiation, start function, or export",
 +        )
-@@ -871 +1060,0 @@
+@@ -871 +1061,0 @@
 -      _ => ()
-@@ -872,0 +1062,38 @@
+@@ -872,0 +1063,38 @@
 +    if export_size > 100000 {
 +      raise SectionParseError(11, "effective type size exceeds the limit")
 +    }
@@ -5905,7 +6157,7 @@
 +      export_type_sigs: my_export_type_sigs,
 +      export_func_sigs: my_export_func_sigs,
 +    })
-@@ -874,24 +1101 @@
+@@ -874,24 +1102 @@
 -  if export_size > 100000 {
 -    raise SectionParseError(11, "effective type size exceeds the limit")
 -  }
@@ -5931,9 +6183,9 @@
 -    export_func_sigs: my_export_func_sigs,
 -  }
 +  { advance, }
-@@ -913,0 +1118 @@
+@@ -913,0 +1119 @@
 +  core_contracts~ : @core_types.ContractGraph? = None,
-@@ -915 +1120,47 @@
+@@ -915 +1121,47 @@
 -  validate_component_inner(component, true, cfg, 0, [], [], [], []) |> ignore
 +  validate_component_binary_with_config(component.binary, cfg, core_contracts~)
 +}
@@ -5982,9 +6234,9 @@
 +      }
 +    }
 +  }
-@@ -942 +1193 @@
+@@ -942 +1194 @@
 -  let snapshot = @component.parse_component(component_bytes) catch {
 +  let snapshot = @component.parse_component_binary(component_bytes) catch {
-@@ -945 +1196 @@
+@@ -945 +1197 @@
 -  validate_component_with_config(snapshot, cfg)
 +  validate_component_binary_with_config(snapshot, cfg)

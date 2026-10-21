@@ -89,15 +89,7 @@ fn validate_mem_offset(
 ///|
 /// Check if a reference type is non-nullable
 fn is_non_nullable_ref_type(ty : @types.ValueType) -> Bool {
-  match ty {
-    RefFunc
-    | RefExtern
-    | RefFuncTyped(_)
-    | RefCont
-    | RefContTyped(_)
-    | RefNoCont => true
-    _ => false
-  }
+  ty.heap() is Some((false, _, _))
 }
 
 ///|

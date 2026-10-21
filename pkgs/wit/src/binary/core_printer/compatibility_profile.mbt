@@ -8,9 +8,9 @@ fn validate_compatibility_control(
   while work.pop() is Some(body) {
     for instruction in body {
       match instruction {
-        TryTable(_) =>
+        TryTable(_) | LegacyTry(_) | Rethrow(_) =>
           raise ReferenceUnsupported(
-            "try_table is outside the compatibility input profile",
+            "exception control is outside the compatibility input profile",
           )
         Block(_, nested) | Loop(_, nested) => work.push(nested)
         If(_, then_, else_) => {
@@ -43,6 +43,13 @@ fn validate_wabt_types(
   if metadata.import_global_flags.any(pair => (pair.1 & 2) != 0) ||
     metadata.global_flags.any(pair => (pair.1 & 2) != 0) {
     raise ReferenceUnsupported("WABT 1.0.42 does not support shared globals")
+  }
+  for type_ in mod_.types {
+    if !(type_.composite is Func(_)) {
+      raise ReferenceUnsupported(
+        "WABT 1.0.42 does not support GC or shared composite types",
+      )
+    }
   }
   for code in mod_.codes {
     if code.locals.length() > 50000 {

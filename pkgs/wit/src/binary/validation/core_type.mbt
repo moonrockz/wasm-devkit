@@ -34,10 +34,7 @@ fn parse_core_type_module_exports(
         let kind = r.read_u8()
         r.validate_extern_type(kind, func_type_bound)
       }
-      0x01 => {
-        r.skip_func_type()
-        func_type_bound += 1
-      }
+      0x01 => func_type_bound += r.skip_heap_group()
       0x02 => {
         // Alias declarations inside module types, e.g.:
         //   (alias outer $C $t (type $u))
@@ -103,23 +100,6 @@ fn parse_core_type_module_exports(
 }
 
 ///|
-fn skip_prefixed_core_subtype(
-  r : CoreTypeReader,
-) -> Unit raise ComponentValidationError {
-  if r.read_u8() != 0x50 {
-    raise SectionParseError(3, "invalid prefixed core subtype")
-  }
-  let supertype_count = r.read_leb_u32()
-  for _ in 0..<supertype_count {
-    r.read_leb_u32() |> ignore
-  }
-  if r.read_u8() != 0x60 {
-    raise SectionParseError(3, "unsupported core subtype")
-  }
-  r.skip_func_type_body()
-}
-
-///|
 fn parse_core_type_section(
   payload : Bytes,
   max_outer_depth : Int32,
@@ -129,7 +109,7 @@ fn parse_core_type_section(
   let r = CoreTypeReader::CoreTypeReader(payload)
   let n = r.read_leb_u32()
   let out : Array[Map[String, Int32]?] = []
-  for i in 0..<n {
+  for _ in 0..<n {
     let op = r.read_u8()
     if op == 0x50 {
       out.push(
@@ -137,19 +117,17 @@ fn parse_core_type_section(
           parse_core_type_module_exports(
             r,
             max_outer_depth,
-            base_core_type_bound + i,
+            base_core_type_bound + out.length(),
             outer_core_type_bounds,
           ),
         ),
       )
-    } else if op == 0x60 {
-      r.skip_func_type_body()
-      out.push(None)
-    } else if op == 0x00 {
-      skip_prefixed_core_subtype(r)
-      out.push(None)
     } else {
-      raise SectionParseError(3, "unsupported core type opcode: \{op}")
+      r.pos -= 1
+      let count = r.skip_core_declaration()
+      for _ in 0..<count {
+        out.push(None)
+      }
     }
   }
   if !r.is_eof() {
@@ -169,27 +147,24 @@ fn parse_core_type_section_module_sigs(
   let n = r.read_leb_u32()
   let imports : Array[Array[CoreModuleTypeImport]?] = []
   let export_types : Array[Map[String, CoreExternType]?] = []
-  for i in 0..<n {
+  for _ in 0..<n {
     let op = r.read_u8()
     if op == 0x50 {
       let (imps, exps) = parse_core_type_module_sig(
         r,
         max_outer_depth,
-        base_core_type_bound + i,
+        base_core_type_bound + imports.length(),
         outer_core_type_bounds,
       )
       imports.push(Some(imps))
       export_types.push(Some(exps))
-    } else if op == 0x60 {
-      r.skip_func_type_body()
-      imports.push(None)
-      export_types.push(None)
-    } else if op == 0x00 {
-      skip_prefixed_core_subtype(r)
-      imports.push(None)
-      export_types.push(None)
     } else {
-      raise SectionParseError(3, "unsupported core type opcode: \{op}")
+      r.pos -= 1
+      let count = r.skip_core_declaration()
+      for _ in 0..<count {
+        imports.push(None)
+        export_types.push(None)
+      }
     }
   }
   if !r.is_eof() {
@@ -203,27 +178,28 @@ fn validate_single_core_type(
   payload : Bytes,
   current_core_type_bound : Int32,
   outer_core_type_bounds : Array[Int32],
-) -> Map[String, Int32]? raise ComponentValidationError {
+) -> Array[Map[String, Int32]?] raise ComponentValidationError {
   let r = CoreTypeReader::CoreTypeReader(payload)
   let op = r.read_u8()
   // For module-type aliases, `depth` counts outward from the module:
   // depth 0/1 target the current component core-type index space; depth >= 2
   // targets outer component environments.
   let max_outer_depth = outer_core_type_bounds.length() + 1
-  let exports = if op == 0x50 {
-    Some(
-      parse_core_type_module_exports(
-        r, max_outer_depth, current_core_type_bound, outer_core_type_bounds,
+  let exports : Array[Map[String, Int32]?] = []
+  if op == 0x50 {
+    exports.push(
+      Some(
+        parse_core_type_module_exports(
+          r, max_outer_depth, current_core_type_bound, outer_core_type_bounds,
+        ),
       ),
     )
-  } else if op == 0x60 {
-    r.skip_func_type_body()
-    None
-  } else if op == 0x00 {
-    skip_prefixed_core_subtype(r)
-    None
   } else {
-    raise SectionParseError(3, "unsupported core type opcode: \{op}")
+    r.pos -= 1
+    let count = r.skip_core_declaration()
+    for _ in 0..<count {
+      exports.push(None)
+    }
   }
   if !r.is_eof() {
     raise SectionParseError(3, "trailing bytes in core type payload")

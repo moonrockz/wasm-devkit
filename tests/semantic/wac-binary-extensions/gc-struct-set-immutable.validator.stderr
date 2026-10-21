@@ -1,0 +1,4 @@
+error: func 0 failed to validate
+
+Caused by:
+    0: invalid struct modification: struct field is immutable (at offset 0x29)

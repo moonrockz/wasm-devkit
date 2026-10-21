@@ -2691,6 +2691,21 @@ fn build_inline_instance_type_bytes_with_ambient(
       continue
     }
     if field.length() > 0 && field[0] is Atom("core") {
+      if field.get(1) is Some(Atom("rec")) {
+        let (bytes, added) = parse_core_rec_bytes(
+          field,
+          2,
+          local_core_type_count,
+          state.core_type_names,
+          state,
+          shadow_start=saved_core_name_len,
+        )
+        decls.push_u8(0)
+        decls.push_bytes(bytes)
+        count += 1
+        local_core_type_count += added
+        continue
+      }
       if field.length() < 3 || !(field[1] is Atom("type")) {
         raise Unsupported(
           "inline instance descriptor only supports core type declarations",
@@ -2715,21 +2730,19 @@ fn build_inline_instance_type_bytes_with_ambient(
       if body.length() == 0 {
         raise Unsupported("inline core type declaration body is empty")
       }
-      let core_type_bytes = if body[0] is Atom("module") {
-        parse_core_module_type_bytes(body, 1, state)
-      } else if body[0] is Atom("func") {
-        parse_core_func_type_bytes(body, state.core_type_names)
-      } else {
-        raise Unsupported("unsupported inline core type declaration")
-      }
-      decls.push_u8(0x00)
-      decls.push_bytes(core_type_bytes)
-      count += 1
       bind_named_index(
         state.core_type_names,
         core_name_opt,
         local_core_type_count,
       )
+      let core_type_bytes = if body[0] is Atom("module") {
+        parse_core_module_type_bytes(body, 1, state)
+      } else {
+        parse_core_heap_type_bytes(body, state.core_type_names, true)
+      }
+      decls.push_u8(0x00)
+      decls.push_bytes(core_type_bytes)
+      count += 1
       local_core_type_count += 1
       continue
     }
@@ -2886,6 +2899,21 @@ fn build_inline_component_type_bytes_with_ambient(
       continue
     }
     if field.length() > 0 && field[0] is Atom("core") {
+      if field.get(1) is Some(Atom("rec")) {
+        let (bytes, added) = parse_core_rec_bytes(
+          field,
+          2,
+          local_core_type_count,
+          state.core_type_names,
+          state,
+          shadow_start=saved_core_name_len,
+        )
+        decls.push_u8(0)
+        decls.push_bytes(bytes)
+        count += 1
+        local_core_type_count += added
+        continue
+      }
       if field.length() < 3 || !(field[1] is Atom("type")) {
         raise Unsupported("unsupported inline component declaration")
       }
@@ -2908,21 +2936,19 @@ fn build_inline_component_type_bytes_with_ambient(
       if body.length() == 0 {
         raise Unsupported("inline core type declaration body is empty")
       }
-      let core_type_bytes = if body[0] is Atom("module") {
-        parse_core_module_type_bytes(body, 1, state)
-      } else if body[0] is Atom("func") {
-        parse_core_func_type_bytes(body, state.core_type_names)
-      } else {
-        raise Unsupported("unsupported inline core type declaration")
-      }
-      decls.push_u8(0x00)
-      decls.push_bytes(core_type_bytes)
-      count += 1
       bind_named_index(
         state.core_type_names,
         core_name_opt,
         local_core_type_count,
       )
+      let core_type_bytes = if body[0] is Atom("module") {
+        parse_core_module_type_bytes(body, 1, state)
+      } else {
+        parse_core_heap_type_bytes(body, state.core_type_names, true)
+      }
+      decls.push_u8(0x00)
+      decls.push_bytes(core_type_bytes)
+      count += 1
       local_core_type_count += 1
       continue
     }
@@ -5783,7 +5809,11 @@ fn parse_core_module_field(
     }
   }
   let bytes = restore_concrete_memory_pages(
-    int_array_to_bytes(@encoder.encode(mod)),
+    int_array_to_bytes(
+      @encoder.encode(mod) catch {
+        @encoder.EncodingError(message) => raise Unsupported(message)
+      },
+    ),
     explicit_pages,
   )
   let bytes = restore_concrete_global_flags(bytes, shared_globals)
@@ -5892,18 +5922,14 @@ fn push_core_valtype_encoding(
   if expr is List(items) {
     if items.length() == 2 && items[0] is Atom("ref") {
       payload.push_u8(0x64)
-      payload.push_sleb_i32(
-        parse_core_heap_type_sleb(items[1], core_type_names),
-      )
+      push_core_heap_encoding(payload, items[1], core_type_names)
       return
     }
     if items.length() == 3 &&
       items[0] is Atom("ref") &&
       items[1] is Atom("null") {
       payload.push_u8(0x63)
-      payload.push_sleb_i32(
-        parse_core_heap_type_sleb(items[2], core_type_names),
-      )
+      push_core_heap_encoding(payload, items[2], core_type_names)
       return
     }
   }
@@ -6067,6 +6093,11 @@ fn parse_core_extern_type_for_module_type(
     } else {
       1
     }
+    let table = head == "table"
+    let table_shared = table && desc.get(start) is Some(Atom("shared"))
+    if table_shared {
+      start += 1
+    }
     let wide = if start < desc.length() && desc[start] is Atom("i64") {
       start += 1
       true
@@ -6077,7 +6108,6 @@ fn parse_core_extern_type_for_module_type(
       false
     }
     let mut end = desc.length()
-    let table = head == "table"
     b.push_u8(if table { 1 } else { 2 })
     if table {
       if end <= start {
@@ -6104,7 +6134,7 @@ fn parse_core_extern_type_for_module_type(
       )
       end -= 1
     }
-    let shared = if end > start && desc[end - 1] is Atom("shared") {
+    let shared = if !table && end > start && desc[end - 1] is Atom("shared") {
       end -= 1
       true
     } else {
@@ -6119,6 +6149,7 @@ fn parse_core_extern_type_for_module_type(
     } else {
       None
     }
+    let shared = shared || table_shared
     let flags = (if max is Some(_) { 1 } else { 0 }) |
       (if shared { 2 } else { 0 }) |
       (if wide { 4 } else { 0 }) |
@@ -6336,6 +6367,16 @@ fn parse_core_module_type_bytes(
       decl_count += 1
       continue
     }
+    if field[0] is Atom("rec") {
+      let (bytes, count) = parse_core_rec_bytes(
+        field, 1, func_type_count, func_type_names, state,
+      )
+      decls.push_u8(1)
+      decls.push_bytes(bytes)
+      decl_count += 1
+      func_type_count += count
+      continue
+    }
     if field[0] is Atom("type") {
       let name_opt = parse_optional_identifier(field, 1)
       let body_index = if name_opt is Some(_) { 2 } else { 1 }
@@ -6349,17 +6390,14 @@ fn parse_core_module_type_bytes(
       } else {
         raise Unsupported("core module type body must be a list")
       }
-      if body.length() == 0 || !(body[0] is Atom("func")) {
-        raise Unsupported("unsupported core module type declaration")
-      }
-      let func_type_bytes = parse_core_func_type_bytes(body, func_type_names)
-      decls.push_u8(0x01)
-      decls.push_bytes(func_type_bytes)
-      decl_count += 1
       let type_idx = func_type_count
-      func_type_count += 1
       core_unique_name(state, func_type_names, name_opt, 0)
       bind_named_index(func_type_names, name_opt, type_idx)
+      let bytes = parse_core_heap_type_bytes(body, func_type_names, false)
+      decls.push_u8(1)
+      decls.push_bytes(bytes)
+      decl_count += 1
+      func_type_count += 1
       continue
     }
     if field[0] is Atom("export") {
@@ -6419,20 +6457,20 @@ fn parse_core_type_field(
   if body.length() == 0 {
     raise Unsupported("core type declaration body is empty")
   }
-  let bytes = if body[0] is Atom("module") {
-    parse_core_module_type_bytes(body, 1, state)
-  } else if body[0] is Atom("func") {
-    parse_core_func_type_bytes(body, state.core_type_names)
-  } else {
-    raise Unsupported("unsupported core type declaration")
+  if body_index + 1 != field.length() {
+    raise ParseError("core type declaration requires one body")
   }
-
   core_unique_name(state, state.core_type_names, name_opt, 0)
   let idx = state.next_core_type_idx
+  bind_named_index(state.core_type_names, name_opt, idx)
+  let bytes = if body[0] is Atom("module") {
+    parse_core_module_type_bytes(body, 1, state)
+  } else {
+    parse_core_heap_type_bytes(body, state.core_type_names, true)
+  }
   state.next_core_type_idx += 1
   state.core_types.push({ idx, bytes, })
   push_ordered_section(state, 3, bytes)
-  bind_named_index(state.core_type_names, name_opt, idx)
 }
 
 ///|
@@ -7567,6 +7605,10 @@ fn parse_core_field(
   }
   if field[1] is Atom("module") {
     parse_core_module_field(field, state)
+    return
+  }
+  if field[1] is Atom("rec") {
+    parse_core_rec_field(field, state)
     return
   }
   if field[1] is Atom("type") {

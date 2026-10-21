@@ -15,7 +15,7 @@ bad-table	false	false	false
 memory64	true	true	true
 shared-memory	true	true	true
 table64	true	true	true
-typed-ref	panic	true	false
+typed-ref	panic	true	true
 abstract-ref	true	true	true
 shared-global	true	true	true
 module-definition	true	true	true

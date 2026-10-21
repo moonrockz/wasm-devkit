@@ -135,7 +135,7 @@
 +    pending.push((body, index + 1))
 +    match body[index] {
 +      Block(_, nested) | Loop(_, nested) => pending.push((nested, 0))
-@@ -74,4 +103,4 @@
+@@ -74,4 +103,10 @@
 -        validate_instructions(then_body)
 -        validate_instructions(else_body)
 -      }
@@ -144,12 +144,18 @@
 +        pending.push((then_body, 0))
 +      }
 +      TryTable(_, _, nested) => pending.push((nested, 0))
-@@ -112,2 +141,2 @@
++      LegacyTry(_, nested, catches, _) => {
++        pending.push((nested, 0))
++        for arm in catches {
++          pending.push((arm.body, 0))
++        }
++      }
+@@ -112,2 +147,2 @@
 -  let closed_groups : Map[Int, Bool] = Map([])
 -  let mut previous_group : Int? = None
 +  let closed_groups : Map[Int32, Bool] = Map([])
 +  let mut previous_group : Int32? = None
-@@ -160,3 +189,4 @@
+@@ -160,3 +195,4 @@
 -  function_index : Int,
 -  imported : Int,
 -  indent : Int,
@@ -157,7 +163,7 @@
 +  imported : Int32,
 +  indent : Int32,
 +  metadata~ : @core_parser.ModuleTextMetadata? = None,
-@@ -180,5 +210,9 @@
+@@ -180,5 +216,9 @@
 -  for param in func_type.params {
 -    sb.write_string(" (param \{value_type_to_wat(param)})")
 -  }
@@ -172,10 +178,10 @@
 +    sb.write_string(
 +      " (result \{own_value_type(result, metadata.bind(m => m.type_values.get(type_index)).bind(t => t.results.get(i)))})",
 +    )
-@@ -187 +221 @@
+@@ -187 +227 @@
 -  for local_ty in code.locals {
 +  for i, local_ty in code.locals {
-@@ -189,3 +223,18 @@
+@@ -189,3 +229,18 @@
 -    sb.write_string("  (local \{value_type_to_wat(local_ty)})\n")
 -  }
 -  sb.write_string(instrs_to_wat(code.body, indent + 1))
@@ -197,16 +203,16 @@
 +      elses=metadata.bind(m => m.function_elses.get(local_index)).unwrap_or([]),
 +    ),
 +  )
-@@ -201 +250 @@
+@@ -201 +256 @@
 -  function_index : Int,
 +  function_index : Int32,
-@@ -214 +263,4 @@
+@@ -214 +269,4 @@
 -pub fn render(mod_ : @types.Module) -> String raise WatPrintError {
 +pub fn render(
 +  mod_ : @types.Module,
 +  metadata~ : @core_parser.ModuleTextMetadata? = None,
 +) -> String raise WatPrintError {
-@@ -236 +288,8 @@
+@@ -236 +294,8 @@
 -        sb.write_string(type_to_wat(i, mod_.types[i], 2))
 +        sb.write_string(
 +          type_to_wat(
@@ -216,7 +222,7 @@
 +            text=metadata.bind(m => m.type_values.get(i)),
 +          ),
 +        )
-@@ -240 +299,8 @@
+@@ -240 +305,8 @@
 -      sb.write_string(type_to_wat(type_idx, mod_.types[type_idx], 1))
 +      sb.write_string(
 +        type_to_wat(
@@ -226,10 +232,14 @@
 +          text=metadata.bind(m => m.type_values.get(type_idx)),
 +        ),
 +      )
-@@ -246 +312 @@
+@@ -246 +318 @@
 -  for imp in mod_.imports {
 +  for import_index, imp in mod_.imports {
-@@ -265 +331,6 @@
+@@ -259,0 +332,3 @@
++        if table_type.is_shared {
++          sb.write_string("shared ")
++        }
+@@ -265 +340,6 @@
 -        sb.write_string(value_type_to_wat(table_type.elem_type))
 +        sb.write_string(
 +          own_value_type(
@@ -237,24 +247,28 @@
 +            metadata.bind(m => m.import_values.get(import_index)),
 +          ),
 +        )
-@@ -281,0 +353,7 @@
+@@ -281,0 +362,7 @@
 +        let shared = metadata
 +          .bind(m => m.import_global_flags.get(import_index))
 +          .map(pair => (pair.1 & 2) != 0)
-+          .unwrap_or(false)
++          .unwrap_or(global_type.is_shared)
 +        if shared {
 +          sb.write_string("(shared ")
 +        }
-@@ -284 +362,6 @@
+@@ -283,2 +370,19 @@
+-          sb.write_string("(mut ")
 -          sb.write_string(value_type_to_wat(global_type.value_type))
++          sb.write_string(if shared { "mut " } else { "(mut " })
 +          sb.write_string(
 +            own_value_type(
 +              global_type.value_type,
 +              metadata.bind(m => m.import_values.get(import_index)),
 +            ),
 +          )
-@@ -287 +370,9 @@
--          sb.write_string(value_type_to_wat(global_type.value_type))
++          if !shared {
++            sb.write_string(")")
++          }
++        } else {
 +          sb.write_string(
 +            own_value_type(
 +              global_type.value_type,
@@ -263,15 +277,21 @@
 +          )
 +        }
 +        if shared {
-+          sb.write_string(")")
-@@ -301,0 +393,3 @@
+@@ -286,2 +389,0 @@
+-        } else {
+-          sb.write_string(value_type_to_wat(global_type.value_type))
+@@ -301,0 +404,3 @@
 +  let (import_tables, import_memories, import_globals, import_tags) = imported_counts(
 +    mod_,
 +  )
-@@ -306 +400 @@
+@@ -306 +411 @@
 -    sb.write_string(i.to_string())
 +    sb.write_string((import_tables + i).to_string())
-@@ -313 +407,6 @@
+@@ -307,0 +413,3 @@
++    if table.type_.is_shared {
++      sb.write_string("shared ")
++    }
+@@ -313 +421,6 @@
 -    sb.write_string(value_type_to_wat(table.type_.elem_type))
 +    sb.write_string(
 +      own_value_type(
@@ -279,32 +299,42 @@
 +        metadata.bind(m => m.table_values.get(i)),
 +      ),
 +    )
-@@ -325 +424 @@
+@@ -315 +428 @@
+-      sb.write_string(" (")
++      sb.write_string(if init.length() == 1 { " (" } else { " " })
+@@ -317 +430,3 @@
+-      sb.write_string(")")
++      if init.length() == 1 {
++        sb.write_string(")")
++      }
+@@ -325 +440 @@
 -    sb.write_string(i.to_string())
 +    sb.write_string((import_memories + i).to_string())
-@@ -341 +440 @@
+@@ -341 +456 @@
 -    sb.write_string(i.to_string())
 +    sb.write_string((import_globals + i).to_string())
-@@ -342,0 +442,7 @@
+@@ -342,0 +458,7 @@
 +    let shared = metadata
 +      .bind(m => m.global_flags.get(i))
 +      .map(pair => (pair.1 & 2) != 0)
-+      .unwrap_or(false)
++      .unwrap_or(global.type_.is_shared)
 +    if shared {
 +      sb.write_string("(shared ")
 +    }
-@@ -345 +451,6 @@
+@@ -344,2 +466,19 @@
+-      sb.write_string("(mut ")
 -      sb.write_string(value_type_to_wat(global.type_.value_type))
++      sb.write_string(if shared { "mut " } else { "(mut " })
 +      sb.write_string(
 +        own_value_type(
 +          global.type_.value_type,
 +          metadata.bind(m => m.global_values.get(i)),
 +        ),
 +      )
-@@ -348,3 +459,11 @@
--      sb.write_string(value_type_to_wat(global.type_.value_type))
--    }
--    sb.write_string(" (")
++      if !shared {
++        sb.write_string(")")
++      }
++    } else {
 +      sb.write_string(
 +        own_value_type(
 +          global.type_.value_type,
@@ -313,36 +343,56 @@
 +      )
 +    }
 +    if shared {
-+      sb.write_string(")")
+@@ -347,4 +486,2 @@
+-    } else {
+-      sb.write_string(value_type_to_wat(global.type_.value_type))
+-    }
+-    sb.write_string(" (")
 +    }
 +    sb.write_string(" ")
-@@ -352 +471 @@
+@@ -352 +489 @@
 -    sb.write_string("))\n")
 +    sb.write_string(")\n")
-@@ -394 +513 @@
+@@ -394 +531 @@
 -    sb.write_string("  (tag (;\{i};) (type \{tag.type_idx}))\n")
 +    sb.write_string("  (tag (;\{import_tags + i};) (type \{tag.type_idx}))\n")
-@@ -416 +535,3 @@
+@@ -411 +548 @@
+-        sb.write_string("(")
++        sb.write_string(if offset.length() > 1 { "(offset " } else { "(" })
+@@ -416 +553,3 @@
 -    sb.write_string(value_type_to_wat(elem.type_))
 +    sb.write_string(
 +      own_value_type(elem.type_, metadata.bind(m => m.element_values.get(i))),
 +    )
-@@ -429 +550 @@
+@@ -418 +557 @@
+-      sb.write_string(" (")
++      sb.write_string(if init.length() > 1 { " (item " } else { " (" })
+@@ -429 +568 @@
 -      render_defined_function(mod_, func_idx, import_func_count, 1),
 +      render_defined_function(mod_, func_idx, import_func_count, 1, metadata~),
-@@ -522,2 +643,3 @@
+@@ -445 +584 @@
+-      sb.write_string("(")
++      sb.write_string(if data.offset.length() > 1 { "(offset " } else { "(" })
+@@ -522,2 +661,3 @@
 -    Some(max) => "\{limits.min} \{max}"
 -    None => limits.min.to_string()
 +    Some(max) =>
 +      "\{limits.min.reinterpret_as_uint64()} \{max.reinterpret_as_uint64()}"
 +    None => limits.min.reinterpret_as_uint64().to_string()
-@@ -537 +659,4 @@
+@@ -537 +677,4 @@
 -fn composite_type_to_wat(composite : @types.CompositeType) -> String {
 +fn composite_type_to_wat(
 +  composite : @types.CompositeType,
 +  text~ : @core_parser.FunctionTextTypes? = None,
 +) -> String {
-@@ -543,5 +668,9 @@
+@@ -538,0 +682,3 @@
++  if composite.is_shared() {
++    sb.write_string("(shared ")
++  }
+@@ -541 +687 @@
+-    Func(func_type) => {
++    Func(func_type) | SharedFunc(func_type) => {
+@@ -543,5 +689,9 @@
 -      for param in func_type.params {
 -        sb.write_string(" (param \{value_type_to_wat(param)})")
 -      }
@@ -357,19 +407,29 @@
 +        sb.write_string(
 +          " (result \{own_value_type(result, text.bind(t => t.results.get(i)))})",
 +        )
-@@ -582 +711,4 @@
+@@ -551 +701 @@
+-    Struct(struct_type) => {
++    Struct(struct_type) | SharedStruct(struct_type) => {
+@@ -566 +716 @@
+-    Array(array_type) => {
++    Array(array_type) | SharedArray(array_type) => {
+@@ -577,0 +728,3 @@
++  if composite.is_shared() {
++    sb.write_string(")")
++  }
+@@ -582 +735,4 @@
 -fn subtype_to_wat(subtype : @types.SubType) -> String {
 +fn subtype_to_wat(
 +  subtype : @types.SubType,
 +  text~ : @core_parser.FunctionTextTypes? = None,
 +) -> String {
-@@ -584 +716 @@
+@@ -584 +740 @@
 -    return composite_type_to_wat(subtype.composite)
 +    return composite_type_to_wat(subtype.composite, text~)
-@@ -595 +727 @@
+@@ -595 +751 @@
 -  sb.write_string(composite_type_to_wat(subtype.composite))
 +  sb.write_string(composite_type_to_wat(subtype.composite, text~))
-@@ -601,2 +733,7 @@
+@@ -601,2 +757,7 @@
 -fn type_to_wat(index : Int, subtype : @types.SubType, indent : Int) -> String {
 -  "\{"  ".repeat(indent)}(type (;\{index};) \{subtype_to_wat(subtype)})\n"
 +fn type_to_wat(
@@ -379,24 +439,61 @@
 +  text~ : @core_parser.FunctionTextTypes? = None,
 +) -> String {
 +  "\{"  ".repeat(indent)}(type (;\{index};) \{subtype_to_wat(subtype, text~)})\n"
-@@ -667 +804,4 @@
+@@ -625,0 +787,5 @@
++    HeapRef(nullable, shared, heap) => {
++      let name = @types.heap_name(heap)
++      let name = if shared && heap < 0 { "(shared " + name + ")" } else { name }
++      "(ref \{if nullable { "null " } else { "" }}\{name})"
++    }
+@@ -667 +833,4 @@
 -fn block_type_to_wat(bt : @types.BlockType) -> String {
 +fn block_type_to_wat(
 +  bt : @types.BlockType,
 +  spellings~ : ReadOnlyArray[String] = [],
 +) -> String {
-@@ -670 +810 @@
+@@ -670 +839 @@
 -    Value(t) => " (result \{value_type_to_wat(t)})"
 +    Value(t) => " (result \{own_value_type(t, spellings.get(0))})"
-@@ -760,2 +900,2 @@
+@@ -734,20 +903,10 @@
+-  match t {
+-    ContRef | RefCont => "cont"
+-    NullContRef | RefNoCont => "nocont"
+-    RefContTyped(idx) | RefNullContTyped(idx) => idx.to_string()
+-    NullRef | RefNone => "none"
+-    NullFuncRef => "nofunc"
+-    NullExternRef => "noextern"
+-    NullExnRef => "noexn"
+-    StructRef | RefStructAbs => "struct"
+-    ArrayRef | RefArrayAbs => "array"
+-    FuncRef | RefFunc => "func"
+-    ExternRef | RefExtern => "extern"
+-    AnyRef | RefAny => "any"
+-    ExnRef => "exn"
+-    RefEq | RefNullEq => "eq"
+-    RefI31 | RefNullI31 => "i31"
+-    RefFuncTyped(idx) | RefNullFuncTyped(idx) => idx.to_string()
+-    RefStruct(idx) | RefNullStruct(idx) => idx.to_string()
+-    RefArray(idx) | RefNullArray(idx) => idx.to_string()
+-    _ => "any"
++  match t.heap() {
++    Some((_, shared, heap)) => {
++      let name = @types.heap_name(heap)
++      if shared && heap < 0 {
++        "(shared " + name + ")"
++      } else {
++        name
++      }
++    }
++    None => value_type_to_wat(t)
+@@ -760,2 +919,2 @@
 -  mem : Int,
 -  align : Int,
 +  mem : Int32,
 +  align : Int32,
-@@ -763 +903 @@
+@@ -763 +922 @@
 -  _natural_align : Int,
 +  _natural_align : Int32,
-@@ -789 +929,13 @@
+@@ -789 +948,13 @@
 -fn instrs_to_wat(instrs : Array[@types.Instruction], indent : Int) -> String {
 +priv enum RenderTask {
 +  Body(Array[@types.Instruction], Int32, Int32)
@@ -411,7 +508,7 @@
 +  values~ : Map[Int32, ReadOnlyArray[String]] = Map([]),
 +  elses~ : ReadOnlyArray[Int32] = [],
 +) -> String {
-@@ -791,8 +943,17 @@
+@@ -791,8 +962,17 @@
 -  let indent_str = "  ".repeat(indent)
 -  for instr in instrs {
 -    sb.write_string(indent_str)
@@ -437,7 +534,7 @@
 +        }
 +        let instr = body[index]
 +        let indent_str = "  ".repeat(depth)
-@@ -800,8 +961,25 @@
+@@ -800,8 +980,43 @@
 -        sb.write_string("end\n")
 -      }
 -      If(_, then_body, else_body) => {
@@ -458,6 +555,24 @@
 +            tasks.push(Line(indent_str + "end\n"))
 +            tasks.push(Body(nested, 0, depth + 1))
 +          }
++          LegacyTry(_, nested, catches, delegate) => {
++            control += 1
++            match delegate {
++              Some(depth_) =>
++                tasks.push(Line(indent_str + "delegate \{depth_}\n"))
++              None => tasks.push(Line(indent_str + "end\n"))
++            }
++            for i = catches.length() - 1; i >= 0; i = i - 1 {
++              let arm = catches[i]
++              tasks.push(Body(arm.body, 0, depth + 1))
++              let header = match arm.tag {
++                Some(tag) => "catch \{tag}"
++                None => "catch_all"
++              }
++              tasks.push(Line(indent_str + header + "\n"))
++            }
++            tasks.push(Body(nested, 0, depth + 1))
++          }
 +          If(_, then_body, else_body) => {
 +            let has_else = elses.contains(control)
 +            control += 1
@@ -471,7 +586,7 @@
 +            tasks.push(Body(then_body, 0, depth + 1))
 +          }
 +          _ => ()
-@@ -809,9 +987 @@
+@@ -809,9 +1024 @@
 -        sb.write_string(indent_str)
 -        sb.write_string("end\n")
 -      }
@@ -482,35 +597,44 @@
 -      }
 -      _ => ()
 +      }
-@@ -824 +994,4 @@
+@@ -824 +1031,4 @@
 -fn instr_to_wat(instr : @types.Instruction) -> String {
 +fn instr_to_wat(
 +  instr : @types.Instruction,
 +  spellings~ : ReadOnlyArray[String] = [],
 +) -> String {
-@@ -826,3 +999,3 @@
+@@ -826,3 +1036,3 @@
 -    subop : Int,
 -    mem : Int,
 -    align : Int,
 +    subop : Int32,
 +    mem : Int32,
 +    align : Int32,
-@@ -954,3 +1127,3 @@
+@@ -954,3 +1164,3 @@
 -    Block(bt, _) => "block\{block_type_to_wat(bt)}"
 -    Loop(bt, _) => "loop\{block_type_to_wat(bt)}"
 -    If(bt, _, _) => "if\{block_type_to_wat(bt)}"
 +    Block(bt, _) => "block\{block_type_to_wat(bt, spellings~)}"
 +    Loop(bt, _) => "loop\{block_type_to_wat(bt, spellings~)}"
 +    If(bt, _, _) => "if\{block_type_to_wat(bt, spellings~)}"
-@@ -994 +1167 @@
+@@ -981,0 +1192,2 @@
++    Rethrow(depth) => "rethrow \{depth}"
++    LegacyTry(bt, _, _, _) => "try\{block_type_to_wat(bt,spellings~)}"
+@@ -994 +1206 @@
 -      sb.write_string("try_table\{block_type_to_wat(bt)}")
 +      sb.write_string("try_table\{block_type_to_wat(bt, spellings~)}")
-@@ -1003 +1176,3 @@
+@@ -1003 +1215,3 @@
 -      let types_str = types.map(fn(t) { value_type_to_wat(t) }).join(" ")
 +      let types_str = types
 +        .mapi((i, t) => own_value_type(t, spellings.get(i)))
 +        .join(" ")
-@@ -1583,0 +1759,11 @@
+@@ -1242 +1456,2 @@
+-    ArrayNewFixed(type_idx, len) => "array.new_fixed \{type_idx} \{len}"
++    ArrayNewFixed(type_idx, len) =>
++      "array.new_fixed \{type_idx} \{len.reinterpret_as_uint()}"
+@@ -1264,0 +1480 @@
++    RefI31Shared => "ref.i31_shared"
+@@ -1583,0 +1800,11 @@
 +
 +///|
 +// Preserve nullability where the retained enum has a single variant for both

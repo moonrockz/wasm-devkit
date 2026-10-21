@@ -95,8 +95,21 @@ fn core_functype_for_canon(
     | ThreadYieldThenResume(_)
     | ThreadSuspendThenPromote(_)
     | ThreadYieldThenPromote(_) => Some({ params: [I32], results: [I32], })
-    ContextGet(vt, _) => Some({ params: [], results: [vt], })
-    ContextSet(vt, _) => Some({ params: [vt], results: [], })
+    ContextGet(vt, _) | ContextSet(vt, _) => {
+      let value : @types.ValueType = match vt {
+        I32 => I32
+        I64 => I64
+        F32 => F32
+        F64 => F64
+        V128 => V128
+        _ => return None
+      }
+      if c is ContextGet(_, _) {
+        Some({ params: [], results: [value], })
+      } else {
+        Some({ params: [value], results: [], })
+      }
+    }
     _ => None
   }
 }

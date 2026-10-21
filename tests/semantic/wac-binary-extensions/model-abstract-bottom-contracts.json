@@ -1,0 +1,126 @@
+{
+  "definitions": [],
+  "instance": 0,
+  "name": "test:extensions",
+  "types": {
+    "defined": [],
+    "funcs": [],
+    "interfaces": [
+      {
+        "exports": [
+          [
+            "m",
+            {
+              "module": 0
+            }
+          ]
+        ],
+        "id": null,
+        "uses": []
+      }
+    ],
+    "modules": [
+      {
+        "exports": [
+          [
+            "exn",
+            {
+              "table": {
+                "elementType": {
+                  "heapType": "exn",
+                  "nullable": true
+                },
+                "initial": 0,
+                "maximum": null,
+                "shared": false,
+                "table64": false
+              }
+            }
+          ],
+          [
+            "none",
+            {
+              "global": {
+                "mutable": false,
+                "shared": false,
+                "valType": {
+                  "ref": {
+                    "heapType": "none",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          ]
+        ],
+        "imports": [
+          {
+            "module": "env",
+            "name": "f",
+            "type": {
+              "func": {
+                "params": [
+                  {
+                    "ref": {
+                      "heapType": "none",
+                      "nullable": false
+                    }
+                  },
+                  {
+                    "ref": {
+                      "heapType": "noFunc",
+                      "nullable": false
+                    }
+                  },
+                  {
+                    "ref": {
+                      "heapType": "noExtern",
+                      "nullable": false
+                    }
+                  },
+                  {
+                    "ref": {
+                      "heapType": "noExn",
+                      "nullable": false
+                    }
+                  },
+                  {
+                    "ref": {
+                      "heapType": "eq",
+                      "nullable": false
+                    }
+                  },
+                  {
+                    "ref": {
+                      "heapType": "i31",
+                      "nullable": false
+                    }
+                  }
+                ],
+                "results": []
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "resources": [],
+    "worlds": [
+      {
+        "exports": [
+          [
+            "m",
+            {
+              "module": 0
+            }
+          ]
+        ],
+        "id": null,
+        "imports": [],
+        "uses": []
+      }
+    ]
+  },
+  "version": null,
+  "world": 0
+}

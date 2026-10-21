@@ -1,20 +1,4 @@
 ///|
-fn core_external_work(value : @core_types.External) -> Int32 {
-  match value {
-    Func(f) | Tag(f) => f.params.length() + f.results.length() + 1
-    _ => 1
-  }
-}
-
-///|
-fn core_external_matches(
-  a : @core_types.External,
-  b : @core_types.External,
-) -> Bool {
-  @core_types.check_external_subtype(a, b) is Ok(_)
-}
-
-///|
 fn Check::merge_core_modules(
   self : Check,
   state : ImportTypes,
@@ -22,16 +6,28 @@ fn Check::merge_core_modules(
   a : @core_types.Module,
   b : @core_types.Module,
 ) -> @core_types.Module raise SemanticFailure {
-  let charge = fn(kind : @core_types.External) raise SemanticFailure {
-    let amount = core_external_work(kind)
-    if amount > state.budget.remaining {
-      raise Problem(
-        self.problem(
-          node, "WAC-C006", "core module aggregation exceeds the verification work limit",
-        ),
-      )
+  let matches = fn(
+    actual : @core_types.External,
+    expected : @core_types.External,
+  ) -> Bool raise SemanticFailure {
+    match
+      @core_types.compare_external(
+        actual,
+        expected,
+        work_limit=state.budget.remaining,
+      ) {
+      Ok((matches, remaining)) => {
+        state.budget.remaining = remaining
+        matches
+      }
+      Err(Mismatch(_)) => false
+      Err(WorkLimit) =>
+        raise Problem(
+          self.problem(
+            node, "WAC-C006", "core module aggregation exceeds the verification work limit",
+          ),
+        )
     }
-    state.budget.remaining -= amount
   }
   let imports : Array[@core_types.Import] = []
   for item in a.imports {
@@ -48,12 +44,10 @@ fn Check::merge_core_modules(
     let key = (item.module_name, item.name)
     if import_indices.get(key) is Some(index) {
       let prior = imports[index].kind
-      charge(prior)
-      charge(item.kind)
-      if core_external_matches(prior, item.kind) {
+      if matches(prior, item.kind) {
         continue
       }
-      if !core_external_matches(item.kind, prior) {
+      if !matches(item.kind, prior) {
         raise Problem(
           self.problem(node, "WAC-C009", "incompatible core module imports"),
         )
@@ -78,12 +72,10 @@ fn Check::merge_core_modules(
     self.import_step(state, node)
     if export_indices.get(item.name) is Some(index) {
       let prior = exports[index].kind
-      charge(prior)
-      charge(item.kind)
-      if core_external_matches(item.kind, prior) {
+      if matches(item.kind, prior) {
         continue
       }
-      if !core_external_matches(prior, item.kind) {
+      if !matches(prior, item.kind) {
         raise Problem(
           self.problem(node, "WAC-C009", "incompatible core module exports"),
         )

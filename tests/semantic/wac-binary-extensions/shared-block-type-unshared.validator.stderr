@@ -1,0 +1,4 @@
+error: func 0 failed to validate
+
+Caused by:
+    0: shared functions cannot access unshared functions (at offset 0x27)

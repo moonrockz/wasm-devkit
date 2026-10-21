@@ -50,7 +50,7 @@ fn Reader::expression(
         }
         controls.pop() |> ignore
       }
-      0x02 | 0x03 | 0x04 as opcode if !constant => {
+      0x02 | 0x03 | 0x04 | 0x06 | 0x1f as opcode if !constant => {
         if controls.length() >= 256 {
           self.fail(Unsupported, "core control nesting exceeds 256")
         }
@@ -60,11 +60,24 @@ fn Reader::expression(
         } else if (first >= 0x63 && first <= 0x75) ||
           (first >= 0x7b && first <= 0x7f) {
           self.position -= 1
-          ignore(self.value())
+          ignore(self.heap_value())
         } else {
           self.position -= 1
           if self.signed(33) < 0L {
             self.fail(Malformed, "invalid core block type")
+          }
+        }
+        if opcode == 0x1f {
+          let handlers = self.count()
+          for _ in 0..<handlers {
+            match self.byte() {
+              0 | 1 => {
+                ignore(self.index())
+                ignore(self.index())
+              }
+              2 | 3 => ignore(self.index())
+              _ => self.fail(Malformed, "invalid core catch handler kind")
+            }
           }
         }
         controls.push(opcode)
@@ -75,6 +88,22 @@ fn Reader::expression(
           self.fail(Malformed, "unexpected core else")
         }
         controls[controls.length() - 1] = 0x05
+      }
+      0x07 | 0x19 as opcode if !constant => {
+        if controls.last() != Some(0x06) && controls.last() != Some(0x07) {
+          self.fail(Malformed, "unexpected core legacy catch")
+        }
+        if opcode == 0x07 {
+          ignore(self.index())
+        }
+        controls[controls.length() - 1] = opcode
+        count += 1
+      }
+      0x18 if !constant => {
+        if controls.pop() != Some(0x06) {
+          self.fail(Malformed, "unexpected core legacy delegate")
+        }
+        ignore(self.index())
       }
       0x41 => ignore(self.signed(32))
       0x42 => ignore(self.signed(64))
@@ -91,23 +120,16 @@ fn Reader::expression(
       }
       0x44 => self.skip(8)
       0x23 | 0xd2 => ignore(self.index())
-      0xd0 => {
-        // Heap types use the same abstract reference grammar as value types.
-        // A concrete heap index is deliberately unsupported here.
-        let heap = self.byte()
-        if heap >= 0x80 {
-          self.position -= 1
-          let index = self.signed(33)
-          if index >= 0L {
-            self.fail(Unsupported, "concrete core heap initializer")
-          }
-          self.fail(Malformed, "invalid abstract heap type encoding")
-        }
-        if heap < 0x68 || heap > 0x75 {
-          self.fail(Unsupported, "concrete or extended core heap initializer")
-        }
-      }
+      0xd0 => ignore(self.heap_immediate(true))
       0x6a..<=0x6c | 0x7c..<=0x7e => ()
+      0xfb => self.gc_instruction(constant)
+      0xfe =>
+        if self.index() != 0x72 {
+          self.fail(
+            Unsupported,
+            "atomic instructions are outside the module profile",
+          )
+        }
       0xfd => {
         if self.index() != 12 {
           self.fail(
@@ -119,9 +141,30 @@ fn Reader::expression(
       }
       opcode if !constant =>
         match opcode {
-          0x00 | 0x01 | 0x0f | 0x1a | 0x1b | 0x45..<=0xc4 | 0xd1 | 0xd3 => ()
-          0x0c | 0x0d | 0x10 | 0x12 | 0x20..<=0x22 | 0x24 | 0x25 | 0x26 =>
-            ignore(self.index())
+          0x00
+          | 0x01
+          | 0x0a
+          | 0x0f
+          | 0x1a
+          | 0x1b
+          | 0x45..<=0xc4
+          | 0xd1
+          | 0xd3
+          | 0xd4 => ()
+          0x08
+          | 0x09
+          | 0x0c
+          | 0x0d
+          | 0x10
+          | 0x12
+          | 0x14
+          | 0x15
+          | 0x20..<=0x22
+          | 0x24
+          | 0x25
+          | 0x26
+          | 0xd5
+          | 0xd6 => ignore(self.index())
           0x11 | 0x13 => {
             ignore(self.index())
             ignore(self.index())
@@ -136,7 +179,7 @@ fn Reader::expression(
           0x1c => {
             let count = self.count()
             for _ in 0..<count {
-              ignore(self.value())
+              ignore(self.heap_value())
             }
           }
           0x28..<=0x3e => {
@@ -182,28 +225,50 @@ fn Reader::expression(
 }
 
 ///|
+fn Reader::gc_instruction(self : Reader, constant : Bool) -> Unit raise Failure {
+  let subopcode = self.index()
+  if constant {
+    match subopcode {
+      0 | 1 | 6 | 7 | 8 | 26..<=28 => ()
+      _ =>
+        self.fail(
+          Unsupported,
+          "non-constant GC instruction in core initializer",
+        )
+    }
+  }
+  match subopcode {
+    0 | 1 | 6 | 7 | 11..<=14 | 16 => ignore(self.index())
+    8 => {
+      ignore(self.index())
+      ignore(self.unsigned(32))
+    }
+    2..<=5 | 9 | 10 | 17..<=19 => {
+      ignore(self.index())
+      ignore(self.index())
+    }
+    15 | 26..<=30 => ()
+    20..<=23 => ignore(self.heap_immediate(true))
+    24 | 25 => {
+      let flags = self.byte()
+      if flags > 3 {
+        self.fail(Malformed, "invalid core branch cast flags")
+      }
+      ignore(self.index())
+      ignore(self.heap_immediate((flags & 1) != 0))
+      ignore(self.heap_immediate((flags & 2) != 0))
+    }
+    _ => self.fail(Unsupported, "GC instruction is outside the module profile")
+  }
+}
+
+///|
 fn Reader::module_external(
   self : Reader,
   raw : RawExternal,
-  functions : Array[Function],
+  types : ReadOnlyArray[HeapDefinition],
 ) -> External raise Failure {
-  match raw {
-    Value(value) => value
-    Func(index) | Tag(index) => {
-      guard functions.get(index) is Some(function) else {
-        self.fail(Invalid, "core function type index is out of bounds")
-        return Func({ params: [], results: [], })
-      }
-      if raw is Tag(_) {
-        if !function.results.is_empty() {
-          self.fail(Invalid, "core tag cannot return values")
-        }
-        Tag(function)
-      } else {
-        Func(function)
-      }
-    }
-  }
+  self.resolve_external(raw, types, None)
 }
 
 ///|
@@ -237,7 +302,8 @@ fn inspect(
       reader.fail(Malformed, "invalid core module header")
     }
     reader.position = 8
-    let functions : Array[Function] = []
+    let types : Array[HeapDefinition] = []
+    let mut graph : ReadOnlyArray[HeapDefinition] = []
     let slots : Array[Array[External]] = [[], [], [], [], []]
     let imports : Array[Import] = []
     let exports : Array[Export] = []
@@ -275,16 +341,9 @@ fn inspect(
         1 => {
           let count = payload.count()
           for _ in 0..<count {
-            let opcode = payload.byte()
-            if opcode == 0x4e {
-              let members = payload.count()
-              for _ in 0..<members {
-                functions.push(payload.module_function(payload.byte()))
-              }
-            } else {
-              functions.push(payload.module_function(opcode))
-            }
+            payload.heap_group(payload.byte(), types)
           }
+          graph = payload.complete_heap_graph(types)
         }
         2 => {
           let count = payload.count()
@@ -299,7 +358,7 @@ fn inspect(
             let kind = payload.byte()
             let external = payload.module_external(
               payload.external(kind=Some(kind)),
-              functions,
+              graph,
             )
             slots[kind].push(external)
             imports.push({ module_name, name, kind: external, })
@@ -308,9 +367,7 @@ fn inspect(
         3 => {
           function_count = payload.count()
           for _ in 0..<function_count {
-            slots[0].push(
-              payload.module_external(Func(payload.index()), functions),
-            )
+            slots[0].push(payload.module_external(Func(payload.index()), graph))
           }
         }
         4 | 5 | 6 | 13 => {
@@ -332,10 +389,7 @@ fn inspect(
               }
             }
             slots[kind].push(
-              payload.module_external(
-                payload.external(kind=Some(kind)),
-                functions,
-              ),
+              payload.module_external(payload.external(kind=Some(kind)), graph),
             )
             if section == 6 || initialized {
               ignore(payload.expression(true, signaling))
@@ -381,7 +435,7 @@ fn inspect(
                   payload.fail(Malformed, "invalid core element kind")
                 }
               } else {
-                ignore(payload.value())
+                ignore(payload.heap_value())
               }
             }
             let count = payload.count()
@@ -412,7 +466,7 @@ fn inspect(
               if expanded_locals > 1000000UL {
                 body.fail(Unsupported, "core local expansion exceeds 1000000")
               }
-              ignore(body.value())
+              ignore(body.heap_value())
             }
             let controls = body.expression(false, signaling).to_uint64()
             let params = match
@@ -464,13 +518,17 @@ fn inspect(
     // canonicalization compares groups pairwise; each control frame snapshots
     // the current function's local-init state. Charge each source of work.
     let mut max_arity = 1
-    for function in functions {
+    for node in graph {
       max_arity = max_arity.max(
-        function.params.length() + function.results.length(),
+        match node.composite {
+          Function(params, results) => params.length() + results.length()
+          Struct(fields) => fields.length()
+          Array(_) => 1
+        },
       )
     }
     let arity = max_arity.to_uint64()
-    let types = functions.length().to_uint64()
+    let types = types.length().to_uint64()
     if types * types > 1000000UL / arity {
       reader.fail(
         Unsupported,
@@ -496,24 +554,6 @@ fn inspect(
   } catch {
     Failure(error) => Err(error)
   }
-}
-
-///|
-fn Reader::module_function(
-  self : Reader,
-  opcode : Int32,
-) -> Function raise Failure {
-  let mut opcode = opcode
-  if opcode == 0x4f || opcode == 0x50 {
-    if self.index() != 0 {
-      self.fail(Unsupported, "core supertypes are outside the module profile")
-    }
-    opcode = self.byte()
-  }
-  if opcode != 0x60 {
-    self.fail(Unsupported, "core GC types are outside the module profile")
-  }
-  self.function_body()
 }
 
 ///|

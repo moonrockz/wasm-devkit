@@ -1,0 +1,81 @@
+{
+  "exports": [
+    {
+      "name": "tag",
+      "signature": {
+        "kind": "tag",
+        "signature": {
+          "params": [
+            {
+              "heap": "exn",
+              "kind": "reference",
+              "nullable": false
+            }
+          ],
+          "results": []
+        }
+      }
+    },
+    {
+      "name": "raise",
+      "signature": {
+        "kind": "func",
+        "signature": {
+          "params": [
+            {
+              "kind": "scalar",
+              "name": "i32"
+            }
+          ],
+          "results": []
+        }
+      }
+    },
+    {
+      "name": "catch",
+      "signature": {
+        "kind": "func",
+        "signature": {
+          "params": [],
+          "results": [
+            {
+              "kind": "scalar",
+              "name": "i32"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "none",
+      "signature": {
+        "kind": "global",
+        "mutable": false,
+        "shared": false,
+        "value": {
+          "heap": "noexn",
+          "kind": "reference",
+          "nullable": true
+        }
+      }
+    }
+  ],
+  "imports": [
+    {
+      "module": "env",
+      "name": "e",
+      "signature": {
+        "kind": "tag",
+        "signature": {
+          "params": [
+            {
+              "kind": "scalar",
+              "name": "i32"
+            }
+          ],
+          "results": []
+        }
+      }
+    }
+  ]
+}

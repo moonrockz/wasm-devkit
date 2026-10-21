@@ -73,13 +73,21 @@ pub fn module_text_metadata(
     let id = parser.read_byte()
     let size = parser.read_u32()
     let section_start = parser.pos
-    let section = Parser(parser.read_bytes(size))
+    let section : Parser = {
+      ..Parser(parser.read_bytes(size)),
+      types: parser.types,
+    }
     section.capture_text = true
     match id {
       1 => {
         let count = section.read_u32()
         let mut index = 0
         for _ in 0..<count {
+          let probe = Parser(section.data)
+          probe.pos = section.pos
+          probe.types.append(section.types)
+          ignore(probe.read_rec_group())
+          section.types.append(probe.types[section.types.length():].to_owned())
           let explicit = section.peek_byte() == 0x4e
           let members = if explicit {
             ignore(section.read_byte())
@@ -92,17 +100,16 @@ pub fn module_text_metadata(
             subtype_encodings.push(tag == 0x4f || tag == 0x50)
             let type_ = section.read_subtype()
             let values = section.take_text()
-            guard type_.composite is Func(sig) else {
-              raise ParseError(
-                "non-function core type is outside the text metadata profile",
-              )
+            if type_.composite.unshared() is Func(sig) {
+              let params = values[:sig.params.length()].to_owned()
+              let results = values[sig.params.length():].to_owned()
+              type_values.push({
+                params: ReadOnlyArray::from_array(params),
+                results: ReadOnlyArray::from_array(results),
+              })
+            } else {
+              type_values.push({ params: [], results: [], })
             }
-            let params = values[:sig.params.length()].to_owned()
-            let results = values[sig.params.length():].to_owned()
-            type_values.push({
-              params: ReadOnlyArray::from_array(params),
-              results: ReadOnlyArray::from_array(results),
-            })
           }
           if explicit {
             groups.push((index, members))
@@ -181,7 +188,10 @@ pub fn module_text_metadata(
         section.has_data_count = true
         let count = section.read_u32()
         for _ in 0..<count {
-          let code = Parser(section.read_bytes(section.read_u32()))
+          let code : Parser = {
+            ..Parser(section.read_bytes(section.read_u32())),
+            types: parser.types,
+          }
           code.capture_text = true
           code.has_data_count = true
           let locals = code.read_u32()
@@ -254,5 +264,29 @@ pub fn module_text_metadata(
     element_values: ReadOnlyArray::from_array(element_values),
     local_values: ReadOnlyArray::from_array(local_values),
     instruction_values: ReadOnlyArray::from_array(instruction_values),
+  }
+}
+
+///|
+/// Return a new immutable snapshot with value spellings transformed. Structural
+/// binary choices and all source offsets remain unchanged.
+pub fn ModuleTextMetadata::map_value_spellings(
+  self : ModuleTextMetadata,
+  transform : (String) -> String,
+) -> ModuleTextMetadata {
+  {
+    ..self,
+    type_values: self.type_values.map(t => {
+      params: t.params.map(transform),
+      results: t.results.map(transform),
+    }),
+    import_values: self.import_values.map(transform),
+    table_values: self.table_values.map(transform),
+    global_values: self.global_values.map(transform),
+    element_values: self.element_values.map(transform),
+    local_values: self.local_values.map(v => v.map(transform)),
+    instruction_values: self.instruction_values.map(v => {
+      v.map(pair => (pair.0, pair.1.map(transform)))
+    }),
   }
 }

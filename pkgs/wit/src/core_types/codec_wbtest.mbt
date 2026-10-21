@@ -475,7 +475,16 @@ test "pinned core codec typed-ref" {
       }
     Err(e) => error = Some(e)
   }
-  assert_true(error is Some({ kind: Unsupported, .. }))
+  assert_eq(error, None)
+  guard current.last() is Some(Module(module_)) else {
+    fail("expected module contract")
+  }
+  guard module_.exports[0].kind
+    is Table(Concrete(true, identity), 1UL, Some(3UL), false, false) else {
+    fail("expected concrete table reference")
+  }
+  assert_eq(identity.index, 0)
+  assert_eq(identity.types[0].composite, Function([], []))
 }
 
 ///|

@@ -105,22 +105,14 @@ test "malformed start and excluded proposals keep explicit diagnostics" {
     source_id="wide-limit.wasm",
   )
   assert_true(limit is Ok(_))
-  let reference = assert_rejected(
+  let gc_module = assert_package(
     "(component (core module (type (struct)) (func (export \"f\") unreachable)))",
-    "gc-struct.wat", "WAC-B002",
+    "gc-struct.wat",
   )
-  assert_true(
-    reference.contains("GC") ||
-    reference.contains("struct") ||
-    reference.contains("heap"),
-  )
+  assert_true(!gc_module.bytes().is_empty())
   let exception = assert_rejected(
     "(component (core module (tag (export \"e\") (param i32)) (func (export \"f\") throw 0)))",
-    "throw.wat", "WAC-B002",
+    "throw.wat", "WAC-B003",
   )
-  assert_true(
-    exception.contains("exception") ||
-    exception.contains("throw") ||
-    exception.contains("proposal"),
-  )
+  assert_true(exception.contains("stack") || exception.contains("throw"))
 }

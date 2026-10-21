@@ -98,3 +98,12 @@ This mode cannot be combined with explicit `--dependency` arguments. Optional
 repeated `--export-name NAME` flags query `CompositionGraph::get_export`; the
 `queried_exports` array preserves all matching requested names and node IDs,
 including earlier names hidden by each node's last-export field.
+
+`wasm-core-reference CORE_WASM` validates a core module using wasmparser
+0.262.0 with `all,-custom-descriptors`, then emits every ordered import/export
+contract. Its flat type graphs retain recursion groups, declared supertypes,
+sharedness, nullability, packed fields, mutability and complete function/tag
+identities. Limits are decimal strings. This independent oracle uses no product
+code and executes no module. It covers GC contracts the pinned WAC loader
+cannot project. `tests/semantic/wac-binary-extensions` pins its models alongside
+WAC package snapshots, keeping loader panics separate from binary validity.

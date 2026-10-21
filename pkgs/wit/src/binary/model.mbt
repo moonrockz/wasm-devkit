@@ -85,27 +85,7 @@ pub fn validate_declarative_component(
     let component = @component.parse_component_binary(parser_bytes) catch {
       error => raise Failure(None, "WIT-B001", error.to_string())
     }
-    let (core_ascriptions, core_contracts) = validate_core_definitions(
-      component,
-    )
-    let mut core_work = 1000000
-    for pair in core_ascriptions {
-      match
-        @core_types.check_module_subtype(
-          pair.actual,
-          pair.expected,
-          work_limit=core_work,
-        ) {
-        Ok(remaining) => core_work = remaining
-        Err(Mismatch(message)) => raise Failure(None, "WIT-B003", message)
-        Err(WorkLimit) =>
-          raise Failure(
-            None,
-            "WIT-B002",
-            "core module ascription comparison work limit exceeded",
-          )
-      }
-    }
+    let core_contracts = validate_core_metadata(component)
     @validation.validate_component_binary_with_config(
       component,
       @validation.ComponentValidationConfig(
@@ -175,4 +155,30 @@ pub fn ValidatedDeclarativeComponent::parser_bytes(
   self : ValidatedDeclarativeComponent,
 ) -> Bytes {
   self.parser_bytes
+}
+
+///|
+fn validate_core_metadata(
+  component : @component.ComponentBinary,
+) -> @core_types.ContractGraph raise Boundary {
+  let (ascriptions, contracts) = validate_core_definitions(component)
+  let mut remaining = 1000000
+  for pair in ascriptions {
+    match
+      @core_types.check_module_subtype(
+        pair.actual,
+        pair.expected,
+        work_limit=remaining,
+      ) {
+      Ok(balance) => remaining = balance
+      Err(Mismatch(message)) => raise Failure(None, "WIT-B003", message)
+      Err(WorkLimit) =>
+        raise Failure(
+          None,
+          "WIT-B002",
+          "core module ascription comparison work limit exceeded",
+        )
+    }
+  }
+  contracts
 }

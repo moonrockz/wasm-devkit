@@ -548,8 +548,14 @@ or one result are in this profile. A component function type without the async
 option keeps the synchronous core ABI. The handle/cancellation intrinsics and
 scalar `gc`/`core-type` options below also validate; other forms remain explicit
 unsupported failures.
-Concrete GC/reference types, supertypes, shared heap types, exception
-instructions remain unsupported. Concrete scalar/vector globals preserve shared
+Concrete GC/reference types, recursive groups, supertypes and shared heap types
+retain complete immutable contracts. GC instructions, typed function references,
+modern `try_table` handlers and legacy exception instructions validate in binary
+and WAT. The [extension fixtures](../../../../tests/semantic/wac-binary-extensions/README.md)
+compare complete core contracts with pinned wasmparser independently of WAC
+loader projection panics. Custom descriptors, continuation instructions, atomics
+other than `ref.i31_shared` and SIMD instructions other than `v128.const` remain
+explicit exclusions. Concrete scalar/vector globals preserve shared
 flags through binary/WAT decoding and module ascriptions. Nested component
 and instance core declarations and concrete modules retain full UInt64 limits,
 with the same address-width bounds as root core-type sections. Memory pages
@@ -558,16 +564,16 @@ default. The [core limits fixtures](../../../../tests/semantic/wac-core-limits/R
 compare complete normalized package models for binary and WAT inputs. The pinned WAC encoder panics
 when composing the accepted core-module instance-export cases, so independent
 validator witnesses establish their subtype behavior. No public API executes a
-module or component. The remaining profile extensions are tracked in
+module or component. The binary profile extensions are tracked in
 `wasm-devkit-p5m.12`.
 
 
 Concrete core modules retain ordered contracts and original bytes. Function
 bodies, initializers, start signatures, exports and segment metadata validate
 without execution. Binary framing and retained parser/validator control walks
-use explicit stacks. Block, loop and if are supported; unimplemented proposals
-return `WAC-B002`. Function-only
-recursive groups without concrete references are supported. Concrete globals
+use explicit stacks. Block, loop, if, modern exception handlers and legacy
+catch arms are supported; unimplemented proposals return `WAC-B002`. Recursive
+groups retain concrete references and complete type identities. Concrete globals
 and declarative module types retain the same complete shared signatures.
 The [shared-global fixtures](../../../../tests/semantic/wac-shared-globals/README.md)
 check scalar/vector types, imports, definitions, ascriptions, original-byte

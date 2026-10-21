@@ -1,0 +1,4 @@
+error: func 0 failed to validate
+
+Caused by:
+    0: unknown tag 0: tag index out of bounds (at offset 0x21)

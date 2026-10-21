@@ -14,15 +14,15 @@ fn Parser::read_table(self : Parser) -> @types.Table raise ParserError {
       raise MalformedReferenceType(second_byte)
     }
     let elem_type = self.read_value_type()
-    let (limits, is_table64) = self.read_table_limits()
+    let (limits, is_table64, is_shared) = self.read_table_limits()
     // Read the initialization expression
     let init = self.read_expr()
-    { type_: { elem_type, limits, is_table64, }, init: Some(init), }
+    { type_: { elem_type, limits, is_table64, is_shared, }, init: Some(init), }
   } else {
     // Standard encoding: reftype limits
     let elem_type = self.read_value_type()
-    let (limits, is_table64) = self.read_table_limits()
-    { type_: { elem_type, limits, is_table64, }, init: None, }
+    let (limits, is_table64, is_shared) = self.read_table_limits()
+    { type_: { elem_type, limits, is_table64, is_shared, }, init: None, }
   }
 }
 
@@ -30,8 +30,8 @@ fn Parser::read_table(self : Parser) -> @types.Table raise ParserError {
 fn Parser::read_table_type(self : Parser) -> @types.TableType raise ParserError {
   // For imports, we just need the table type (no init expression)
   let elem_type = self.read_value_type()
-  let (limits, is_table64) = self.read_table_limits()
-  { elem_type, limits, is_table64, }
+  let (limits, is_table64, is_shared) = self.read_table_limits()
+  { elem_type, limits, is_table64, is_shared, }
 }
 
 ///|
@@ -39,20 +39,9 @@ fn Parser::read_table_type(self : Parser) -> @types.TableType raise ParserError 
 /// Returns (limits, is_table64)
 fn Parser::read_table_limits(
   self : Parser,
-) -> (@types.Limits, Bool) raise ParserError {
-  // Table limits flags:
-  // Bit 0: has max (0x01)
-  // Bit 2: table64 (0x04)
-  // Valid combinations: 0x00, 0x01, 0x04, 0x05
-  // Tables don't support shared bit (0x02)
+) -> (@types.Limits, Bool, Bool) raise ParserError {
   let flags = self.read_byte()
-  let valid_table_flags : FixedArray[Int32] = [
-    LIMITS_NO_MAX,
-    LIMITS_HAS_MAX,
-    LIMITS_64_NO_MAX,
-    LIMITS_64_HAS_MAX,
-  ]
-  if !valid_table_flags.contains(flags) {
+  if flags > 7 {
     raise MalformedLimitsFlags(flags)
   }
   let has_max = (flags & LIMITS_HAS_MAX) != 0
@@ -72,7 +61,7 @@ fn Parser::read_table_limits(
     }
     (min, max)
   }
-  ({ min, max, }, is_table64)
+  ({ min, max, }, is_table64, (flags & 2) != 0)
 }
 
 ///|
@@ -152,10 +141,13 @@ fn Parser::read_global_type(
 ) -> @types.GlobalType raise ParserError {
   let value_type = self.read_value_type()
   let mutability = self.read_byte()
-  // The legacy AST stores mutability only. The complete core contract checks
-  // shared value types, and text metadata retains the original flags.
+  // Preserve both mutability and sharedness for instruction validation.
   if mutability > 0x03 {
     raise MalformedMutability(mutability)
   }
-  { value_type, mutable: (mutability & 1) != 0, }
+  {
+    value_type,
+    mutable: (mutability & 1) != 0,
+    is_shared: (mutability & 2) != 0,
+  }
 }

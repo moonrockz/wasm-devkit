@@ -1,0 +1,40 @@
+{
+  "exports": [
+    {
+      "name": "callee",
+      "signature": {
+        "identity": {
+          "index": 1,
+          "types": [
+            {
+              "composite": {
+                "kind": "func",
+                "params": [],
+                "results": []
+              },
+              "final": true,
+              "group-size": 1,
+              "group-start": 0,
+              "shared": true,
+              "supertype": null
+            },
+            {
+              "composite": {
+                "kind": "func",
+                "params": [],
+                "results": []
+              },
+              "final": true,
+              "group-size": 1,
+              "group-start": 1,
+              "shared": true,
+              "supertype": null
+            }
+          ]
+        },
+        "kind": "func"
+      }
+    }
+  ],
+  "imports": []
+}

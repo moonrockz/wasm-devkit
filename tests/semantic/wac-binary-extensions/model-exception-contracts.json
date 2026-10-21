@@ -1,0 +1,114 @@
+{
+  "definitions": [],
+  "instance": 0,
+  "name": "test:extensions",
+  "types": {
+    "defined": [],
+    "funcs": [],
+    "interfaces": [
+      {
+        "exports": [
+          [
+            "m",
+            {
+              "module": 0
+            }
+          ]
+        ],
+        "id": null,
+        "uses": []
+      }
+    ],
+    "modules": [
+      {
+        "exports": [
+          [
+            "tag",
+            {
+              "tag": {
+                "params": [
+                  {
+                    "ref": {
+                      "heapType": "exn",
+                      "nullable": false
+                    }
+                  }
+                ],
+                "results": []
+              }
+            }
+          ],
+          [
+            "raise",
+            {
+              "func": {
+                "params": [
+                  "i32"
+                ],
+                "results": []
+              }
+            }
+          ],
+          [
+            "catch",
+            {
+              "func": {
+                "params": [],
+                "results": [
+                  "i32"
+                ]
+              }
+            }
+          ],
+          [
+            "none",
+            {
+              "global": {
+                "mutable": false,
+                "shared": false,
+                "valType": {
+                  "ref": {
+                    "heapType": "noExn",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          ]
+        ],
+        "imports": [
+          {
+            "module": "env",
+            "name": "e",
+            "type": {
+              "tag": {
+                "params": [
+                  "i32"
+                ],
+                "results": []
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "resources": [],
+    "worlds": [
+      {
+        "exports": [
+          [
+            "m",
+            {
+              "module": 0
+            }
+          ]
+        ],
+        "id": null,
+        "imports": [],
+        "uses": []
+      }
+    ]
+  },
+  "version": null,
+  "world": 0
+}

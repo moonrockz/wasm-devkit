@@ -2,14 +2,14 @@
 package "moonrockz/wit/binary/core_parser"
 
 import {
-  "Milky2018/wasm_core/types",
   "moonbitlang/core/debug",
+  "moonrockz/wit/binary/core_model",
 }
 
 // Values
 pub fn module_text_metadata(Bytes) -> ModuleTextMetadata raise ParserError
 
-pub fn parse_module(Bytes) -> @types.Module raise ParserError
+pub fn parse_module(Bytes) -> @core_model.Module raise ParserError
 
 // Errors
 type ParserError
@@ -41,6 +41,7 @@ pub struct ModuleTextMetadata {
   local_values : ReadOnlyArray[ReadOnlyArray[String]]
   instruction_values : ReadOnlyArray[ReadOnlyArray[(Int, ReadOnlyArray[String])]]
 }
+pub fn ModuleTextMetadata::map_value_spellings(Self, (String) -> String) -> Self
 
 type Parser derive(@debug.Debug)
 pub fn Parser::Parser(Bytes) -> Self

@@ -1,9 +1,11 @@
 ///|
-/// Core values used by module signatures. Reference heaps are abstract names;
-/// concrete GC/type references are outside this codec's current boundary.
+/// Core values used by module signatures. Concrete references retain a flat
+/// immutable type graph, including sharedness and recursive-group identity.
 pub(all) enum Value {
   Scalar(String)
   Reference(Bool, String)
+  SharedReference(Bool, String)
+  Concrete(Bool, TypeIdentity)
 } derive(Eq, Debug)
 
 ///|
@@ -15,10 +17,12 @@ pub(all) struct Function {
 ///|
 pub(all) enum External {
   Func(Function)
+  TypedFunc(TypeIdentity)
   Table(Value, UInt64, UInt64?, Bool, Bool)
   Memory(UInt64, UInt64?, Bool, Bool, Int32?)
   Global(Value, Bool, Bool)
   Tag(Function)
+  TypedTag(TypeIdentity)
 } derive(Eq, Debug)
 
 ///|
@@ -43,6 +47,7 @@ pub(all) struct Module {
 ///|
 pub(all) enum Definition {
   Function(Function)
+  Heap(TypeIdentity)
   Module(Module)
 } derive(Eq, Debug)
 

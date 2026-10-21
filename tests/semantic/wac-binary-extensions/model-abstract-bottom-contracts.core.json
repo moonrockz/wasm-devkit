@@ -1,0 +1,76 @@
+{
+  "exports": [
+    {
+      "name": "exn",
+      "signature": {
+        "index64": false,
+        "kind": "table",
+        "max": null,
+        "min": "0",
+        "shared": false,
+        "value": {
+          "heap": "exn",
+          "kind": "reference",
+          "nullable": true
+        }
+      }
+    },
+    {
+      "name": "none",
+      "signature": {
+        "kind": "global",
+        "mutable": false,
+        "shared": false,
+        "value": {
+          "heap": "none",
+          "kind": "reference",
+          "nullable": true
+        }
+      }
+    }
+  ],
+  "imports": [
+    {
+      "module": "env",
+      "name": "f",
+      "signature": {
+        "kind": "func",
+        "signature": {
+          "params": [
+            {
+              "heap": "none",
+              "kind": "reference",
+              "nullable": false
+            },
+            {
+              "heap": "nofunc",
+              "kind": "reference",
+              "nullable": false
+            },
+            {
+              "heap": "noextern",
+              "kind": "reference",
+              "nullable": false
+            },
+            {
+              "heap": "noexn",
+              "kind": "reference",
+              "nullable": false
+            },
+            {
+              "heap": "eq",
+              "kind": "reference",
+              "nullable": false
+            },
+            {
+              "heap": "i31",
+              "kind": "reference",
+              "nullable": false
+            }
+          ],
+          "results": []
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+error: func 0 failed to validate
+
+Caused by:
+    0: array types do not match: expected i31ref, found anyref (at offset 0x31)

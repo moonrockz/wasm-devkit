@@ -82,23 +82,25 @@ fn compatible_function(
   out.write_string(
     "  (func \{names.declaration(1, index)} (type \{names.reference(4, type_)})",
   )
-  out.write_string(
-    named_locals(
-      sig.params,
-      "param",
-      names,
-      index,
-      0,
-      spellings=names.type_values.get(type_).map(t => t.params).unwrap_or([]),
-    ),
-  )
-  out.write_string(
-    signature(
-      sig.results,
-      "result",
-      spellings=names.type_values.get(type_).map(t => t.results).unwrap_or([]),
-    ),
-  )
+  if !mod_.types[type_].composite.is_shared() {
+    out.write_string(
+      named_locals(
+        sig.params,
+        "param",
+        names,
+        index,
+        0,
+        spellings=names.type_values.get(type_).map(t => t.params).unwrap_or([]),
+      ),
+    )
+    out.write_string(
+      signature(
+        sig.results,
+        "result",
+        spellings=names.type_values.get(type_).map(t => t.results).unwrap_or([]),
+      ),
+    )
+  }
   if !code.locals.is_empty() {
     out.write_string(
       "\n   \{named_locals(code.locals, "local", names, index, sig.params.length(), spellings=names.local_values.get(index).unwrap_or([]))}",
@@ -128,6 +130,7 @@ fn compatible_table(
   type_ : @types.TableType,
   spelling~ : String = "",
 ) -> String {
+  (if type_.is_shared { "shared " } else { "" }) +
   (if type_.is_table64 { "i64 " } else { "" }) +
   limits_to_wat(type_.limits) +
   " " +
@@ -167,7 +170,7 @@ fn compatible_global(
   } else {
     spelling
   }
-  if shared {
+  if shared || type_.is_shared {
     "(shared \{if type_.mutable { "mut " } else { "" }}\{value})"
   } else if type_.mutable {
     "(mut \{value})"
@@ -209,6 +212,7 @@ pub fn render_compatible(
     error => raise BinaryMetadata(error.to_string())
   }
   let (names, custom) = core_metadata(bytes, style, base=binary_offset)
+  let metadata = named_heap_metadata(metadata, names)
   names.type_values = metadata.type_values
   let imported_functions = imported_function_count(mod_)
   for i, values in metadata.local_values {
@@ -220,7 +224,7 @@ pub fn render_compatible(
     }
   }
   for i in 0..<mod_.types.length() {
-    if mod_.func_type_at(i) is Some(sig) {
+    if !mod_.types[i].composite.is_shared() && mod_.func_type_at(i) is Some(sig) {
       names.signatures[i] = sig
     }
   }
@@ -261,9 +265,17 @@ pub fn render_compatible(
         } else {
           "(func\{compatible_signature(sig, text=metadata.type_values.get(i))})"
         }
-      _ => subtype_to_wat(type_)
+      _ => compatible_composite(type_.composite, i, names)
     }
-    let body = if type_.final_ { body } else { "(sub " + body + ")" }
+    let body = if type_.final_ && type_.supertypes.is_empty() {
+      body
+    } else {
+      "(sub " +
+      (if type_.final_ { "final " } else { "" }) +
+      type_.supertypes.map(i => names.reference(4, i) + " ").join("") +
+      body +
+      ")"
+    }
     type_text.push("(type \{names.declaration(4, i)} \{body})")
   }
   let mut index = 0
@@ -294,7 +306,8 @@ pub fn render_compatible(
   for import_index, item in mod_.imports {
     let (kind, body) = match item.desc {
       Func(type_) => {
-        let sig = if style == WasmTools {
+        let sig = if style == WasmTools &&
+          !mod_.types[type_].composite.is_shared() {
           mod_
           .func_type_at(type_)
           .map(sig => {
@@ -494,7 +507,14 @@ pub fn render_compatible(
     } else {
       out.write_string(metadata.element_values[i])
       for body in elem.init {
-        out.write_string(" " + compatible_offset(body, names))
+        out.write_string(
+          " " +
+          (if names.style == WasmTools && body.length() > 1 {
+            "(item " + compatible_inline(body, names) + ")"
+          } else {
+            compatible_offset(body, names)
+          }),
+        )
       }
     }
     out.write_string(")\n")

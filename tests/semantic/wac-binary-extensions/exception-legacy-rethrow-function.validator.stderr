@@ -1,0 +1,4 @@
+error: func 0 failed to validate
+
+Caused by:
+    0: invalid rethrow label: target was not a `catch` block (at offset 0x21)

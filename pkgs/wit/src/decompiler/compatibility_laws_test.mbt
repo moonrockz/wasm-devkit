@@ -16,7 +16,7 @@ test "compatibility rejects reference limits and out-of-profile binaries without
     ] {
     for
       source in [
-        "(module (type (struct)))", "(module (func try_table nop end))", "(module (func (result i32) i64.const 1))",
+        "(module (func try_table nop end))", "(module (func (result i32) i64.const 1))",
         "(module (memory 1 1 shared) (func (result i32) i32.const 0 i32.atomic.load))",
       ] {
       assert_true(
@@ -100,11 +100,11 @@ test "compatibility prints deep core input up to the existing profile limit" {
 }
 
 ///|
-test "try_table retains the existing public input-profile rejection" {
+test "try_table prints by default and keeps explicit compatibility bounds" {
   let input = wasm("(module (func try_table nop end))")
+  assert_true(@decompiler.print_binary(input) is Ok(_))
   for
     compatibility in [
-      None,
       Some(@decompiler.Compatibility::WasmTools),
       Some(@decompiler.Compatibility::Wabt),
     ] {
@@ -113,4 +113,21 @@ test "try_table retains the existing public input-profile rejection" {
     }
     assert_eq(errors[0].code, "WIT-D003")
   }
+}
+
+///|
+test "GC metadata prints in wasm-tools mode and remains explicit for WABT" {
+  let bytes = wasm("(module (type $s (struct (field (ref null $s)))))")
+  let printed = @decompiler.print_binary(
+    bytes,
+    compatibility=Some(@decompiler.Compatibility::WasmTools),
+  ).unwrap()
+  assert_same_module(bytes, wasm(printed.root().text))
+  assert_true(
+    @decompiler.print_binary(
+      bytes,
+      compatibility=Some(@decompiler.Compatibility::Wabt),
+    )
+    is Err(_),
+  )
 }

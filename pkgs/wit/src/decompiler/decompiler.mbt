@@ -138,6 +138,10 @@ fn render_core_module(
     error => raise PrintFailure(None, "WIT-D001", error.to_string())
   }
   @core_validation.validate_module(module_) catch {
+    @core_validation.TypeWorkLimit =>
+      raise PrintFailure(
+        base, "WIT-D003", "core type comparison work exceeds 1000000",
+      )
     error =>
       raise PrintFailure(
         None,
@@ -162,6 +166,8 @@ fn render_core_module(
       }
     }
   } catch {
+    PrintFailure(offset, code, message) =>
+      raise PrintFailure(offset, code, message)
     @core_printer.ReferenceUnsupported(message) =>
       raise PrintFailure(base, "WIT-D003", message)
     @core_printer.BinaryMetadata(message) =>

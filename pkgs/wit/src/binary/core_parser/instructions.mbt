@@ -21,6 +21,7 @@ priv enum ExpressionHead {
   Loop(@types.BlockType)
   If(@types.BlockType)
   Try(@types.BlockType, Array[@types.CatchHandler])
+  LegacyTry(@types.BlockType)
 }
 
 ///|
@@ -29,6 +30,9 @@ priv struct ExpressionFrame {
   head : ExpressionHead
   outer : Array[@types.Instruction]
   mut then_body : Array[@types.Instruction]?
+  mut try_body : Array[@types.Instruction]?
+  mut catch_tag : Int32?
+  catches : Array[@types.LegacyCatch]
 }
 
 ///|
@@ -57,6 +61,16 @@ fn Parser::read_expr(
               None => @types.Instruction::If(bt, body, [])
             }
           Try(bt, handlers) => @types.Instruction::TryTable(bt, handlers, body)
+          LegacyTry(bt) => {
+            let initial = match frame.try_body {
+              None => body
+              Some(initial) => {
+                frame.catches.push({ tag: frame.catch_tag, body, })
+                initial
+              }
+            }
+            @types.Instruction::LegacyTry(bt, initial, frame.catches, None)
+          }
         }
         body = frame.outer
         body.push(instruction)
@@ -71,7 +85,43 @@ fn Parser::read_expr(
         frame.then_body = Some(body)
         body = []
       }
-      0x02 | 0x03 | 0x04 | 0x1f => {
+      0x07 | 0x19 => {
+        guard frames.last() is Some(frame) && frame.head is LegacyTry(_) else {
+          raise ParseError("unexpected legacy catch")
+        }
+        match frame.try_body {
+          None => frame.try_body = Some(body)
+          Some(_) => {
+            if frame.catch_tag is None {
+              raise ParseError("catch follows catch_all")
+            }
+            frame.catches.push({ tag: frame.catch_tag, body, })
+          }
+        }
+        frame.catch_tag = if opcode == 0x07 {
+          Some(self.read_u32())
+        } else {
+          None
+        }
+        body = []
+      }
+      0x18 => {
+        guard frames.pop() is Some(frame) &&
+          frame.head is LegacyTry(bt) &&
+          frame.try_body is None else {
+          raise ParseError("unexpected legacy delegate")
+        }
+        let depth = self.read_u32()
+        let instruction = @types.Instruction::LegacyTry(
+          bt,
+          body,
+          [],
+          Some(depth),
+        )
+        body = frame.outer
+        body.push(instruction)
+      }
+      0x02 | 0x03 | 0x04 | 0x06 | 0x1f => {
         if frames.length() >= 256 {
           raise ParseError("core control nesting exceeds 256")
         }
@@ -80,9 +130,18 @@ fn Parser::read_expr(
           0x02 => ExpressionHead::Block(bt)
           0x03 => ExpressionHead::Loop(bt)
           0x04 => ExpressionHead::If(bt)
+          0x06 => ExpressionHead::LegacyTry(bt)
           _ => ExpressionHead::Try(bt, self.read_catch_handlers())
         }
-        frames.push({ head, ordinal, outer: body, then_body: None, })
+        frames.push({
+          head,
+          ordinal,
+          outer: body,
+          then_body: None,
+          try_body: None,
+          catch_tag: None,
+          catches: [],
+        })
         ordinal += 1
         body = []
       }
@@ -122,10 +181,11 @@ fn Parser::read_instruction(
     // Control instructions
     0x00 => Unreachable
     0x01 => Nop
-    0x02 | 0x03 | 0x04 | 0x1f =>
+    0x02 | 0x03 | 0x04 | 0x06 | 0x1f =>
       raise ParseError("structured opcode outside expression reader")
     // Exception handling instructions
     0x08 => Throw(self.read_u32()) // throw tag_idx
+    0x09 => Rethrow(self.read_u32())
     0x0A => ThrowRef // throw_ref
     0x0C => Br(self.read_u32())
     0x0D => BrIf(self.read_u32())
@@ -409,41 +469,7 @@ fn Parser::read_instruction(
     0xC3 => I64Extend16S
     0xC4 => I64Extend32S
     // Reference type instructions
-    0xD0 => {
-      // ref.null: heaptype immediate (signed LEB)
-      let heap_type = self.read_heap_type()
-      if heap_type < 0 {
-        let nullable_ref_ty = match heap_type {
-          -16 => @types.ValueType::FuncRef
-          -17 => ExternRef
-          -18 => AnyRef
-          -19 => RefNullEq
-          -20 => RefNullI31
-          -21 => StructRef
-          -22 => ArrayRef
-          -23 => ExnRef
-          -15 => NullRef
-          -14 => NullExternRef
-          -13 => NullFuncRef
-          -12 => NullExnRef
-          -24 => ContRef
-          -11 => NullContRef
-          _ => raise ParseError("invalid heap type")
-        }
-        RefNull(nullable_ref_ty)
-      } else {
-        if heap_type >= self.types.length() {
-          raise ParseError("invalid heap type")
-        }
-        let nullable_ref_ty = match self.types[heap_type].composite {
-          Func(_) => @types.ValueType::RefNullFuncTyped(heap_type)
-          Struct(_) => RefNullStruct(heap_type)
-          Array(_) => RefNullArray(heap_type)
-          Cont(_) => RefNullContTyped(heap_type)
-        }
-        RefNull(nullable_ref_ty)
-      }
-    }
+    0xD0 => RefNull(self.read_heap_reference(true))
     0xD1 => RefIsNull
     0xD2 => {
       // ref.func: read function index
@@ -557,7 +583,9 @@ fn Parser::read_instruction(
     // Atomics instructions (0xFE prefix)
     0xFE => {
       let subopcode = self.read_u32()
-      if subopcode == 3 {
+      if subopcode == 0x72 {
+        RefI31Shared
+      } else if subopcode == 3 {
         // atomic.fence has a reserved 0x00 byte
         let reserved = self.read_byte()
         if reserved != 0x00 {
@@ -610,6 +638,9 @@ fn Parser::parse_gc_instruction(
       ArrayNewFixed(type_idx, len)
     }
     9 => {
+      if !self.has_data_count {
+        raise DataCountRequired
+      }
       let type_idx = self.read_u32()
       let data_idx = self.read_u32()
       ArrayNewData(type_idx, data_idx)
@@ -631,6 +662,9 @@ fn Parser::parse_gc_instruction(
       ArrayCopy(dst, src)
     }
     18 => {
+      if !self.has_data_count {
+        raise DataCountRequired
+      }
       let type_idx = self.read_u32()
       let data_idx = self.read_u32()
       ArrayInitData(type_idx, data_idx)
@@ -640,32 +674,28 @@ fn Parser::parse_gc_instruction(
       let elem_idx = self.read_u32()
       ArrayInitElem(type_idx, elem_idx)
     }
-    20 =>
-      RefTest(
-        self.resolve_heap_type_as_ref_value_type(self.read_heap_type(), false),
-      )
-    21 =>
-      RefTestNull(
-        self.resolve_heap_type_as_ref_value_type(self.read_heap_type(), true),
-      )
-    22 =>
-      RefCast(
-        self.resolve_heap_type_as_ref_value_type(self.read_heap_type(), false),
-      )
-    23 =>
-      RefCastNull(
-        self.resolve_heap_type_as_ref_value_type(self.read_heap_type(), true),
-      )
+    20 => RefTest(self.read_heap_reference(false))
+    21 => RefTestNull(self.read_heap_reference(true))
+    22 => RefCast(self.read_heap_reference(false))
+    23 => RefCastNull(self.read_heap_reference(true))
     24 => {
+      let flags = self.read_byte()
+      if flags > 3 {
+        raise ParseError("invalid branch cast flags")
+      }
       let label = self.read_u32()
-      let from_t = self.read_value_type()
-      let to_t = self.read_value_type()
+      let from_t = self.read_heap_reference((flags & 1) != 0)
+      let to_t = self.read_heap_reference((flags & 2) != 0)
       BrOnCast(label, from_t, to_t)
     }
     25 => {
+      let flags = self.read_byte()
+      if flags > 3 {
+        raise ParseError("invalid branch cast flags")
+      }
       let label = self.read_u32()
-      let from_t = self.read_value_type()
-      let to_t = self.read_value_type()
+      let from_t = self.read_heap_reference((flags & 1) != 0)
+      let to_t = self.read_heap_reference((flags & 2) != 0)
       BrOnCastFail(label, from_t, to_t)
     }
     26 => AnyConvertExtern

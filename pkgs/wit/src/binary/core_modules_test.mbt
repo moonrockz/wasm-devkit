@@ -245,7 +245,7 @@ test "core declarative boundary typed-ref" {
   )
   assert_eq(
     result is Ok(_),
-    false,
+    true,
     msg=match result {
       Ok(_) => "accepted"
       Err(errors) => errors[0].message
@@ -311,4 +311,35 @@ test "core declarative boundary outer-function" {
       Err(errors) => errors[0].message
     },
   )
+}
+
+///|
+test "declarative boundary validates heap metadata and type-only boundary stays explicit" {
+  let valid = b"\x00asm\x0d\x00\x01\x00\x03\x06\x01\x5f\x01\x63\x00\x00"
+  let result = @binary.validate_declarative_component(valid)
+  assert_true(
+    result is Ok(_),
+    msg=match result {
+      Ok(_) => "accepted"
+      Err(e) => e[0].message
+    },
+  )
+  let model = result.unwrap()
+  assert_eq(model.bytes(), valid)
+  let invalid = b"\x00asm\x0d\x00\x01\x00\x03\x06\x01\x65\x5f\x01\x6e\x00"
+  assert_eq(
+    @binary.validate_declarative_component(invalid).unwrap_err()[0].code,
+    "WIT-B003",
+  )
+  let extends_final = b"\x00asm\x0d\x00\x01\x00\x03\x0a\x01\x4e\x02\x5f\x00\x50\x01\x00\x5f\x00"
+  assert_eq(
+    @binary.validate_declarative_component(extends_final).unwrap_err()[0].code,
+    "WIT-B003",
+  )
+  for bytes in [valid, invalid, extends_final] {
+    assert_eq(
+      @binary.validate_type_component(bytes).unwrap_err()[0].code,
+      "WIT-B002",
+    )
+  }
 }

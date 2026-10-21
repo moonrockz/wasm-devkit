@@ -98,6 +98,59 @@ fn compatible_instruction(
       let table = if table != 0 { " " + reference(5, table) } else { "" }
       "\{op}\{table} (type \{reference(4, type_)})"
     }
+    RefNull(value) => "ref.null " + named_heap(value, names)
+    RefTest(value) | RefTestNull(value) =>
+      "ref.test " + named_heap_value(value, names)
+    RefCast(value) | RefCastNull(value) =>
+      "ref.cast " + named_heap_value(value, names)
+    BrOnCast(label, from, to) | BrOnCastFail(label, from, to) => {
+      let op = if instr is BrOnCast(_) {
+        "br_on_cast"
+      } else {
+        "br_on_cast_fail"
+      }
+      op +
+      " " +
+      branch(label) +
+      " " +
+      named_heap_value(from, names) +
+      " " +
+      named_heap_value(to, names)
+    }
+    BrOnNull(label) => "br_on_null " + branch(label)
+    BrOnNonNull(label) => "br_on_non_null " + branch(label)
+    Throw(tag) => "throw " + reference(11, tag)
+    StructNew(t)
+    | StructNewDefault(t)
+    | ArrayNew(t)
+    | ArrayNewDefault(t)
+    | ArrayGet(t)
+    | ArrayGetS(t)
+    | ArrayGetU(t)
+    | ArraySet(t)
+    | ArrayFill(t) => {
+      let op = instr_to_wat(instr).split(" ").nth(0).unwrap().to_owned()
+      op + " " + reference(4, t)
+    }
+    StructGet(t, f) | StructGetS(t, f) | StructGetU(t, f) | StructSet(t, f) => {
+      let op = instr_to_wat(instr).split(" ").nth(0).unwrap().to_owned()
+      op + " " + reference(4, t) + " " + names.reference(10, f, scope=t)
+    }
+    ArrayNewFixed(t, len) =>
+      "array.new_fixed " +
+      reference(4, t) +
+      " " +
+      len.reinterpret_as_uint().to_string()
+    ArrayNewData(t, data) =>
+      "array.new_data " + reference(4, t) + " " + reference(9, data)
+    ArrayInitData(t, data) =>
+      "array.init_data " + reference(4, t) + " " + reference(9, data)
+    ArrayNewElem(t, elem) =>
+      "array.new_elem " + reference(4, t) + " " + reference(8, elem)
+    ArrayInitElem(t, elem) =>
+      "array.init_elem " + reference(4, t) + " " + reference(8, elem)
+    ArrayCopy(dst, src) =>
+      "array.copy " + reference(4, dst) + " " + reference(4, src)
     LocalGet(i) => "local.get \{names.reference(2, i, scope=func)}"
     LocalSet(i) => "local.set \{names.reference(2, i, scope=func)}"
     LocalTee(i) => "local.tee \{names.reference(2, i, scope=func)}"

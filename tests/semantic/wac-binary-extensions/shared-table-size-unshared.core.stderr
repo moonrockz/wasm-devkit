@@ -1,0 +1,1 @@
+shared functions cannot access unshared tables (at offset 0x20)

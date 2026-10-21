@@ -115,10 +115,14 @@ async fn main {
       continue
     }
     let fields = line.split("\t").map(StringView::to_owned).to_array()
-    guard fields.length() == 7 else { fail("invalid decompiler fixture row") }
+    guard fields.length() == 7 || fields.length() == 8 else {
+      fail("invalid decompiler fixture row")
+    }
     let name = fields[0]
     let component = fields[1] == "component"
     let accepted = fields[2] == "accepted"
+    let compatibility_accepted = accepted &&
+      (fields.length() == 7 || fields[7] != "rejected")
     let input = root + name + ".wasm"
     let source = @fs.read_file(input).binary()
     let default = @process.collect_output(cli, ["decompile", input])
@@ -151,7 +155,7 @@ async fn main {
       let (code, actual, error) = @process.collect_output(cli, [
         "decompile", input, "--compatibility", mode,
       ])
-      if !accepted || !expected_success {
+      if !compatibility_accepted || !expected_success {
         assert_eq(code, 1, msg=name + ": reject " + mode + " " + error.text())
         assert_eq(actual.text(), "")
         continue

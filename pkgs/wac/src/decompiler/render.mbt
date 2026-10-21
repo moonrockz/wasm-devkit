@@ -39,6 +39,19 @@ fn externs_json(items : ReadOnlyArray[@verifier.Extern]) -> Json {
 fn core_value_json(value : @core_types.Value) -> Json {
   match value {
     Scalar(name) => { "kind": "scalar", "name": Json::string(name) }
+    Concrete(nullable, identity) =>
+      {
+        "kind": "concrete-reference",
+        "nullable": Json::boolean(nullable),
+        "identity": core_identity_json(identity),
+      }
+    SharedReference(nullable, heap) =>
+      {
+        "kind": "reference",
+        "nullable": Json::boolean(nullable),
+        "shared": Json::boolean(true),
+        "heap": Json::string(heap),
+      }
     Reference(nullable, heap) =>
       {
         "kind": "reference",
@@ -63,6 +76,10 @@ fn core_function_json(function : @core_types.Function) -> Json {
 ///|
 fn core_external_json(kind : @core_types.External) -> Json {
   match kind {
+    TypedFunc(identity) =>
+      { "kind": "func", "identity": core_identity_json(identity) }
+    TypedTag(identity) =>
+      { "kind": "tag", "identity": core_identity_json(identity) }
     Func(function) =>
       { "kind": "func", "signature": core_function_json(function) }
     Global(value, mutable_, shared) =>

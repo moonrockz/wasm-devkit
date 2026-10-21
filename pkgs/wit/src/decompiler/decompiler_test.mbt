@@ -320,8 +320,7 @@ test "binaries outside the core-module profile fail explicitly" {
   assert_eq(signaling.offset, Some(24))
   for
     source in [
-      "(module (type (struct)))", "(module (memory 1 1 shared) (func (result i32) i32.const 0 i32.atomic.load))",
-      "(module (tag (param i32)) (func i32.const 1 throw 0))",
+      "(module (memory 1 1 shared) (func (result i32) i32.const 0 i32.atomic.load))",
     ] {
     assert_eq(error_of(wasm(source)).code, "WIT-D003")
   }
@@ -376,4 +375,27 @@ test "law: printing arbitrary bytes is total and deterministic" {
     max_size=128,
     seed=1301,
   )
+}
+
+///|
+test "GC metadata prints with exact reference and recursive group structure" {
+  for
+    source in [
+      "(module (type (struct)))", "(module (type $s (struct (field (ref null $s)))))",
+      "(module (rec (type $s (struct (field (ref null $a)))) (type $a (array (ref null $s)))))",
+      "(module (type $s (sub (struct (field i32)))) (type (sub $s (struct (field i32) (field i64)))))",
+      "(module (type (shared (struct (field (ref null (shared any)))))))",
+    ] {
+    ignore(round_trip(wasm(source)))
+  }
+}
+
+///|
+test "shared mutable globals print the standard flat shared mut type" {
+  let input = wasm(
+    "(module (import \"env\" \"g\" (global (shared mut i32))) (global (shared mut i64) i64.const 1))",
+  )
+  let text = round_trip(input)
+  assert_true(text.contains("(shared mut i32)"))
+  assert_true(text.contains("(shared mut i64)"))
 }

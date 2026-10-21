@@ -21,10 +21,9 @@ uses a padded negative abstract heap code. Both references reject that encoding;
 its WAT file describes the canonical form before the deliberate byte mutation.
 
 `shared-global` now accepts and preserves its complete contract.
-`concrete-heap-index` remains a reference-accepted boundary returning `WAC-B002`. `nested-component` now accepts with complete
-scoped child contracts. Concrete and shared
-heap references, GC types and supertypes also remain outside this slice.
-Function-only recursive groups without recursive references are supported.
+`concrete-heap-index` and `nested-component` now accept with complete scoped
+contracts. The [extension suite](../wac-binary-extensions/README.md) additionally
+checks concrete/shared heap references, recursive GC types and supertypes.
 
 Original function instructions and non-code metadata reach the retained core
 validator. Structured block, loop and if instructions are now supported through

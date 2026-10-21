@@ -42,3 +42,9 @@ compatibility with other versions or proposals outside the existing profile.
 Default and wasm-tools-compatible renderers preserve concrete global shared
 flags from immutable raw-byte metadata. WABT compatibility rejects shared
 globals explicitly. The regression suite is `tests/semantic/wac-shared-globals`.
+
+Default printing additionally covers concrete/shared GC references and modern
+and legacy exceptions. Element initializer sequences use `item` wrappers to
+preserve evaluation order; shared tables use the pinned prefix spelling.
+The separately bounded compatibility modes continue to reject exception
+control explicitly.

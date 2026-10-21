@@ -1,11 +1,10 @@
 ///|
-/// Validate a function body with instruction offset tracking
-fn validate_function_with_offset(
+fn function_context(
   ctx : ValidationContext,
   func_type : @types.FuncType,
   code : @types.FunctionCode,
-  func_idx : Int32,
-) -> Unit raise ValidationError {
+  shared : Bool,
+) -> ValidationContext raise ValidationError {
   let num_types = ctx.types.length()
 
   // Validate type indices in local types
@@ -15,6 +14,7 @@ fn validate_function_with_offset(
       num_types,
       stack_switching=ctx.stack_switching,
     )
+    validate_reference_metadata(local_type, ctx.types)
   }
 
   // Set up locals: params + declared locals
@@ -33,24 +33,19 @@ fn validate_function_with_offset(
   }
 
   // Create validation context for this function
-  let func_ctx : ValidationContext = {
-    bulk_memory: ctx.bulk_memory,
-    stack_switching: ctx.stack_switching,
-    types: ctx.types,
-    funcs: ctx.funcs,
-    tables: ctx.tables,
-    mems: ctx.mems,
-    globals: ctx.globals,
-    tags: ctx.tags,
-    elems: ctx.elems,
-    data_count: ctx.data_count,
-    locals,
-    labels: [],
-    returns: func_type.results,
-    local_init,
-    declared_funcs: ctx.declared_funcs,
-    subtyping_ctx: ctx.subtyping_ctx,
-  }
+  { ..ctx, shared, locals, local_init, labels: [], returns: func_type.results, }
+}
+
+///|
+/// Validate a function body with instruction offset tracking
+fn validate_function_with_offset(
+  ctx : ValidationContext,
+  func_type : @types.FuncType,
+  code : @types.FunctionCode,
+  func_idx : Int32,
+  shared~ : Bool = false,
+) -> Unit raise ValidationError {
+  let func_ctx = function_context(ctx, func_type, code, shared)
   let stack = OperandStack::new_with_subtyping(func_ctx.subtyping_ctx)
 
   // Validate function body with offset tracking
@@ -99,6 +94,7 @@ fn validate_expr_with_offset(
               Loop(_, _) => "loop"
               If(_, _, _) => "if"
               TryTable(_, _, _) => "try_table"
+              LegacyTry(_, _, _, _) => "try"
               _ => instr.to_string()
             },
           ),
@@ -113,52 +109,9 @@ fn validate_function(
   ctx : ValidationContext,
   func_type : @types.FuncType,
   code : @types.FunctionCode,
+  shared~ : Bool = false,
 ) -> Unit raise ValidationError {
-  let num_types = ctx.types.length()
-
-  // Validate type indices in local types
-  for local_type in code.locals {
-    validate_value_type(
-      local_type,
-      num_types,
-      stack_switching=ctx.stack_switching,
-    )
-  }
-
-  // Set up locals: params + declared locals
-  let locals : Array[@types.ValueType] = []
-  let local_init : Array[Bool] = []
-  // Parameters are always initialized (provided by caller)
-  for param in func_type.params {
-    locals.push(param)
-    local_init.push(true)
-  }
-  // Declared locals: initialized only if they have a default value (not non-nullable ref)
-  for local_type in code.locals {
-    locals.push(local_type)
-    // Non-nullable reference types don't have a default value, so they start uninitialized
-    local_init.push(!is_non_nullable_ref(local_type))
-  }
-
-  // Create validation context for this function
-  let func_ctx : ValidationContext = {
-    bulk_memory: ctx.bulk_memory,
-    stack_switching: ctx.stack_switching,
-    types: ctx.types,
-    funcs: ctx.funcs,
-    tables: ctx.tables,
-    mems: ctx.mems,
-    globals: ctx.globals,
-    tags: ctx.tags,
-    elems: ctx.elems,
-    data_count: ctx.data_count,
-    locals,
-    labels: [],
-    returns: func_type.results,
-    local_init,
-    declared_funcs: ctx.declared_funcs,
-    subtyping_ctx: ctx.subtyping_ctx,
-  }
+  let func_ctx = function_context(ctx, func_type, code, shared)
   let stack = OperandStack::new_with_subtyping(func_ctx.subtyping_ctx)
 
   // Validate function body
@@ -179,6 +132,15 @@ fn validate_function(
 ///|
 priv enum ExpressionWork {
   Sequence(OperandStack, Array[@types.Instruction], Int32)
+  LegacyNext(
+    OperandStack,
+    OperandStack,
+    Array[@types.ValueType],
+    Array[@types.LegacyCatch],
+    Int32,
+    Array[Bool],
+    Int32?
+  )
   Exit(OperandStack, OperandStack, Array[@types.ValueType], Array[Bool], String)
   Else(
     OperandStack,
@@ -259,6 +221,28 @@ fn validate_expr(
             work.push(Exit(outer, inner, results, saved, context))
             work.push(Sequence(inner, body, 0))
           }
+          LegacyTry(bt, body, catches, delegate) => {
+            if delegate is Some(_) && !catches.is_empty() {
+              raise TypeMismatch("delegate cannot follow catch")
+            }
+            for i, arm in catches {
+              if arm.tag is None && i + 1 < catches.length() {
+                raise TypeMismatch("catch cannot follow catch_all")
+              }
+            }
+            let params = get_block_params(ctx, bt)
+            let results = get_block_results(ctx, bt)
+            for i = params.length() - 1; i >= 0; i = i - 1 {
+              outer.pop(params[i])
+            }
+            let inner = control_stack(ctx, params)
+            let saved = ctx.local_init.copy()
+            ctx.labels.push({ kind: LegacyTryLabel, block_type: bt, })
+            work.push(
+              LegacyNext(outer, inner, results, catches, 0, saved, delegate),
+            )
+            work.push(Sequence(inner, body, 0))
+          }
           If(bt, then_body, else_body) => {
             outer.pop(I32)
             let params = get_block_params(ctx, bt)
@@ -273,6 +257,41 @@ fn validate_expr(
             work.push(Sequence(inner, then_body, 0))
           }
           _ => validate_instr(ctx, outer, instruction)
+        }
+      }
+      LegacyNext(outer, inner, results, catches, index, saved, delegate) => {
+        check_control_results(inner, results, "legacy try arm exit")
+        restore_local_init(ctx, saved)
+        if index < catches.length() {
+          let arm = catches[index]
+          let params = match arm.tag {
+            Some(tag) => ctx.exception_tag_type(tag).params
+            None => []
+          }
+          let inner = control_stack(ctx, params)
+          let last = ctx.labels.length() - 1
+          ctx.labels[last] = { ..ctx.labels[last], kind: LegacyCatchLabel, }
+          work.push(
+            LegacyNext(
+              outer,
+              inner,
+              results,
+              catches,
+              index + 1,
+              saved,
+              delegate,
+            ),
+          )
+          work.push(Sequence(inner, arm.body, 0))
+        } else {
+          ignore(ctx.labels.pop())
+          if delegate is Some(depth) &&
+            (depth < 0 || depth > ctx.labels.length()) {
+            raise InvalidLabelIndex(depth)
+          }
+          for result in results {
+            outer.push(result)
+          }
         }
       }
       Else(outer, then_stack, params, results, else_body, saved) => {

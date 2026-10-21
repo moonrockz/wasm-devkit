@@ -75,23 +75,38 @@ fn type_children(kind : @verifier.TypeKind) -> Array[Int32] {
 }
 
 ///|
-fn core_value(value : @core_types.Value) -> String {
+fn core_value(
+  value : @core_types.Value,
+  render : CoreRender,
+) -> String raise Failure {
   match value {
     Scalar(value) => value
     Reference(nullable, heap) =>
       "(ref " + (if nullable { "null " } else { "" }) + heap + ")"
+    SharedReference(nullable, heap) =>
+      "(ref " + (if nullable { "null " } else { "" }) + "(shared " + heap + "))"
+    Concrete(nullable, identity) =>
+      "(ref " +
+      (if nullable { "null " } else { "" }) +
+      core_identity(identity, render) +
+      ")"
   }
 }
 
 ///|
-fn core_function(function : @core_types.Function) -> String {
+fn core_function(
+  function : @core_types.Function,
+  render : CoreRender,
+) -> String raise Failure {
+  render.charge(function.params.length())
+  render.charge(function.results.length())
   let out = StringBuilder()
   out.write_string("(func")
   for value in function.params {
-    out.write_string(" (param " + core_value(value) + ")")
+    out.write_string(" (param " + core_value(value, render) + ")")
   }
   for value in function.results {
-    out.write_string(" (result " + core_value(value) + ")")
+    out.write_string(" (result " + core_value(value, render) + ")")
   }
   out.write_char(')')
   out.to_string()
@@ -101,30 +116,34 @@ fn core_function(function : @core_types.Function) -> String {
 fn core_external(
   kind : @core_types.External,
   tags : Map[String, String],
-) -> String {
+  render : CoreRender,
+) -> String raise Failure {
   match kind {
-    Func(function) => core_function(function)
+    Func(function) => core_function(function, render)
+    TypedFunc(identity) =>
+      "(func (type " + core_identity(identity, render) + "))"
+    TypedTag(identity) => "(tag (type " + core_identity(identity, render) + "))"
     Global(value, mutable_, shared) =>
       "(global " +
       (if shared {
         "(shared " +
         (if mutable_ { "mut " } else { "" }) +
-        core_value(value) +
+        core_value(value, render) +
         ")"
       } else if mutable_ {
-        "(mut " + core_value(value) + ")"
+        "(mut " + core_value(value, render) + ")"
       } else {
-        core_value(value)
+        core_value(value, render)
       }) +
       ")"
     Table(value, min, max, index64, shared) =>
       "(table " +
+      (if shared { "shared " } else { "" }) +
       (if index64 { "i64 " } else { "" }) +
       min.to_string() +
       max.map(m => " " + m.to_string()).unwrap_or("") +
-      (if shared { " shared" } else { "" }) +
       " " +
-      core_value(value) +
+      core_value(value, render) +
       ")"
     Memory(min, max, index64, shared, page) =>
       "(memory " +
@@ -134,24 +153,30 @@ fn core_external(
       (if shared { " shared" } else { "" }) +
       page.map(p => " (pagesize " + (1 << p).to_string() + ")").unwrap_or("") +
       ")"
-    Tag(function) => "(tag (type " + tags[core_function(function)] + "))"
+    Tag(function) =>
+      "(tag (type " + tags[core_function(function, render)] + "))"
   }
 }
 
 ///|
-fn module_type(module_ : @core_types.Module) -> String {
+fn module_type(module_ : @core_types.Module) -> String raise Failure {
+  let render : CoreRender = {
+    out: StringBuilder(),
+    serial: 0,
+    remaining: 1000000,
+    component: false,
+  }
   let out = StringBuilder()
-  out.write_string("(module\n")
   let tags : Map[String, String] = Map([])
   let externals = module_.imports.map(i => i.kind).iter().to_array() +
     module_.exports.map(e => e.kind).iter().to_array()
   for external in externals {
     if external is Tag(function) {
-      let signature = core_function(function)
+      let signature = core_function(function, render)
       if !tags.contains(signature) {
         let name = "$tag-type-n" + tags.length().to_string()
         tags[signature] = name
-        out.write_string("(type " + name + " " + signature + ")\n")
+        render.out.write_string("(type " + name + " " + signature + ")\n")
       }
     }
   }
@@ -162,7 +187,7 @@ fn module_type(module_ : @core_types.Module) -> String {
       " " +
       wat_quote(item.name) +
       " " +
-      core_external(item.kind, tags) +
+      core_external(item.kind, tags, render) +
       ")\n",
     )
   }
@@ -171,12 +196,12 @@ fn module_type(module_ : @core_types.Module) -> String {
       "(export " +
       wat_quote(item.name) +
       " " +
-      core_external(item.kind, tags) +
+      core_external(item.kind, tags, render) +
       ")\n",
     )
   }
   out.write_char(')')
-  out.to_string()
+  "(module\n" + render.out.to_string() + out.to_string()
 }
 
 ///|

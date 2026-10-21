@@ -139,11 +139,13 @@ test "binary parse table - invalid flag 0x08 rejected" {
 }
 
 ///|
-test "binary parse table - shared flag 0x03 rejected for tables" {
+test "binary parse table - shared flag 0x03 retained" {
   let table_section : FixedArray[Int32] = [
     0x04, 0x05, 0x01, 0x70, 0x03, 0x01, 0x04,
   ]
-  inspect(parse_wasm([table_section]) is None, content="true")
+  let parsed = parse_wasm([table_section]).unwrap()
+  assert_true(parsed.tables[0].type_.is_shared)
+  assert_eq(parsed.tables[0].type_.limits.max, Some(4L))
 }
 
 // ============================================================

@@ -1,0 +1,30 @@
+{
+  "exports": [
+    {
+      "name": "catch",
+      "signature": {
+        "kind": "func",
+        "signature": {
+          "params": [],
+          "results": [
+            {
+              "kind": "scalar",
+              "name": "i32"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "rethrow",
+      "signature": {
+        "kind": "func",
+        "signature": {
+          "params": [],
+          "results": []
+        }
+      }
+    }
+  ],
+  "imports": []
+}

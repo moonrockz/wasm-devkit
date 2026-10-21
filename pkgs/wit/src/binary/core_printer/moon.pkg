@@ -1,6 +1,6 @@
 import {
   "moonrockz/wit/binary/core_parser",
-  "Milky2018/wasm_core/types",
+  "moonrockz/wit/binary/core_model" @types,
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/string",
   "moonbitlang/core/bigint",
@@ -8,5 +8,5 @@ import {
 }
 
 import {
-  "Milky2018/wasm_core/wat",
+  "moonrockz/wit/binary/core_text" @wat,
 } for "test"

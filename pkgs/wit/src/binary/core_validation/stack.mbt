@@ -1,8 +1,15 @@
 ///|
+priv enum Operand {
+  Known(@types.ValueType)
+  Bottom
+  UnknownRef(Int32?)
+}
+
+///|
 /// Operand stack for type validation
 /// Uses Option to represent polymorphic stack (after unreachable)
 priv struct OperandStack {
-  stack : Array[@types.ValueType]
+  stack : Array[Operand]
   mut polymorphic : Bool // true after unreachable instruction
   mut underflow_limit : Int32 // stack height at which polymorphism was enabled
   subtyping_ctx : @types.SubtypingContext?
@@ -22,7 +29,7 @@ fn OperandStack::new_with_subtyping(
 
 ///|
 fn OperandStack::push(self : OperandStack, ty : @types.ValueType) -> Unit {
-  self.stack.push(ty)
+  self.stack.push(Known(ty))
 }
 
 ///|
@@ -30,28 +37,83 @@ fn OperandStack::pop(
   self : OperandStack,
   expected : @types.ValueType,
 ) -> Unit raise ValidationError {
-  if self.polymorphic && self.stack.is_empty() {
-    return // Polymorphic stack accepts any type
+  ignore(self.pop_operand(Some(expected)))
+}
+
+///|
+fn OperandStack::push_operand(self : OperandStack, operand : Operand) -> Unit {
+  self.stack.push(operand)
+}
+
+///|
+fn OperandStack::matches(
+  self : OperandStack,
+  actual : @types.ValueType,
+  expected : @types.ValueType,
+) -> Bool {
+  match self.subtyping_ctx {
+    Some(ctx) => ctx.value_type_subtype(actual, expected)
+    None => is_type_subtype(actual, expected)
   }
-  if self.stack.is_empty() {
-    raise StackUnderflow("Expected \{expected}, but stack is empty")
+}
+
+///|
+fn OperandStack::pop_operand(
+  self : OperandStack,
+  expected : @types.ValueType?,
+) -> Operand raise ValidationError {
+  let actual = if self.polymorphic && self.stack.is_empty() {
+    Bottom
+  } else {
+    match self.stack.pop() {
+      Some(v) => v
+      None =>
+        raise StackUnderflow(
+          match expected {
+            Some(ty) => "Expected \{ty}, but stack is empty"
+            None => "Expected value, but stack is empty"
+          },
+        )
+    }
   }
-  let actual = self.stack.pop()
-  match actual {
-    Some(a) => {
-      let basic_subtype = is_type_subtype(a, expected)
-      let ctx_subtype = if basic_subtype {
-        true
-      } else if self.subtyping_ctx is Some(subtyping_ctx) {
-        subtyping_ctx.value_type_subtype(a, expected)
-      } else {
-        false
-      }
-      if !ctx_subtype {
-        raise TypeMismatch("Expected \{expected}, got \{a}")
+  if expected is Some(expected) {
+    let compatible = match actual {
+      Bottom => true
+      Known(ty) => self.matches(ty, expected)
+      UnknownRef(heap) =>
+        match expected.heap() {
+          None => false
+          Some((_, shared, _)) =>
+            match heap {
+              None => true
+              Some(heap) => self.matches(HeapRef(false, shared, heap), expected)
+            }
+        }
+    }
+    if !compatible {
+      match actual {
+        Known(ty) => raise TypeMismatch("Expected \{expected}, got \{ty}")
+        _ =>
+          raise TypeMismatch(
+            "reference operand does not match expected type \{expected}",
+          )
       }
     }
-    None => raise StackUnderflow("Expected \{expected}, but stack is empty")
+  }
+  actual
+}
+
+///|
+fn OperandStack::pop_push_types(
+  self : OperandStack,
+  expected : ArrayView[@types.ValueType],
+) -> Unit raise ValidationError {
+  let popped = []
+  for i = expected.length() - 1; i >= 0; i = i - 1 {
+    popped.push(self.pop_operand(Some(expected[i])))
+  }
+  for i = popped.length() - 1; i >= 0; i = i - 1 {
+    self.push_operand(popped[i])
   }
 }
 
@@ -66,23 +128,7 @@ fn OperandStack::pop(
 
 ///|
 fn to_non_nullable_cast_diff_type(ty : @types.ValueType) -> @types.ValueType {
-  match ty {
-    ContRef => RefCont
-    NullContRef => RefNoCont
-    RefNullContTyped(idx) => RefContTyped(idx)
-    FuncRef => RefFunc
-    ExternRef => RefExtern
-    AnyRef => RefAny
-    StructRef => RefStruct(-1)
-    ArrayRef => RefArray(-1)
-    RefNullFuncTyped(idx) => RefFuncTyped(idx)
-    RefNullStruct(idx) => if idx < 0 { RefStruct(-1) } else { RefStruct(idx) }
-    RefNullArray(idx) => if idx < 0 { RefArray(-1) } else { RefArray(idx) }
-    RefNullEq => RefEq
-    RefNullI31 => RefI31
-    NullRef | NullFuncRef | NullExternRef | NullExnRef => RefNone
-    _ => ty
-  }
+  ty.with_nullable(false).unwrap_or(ty)
 }
 
 ///|
@@ -116,175 +162,53 @@ fn is_type_subtype(
   if actual == expected {
     return true
   }
-  if actual.is_continuation_ref() || expected.is_continuation_ref() {
-    return match (actual, expected) {
-      (RefNoCont, _) => expected.is_continuation_ref()
-      (NullContRef, _) =>
-        expected.is_continuation_ref() && expected.is_nullable()
-      (RefCont | RefContTyped(_) | RefNullContTyped(_), ContRef) => true
-      (RefContTyped(_), RefCont) => true
-      (RefContTyped(a), RefNullContTyped(b)) => a == b
-      _ => false
+  guard actual.heap() is Some((an, ash, ah)) &&
+    expected.heap() is Some((bn, bsh, bh)) else {
+    return false
+  }
+  if ash != bsh || (an && !bn) {
+    return false
+  }
+  if ah >= 0 && bh >= 0 {
+    return ah == bh
+  }
+  fn kind(ty : @types.ValueType) -> Int32? {
+    match ty {
+      RefFuncTyped(_) | RefNullFuncTyped(_) => Some(-16)
+      RefStruct(_) | RefNullStruct(_) => Some(-21)
+      RefArray(_) | RefNullArray(_) => Some(-22)
+      RefContTyped(_) | RefNullContTyped(_) => Some(-24)
+      _ => None
     }
   }
-  // Bottom types for reference hierarchies.
-  if actual == RefNone && is_reference_type(expected) {
-    return true
-  }
-  if actual == NullRef && expected.is_nullable() {
-    return true
-  }
-  // Helper: check if a type is a subtype of anyref (AnyRef = ref null any)
-  fn is_internal_ref(t : @types.ValueType) -> Bool {
-    match t {
-      RefAny | AnyRef | RefEq | RefNullEq | RefI31 | RefNullI31 => true
-      RefStruct(_) | RefNullStruct(_) | RefArray(_) | RefNullArray(_) => true
-      _ => false
+  let aheap = if ah >= 0 {
+    match kind(actual) {
+      Some(h) => h
+      None => return false
     }
+  } else {
+    ah
   }
-
-  match (actual, expected) {
-    // Null bottoms for specific hierarchies
-    (NullFuncRef, FuncRef) => true
-    (NullFuncRef, RefNullFuncTyped(_)) => true
-    (NullExternRef, ExternRef) => true
-    (NullExnRef, ExnRef) => true
-
-    // Non-null to nullable of same base type
-    (RefFuncTyped(t1), RefNullFuncTyped(t2)) => t1 == t2
-    (RefStruct(t1), RefNullStruct(t2)) => t1 == t2 || t2 == -1
-    (RefArray(t1), RefNullArray(t2)) => t1 == t2 || t2 == -1
-    (RefI31, RefNullI31) => true
-    (RefEq, RefNullEq) => true
-    (RefAny, AnyRef) => true
-    (RefFunc, FuncRef) => true
-    (RefExtern, ExternRef) => true
-
-    // Typed to abstract struct/array
-    (RefStruct(_), RefStruct(-1)) => true
-    (RefNullStruct(_), RefNullStruct(-1)) => true
-    (RefArray(_), RefArray(-1)) => true
-    (RefNullArray(_), RefNullArray(-1)) => true
-
-    // Struct/array/i31 to eqref (RefEq = ref eq, RefNullEq = ref null eq)
-    (RefStruct(_), RefEq) => true
-    (RefStruct(_), RefNullEq) => true
-    (RefNullStruct(_), RefNullEq) => true
-    (RefArray(_), RefEq) => true
-    (RefArray(_), RefNullEq) => true
-    (RefNullArray(_), RefNullEq) => true
-    (RefI31, RefEq) => true
-    (RefI31, RefNullEq) => true
-    (RefNullI31, RefNullEq) => true
-
-    // Everything internal to anyref (RefAny = ref any, AnyRef = ref null any)
-    (_, RefAny) => is_internal_ref(actual) && !actual.is_nullable()
-    (_, AnyRef) => is_internal_ref(actual)
-
-    // RefFuncTyped to funcref hierarchy
-    (RefFuncTyped(_), FuncRef) => true
-    (RefNullFuncTyped(_), FuncRef) => true
-    (RefFuncTyped(_), RefFunc) => true
-    _ => false
+  let bheap = if bh >= 0 {
+    if ah != -15 && ah != -14 && ah != -13 && ah != -12 && ah != -11 {
+      return false
+    }
+    match kind(expected) {
+      Some(h) => h
+      None => return false
+    }
+  } else {
+    bh
   }
-}
-
-///|
-/// Check if a type is a subtype of eqref.
-/// eqref hierarchy: eqref > i31ref, structref, arrayref
-/// anyref is NOT a subtype of eqref (it's a supertype)
-/// funcref and externref are NOT subtypes of eqref
-fn is_subtype_of_eqref(value_type : @types.ValueType) -> Bool {
-  match value_type {
-    // Direct eqref types
-    RefEq | RefNullEq => true
-    // i31ref is subtype of eqref
-    RefI31 | RefNullI31 => true
-    // structref is subtype of eqref
-    RefStruct(_) | RefNullStruct(_) => true
-    // arrayref is subtype of eqref
-    RefArray(_) | RefNullArray(_) => true
-    // Bottom types are subtypes of everything
-    RefNone | NullRef => true
-    // anyref is a SUPERtype of eqref, not subtype
-    AnyRef | RefAny => false
-    // funcref and externref are not related to eqref
-    FuncRef | RefFunc | RefFuncTyped(_) | RefNullFuncTyped(_) | NullFuncRef =>
-      false
-    ExternRef | RefExtern | NullExternRef => false
-    // Other types
-    _ => false
-  }
-}
-
-///|
-fn OperandStack::pop_any(
-  self : OperandStack,
-) -> @types.ValueType raise ValidationError {
-  if self.polymorphic && self.stack.is_empty() {
-    return I32 // Return arbitrary type for polymorphic stack
-  }
-  if self.stack.is_empty() {
-    raise StackUnderflow("Expected value, but stack is empty")
-  }
-  match self.stack.pop() {
-    Some(v) => v
-    None => raise StackUnderflow("Expected value, but stack is empty")
-  }
-}
-
-///|
-/// Pop any value type from stack, or return `None` for synthesized values
-/// in polymorphic-unreachable context.
-fn OperandStack::pop_any_or_unknown(
-  self : OperandStack,
-) -> @types.ValueType? raise ValidationError {
-  if self.polymorphic && self.stack.is_empty() {
-    return None
-  }
-  if self.stack.is_empty() {
-    raise StackUnderflow("Expected value, but stack is empty")
-  }
-  self.stack.pop()
+  @types.SubtypingContext::same_module([]).value_type_subtype(
+    HeapRef(an, ash, aheap),
+    HeapRef(bn, bsh, bheap),
+  )
 }
 
 ///|
 fn is_reference_type(ty : @types.ValueType) -> Bool {
-  match ty {
-    FuncRef
-    | ExternRef
-    | RefFunc
-    | RefExtern
-    | RefFuncTyped(_)
-    | RefNullFuncTyped(_)
-    | ContRef
-    | RefCont
-    | RefContTyped(_)
-    | RefNullContTyped(_)
-    | NullContRef
-    | RefNoCont
-    | AnyRef
-    | ExnRef
-    | StructRef
-    | ArrayRef
-    | RefStruct(_)
-    | RefNullStruct(_)
-    | RefArray(_)
-    | RefNullArray(_)
-    | RefAny
-    | RefEq
-    | RefNullEq
-    | RefI31
-    | RefNullI31
-    | RefStructAbs
-    | RefArrayAbs
-    | RefNone
-    | NullRef
-    | NullFuncRef
-    | NullExnRef
-    | NullExternRef => true
-    _ => false
-  }
+  ty.heap() is Some(_)
 }
 
 ///|
@@ -292,15 +216,42 @@ fn is_reference_type(ty : @types.ValueType) -> Bool {
 /// In polymorphic-unreachable state, synthesize `nullref` as the bottom ref.
 fn OperandStack::pop_ref_any(
   self : OperandStack,
-) -> @types.ValueType raise ValidationError {
-  if self.polymorphic && self.stack.is_empty() {
-    return NullRef
+) -> Operand raise ValidationError {
+  match self.pop_operand(None) {
+    Bottom => UnknownRef(None)
+    Known(ty) =>
+      if is_reference_type(ty) {
+        Known(ty)
+      } else {
+        raise TypeMismatch("expected reference operand")
+      }
+    operand => operand
   }
-  let actual = self.pop_any()
-  if !is_reference_type(actual) {
-    raise TypeMismatch("Expected reference type, got \{actual}")
+}
+
+///|
+fn OperandStack::pop_maybe_shared_ref(
+  self : OperandStack,
+  heap : Int32,
+) -> Operand raise ValidationError {
+  let operand = self.pop_ref_any()
+  match operand {
+    Known(ty) => {
+      let shared = ty.heap().unwrap().1
+      if !self.matches(ty, HeapRef(true, shared, heap)) {
+        raise TypeMismatch("reference operand has incompatible heap type")
+      }
+    }
+    UnknownRef(Some(actual)) =>
+      if !is_type_subtype(
+          HeapRef(false, false, actual),
+          HeapRef(true, false, heap),
+        ) {
+        raise TypeMismatch("reference operand has incompatible heap type")
+      }
+    _ => ()
   }
-  actual
+  operand
 }
 
 ///|

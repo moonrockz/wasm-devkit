@@ -1637,7 +1637,7 @@ fn CoreTypeReader::read_limits(
   if max is Some(n) && n < min {
     raise SectionParseError(3, "core limit maximum is below its minimum")
   }
-  if (flags & 2) != 0 && max is None {
+  if memory && (flags & 2) != 0 && max is None {
     raise SectionParseError(3, "shared core limits require a maximum")
   }
   let page = if memory && (flags & 8) != 0 { self.read_leb_u32() } else { 16 }
@@ -1655,27 +1655,30 @@ fn CoreTypeReader::read_limits(
 }
 
 ///|
-fn CoreTypeReader::skip_func_type(
+// Legacy optional signature projections never certify a graph. The complete
+// immutable contract pass resolves identities and checks compatibility.
+fn CoreTypeReader::skip_heap_group(
   self : CoreTypeReader,
-) -> Unit raise ComponentValidationError {
-  let form = self.read_u8()
-  if form != 0x60 {
-    raise SectionParseError(3, "unsupported core functype form: \{form}")
+) -> Int32 raise ComponentValidationError {
+  match @core_types.scan_heap_group(self.data, self.pos, self.data.length()) {
+    Ok((end, count)) => {
+      self.pos = end
+      count
+    }
+    Err(error) => raise SectionParseError(3, error.message)
   }
-  self.skip_func_type_body()
 }
 
 ///|
-fn CoreTypeReader::skip_func_type_body(
+fn CoreTypeReader::skip_core_declaration(
   self : CoreTypeReader,
-) -> Unit raise ComponentValidationError {
-  let nparams = self.read_leb_u32()
-  for _i in 0..<nparams {
-    self.read_core_valtype() |> ignore
-  }
-  let nresults = self.read_leb_u32()
-  for _i in 0..<nresults {
-    self.read_core_valtype() |> ignore
+) -> Int32 raise ComponentValidationError {
+  match @core_types.scan_declaration(self.data, self.pos, self.data.length()) {
+    Ok((end, count)) => {
+      self.pos = end
+      count
+    }
+    Err(error) => raise SectionParseError(3, error.message)
   }
 }
 
@@ -1718,50 +1721,30 @@ fn CoreTypeReader::validate_extern_type(
 fn CoreTypeReader::read_core_valtype(
   self : CoreTypeReader,
 ) -> @types.ValueType raise ComponentValidationError {
-  let op = self.read_u8()
-  fn abstract_ref(
-    heap : Int32,
-    nullable : Bool,
-  ) -> @types.ValueType raise ComponentValidationError {
-    match @types.ValueType::from_abstract_heap_type(heap, nullable) {
-      Some(value) => value
-      None => raise SectionParseError(3, "unsupported core heap type: \{heap}")
+  let value = match
+    @core_types.scan_value(self.data, self.pos, self.data.length()) {
+    Ok((end, value)) => {
+      self.pos = end
+      value
     }
+    Err(error) => raise SectionParseError(3, error.message)
   }
-  match op {
-    0x7f => I32
-    0x7e => I64
-    0x7d => F32
-    0x7c => F64
-    0x7b => V128
-    0x63 | 0x64 => {
-      let mut heap = 0L
-      let mut shift = 0
-      while true {
-        let byte = self.read_u8()
-        let payload = byte & 0x7f
-        if shift == 28 &&
-          ((byte & 0x80) != 0 || (payload > 0x0f && payload < 0x70)) {
-          raise SectionParseError(3, "heap type LEB128 out of range")
-        }
-        heap = heap | (payload.to_int64() << shift)
-        shift += 7
-        if (byte & 0x80) == 0 {
-          if (byte & 0x40) != 0 {
-            heap = heap | (-1L << shift)
-          }
-          break
-        }
+  match value {
+    Number(name) =>
+      match name {
+        "i32" => I32
+        "i64" => I64
+        "f32" => F32
+        "f64" => F64
+        "v128" => V128
+        _ => raise SectionParseError(3, "invalid core scalar")
       }
-      if heap >= 0L || heap < -64L {
-        raise SectionParseError(
-          3,
-          "unsupported concrete core heap type: \{heap}",
-        )
+    Ref(nullable, shared, heap) =>
+      if shared || heap >= 0 {
+        HeapRef(nullable, shared, heap)
+      } else {
+        @types.ValueType::from_abstract_heap_type(heap, nullable).unwrap()
       }
-      abstract_ref(heap.to_int(), op == 0x63)
-    }
-    _ => abstract_ref(op - 128, true)
   }
 }
 
@@ -1817,14 +1800,21 @@ fn CoreTypeReader::read_extern_type_sig(
         _ => ()
       }
       let (flags, min, max, _) = self.read_limits(false)
-      if (flags & 2) != 0 {
+      if (flags & 2) != 0 || (elem_ty.heap() is Some((_, _, h)) && h >= 0) {
         return None
       }
       let limits : @types.Limits = {
         min: min.reinterpret_as_int64(),
         max: max.map(n => n.reinterpret_as_int64()),
       }
-      Some(Table({ elem_type: elem_ty, limits, is_table64: (flags & 4) != 0, }))
+      Some(
+        Table({
+          is_shared: false,
+          elem_type: elem_ty,
+          limits,
+          is_table64: (flags & 4) != 0,
+        }),
+      )
     }
     0x02 => {
       let (flags, min, max, page) = self.read_limits(true)
@@ -1846,11 +1836,11 @@ fn CoreTypeReader::read_extern_type_sig(
       // globaltype: valtype + mut
       let vt = self.read_core_valtype()
       let mut_ = self.read_u8()
-      if (mut_ & 2) != 0 {
+      if (mut_ & 2) != 0 || (vt.heap() is Some((_, _, h)) && h >= 0) {
         return None
       }
       let mutable = (mut_ & 1) != 0
-      Some(Global({ value_type: vt, mutable, }))
+      Some(Global({ is_shared: false, value_type: vt, mutable, }))
     }
     0x04 => {
       if self.read_u8() != 0 {
@@ -1915,10 +1905,22 @@ fn parse_core_type_module_sig(
           None => ()
         }
       }
-      0x01 => {
-        func_types.push(Some(r.read_core_functype()))
-        func_type_bound += 1
-      }
+      0x01 =>
+        if r.pos < r.data.length() && r.data[r.pos] == b'\x60' {
+          let function = r.read_core_functype()
+          let concrete = function.params.any(v => {
+              v.heap() is Some((_, _, h)) && h >= 0
+            }) ||
+            function.results.any(v => v.heap() is Some((_, _, h)) && h >= 0)
+          func_types.push(if concrete { None } else { Some(function) })
+          func_type_bound += 1
+        } else {
+          let count = r.skip_heap_group()
+          for _ in 0..<count {
+            func_types.push(None)
+          }
+          func_type_bound += count
+        }
       0x02 => {
         // Alias declarations inside module types.
         let sort = r.read_u8()

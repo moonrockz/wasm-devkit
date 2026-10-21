@@ -1,0 +1,10 @@
+(component (core module $m
+ (rec (type $s (struct (field (ref null $a)))) (type $a (array (mut (ref null $s)))))
+ (type $f (func (param (ref null $s)) (result (ref null $a))))
+ (import "env" "f" (func (type $f)))
+ (import "env" "g" (global (ref null $s)))
+ (table (export "table") 1 (ref null $a))
+ (global (export "g") (ref null $s) (ref.null $s))
+ (func (export "run") (type $f) ref.null $a)
+ (tag (export "e") (param (ref null $s)))
+ (memory (export "memory") 1 2)) (export "m" (core module $m)))

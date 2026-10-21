@@ -473,8 +473,11 @@ fn validate_core_definitions(
             Err(error) => core_error(error)
           }
         } else {
-          match @core_types.decode_type(bytes, current~, outers~) {
-            Ok(definition) => scope.definitions.push(definition)
+          match @core_types.decode_declarations(bytes, current~, outers~) {
+            Ok(definitions) =>
+              for definition in definitions {
+                scope.definitions.push(definition)
+              }
             Err(error) => core_error(error)
           }
         }

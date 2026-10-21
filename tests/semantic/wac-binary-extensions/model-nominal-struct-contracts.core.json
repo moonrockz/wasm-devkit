@@ -1,0 +1,161 @@
+{
+  "exports": [
+    {
+      "name": "make",
+      "signature": {
+        "identity": {
+          "index": 2,
+          "types": [
+            {
+              "composite": {
+                "fields": [
+                  {
+                    "mutable": false,
+                    "storage": {
+                      "kind": "scalar",
+                      "name": "i32"
+                    }
+                  }
+                ],
+                "kind": "struct"
+              },
+              "final": false,
+              "group-size": 1,
+              "group-start": 0,
+              "shared": false,
+              "supertype": null
+            },
+            {
+              "composite": {
+                "fields": [
+                  {
+                    "mutable": false,
+                    "storage": {
+                      "kind": "scalar",
+                      "name": "i32"
+                    }
+                  },
+                  {
+                    "mutable": true,
+                    "storage": {
+                      "kind": "scalar",
+                      "name": "i64"
+                    }
+                  }
+                ],
+                "kind": "struct"
+              },
+              "final": false,
+              "group-size": 1,
+              "group-start": 1,
+              "shared": false,
+              "supertype": 0
+            },
+            {
+              "composite": {
+                "kind": "func",
+                "params": [],
+                "results": [
+                  {
+                    "heap": 0,
+                    "kind": "reference",
+                    "nullable": false,
+                    "shared": false
+                  }
+                ]
+              },
+              "final": true,
+              "group-size": 1,
+              "group-start": 2,
+              "shared": false,
+              "supertype": null
+            }
+          ]
+        },
+        "kind": "func"
+      }
+    },
+    {
+      "name": "child",
+      "signature": {
+        "kind": "global",
+        "mutable": false,
+        "shared": false,
+        "value": {
+          "identity": {
+            "index": 1,
+            "types": [
+              {
+                "composite": {
+                  "fields": [
+                    {
+                      "mutable": false,
+                      "storage": {
+                        "kind": "scalar",
+                        "name": "i32"
+                      }
+                    }
+                  ],
+                  "kind": "struct"
+                },
+                "final": false,
+                "group-size": 1,
+                "group-start": 0,
+                "shared": false,
+                "supertype": null
+              },
+              {
+                "composite": {
+                  "fields": [
+                    {
+                      "mutable": false,
+                      "storage": {
+                        "kind": "scalar",
+                        "name": "i32"
+                      }
+                    },
+                    {
+                      "mutable": true,
+                      "storage": {
+                        "kind": "scalar",
+                        "name": "i64"
+                      }
+                    }
+                  ],
+                  "kind": "struct"
+                },
+                "final": false,
+                "group-size": 1,
+                "group-start": 1,
+                "shared": false,
+                "supertype": 0
+              },
+              {
+                "composite": {
+                  "kind": "func",
+                  "params": [],
+                  "results": [
+                    {
+                      "heap": 0,
+                      "kind": "reference",
+                      "nullable": false,
+                      "shared": false
+                    }
+                  ]
+                },
+                "final": true,
+                "group-size": 1,
+                "group-start": 2,
+                "shared": false,
+                "supertype": null
+              }
+            ]
+          },
+          "kind": "concrete-reference",
+          "nullable": false
+        }
+      }
+    }
+  ],
+  "imports": []
+}

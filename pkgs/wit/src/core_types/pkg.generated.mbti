@@ -10,6 +10,12 @@ pub fn check_external_subtype(External, External, work_limit? : Int) -> Result[I
 
 pub fn check_module_subtype(Module, Module, work_limit? : Int) -> Result[Int, CompatibilityError]
 
+pub fn check_type_subtype(TypeIdentity, TypeIdentity, work_limit? : Int) -> Result[Int, CompatibilityError]
+
+pub fn compare_external(External, External, work_limit? : Int) -> Result[(Bool, Int), CompatibilityError]
+
+pub fn decode_declarations(Bytes, current? : ReadOnlyArray[Definition], outers? : ReadOnlyArray[ReadOnlyArray[Definition]]) -> Result[ReadOnlyArray[Definition], Diagnostic]
+
 pub fn decode_module(Bytes) -> Result[Module, Diagnostic]
 
 pub fn decode_section(Bytes, current? : ReadOnlyArray[Definition], outers? : ReadOnlyArray[ReadOnlyArray[Definition]]) -> Result[ReadOnlyArray[Definition], Diagnostic]
@@ -18,7 +24,13 @@ pub fn decode_type(Bytes, current? : ReadOnlyArray[Definition], outers? : ReadOn
 
 pub fn inspect_module(Bytes) -> Result[ModuleMetadata, Diagnostic]
 
+pub fn scan_declaration(Bytes, Int, Int) -> Result[(Int, Int), Diagnostic]
+
+pub fn scan_heap_group(Bytes, Int, Int) -> Result[(Int, Int), Diagnostic]
+
 pub fn scan_type(Bytes, Int, Int, legacy_nested? : Bool) -> Result[Int, Diagnostic]
+
+pub fn scan_value(Bytes, Int, Int) -> Result[(Int, HeapValue), Diagnostic]
 
 pub fn signaling_f32_constants(Bytes) -> Result[ReadOnlyArray[Int], Diagnostic]
 
@@ -59,6 +71,7 @@ pub fn ContractScope::new(ReadOnlyArray[Definition], ReadOnlyArray[(Int, ReadOnl
 
 pub(all) enum Definition {
   Function(Function)
+  Heap(TypeIdentity)
   Module(Module)
 } derive(Eq, @debug.Debug)
 pub fn Definition::equal(Self, Self) -> Bool
@@ -93,10 +106,12 @@ pub fn Export::to_repr(Self) -> @debug.Repr
 
 pub(all) enum External {
   Func(Function)
+  TypedFunc(TypeIdentity)
   Table(Value, UInt64, UInt64?, Bool, Bool)
   Memory(UInt64, UInt64?, Bool, Bool, Int?)
   Global(Value, Bool, Bool)
   Tag(Function)
+  TypedTag(TypeIdentity)
 } derive(Eq, @debug.Debug)
 pub fn External::equal(Self, Self) -> Bool
 pub fn External::not_equal(Self, Self) -> Bool
@@ -109,6 +124,51 @@ pub(all) struct Function {
 pub fn Function::equal(Self, Self) -> Bool
 pub fn Function::not_equal(Self, Self) -> Bool
 pub fn Function::to_repr(Self) -> @debug.Repr
+
+pub(all) enum HeapComposite {
+  Function(ReadOnlyArray[HeapValue], ReadOnlyArray[HeapValue])
+  Struct(ReadOnlyArray[HeapField])
+  Array(HeapField)
+} derive(Eq, @debug.Debug)
+pub fn HeapComposite::equal(Self, Self) -> Bool
+pub fn HeapComposite::not_equal(Self, Self) -> Bool
+pub fn HeapComposite::to_repr(Self) -> @debug.Repr
+
+pub(all) struct HeapDefinition {
+  final_ : Bool
+  shared : Bool
+  supertype : Int?
+  group_start : Int
+  group_size : Int
+  composite : HeapComposite
+} derive(Eq, @debug.Debug)
+pub fn HeapDefinition::equal(Self, Self) -> Bool
+pub fn HeapDefinition::not_equal(Self, Self) -> Bool
+pub fn HeapDefinition::to_repr(Self) -> @debug.Repr
+
+pub(all) struct HeapField {
+  storage : HeapStorage
+  mutable : Bool
+} derive(Eq, @debug.Debug)
+pub fn HeapField::equal(Self, Self) -> Bool
+pub fn HeapField::not_equal(Self, Self) -> Bool
+pub fn HeapField::to_repr(Self) -> @debug.Repr
+
+pub(all) enum HeapStorage {
+  Value(HeapValue)
+  Packed(String)
+} derive(Eq, @debug.Debug)
+pub fn HeapStorage::equal(Self, Self) -> Bool
+pub fn HeapStorage::not_equal(Self, Self) -> Bool
+pub fn HeapStorage::to_repr(Self) -> @debug.Repr
+
+pub(all) enum HeapValue {
+  Number(String)
+  Ref(Bool, Bool, Int)
+} derive(Eq, @debug.Debug)
+pub fn HeapValue::equal(Self, Self) -> Bool
+pub fn HeapValue::not_equal(Self, Self) -> Bool
+pub fn HeapValue::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Import {
   module_name : String
@@ -132,9 +192,19 @@ pub(all) struct ModuleMetadata {
   validation_work : Int
 }
 
+pub(all) struct TypeIdentity {
+  types : ReadOnlyArray[HeapDefinition]
+  index : Int
+} derive(Eq, @debug.Debug)
+pub fn TypeIdentity::equal(Self, Self) -> Bool
+pub fn TypeIdentity::not_equal(Self, Self) -> Bool
+pub fn TypeIdentity::to_repr(Self) -> @debug.Repr
+
 pub(all) enum Value {
   Scalar(String)
   Reference(Bool, String)
+  SharedReference(Bool, String)
+  Concrete(Bool, TypeIdentity)
 } derive(Eq, @debug.Debug)
 pub fn Value::equal(Self, Self) -> Bool
 pub fn Value::not_equal(Self, Self) -> Bool

@@ -339,6 +339,7 @@ fn component_validation_frame(
             seen_imports.set(key, 1)
           }
           @core_validator.validate_module(core_mod) catch {
+            @core_validator.TypeWorkLimit => raise CoreContractBudgetExceeded
             e => raise CoreModuleError("validate core module: \{e}")
           }
           let exports : Map[String, Int32] = Map([])

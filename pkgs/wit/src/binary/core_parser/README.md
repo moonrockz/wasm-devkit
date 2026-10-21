@@ -31,3 +31,9 @@ The enclosing complete core codec validates shared value types and retains
 sharedness. Immutable text metadata records absolute flag offsets and values
 for imports and definitions, so printing and WAT compilation preserve them.
 The retained validator still checks original initializer/instruction bytes.
+
+GC branch-cast immediates retain the flag byte, label and two heap types.
+Shared references, `ref.i31_shared`, modern handlers and legacy
+try/catch/catch_all/rethrow/delegate use the same bounded expression reader.
+GC data-segment instructions require the data-count section. Text metadata
+readers retain the module's type graph while reading function bodies.

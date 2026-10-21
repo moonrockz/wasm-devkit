@@ -220,21 +220,34 @@ fn close_wat(
   )
   let replacements : Array[@component_text.OuterBinding] = []
   let core = StringBuilder()
+  let mut core_serial = 0
   for i, (reference, id, core_type) in value.bindings {
     let name = match core_type {
       Some(definition) => {
         let name = "$capture-core-n\{i}"
-        core.write_string(
-          "(core type " +
-          name +
-          " " +
-          (match definition {
-            Function(function) => core_function(function)
-            Module(module_) => module_type(module_)
-          }) +
-          ")\n",
-        )
-        name
+        let render : CoreRender = {
+          out: StringBuilder(),
+          serial: core_serial,
+          remaining: 1000000,
+          component: true,
+        }
+        let body = match definition {
+          Function(function) => core_function(function, render)
+          Module(module_) => module_type(module_)
+          Heap(identity) => {
+            let root = core_identity(identity, render)
+            core.write_string(render.out.to_string())
+            root
+          }
+        }
+        core_serial = render.serial
+        if definition is Heap(_) {
+          body
+        } else {
+          core.write_string(render.out.to_string())
+          core.write_string("(core type " + name + " " + body + ")\n")
+          name
+        }
       }
       None if reference.sort == 3 => names[id]
       None => {

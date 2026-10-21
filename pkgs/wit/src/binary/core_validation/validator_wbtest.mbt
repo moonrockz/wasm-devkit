@@ -187,7 +187,11 @@ test "validator: valid global operations" {
     body: [GlobalGet(0), I32Const(1), I32Add, GlobalSet(0), GlobalGet(0)],
   }
   let func_type : @types.FuncType = { params: [], results: [I32], }
-  let global_type : @types.GlobalType = { value_type: I32, mutable: true, }
+  let global_type : @types.GlobalType = {
+    is_shared: false,
+    value_type: I32,
+    mutable: true,
+  }
   let mod : @types.Module = {
     types: [@types.SubType::from_func(func_type)],
     type_rec_groups: [0],
@@ -982,7 +986,10 @@ test "validator: data segment with mutable global offset should fail" {
       },
     ],
     globals: [
-      { type_: { value_type: I32, mutable: true, }, init: [I32Const(0)], },
+      {
+        type_: { is_shared: false, value_type: I32, mutable: true, },
+        init: [I32Const(0)],
+      },
     ],
     exports: [],
     start: None,
@@ -1044,7 +1051,10 @@ test "validator: data segment with immutable global offset should pass" {
       },
     ],
     globals: [
-      { type_: { value_type: I32, mutable: false, }, init: [I32Const(0)], },
+      {
+        type_: { is_shared: false, value_type: I32, mutable: false, },
+        init: [I32Const(0)],
+      },
     ],
     exports: [],
     start: None,
@@ -1072,6 +1082,7 @@ test "validator: elem segment with i64 offset should fail" {
     tables: [
       {
         type_: {
+          is_shared: false,
           elem_type: FuncRef,
           limits: { min: 1, max: None, },
           is_table64: false,
@@ -1107,6 +1118,7 @@ test "validator: elem segment with non-constant instruction should fail" {
     tables: [
       {
         type_: {
+          is_shared: false,
           elem_type: FuncRef,
           limits: { min: 1, max: None, },
           is_table64: false,
@@ -1140,6 +1152,7 @@ test "validator: elem segment with unknown global should fail" {
     tables: [
       {
         type_: {
+          is_shared: false,
           elem_type: FuncRef,
           limits: { min: 1, max: None, },
           is_table64: false,
@@ -1173,6 +1186,7 @@ test "validator: elem segment with mutable global offset should fail" {
     tables: [
       {
         type_: {
+          is_shared: false,
           elem_type: FuncRef,
           limits: { min: 1, max: None, },
           is_table64: false,
@@ -1182,7 +1196,10 @@ test "validator: elem segment with mutable global offset should fail" {
     ],
     memories: [],
     globals: [
-      { type_: { value_type: I32, mutable: true, }, init: [I32Const(0)], },
+      {
+        type_: { is_shared: false, value_type: I32, mutable: true, },
+        init: [I32Const(0)],
+      },
     ],
     exports: [],
     start: None,
@@ -1232,6 +1249,7 @@ test "validator: elem segment type mismatch with table should fail" {
     tables: [
       {
         type_: {
+          is_shared: false,
           elem_type: ExternRef,
           limits: { min: 1, max: None, },
           is_table64: false,
@@ -1265,6 +1283,7 @@ test "validator: elem segment with valid i32 const offset should pass" {
     tables: [
       {
         type_: {
+          is_shared: false,
           elem_type: FuncRef,
           limits: { min: 1, max: None, },
           is_table64: false,
@@ -1296,6 +1315,7 @@ test "validator: elem init with wrong type should fail" {
     tables: [
       {
         type_: {
+          is_shared: false,
           elem_type: FuncRef,
           limits: { min: 1, max: None, },
           is_table64: false,
@@ -1337,6 +1357,7 @@ test "validator: elem with unknown function should fail" {
     tables: [
       {
         type_: {
+          is_shared: false,
           elem_type: FuncRef,
           limits: { min: 2, max: None, },
           is_table64: false,
@@ -1727,6 +1748,7 @@ fn module_with_table(
 ) -> @types.Module {
   let func_type : @types.FuncType = { params: [], results, }
   let table_type : @types.TableType = {
+    is_shared: false,
     limits: { min: 1L, max: None, },
     elem_type: FuncRef,
     is_table64,
@@ -1854,8 +1876,11 @@ test "validator: table64 table.size returns i64" {
 }
 
 ///|
-test "validator: nullref is subtype of nullable typed funcref" {
-  inspect(is_type_subtype(NullRef, RefNullFuncTyped(0)), content="true")
+test "validator: reference bottoms stay inside their heap hierarchy" {
+  inspect(is_type_subtype(NullRef, RefNullFuncTyped(0)), content="false")
+  assert_true(is_type_subtype(NullFuncRef, RefNullFuncTyped(0)))
+  assert_true(is_type_subtype(NullRef, RefNullStruct(0)))
+  assert_false(is_type_subtype(RefNone, ExnRef))
 }
 
 ///|

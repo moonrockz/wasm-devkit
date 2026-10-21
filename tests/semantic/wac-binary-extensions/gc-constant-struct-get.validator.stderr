@@ -1,0 +1,1 @@
+error: constant expression required: non-constant operator: visit_struct_get (at offset 0x23)

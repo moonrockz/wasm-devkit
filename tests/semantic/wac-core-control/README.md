@@ -47,5 +47,6 @@ Original cases and the upstream WAC binaries are Apache-2.0; the license is
 retained. `SHA256SUMS` covers the fixtures and reference evidence. The retained
 core parser/validator have independent original hashes, licenses and
 reconstructable patches under `pkgs/wit/src/binary/`. Tracking remains on
-`wasm-devkit-p5m.8.2.2` and `wasm-devkit-p5m.8.2.7`; optional GC, concrete-reference,
-exception and other unsupported instruction proposals remain explicit boundaries.
+`wasm-devkit-p5m.8.2.2` and `wasm-devkit-p5m.8.2.7`; GC, concrete references and modern/legacy exceptions have additional coverage
+in [the extension suite](../wac-binary-extensions/README.md). Other unsupported
+instruction proposals remain explicit boundaries.

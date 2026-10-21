@@ -13,7 +13,7 @@ fn check_flat_core_module(
       continue
     }
     match items[index] {
-      Atom("block" | "loop" | "if") => {
+      Atom("block" | "loop" | "if" | "try" | "try_table") => {
         if depth >= 64 {
           raise Unsupported("core WAT control/expression nesting exceeds 64")
         }
@@ -25,17 +25,22 @@ fn check_flat_core_module(
         }
         work.push((items, index + 1, depth - 1, base, byte_strings))
       }
-      Atom("try" | "try_table") =>
-        raise Unsupported(
-          "core exception instructions are outside the module profile",
-        )
+      Atom("delegate") => {
+        if depth <= base {
+          raise Unsupported("unmatched core delegate")
+        }
+        work.push((items, index + 1, depth - 1, base, byte_strings))
+      }
       Atom(opcode) if opcode.has_prefix("global.atomic.") =>
         raise Unsupported(
           "core atomic global instructions are outside the module profile",
         )
       List(children) => {
         work.push((items, index + 1, depth, base, byte_strings))
-        let folded = children.get(0) is Some(Atom("block" | "loop" | "if"))
+        let folded = children.get(0)
+          is Some(
+            Atom("block" | "loop" | "if" | "try" | "try_table" | "delegate")
+          )
         let header = children.get(0)
           is Some(Atom("func" | "param" | "result" | "local"))
         let next = if header { depth } else { depth + 1 }

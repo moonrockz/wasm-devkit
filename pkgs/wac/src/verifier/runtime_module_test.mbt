@@ -1306,15 +1306,19 @@ test "concrete module concrete-heap-index" {
     bytes,
     source_id="concrete-heap-index.wasm",
   )
-  assert_eq(
-    result is Ok(_),
-    false,
-    msg=match result {
-      Ok(_) => "accepted"
-      Err(e) => e[0].render()
-    },
+  let model = result.unwrap()
+  let expected = @verifier.TypeKind::Module({ imports: [], exports: [], })
+  assert_true(model.types().any(t => t.kind == expected))
+  let source = StringBuilder()
+  source.write_string("(component (core module $m ")
+  for _ in 0..<129 {
+    source.write_string("(type (func)) ")
+  }
+  source.write_string(
+    "(func ref.null 128 drop)) (export \"module\" (core module $m)))",
   )
-  assert_eq(result.unwrap_err()[0].code, "WAC-B002")
+  let text = @verifier.decode_wat_component_package(source.to_string()).unwrap()
+  assert_eq(binary_projection(model), binary_projection(text))
 }
 
 ///|

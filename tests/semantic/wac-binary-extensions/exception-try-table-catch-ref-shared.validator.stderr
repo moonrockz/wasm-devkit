@@ -1,0 +1,4 @@
+error: func 0 failed to validate
+
+Caused by:
+    0: type mismatch: expected (ref (shared exn)), found (ref exn) (at offset 0x2a)

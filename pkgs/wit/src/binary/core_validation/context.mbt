@@ -9,19 +9,23 @@ priv struct LabelInfo {
 /// Kind of control structure for label resolution
 priv enum LabelKind {
   BlockLabel // br jumps to end, uses results
+  LegacyTryLabel
+  LegacyCatchLabel
   LoopLabel // br jumps to start, uses params
-}
+} derive(Eq)
 
 ///|
 /// Validation context for a module
 priv struct ValidationContext {
+  constant : Bool
+  shared : Bool
   bulk_memory : Bool
   stack_switching : Bool
   types : Array[@types.SubType] // GC: now stores SubType
   funcs : Array[Int32] // type indices
   tables : Array[@types.TableType]
   mems : Array[@types.MemoryType]
-  globals : Array[@types.GlobalType]
+  globals : ArrayView[@types.GlobalType]
   tags : Array[@types.FuncType] // Control tags may also return values when stack switching is enabled.
   elems : Array[@types.ValueType] // element segment types
   data_count : Int32 // number of data segments
@@ -56,7 +60,10 @@ fn ValidationContext::get_func_type(
   if idx < 0 || idx >= self.types.length() {
     raise InvalidTypeIndex(idx)
   }
-  match self.types[idx].composite {
+  if self.shared && !self.types[idx].composite.is_shared() {
+    raise TypeMismatch("shared functions cannot access unshared functions")
+  }
+  match self.types[idx].composite.unshared() {
     Func(ft) => ft
     _ => raise TypeMismatch("type at index \{idx} is not a function type")
   }
@@ -71,7 +78,10 @@ fn ValidationContext::get_struct_type(
   if idx < 0 || idx >= self.types.length() {
     raise InvalidTypeIndex(idx)
   }
-  match self.types[idx].composite {
+  if self.shared && !self.types[idx].composite.is_shared() {
+    raise TypeMismatch("shared functions cannot access unshared structs")
+  }
+  match self.types[idx].composite.unshared() {
     Struct(st) => st
     _ => raise TypeMismatch("type at index \{idx} is not a struct type")
   }
@@ -86,7 +96,10 @@ fn ValidationContext::get_array_type(
   if idx < 0 || idx >= self.types.length() {
     raise InvalidTypeIndex(idx)
   }
-  match self.types[idx].composite {
+  if self.shared && !self.types[idx].composite.is_shared() {
+    raise TypeMismatch("shared functions cannot access unshared arrays")
+  }
+  match self.types[idx].composite.unshared() {
     Array(at) => at
     _ => raise TypeMismatch("type at index \{idx} is not an array type")
   }
@@ -111,7 +124,7 @@ fn collect_value_types_from_subtype(
   let result : Array[@types.ValueType] = []
   match subtype.composite {
     Cont(index) => result.push(RefFuncTyped(index))
-    Func(ft) => {
+    Func(ft) | SharedFunc(ft) => {
       for p in ft.params {
         result.push(p)
       }
@@ -119,14 +132,14 @@ fn collect_value_types_from_subtype(
         result.push(r)
       }
     }
-    Struct(st) =>
+    Struct(st) | SharedStruct(st) =>
       for field in st.fields {
         match field.storage_type {
           Val(vt) => result.push(vt)
           Packed(_) => () // i8/i16 don't contain type indices
         }
       }
-    Array(at) =>
+    Array(at) | SharedArray(at) =>
       match at.element.storage_type {
         Val(vt) => result.push(vt)
         Packed(_) => ()
@@ -235,24 +248,35 @@ fn ValidationContext::ValidationContext(
   for global in mod.globals {
     collect_declared_funcs(global.init, declared_funcs)
   }
+  for table in mod.tables {
+    if table.init is Some(init) {
+      collect_declared_funcs(init, declared_funcs)
+    }
+  }
   // Exported functions are declared and can be referenced by ref.func.
   for exp in mod.exports {
     if exp.desc is Func(func_idx) {
       declared_funcs.add(func_idx)
     }
   }
-  let canonical = @types.compute_canonical_type_indices(
-    mod.types,
-    type_rec_groups=mod.type_rec_groups,
-  )
+  let canonical = match
+    @types.compute_canonical_type_indices_checked(
+      mod.types,
+      type_rec_groups=mod.type_rec_groups,
+    ) {
+    Ok(indices) => indices
+    Err(_) => raise TypeWorkLimit
+  }
   {
     types: mod.types,
     funcs,
     tables,
     mems,
-    globals,
+    globals: globals[:],
     tags,
     elems,
+    constant: false,
+    shared: false,
     bulk_memory,
     stack_switching,
     data_count: mod.datas.length(),
@@ -272,35 +296,13 @@ fn ValidationContext::ValidationContext(
 ///|
 /// Check if a value type is a non-nullable reference type
 fn is_non_nullable_ref(ty : @types.ValueType) -> Bool {
-  match ty {
-    RefFunc
-    | RefExtern
-    | RefFuncTyped(_)
-    | RefCont
-    | RefNoCont
-    | RefContTyped(_) => true
-    _ => false
-  }
+  ty.heap() is Some((false, _, _))
 }
 
 ///|
-/// Check if a value type is any reference type (nullable or non-nullable)
+/// Check if a value type is any reference type.
 fn is_ref_type(ty : @types.ValueType) -> Bool {
-  match ty {
-    FuncRef
-    | ExternRef
-    | RefFunc
-    | RefExtern
-    | RefFuncTyped(_)
-    | RefNullFuncTyped(_)
-    | ContRef
-    | RefCont
-    | RefNoCont
-    | NullContRef
-    | RefContTyped(_)
-    | RefNullContTyped(_) => true
-    _ => false
-  }
+  ty.heap() is Some(_)
 }
 
 ///|
@@ -322,6 +324,7 @@ fn validate_value_type(
     // which do not refer to a concrete type index.
     RefStruct(i) | RefNullStruct(i) => if i < 0 { None } else { Some(i) }
     RefArray(i) | RefNullArray(i) => if i < 0 { None } else { Some(i) }
+    HeapRef(_, _, i) => if i < 0 { None } else { Some(i) }
     _ => None
   }
   if idx is Some(i) && (i < 0 || i >= num_types) {
@@ -346,6 +349,7 @@ fn validate_type_forward_refs(
     // Ref(Null)Struct/Array(-1) are abstract heap types, not forward refs.
     RefStruct(i) | RefNullStruct(i) => if i < 0 { None } else { Some(i) }
     RefArray(i) | RefNullArray(i) => if i < 0 { None } else { Some(i) }
+    HeapRef(_, _, i) => if i < 0 { None } else { Some(i) }
     _ => None
   }
   guard ref_idx is Some(ref_idx) else { return }
@@ -360,5 +364,85 @@ fn validate_type_forward_refs(
       // Type index out of bounds - this is an unknown type
       raise UnknownType(ref_idx)
     }
+  }
+}
+
+///|
+fn validate_reference_metadata(
+  ty : @types.ValueType,
+  types : Array[@types.SubType],
+) -> Unit raise ValidationError {
+  guard ty.heap() is Some((_, shared, heap)) else { return }
+  if heap < 0 {
+    if @types.ValueType::from_abstract_heap_type(heap, true) is None {
+      raise TypeMismatch("invalid abstract heap type")
+    }
+    return
+  }
+  guard types.get(heap) is Some(target) else { raise InvalidTypeIndex(heap) }
+  if shared != target.composite.is_shared() {
+    raise TypeMismatch(
+      "concrete reference sharedness differs from its heap type",
+    )
+  }
+  let kind_matches = match ty {
+    RefFuncTyped(_) | RefNullFuncTyped(_) =>
+      target.composite.unshared() is Func(_)
+    RefStruct(_) | RefNullStruct(_) => target.composite.unshared() is Struct(_)
+    RefArray(_) | RefNullArray(_) => target.composite.unshared() is Array(_)
+    RefContTyped(_) | RefNullContTyped(_) =>
+      target.composite.unshared() is Cont(_)
+    _ => true
+  }
+  if !kind_matches {
+    raise TypeMismatch("concrete reference has the wrong heap type kind")
+  }
+}
+
+///|
+fn ValidationContext::get_global_type(
+  self : ValidationContext,
+  index : Int32,
+) -> @types.GlobalType raise ValidationError {
+  guard self.globals.get(index) is Some(global) else {
+    raise InvalidGlobalIndex(index)
+  }
+  if self.shared && !global.is_shared {
+    raise TypeMismatch("shared functions cannot access unshared globals")
+  }
+  global
+}
+
+///|
+fn ValidationContext::get_table_type(
+  self : ValidationContext,
+  index : Int32,
+) -> @types.TableType raise ValidationError {
+  guard self.tables.get(index) is Some(table) else {
+    raise InvalidTableIndex(index)
+  }
+  if self.shared && !table.is_shared {
+    raise TypeMismatch("shared functions cannot access unshared tables")
+  }
+  table
+}
+
+///|
+fn ValidationContext::reference(
+  self : ValidationContext,
+  nullable : Bool,
+  index : Int32,
+) -> @types.ValueType raise ValidationError {
+  guard self.types.get(index) is Some(type_) else {
+    raise InvalidTypeIndex(index)
+  }
+  @types.typed_reference(type_.composite, nullable, index)
+}
+
+///|
+fn is_shared_value_type(value : @types.ValueType) -> Bool {
+  match value.heap() {
+    None => true
+    Some((_, shared, _)) => shared
   }
 }
