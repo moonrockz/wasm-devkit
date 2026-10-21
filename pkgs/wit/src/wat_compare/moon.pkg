@@ -1,0 +1,15 @@
+import {
+  "moonrockz/wit/component_text",
+  "moonrockz/wit/core_types",
+  "moonrockz/wit/binary/core_text",
+  "moonrockz/wit/binary/core_model",
+  "moonrockz/wit/binary/core_encoder",
+  "moonrockz/wit/binary/core_parser",
+  "moonrockz/wit/binary/core_validation",
+  "moonrockz/wit/span",
+  "moonbitlang/core/debug",
+}
+
+import {
+  "moonrockz/wit/wat_compare",
+} for "test"

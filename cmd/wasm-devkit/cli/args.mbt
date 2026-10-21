@@ -11,6 +11,7 @@ pub let help : String =
   #|       wasm-devkit decompile [FILE.wasm|-] [--output FILE.wat]
   #|       wasm-devkit decompile [FILE.wasm|-] --split DIR [--select ID]...
   #|       wasm-devkit inventory [FILE.wasm|-] [--json] [--output FILE]
+  #|       wasm-devkit compare LEFT.wat RIGHT.wat [--mode text|semantic] [--json]
   #|       wasm-devkit --help | --version
   #|
   #|Language: inferred from .wit/.wac; verify also accepts .wasm/.wat as WIT.
@@ -54,6 +55,9 @@ pub let help : String =
   #|inventory lists physical components/modules and their complete public types.
   #|Pure compositions split into WAC; components with core content remain WAT.
   #|Core modules remain inline and cannot be selected separately.
+  #|compare defaults to exact text. --mode semantic validates core modules and
+  #|compares decoded structure and numeric bits. One input may be stdin (-).
+  #|compare exits 0 if equal, 1 if different, 3 if invalid/unsupported.
   #|Exit codes: 0 success, 1 syntax/semantic errors or formatting differences, 2 usage/I/O.
   #|Diagnostic line/column values are 1-based and count UTF-16 code units.
   #|
@@ -127,6 +131,7 @@ pub(all) enum Action {
   Decompile(DecompileOptions)
   Split(SplitOptions)
   Inventory(InventoryOptions)
+  Compare(CompareOptions)
 } derive(Eq, Debug)
 
 ///|
@@ -265,6 +270,9 @@ pub fn arguments(args : ArrayView[String]) -> Result[Action, String] {
   }
   if args is ["--version"] || args is ["-V"] {
     return Ok(Version)
+  }
+  if args[0] == "compare" {
+    return compare_arguments(args)
   }
   if args[0] == "decompile" || args[0] == "inventory" {
     return decompile_arguments(args)
@@ -553,3 +561,63 @@ pub extend InventoryOptions with Eq::{equal, not_equal}
 
 ///|
 pub extend InventoryOptions with @debug.Debug::{to_repr}
+
+///|
+pub(all) struct CompareOptions {
+  left : String
+  right : String
+  mode : @wat_compare.Mode
+  json : Bool
+} derive(Eq, Debug)
+
+///|
+fn compare_arguments(args : ArrayView[String]) -> Result[Action, String] {
+  let paths : Array[String] = []
+  let mut mode = @wat_compare.Mode::Text
+  let mut mode_set = false
+  let mut json = false
+  let mut literal = false
+  let mut at = 1
+  while at < args.length() {
+    let arg = args[at]
+    if !literal && arg == "--" {
+      literal = true
+    } else if !literal && (arg == "--help" || arg == "-h") {
+      return Ok(Help)
+    } else if !literal && arg == "--mode" {
+      at += 1
+      if mode_set || at == args.length() {
+        return Err("--mode requires text or semantic, once")
+      }
+      mode = match args[at] {
+        "text" => Text
+        "semantic" => Semantic
+        _ => return Err("--mode requires text or semantic")
+      }
+      mode_set = true
+    } else if !literal && arg == "--json" {
+      if json {
+        return Err("duplicate --json")
+      }
+      json = true
+    } else if !literal && arg.has_prefix("-") && arg != "-" {
+      return Err("unknown compare option: " + arg)
+    } else {
+      paths.push(arg)
+    }
+    at += 1
+  }
+  if paths.length() != 2 {
+    return Err("compare requires two input paths")
+  }
+  if paths[0] == "-" && paths[1] == "-" {
+    return Err("only one comparison input may use stdin")
+  }
+  Ok(Compare({ left: paths[0], right: paths[1], mode, json, }))
+}
+
+///|
+pub extend CompareOptions with Eq::{equal, not_equal}
+
+///|
+pub extend CompareOptions with @debug.Debug::{to_repr}

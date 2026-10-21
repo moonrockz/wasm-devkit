@@ -1,0 +1,71 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonrockz/wit/wat_compare"
+
+import {
+  "moonbitlang/core/debug",
+  "moonrockz/wit/span",
+}
+
+// Values
+pub fn compare(String, String, mode? : Mode) -> Result[Comparison, ReadOnlyArray[Diagnostic]]
+
+// Errors
+
+// Types and methods
+pub struct Comparison {
+  differences : ReadOnlyArray[Difference]
+} derive(Eq, @debug.Debug)
+pub fn Comparison::equal(Self, Self) -> Bool
+pub fn Comparison::is_equal(Self) -> Bool
+pub fn Comparison::not_equal(Self, Self) -> Bool
+pub fn Comparison::to_repr(Self) -> @debug.Repr
+
+pub struct Diagnostic {
+  side : Side
+  kind : ErrorKind
+  span : @span.Span?
+  message : String
+} derive(Eq, @debug.Debug)
+pub fn Diagnostic::equal(Self, Self) -> Bool
+pub fn Diagnostic::not_equal(Self, Self) -> Bool
+pub fn Diagnostic::to_repr(Self) -> @debug.Repr
+
+pub struct Difference {
+  path : String
+  left : Bytes?
+  right : Bytes?
+  left_span : @span.Span?
+  right_span : @span.Span?
+} derive(Eq, @debug.Debug)
+pub fn Difference::equal(Self, Self) -> Bool
+pub fn Difference::not_equal(Self, Self) -> Bool
+pub fn Difference::to_repr(Self) -> @debug.Repr
+
+pub(all) enum ErrorKind {
+  Malformed
+  Invalid
+  Unsupported
+} derive(Eq, @debug.Debug)
+pub fn ErrorKind::equal(Self, Self) -> Bool
+pub fn ErrorKind::not_equal(Self, Self) -> Bool
+pub fn ErrorKind::to_repr(Self) -> @debug.Repr
+
+pub(all) enum Mode {
+  Text
+  Semantic
+} derive(Eq, @debug.Debug)
+pub fn Mode::equal(Self, Self) -> Bool
+pub fn Mode::not_equal(Self, Self) -> Bool
+pub fn Mode::to_repr(Self) -> @debug.Repr
+
+pub(all) enum Side {
+  Left
+  Right
+} derive(Eq, @debug.Debug)
+pub fn Side::equal(Self, Self) -> Bool
+pub fn Side::not_equal(Self, Self) -> Bool
+pub fn Side::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

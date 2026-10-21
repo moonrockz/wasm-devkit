@@ -517,3 +517,42 @@ registry resolver drops one such request; the retained
 [registry comparison](../../tests/registry/README.md) documents that upstream
 exception. The test suite uses a controlled loopback registry and runs without
 public credentials on native and wasm CLI targets.
+
+## Compare WAT
+
+```shell
+wasm-devkit compare left.wat right.wat
+wasm-devkit compare left.wat right.wat --mode semantic
+wasm-devkit compare - right.wat --mode semantic --json < left.wat
+```
+
+The default `--mode text` compares every source character. `--mode semantic`
+validates both core modules and compares decoded structure with typed literal
+normalization. `i32.const 16` and `i32.const 0x10` compare equal; 16 and 17 differ.
+Float bits preserve signed zero and all NaN signs/payloads, including signaling
+NaNs. Vector lane spellings compare by their 128 bits. The command performs no
+execution and does not infer arbitrary behavioral equivalence.
+
+Exactly two input paths are required; one may be `-` for stdin. Exit codes are
+0 for equal, 1 for different, 2 for usage/I/O/UTF-8 errors and 3 for malformed,
+invalid or unsupported semantic inputs. JSON emits `mode`, `equal`, `differences`
+and `diagnostics`. Validation failure sets `equal` to `null`, reports both input
+sides and writes diagnostics to stderr. Text mode can compare invalid WAT.
+
+Differences have a `path`, nullable `left`/`right` hexadecimal binary payloads and
+nullable `left_location`/`right_location` objects. Locations include zero-based,
+half-open UTF-16 `start`/`end` offsets and 1-based `line`/`column` values. Function
+differences use paths such as `module.code[0]` and locate the original function.
+Scalar float records such as `module.func[0].constant[0].bits` contain little-endian
+IEEE bits and locate the literal. Other section changes include their complete
+canonical payload and a source declaration range where available. JSON paths sort
+lexicographically. Text-mode payloads are exact UTF-16LE source bytes.
+
+Whitespace, comments, symbolic binding names, equivalent literal/string spellings
+and equivalent inline/folded forms are ignored in semantic mode. Instructions,
+types, numeric indices, ordered index spaces, imports/exports, limits, flags,
+initializers and data remain significant. Components, WAST scripts, binary module
+abbreviations and custom/producers/name annotations are
+explicitly unsupported. The portable WAT frontend's 256-expression and 64-control
+nesting bounds apply. See the [library contract](../../pkgs/wit/src/wat_compare/README.mbt.md)
+for exact normalization, structured payloads, source locations and resource limits.

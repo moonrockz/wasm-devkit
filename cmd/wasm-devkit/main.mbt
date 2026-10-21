@@ -16,6 +16,24 @@ async fn main {
         @stdio.stdout.write("wasm-devkit " + @cli.version() + "\n")
         0
       }
+      Ok(Compare(options)) => {
+        let left_data = if options.left == "-" {
+          @stdio.stdin.read_all()
+        } else {
+          @fs.read_file(options.left)
+        }
+        let right_data = if options.right == "-" {
+          @stdio.stdin.read_all()
+        } else {
+          @fs.read_file(options.right)
+        }
+        let left = @utf8.decode(left_data.binary(), ignore_bom=false)
+        let right = @utf8.decode(right_data.binary(), ignore_bom=false)
+        let result = @cli.compare(options, left, right)
+        @stdio.stdout.write(result.stdout)
+        @stdio.stderr.write(result.stderr)
+        result.exit_code
+      }
       Ok(Decompile(options)) => {
         let data = if options.path == "-" {
           @stdio.stdin.read_all()

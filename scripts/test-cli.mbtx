@@ -57,6 +57,49 @@ async fn main {
   let (help, _) = run(["--help"], 0, wit)
   assert_true(help.contains("--check"))
   assert_true(help.contains("decompile"))
+  // Comparison keeps strict text as the default and validates semantic inputs.
+  let compare_left = dir + "/compare-left.wat"
+  let compare_right = dir + "/compare-right.wat"
+  @fs.write_file(compare_left, "(module (func (result i32) i32.const 16))")
+  @fs.write_file(compare_right, "(module (func (result i32) i32.const 0x10))")
+  let (strict, _) = run(["compare", compare_left, compare_right], 1, wit)
+  assert_true(strict.contains("different: text"))
+  let (semantic, semantic_error) = run(
+    ["compare", compare_left, compare_right, "--mode", "semantic", "--json"],
+    0,
+    wit,
+  )
+  assert_true(semantic.contains("\"equal\":true"))
+  assert_eq(semantic_error, "")
+  let (piped_comparison, _) = run(
+    ["compare", "-", compare_right, "--mode", "semantic"],
+    0,
+    compare_left,
+  )
+  assert_true(piped_comparison.contains("equal (semantic)"))
+  let _ = run(
+    ["compare", compare_left, "-", "--mode", "semantic"],
+    0,
+    compare_right,
+  )
+  @fs.write_file(compare_right, "(module (func (result i32) i32.const 17))")
+  let (difference, _) = run(
+    ["compare", compare_left, compare_right, "--mode", "semantic", "--json"],
+    1,
+    wit,
+  )
+  assert_true(difference.contains("module.code[0]"))
+  @fs.write_file(compare_right, "(module (func i32.add))")
+  let (invalid_comparison, invalid_comparison_error) = run(
+    ["compare", compare_left, compare_right, "--mode", "semantic", "--json"],
+    3,
+    wit,
+  )
+  assert_true(invalid_comparison.contains("\"equal\":null"))
+  assert_true(invalid_comparison_error.contains("invalid"))
+  let _ = run(["compare", compare_left, dir + "/missing.wat"], 2, wit)
+  let _ = run(["compare", "-", "-"], 2, wit)
+  let _ = run(["compare", malformed, compare_right], 2, wit)
   // (module (func (export "run")))
   let module_wasm = dir + "/module.wasm"
   let module_wat = dir + "/module.wat"

@@ -5,10 +5,13 @@ import {
   "moonbitlang/core/debug",
   "moonrockz/wac/decompiler",
   "moonrockz/wit/binary/core_printer",
+  "moonrockz/wit/wat_compare",
 }
 
 // Values
 pub fn arguments(ArrayView[String]) -> Result[Action, String]
+
+pub fn compare(CompareOptions, String, String) -> Output
 
 pub fn decompile(DecompileOptions, Bytes) -> Output
 
@@ -38,6 +41,7 @@ pub(all) enum Action {
   Decompile(DecompileOptions)
   Split(SplitOptions)
   Inventory(InventoryOptions)
+  Compare(CompareOptions)
 } derive(Eq, @debug.Debug)
 pub fn Action::equal(Self, Self) -> Bool
 pub fn Action::not_equal(Self, Self) -> Bool
@@ -55,6 +59,16 @@ pub(all) enum Command {
 pub fn Command::equal(Self, Self) -> Bool
 pub fn Command::not_equal(Self, Self) -> Bool
 pub fn Command::to_repr(Self) -> @debug.Repr
+
+pub(all) struct CompareOptions {
+  left : String
+  right : String
+  mode : @wat_compare.Mode
+  json : Bool
+} derive(Eq, @debug.Debug)
+pub fn CompareOptions::equal(Self, Self) -> Bool
+pub fn CompareOptions::not_equal(Self, Self) -> Bool
+pub fn CompareOptions::to_repr(Self) -> @debug.Repr
 
 pub(all) struct DecompileOptions {
   compatibility : @core_printer.Compatibility?

@@ -66,6 +66,7 @@ available for invalid input, and the CST always reconstructs the original text.
 | Walk trees, navigate cursors or perform immutable rewrites | [WIT traversal](pkgs/wit/src/traversal/README.mbt.md#recipes), [WAC traversal](pkgs/wac/src/traversal/README.mbt.md#recipes) |
 | Apply source edits while retaining comments | [WIT editor recipe](pkgs/wit/README.mbt.md#edit-one-token-and-retain-comments), [WAC editor recipe](pkgs/wac/README.mbt.md#edit-one-token-and-retain-comments) |
 | Work from a terminal or check formatting in CI | [CLI scenarios](cmd/wasm-devkit/README.md#scenarios) |
+| Compare core WAT by decoded structure and numeric bits | [WAT comparison](pkgs/wit/src/wat_compare/README.mbt.md), [CLI compare](cmd/wasm-devkit/README.md#compare-wat) |
 | Print a core-module or component `.wasm` binary as WAT | [Decompiler guide](pkgs/wit/src/decompiler/README.mbt.md), [CLI decompile](cmd/wasm-devkit/README.md#print-a-wasm-binary-as-wat) |
 
 ## Semantic verification
@@ -179,7 +180,7 @@ mise run clean
 ## Documentation checks
 
 `mise run test` executes checked API comments and package README examples.
-`mise run test:docs` additionally compiles all 26 library guides using exactly their
+`mise run test:docs` additionally compiles all 27 library guides using exactly their
 documented imports, including the root and module READMEs outside package source directories.
 Both commands run on wasm, wasm-gc, js and native by default.
 

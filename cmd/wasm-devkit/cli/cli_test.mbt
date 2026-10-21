@@ -506,3 +506,84 @@ test "compatibility CLI failures carry no stdout or output-file content" {
   assert_eq(printed.stdout, "")
   assert_eq(printed.write_text, Some("(module)\n"))
 }
+
+///|
+test "comparison arguments select mode and enforce input boundaries" {
+  guard @cli.arguments(["compare", "a.wat", "b.wat"]) is Ok(Compare(options)) else {
+    fail("comparison options")
+  }
+  assert_eq(options.left, "a.wat")
+  assert_eq(options.right, "b.wat")
+  assert_eq(options.mode, Text)
+  assert_false(options.json)
+  assert_true(
+    @cli.arguments(["compare", "-", "a.wat", "--mode", "semantic", "--json"])
+    is Ok(Compare({ mode: Semantic, json: true, .. })),
+  )
+  assert_true(
+    @cli.arguments(["compare", "--", "--left", "--right"]) is Ok(Compare(_)),
+  )
+  assert_true(@cli.arguments(["compare", "--help"]) is Ok(Help))
+  for
+    args in [
+      ["compare"],
+      ["compare", "a"],
+      ["compare", "a", "b", "c"],
+      ["compare", "-", "-"],
+      ["compare", "a", "b", "--mode"],
+      ["compare", "a", "b", "--mode", "invalid"],
+      ["compare", "a", "b", "--mode", "text", "--mode", "semantic"],
+      ["compare", "a", "b", "--json", "--json"],
+      ["compare", "a", "b", "--write"],
+    ] {
+    assert_true(@cli.arguments(args) is Err(_))
+  }
+}
+
+///|
+test "comparison output distinguishes equality differences and invalid inputs" {
+  guard @cli.arguments([
+      "compare", "a.wat", "b.wat", "--mode", "semantic", "--json",
+    ])
+    is Ok(Compare(options)) else {
+    fail("comparison options")
+  }
+  let a = "(module (func (result i32) i32.const 16))"
+  let b = "(module (func (result i32) i32.const 0x10))"
+  let same = @cli.compare(options, a, b)
+  assert_eq(same.exit_code, 0)
+  assert_eq(same.stderr, "")
+  assert_true(same.stdout.contains("\"equal\":true"))
+  let different = @cli.compare(
+    options, a, "(module (func (result i32) i32.const 17))",
+  )
+  assert_eq(different.exit_code, 1)
+  assert_true(different.stdout.contains("module.code[0]"))
+  assert_true(different.stdout.contains("left_location"))
+  assert_true(different.stdout.contains("\"line\":1"))
+  assert_true(different.stdout.contains("\"column\":9"))
+  let invalid = @cli.compare(
+    options, "(module (func i32.add))", "(module (unknown))",
+  )
+  assert_eq(invalid.exit_code, 3)
+  assert_true(invalid.stdout.contains("\"equal\":null"))
+  assert_true(invalid.stdout.contains("\"side\":\"left\""))
+  assert_true(invalid.stdout.contains("\"side\":\"right\""))
+  assert_true(invalid.stderr.contains("a.wat: invalid"))
+  assert_true(invalid.stderr.contains("b.wat: malformed"))
+  let text = @cli.compare({ ..options, mode: Text, json: false, }, a, b)
+  assert_eq(text.exit_code, 1)
+  assert_true(text.stdout.contains("different: text"))
+  let malformed_text = @cli.compare(
+    { ..options, mode: Text, json: false, },
+    "(",
+    "(",
+  )
+  assert_eq(malformed_text.exit_code, 0)
+  let message = @cli.compare(
+    { ..options, json: false, },
+    a,
+    "(module (func (result i32) i32.const 17))",
+  )
+  assert_true(message.stdout.contains("a.wat:1:9"))
+}
