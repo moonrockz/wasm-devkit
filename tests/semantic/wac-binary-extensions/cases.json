@@ -1487,5 +1487,60 @@
     "core_reference": 0,
     "reference": 0,
     "wasm_tools_compatibility": true
+  },
+  {
+    "name": "model-encoding-memory32-index",
+    "accepts": true,
+    "parse": 0,
+    "core_model": true,
+    "features": "all,-custom-descriptors",
+    "validator": 0,
+    "core_reference": 0,
+    "reference": 0,
+    "wasm_tools_compatibility": true
+  },
+  {
+    "name": "model-encoding-memory64-index",
+    "accepts": true,
+    "parse": 0,
+    "core_model": true,
+    "features": "all,-custom-descriptors",
+    "validator": 0,
+    "core_reference": 0,
+    "reference": 0,
+    "wasm_tools_compatibility": true
+  },
+  {
+    "name": "model-encoding-abstract-shorthand",
+    "accepts": true,
+    "parse": 0,
+    "core_model": true,
+    "features": "all,-custom-descriptors",
+    "validator": 0,
+    "core_reference": 0,
+    "reference": 0,
+    "wasm_tools_compatibility": true
+  },
+  {
+    "name": "model-encoding-abstract-fields-select",
+    "accepts": true,
+    "parse": 0,
+    "core_model": true,
+    "features": "all,-custom-descriptors",
+    "validator": 0,
+    "core_reference": 0,
+    "reference": 0,
+    "wasm_tools_compatibility": true
+  },
+  {
+    "name": "model-encoding-memory64-unsigned-offset",
+    "accepts": true,
+    "parse": 0,
+    "core_model": true,
+    "features": "all,-custom-descriptors",
+    "validator": 0,
+    "core_reference": 0,
+    "reference": 0,
+    "wasm_tools_compatibility": true
   }
 ]

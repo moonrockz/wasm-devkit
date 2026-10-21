@@ -1315,6 +1315,8 @@ async fn main {
   for extension in ["wasm", "wat"] {
     for
       (name, status) in [
+        ("model-encoding-memory32-index", 0),
+        ("model-encoding-abstract-shorthand", 0),
         ("model-recursive-contracts", 0),
         ("model-shared-contracts", 0),
         ("model-exception-contracts", 0),

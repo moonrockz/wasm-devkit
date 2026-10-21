@@ -493,6 +493,9 @@
 @@ -763 +922 @@
 -  _natural_align : Int,
 +  _natural_align : Int32,
+@@ -771 +930 @@
+-    sb.write_string(" offset=\{offset}")
++    sb.write_string(" offset=\{offset.reinterpret_as_uint64()}")
 @@ -789 +948,13 @@
 -fn instrs_to_wat(instrs : Array[@types.Instruction], indent : Int) -> String {
 +priv enum RenderTask {

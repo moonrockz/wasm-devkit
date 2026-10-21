@@ -17,3 +17,7 @@ composite/table/global flags and exact reference heaps survive encoding.
 Unsupported instructions raise `EncodingError` and return no module bytes;
 they never become placeholder `unreachable` instructions. Constant-expression
 bodies also pass through signature resolution before encoding.
+
+Memory arguments retain nonzero memory indices using bit 6 and the index immediate. Legacy
+abstract struct/array sentinels encode their actual heap codes. Structural
+regression tests compare encoded modules with independently emitted binaries.

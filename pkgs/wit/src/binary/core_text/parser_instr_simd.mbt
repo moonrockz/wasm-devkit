@@ -13,32 +13,78 @@ fn Parser::parse_v128_instruction(
     }
 
     // SIMD memory operations
-    "v128.load" => parse_mem_arg(self, fn(m, a, o) { V128Load(m, a, o) })
-    "v128.store" => parse_mem_arg(self, fn(m, a, o) { V128Store(m, a, o) })
+    "v128.load" =>
+      parse_mem_arg(self, fn(m, a, o) { V128Load(m, a, o) }, default_align=4)
+    "v128.store" =>
+      parse_mem_arg(self, fn(m, a, o) { V128Store(m, a, o) }, default_align=4)
     "v128.load8x8_s" =>
-      parse_mem_arg(self, fn(m, a, o) { V128Load8x8S(m, a, o) })
+      parse_mem_arg(
+        self,
+        fn(m, a, o) { V128Load8x8S(m, a, o) },
+        default_align=3,
+      )
     "v128.load8x8_u" =>
-      parse_mem_arg(self, fn(m, a, o) { V128Load8x8U(m, a, o) })
+      parse_mem_arg(
+        self,
+        fn(m, a, o) { V128Load8x8U(m, a, o) },
+        default_align=3,
+      )
     "v128.load16x4_s" =>
-      parse_mem_arg(self, fn(m, a, o) { V128Load16x4S(m, a, o) })
+      parse_mem_arg(
+        self,
+        fn(m, a, o) { V128Load16x4S(m, a, o) },
+        default_align=3,
+      )
     "v128.load16x4_u" =>
-      parse_mem_arg(self, fn(m, a, o) { V128Load16x4U(m, a, o) })
+      parse_mem_arg(
+        self,
+        fn(m, a, o) { V128Load16x4U(m, a, o) },
+        default_align=3,
+      )
     "v128.load32x2_s" =>
-      parse_mem_arg(self, fn(m, a, o) { V128Load32x2S(m, a, o) })
+      parse_mem_arg(
+        self,
+        fn(m, a, o) { V128Load32x2S(m, a, o) },
+        default_align=3,
+      )
     "v128.load32x2_u" =>
-      parse_mem_arg(self, fn(m, a, o) { V128Load32x2U(m, a, o) })
+      parse_mem_arg(
+        self,
+        fn(m, a, o) { V128Load32x2U(m, a, o) },
+        default_align=3,
+      )
     "v128.load8_splat" =>
       parse_mem_arg(self, fn(m, a, o) { V128Load8Splat(m, a, o) })
     "v128.load16_splat" =>
-      parse_mem_arg(self, fn(m, a, o) { V128Load16Splat(m, a, o) })
+      parse_mem_arg(
+        self,
+        fn(m, a, o) { V128Load16Splat(m, a, o) },
+        default_align=1,
+      )
     "v128.load32_splat" =>
-      parse_mem_arg(self, fn(m, a, o) { V128Load32Splat(m, a, o) })
+      parse_mem_arg(
+        self,
+        fn(m, a, o) { V128Load32Splat(m, a, o) },
+        default_align=2,
+      )
     "v128.load64_splat" =>
-      parse_mem_arg(self, fn(m, a, o) { V128Load64Splat(m, a, o) })
+      parse_mem_arg(
+        self,
+        fn(m, a, o) { V128Load64Splat(m, a, o) },
+        default_align=3,
+      )
     "v128.load32_zero" =>
-      parse_mem_arg(self, fn(m, a, o) { V128Load32Zero(m, a, o) })
+      parse_mem_arg(
+        self,
+        fn(m, a, o) { V128Load32Zero(m, a, o) },
+        default_align=2,
+      )
     "v128.load64_zero" =>
-      parse_mem_arg(self, fn(m, a, o) { V128Load64Zero(m, a, o) })
+      parse_mem_arg(
+        self,
+        fn(m, a, o) { V128Load64Zero(m, a, o) },
+        default_align=3,
+      )
     "v128.load8_lane" => {
       let (memidx, align, offset) = parse_mem_arg_tuple(self)
       let lane = self.parse_u32()

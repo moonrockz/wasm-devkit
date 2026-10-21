@@ -318,7 +318,9 @@
 -      let body = self.read_expr()
 -      TryTable(bt, handlers, body)
 -    }
-@@ -413,35 +472 @@
+@@ -157,0 +217 @@
++    0x1C => SelectTyped(self.read_vec(() => self.read_value_type()))
+@@ -413,35 +473 @@
 -    0xD0 => {
 -      // ref.null: heaptype immediate (signed LEB)
 -      let heap_type = self.read_heap_type()
@@ -355,23 +357,23 @@
 -      }
 -    }
 +    0xD0 => RefNull(self.read_heap_reference(true))
-@@ -561 +586,3 @@
+@@ -561 +587,3 @@
 -      if subopcode == 3 {
 +      if subopcode == 0x72 {
 +        RefI31Shared
 +      } else if subopcode == 3 {
-@@ -581 +608 @@
+@@ -581 +609 @@
 -  subopcode : Int,
 +  subopcode : Int32,
-@@ -613,0 +641,3 @@
+@@ -613,0 +642,3 @@
 +      if !self.has_data_count {
 +        raise DataCountRequired
 +      }
-@@ -634,0 +665,3 @@
+@@ -634,0 +666,3 @@
 +      if !self.has_data_count {
 +        raise DataCountRequired
 +      }
-@@ -644,16 +677,4 @@
+@@ -644,16 +678,4 @@
 -    20 =>
 -      RefTest(
 -        self.resolve_heap_type_as_ref_value_type(self.read_heap_type(), false),
@@ -392,30 +394,30 @@
 +    21 => RefTestNull(self.read_heap_reference(true))
 +    22 => RefCast(self.read_heap_reference(false))
 +    23 => RefCastNull(self.read_heap_reference(true))
-@@ -660,0 +682,4 @@
+@@ -660,0 +683,4 @@
 +      let flags = self.read_byte()
 +      if flags > 3 {
 +        raise ParseError("invalid branch cast flags")
 +      }
-@@ -662,2 +687,2 @@
+@@ -662,2 +688,2 @@
 -      let from_t = self.read_value_type()
 -      let to_t = self.read_value_type()
 +      let from_t = self.read_heap_reference((flags & 1) != 0)
 +      let to_t = self.read_heap_reference((flags & 2) != 0)
-@@ -666,0 +692,4 @@
+@@ -666,0 +693,4 @@
 +      let flags = self.read_byte()
 +      if flags > 3 {
 +        raise ParseError("invalid branch cast flags")
 +      }
-@@ -668,2 +697,2 @@
+@@ -668,2 +698,2 @@
 -      let from_t = self.read_value_type()
 -      let to_t = self.read_value_type()
 +      let from_t = self.read_heap_reference((flags & 1) != 0)
 +      let to_t = self.read_heap_reference((flags & 2) != 0)
-@@ -685 +714 @@
+@@ -685 +715 @@
 -  subopcode : Int,
 +  subopcode : Int32,
-@@ -756 +785 @@
+@@ -756 +786 @@
 -      let lanes : FixedArray[Int] = FixedArray::make(16, 0)
 +      let lanes : FixedArray[Int32] = FixedArray::make(16, 0)
 --- a/leb128.mbt

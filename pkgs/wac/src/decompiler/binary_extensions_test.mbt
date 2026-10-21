@@ -193,6 +193,126 @@ test "complete GC and EH core contract model-abstract-bottom-contracts" {
 }
 
 ///|
+test "complete GC and EH core contract model-encoding-memory32-index" {
+  let expected = @json.parse(
+    "{\n  \"exports\": [\n    {\n      \"name\": \"target\",\n      \"signature\": {\n        \"index64\": false,\n        \"kind\": \"memory\",\n        \"max\": null,\n        \"min\": \"2\",\n        \"page-size-log2\": null,\n        \"shared\": false\n      }\n    },\n    {\n      \"name\": \"load\",\n      \"signature\": {\n        \"kind\": \"func\",\n        \"signature\": {\n          \"params\": [],\n          \"results\": [\n            {\n              \"kind\": \"scalar\",\n              \"name\": \"i32\"\n            }\n          ]\n        }\n      }\n    }\n  ],\n  \"imports\": []\n}\n",
+  )
+  let core = @decompiler.inventory(
+      b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x05\x01\x60\x00\x01\x7f\x03\x02\x01\x00\x05\x05\x02\x00\x01\x00\x02\x07\x11\x02\x06\x74\x61\x72\x67\x65\x74\x02\x01\x04\x6c\x6f\x61\x64\x00\x00\x0a\x0a\x01\x08\x00\x41\x00\x28\x42\x01\x00\x0b",
+    )
+    .unwrap()
+    .to_json()
+  let component = @decompiler.inventory(
+      b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x01\x44\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x05\x01\x60\x00\x01\x7f\x03\x02\x01\x00\x05\x05\x02\x00\x01\x00\x02\x07\x11\x02\x06\x74\x61\x72\x67\x65\x74\x02\x01\x04\x6c\x6f\x61\x64\x00\x00\x0a\x0a\x01\x08\x00\x41\x00\x28\x42\x01\x00\x0b\x00\x09\x04\x6e\x61\x6d\x65\x00\x02\x01\x6d\x0b\x08\x01\x00\x01\x6d\x00\x11\x00\x00\x00\x17\x0e\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x2d\x6e\x61\x6d\x65\x01\x06\x00\x11\x01\x00\x01\x6d",
+    )
+    .unwrap()
+    .to_json()
+  assert_eq(extension_core_contract(core), expected)
+  assert_eq(extension_core_contract(component), expected)
+  let encoded = @component_text.parse_component_wat(
+    "(component (core module $m (memory 1) (memory (export \"target\") 2) (func (export \"load\") (result i32) i32.const 0 i32.load 1)) (export \"m\" (core module $m)))\n",
+  )
+  let text = @decompiler.inventory(encoded).unwrap().to_json()
+  assert_eq(extension_core_contract(text), expected)
+}
+
+///|
+test "complete GC and EH core contract model-encoding-memory64-index" {
+  let expected = @json.parse(
+    "{\n  \"exports\": [\n    {\n      \"name\": \"target\",\n      \"signature\": {\n        \"index64\": true,\n        \"kind\": \"memory\",\n        \"max\": null,\n        \"min\": \"2\",\n        \"page-size-log2\": null,\n        \"shared\": false\n      }\n    },\n    {\n      \"name\": \"load\",\n      \"signature\": {\n        \"kind\": \"func\",\n        \"signature\": {\n          \"params\": [\n            {\n              \"kind\": \"scalar\",\n              \"name\": \"i64\"\n            }\n          ],\n          \"results\": [\n            {\n              \"kind\": \"scalar\",\n              \"name\": \"i64\"\n            }\n          ]\n        }\n      }\n    }\n  ],\n  \"imports\": []\n}\n",
+  )
+  let core = @decompiler.inventory(
+      b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x06\x01\x60\x01\x7e\x01\x7e\x03\x02\x01\x00\x05\x05\x02\x00\x01\x04\x02\x07\x11\x02\x06\x74\x61\x72\x67\x65\x74\x02\x01\x04\x6c\x6f\x61\x64\x00\x00\x0a\x0e\x01\x0c\x00\x20\x00\x29\x42\x01\x80\x80\x80\x80\x20\x0b",
+    )
+    .unwrap()
+    .to_json()
+  let component = @decompiler.inventory(
+      b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x01\x49\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x06\x01\x60\x01\x7e\x01\x7e\x03\x02\x01\x00\x05\x05\x02\x00\x01\x04\x02\x07\x11\x02\x06\x74\x61\x72\x67\x65\x74\x02\x01\x04\x6c\x6f\x61\x64\x00\x00\x0a\x0e\x01\x0c\x00\x20\x00\x29\x42\x01\x80\x80\x80\x80\x20\x0b\x00\x09\x04\x6e\x61\x6d\x65\x00\x02\x01\x6d\x0b\x08\x01\x00\x01\x6d\x00\x11\x00\x00\x00\x17\x0e\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x2d\x6e\x61\x6d\x65\x01\x06\x00\x11\x01\x00\x01\x6d",
+    )
+    .unwrap()
+    .to_json()
+  assert_eq(extension_core_contract(core), expected)
+  assert_eq(extension_core_contract(component), expected)
+  let encoded = @component_text.parse_component_wat(
+    "(component (core module $m (memory 1) (memory (export \"target\") i64 2) (func (export \"load\") (param i64) (result i64) local.get 0 i64.load 1 offset=8589934592 align=4)) (export \"m\" (core module $m)))\n",
+  )
+  let text = @decompiler.inventory(encoded).unwrap().to_json()
+  assert_eq(extension_core_contract(text), expected)
+}
+
+///|
+test "complete GC and EH core contract model-encoding-abstract-shorthand" {
+  let expected = @json.parse(
+    "{\n  \"exports\": [\n    {\n      \"name\": \"id\",\n      \"signature\": {\n        \"kind\": \"func\",\n        \"signature\": {\n          \"params\": [\n            {\n              \"heap\": \"struct\",\n              \"kind\": \"reference\",\n              \"nullable\": true\n            },\n            {\n              \"heap\": \"array\",\n              \"kind\": \"reference\",\n              \"nullable\": true\n            }\n          ],\n          \"results\": [\n            {\n              \"heap\": \"struct\",\n              \"kind\": \"reference\",\n              \"nullable\": true\n            },\n            {\n              \"heap\": \"array\",\n              \"kind\": \"reference\",\n              \"nullable\": true\n            }\n          ]\n        }\n      }\n    }\n  ],\n  \"imports\": []\n}\n",
+  )
+  let core = @decompiler.inventory(
+      b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x08\x01\x60\x02\x6b\x6a\x02\x6b\x6a\x03\x02\x01\x00\x07\x06\x01\x02\x69\x64\x00\x00\x0a\x08\x01\x06\x00\x20\x00\x20\x01\x0b",
+    )
+    .unwrap()
+    .to_json()
+  let component = @decompiler.inventory(
+      b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x01\x33\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x08\x01\x60\x02\x6b\x6a\x02\x6b\x6a\x03\x02\x01\x00\x07\x06\x01\x02\x69\x64\x00\x00\x0a\x08\x01\x06\x00\x20\x00\x20\x01\x0b\x00\x09\x04\x6e\x61\x6d\x65\x00\x02\x01\x6d\x0b\x08\x01\x00\x01\x6d\x00\x11\x00\x00\x00\x17\x0e\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x2d\x6e\x61\x6d\x65\x01\x06\x00\x11\x01\x00\x01\x6d",
+    )
+    .unwrap()
+    .to_json()
+  assert_eq(extension_core_contract(core), expected)
+  assert_eq(extension_core_contract(component), expected)
+  let encoded = @component_text.parse_component_wat(
+    "(component (core module $m (func (export \"id\") (param structref arrayref) (result structref arrayref) local.get 0 local.get 1)) (export \"m\" (core module $m)))\n",
+  )
+  let text = @decompiler.inventory(encoded).unwrap().to_json()
+  assert_eq(extension_core_contract(text), expected)
+}
+
+///|
+test "complete GC and EH core contract model-encoding-abstract-fields-select" {
+  let expected = @json.parse(
+    "{\n  \"exports\": [\n    {\n      \"name\": \"id\",\n      \"signature\": {\n        \"kind\": \"func\",\n        \"signature\": {\n          \"params\": [\n            {\n              \"heap\": \"struct\",\n              \"kind\": \"reference\",\n              \"nullable\": true\n            },\n            {\n              \"heap\": \"struct\",\n              \"kind\": \"reference\",\n              \"nullable\": true\n            },\n            {\n              \"kind\": \"scalar\",\n              \"name\": \"i32\"\n            }\n          ],\n          \"results\": [\n            {\n              \"heap\": \"struct\",\n              \"kind\": \"reference\",\n              \"nullable\": true\n            }\n          ]\n        }\n      }\n    },\n    {\n      \"name\": \"g\",\n      \"signature\": {\n        \"kind\": \"global\",\n        \"mutable\": false,\n        \"shared\": false,\n        \"value\": {\n          \"heap\": \"array\",\n          \"kind\": \"reference\",\n          \"nullable\": true\n        }\n      }\n    }\n  ],\n  \"imports\": []\n}\n",
+  )
+  let core = @decompiler.inventory(
+      b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x11\x03\x5f\x02\x6b\x00\x6a\x00\x5e\x6a\x00\x60\x03\x6b\x6b\x7f\x01\x6b\x03\x02\x01\x02\x06\x06\x01\x6a\x00\xd0\x6a\x0b\x07\x0a\x02\x02\x69\x64\x00\x00\x01\x67\x03\x00\x0a\x0d\x01\x0b\x00\x20\x00\x20\x01\x20\x02\x1c\x01\x6b\x0b",
+    )
+    .unwrap()
+    .to_json()
+  let component = @decompiler.inventory(
+      b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x01\x4d\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x11\x03\x5f\x02\x6b\x00\x6a\x00\x5e\x6a\x00\x60\x03\x6b\x6b\x7f\x01\x6b\x03\x02\x01\x02\x06\x06\x01\x6a\x00\xd0\x6a\x0b\x07\x0a\x02\x02\x69\x64\x00\x00\x01\x67\x03\x00\x0a\x0d\x01\x0b\x00\x20\x00\x20\x01\x20\x02\x1c\x01\x6b\x0b\x00\x09\x04\x6e\x61\x6d\x65\x00\x02\x01\x6d\x0b\x08\x01\x00\x01\x6d\x00\x11\x00\x00\x00\x17\x0e\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x2d\x6e\x61\x6d\x65\x01\x06\x00\x11\x01\x00\x01\x6d",
+    )
+    .unwrap()
+    .to_json()
+  assert_eq(extension_core_contract(core), expected)
+  assert_eq(extension_core_contract(component), expected)
+  let encoded = @component_text.parse_component_wat(
+    "(component (core module $m (type (struct (field structref) (field arrayref))) (type (array arrayref)) (func (export \"id\") (param structref structref i32) (result structref) local.get 0 local.get 1 local.get 2 select (result structref)) (global (export \"g\") arrayref (ref.null array))) (export \"m\" (core module $m)))\n",
+  )
+  let text = @decompiler.inventory(encoded).unwrap().to_json()
+  assert_eq(extension_core_contract(text), expected)
+}
+
+///|
+test "complete GC and EH core contract model-encoding-memory64-unsigned-offset" {
+  let expected = @json.parse(
+    "{\n  \"exports\": [\n    {\n      \"name\": \"target\",\n      \"signature\": {\n        \"index64\": true,\n        \"kind\": \"memory\",\n        \"max\": null,\n        \"min\": \"2\",\n        \"page-size-log2\": null,\n        \"shared\": false\n      }\n    },\n    {\n      \"name\": \"load\",\n      \"signature\": {\n        \"kind\": \"func\",\n        \"signature\": {\n          \"params\": [\n            {\n              \"kind\": \"scalar\",\n              \"name\": \"i64\"\n            }\n          ],\n          \"results\": [\n            {\n              \"kind\": \"scalar\",\n              \"name\": \"i64\"\n            }\n          ]\n        }\n      }\n    }\n  ],\n  \"imports\": []\n}\n",
+  )
+  let core = @decompiler.inventory(
+      b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x06\x01\x60\x01\x7e\x01\x7e\x03\x02\x01\x00\x05\x05\x02\x00\x01\x04\x02\x07\x11\x02\x06\x74\x61\x72\x67\x65\x74\x02\x01\x04\x6c\x6f\x61\x64\x00\x00\x0a\x13\x01\x11\x00\x20\x00\x29\x43\x01\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01\x0b",
+    )
+    .unwrap()
+    .to_json()
+  let component = @decompiler.inventory(
+      b"\x00\x61\x73\x6d\x0d\x00\x01\x00\x01\x4e\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x06\x01\x60\x01\x7e\x01\x7e\x03\x02\x01\x00\x05\x05\x02\x00\x01\x04\x02\x07\x11\x02\x06\x74\x61\x72\x67\x65\x74\x02\x01\x04\x6c\x6f\x61\x64\x00\x00\x0a\x13\x01\x11\x00\x20\x00\x29\x43\x01\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01\x0b\x00\x09\x04\x6e\x61\x6d\x65\x00\x02\x01\x6d\x0b\x08\x01\x00\x01\x6d\x00\x11\x00\x00\x00\x17\x0e\x63\x6f\x6d\x70\x6f\x6e\x65\x6e\x74\x2d\x6e\x61\x6d\x65\x01\x06\x00\x11\x01\x00\x01\x6d",
+    )
+    .unwrap()
+    .to_json()
+  assert_eq(extension_core_contract(core), expected)
+  assert_eq(extension_core_contract(component), expected)
+  let encoded = @component_text.parse_component_wat(
+    "(component (core module $m (memory 1) (memory (export \"target\") i64 2) (func (export \"load\") (param i64) (result i64) local.get 0 i64.load 1 offset=18446744073709551615 align=8)) (export \"m\" (core module $m)))\n",
+  )
+  let text = @decompiler.inventory(encoded).unwrap().to_json()
+  assert_eq(extension_core_contract(text), expected)
+}
+
+///|
 fn extension_core_contract(inventory : Json) -> Json raise {
   guard inventory is { "entries": Array(entries), .. } else {
     fail("missing inventory entries")

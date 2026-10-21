@@ -130,6 +130,18 @@
 +      }
 +      w.write_s32(heap)
 +    }
+@@ -287 +294 @@
+-      w.write_s32(idx)
++      w.write_s32(if idx == -1 { -21 } else { idx })
+@@ -291 +298 @@
+-      w.write_s32(idx)
++      w.write_s32(if idx == -1 { -21 } else { idx })
+@@ -295 +302 @@
+-      w.write_s32(idx)
++      w.write_s32(if idx == -1 { -22 } else { idx })
+@@ -299 +306 @@
+-      w.write_s32(idx)
++      w.write_s32(if idx == -1 { -22 } else { idx })
 @@ -359,0 +367,3 @@
 +  if ct.is_shared() {
 +    w.write_byte(0x65)
@@ -167,9 +179,15 @@
 @@ -498,2 +515,2 @@
 -  _memidx : Int,
 -  align : Int,
-+  _memidx : Int32,
++  memidx : Int32,
 +  align : Int32,
-@@ -507,0 +525,9 @@
+@@ -502 +519,4 @@
+-  w.write_u32(align)
++  w.write_u32(align | (if memidx != 0 { 0x40 } else { 0 }))
++  if memidx != 0 {
++    w.write_u32(memidx)
++  }
+@@ -507,0 +528,9 @@
 +priv enum InstructionEncodingWork {
 +  Sequence(Array[@types.Instruction], Int32)
 +  One(@types.Instruction)
@@ -179,7 +197,7 @@
 +
 +///|
 +// Encode structured bodies with continuations rather than input recursion.
-@@ -511,428 +537,12 @@
+@@ -511,428 +540,12 @@
 -) -> Unit {
 -  for instr in instrs {
 -    encode_instruction(w, instr)
@@ -620,7 +638,7 @@
 +          work.push(One(instructions[index]))
 +        }
 +      One(instr) =>
-@@ -940,324 +550,777 @@
+@@ -940,324 +553,777 @@
 -          I64Add128 => 19
 -          I64Sub128 => 20
 -          I64MulWideS => 21
@@ -1722,77 +1740,77 @@
 +          _ => raise EncodingError("instruction cannot be encoded: \{instr}")
 +        }
 +    }
-@@ -1301,2 +1364,2 @@
+@@ -1301,2 +1367,2 @@
 -  section_id : Int,
 -  content : Array[Int],
 +  section_id : Int32,
 +  content : Array[Int32],
-@@ -1311 +1374 @@
+@@ -1311 +1377 @@
 -fn encode_type_section(mod : @types.Module) -> Array[Int] {
 +fn encode_type_section(mod : @types.Module) -> Array[Int32] {
-@@ -1316 +1379 @@
+@@ -1316 +1382 @@
 -  let groups : Array[(Int, Int)] = []
 +  let groups : Array[(Int32, Int32)] = []
-@@ -1344 +1407 @@
+@@ -1344 +1410 @@
 -fn encode_import_section(mod : @types.Module) -> Array[Int] {
 +fn encode_import_section(mod : @types.Module) -> Array[Int32] {
-@@ -1382 +1445 @@
+@@ -1382 +1448 @@
 -fn encode_function_section(mod : @types.Module) -> Array[Int] {
 +fn encode_function_section(mod : @types.Module) -> Array[Int32] {
-@@ -1396 +1459,3 @@
+@@ -1396 +1462,3 @@
 -fn encode_table_section(mod : @types.Module) -> Array[Int] {
 +fn encode_table_section(
 +  mod : @types.Module,
 +) -> Array[Int32] raise EncodingError {
-@@ -1420 +1485 @@
+@@ -1420 +1488 @@
 -fn encode_memory_section(mod : @types.Module) -> Array[Int] {
 +fn encode_memory_section(mod : @types.Module) -> Array[Int32] {
-@@ -1434 +1499,3 @@
+@@ -1434 +1502,3 @@
 -fn encode_global_section(mod : @types.Module) -> Array[Int] {
 +fn encode_global_section(
 +  mod : @types.Module,
 +) -> Array[Int32] raise EncodingError {
-@@ -1450 +1517 @@
+@@ -1450 +1520 @@
 -fn encode_export_section(mod : @types.Module) -> Array[Int] {
 +fn encode_export_section(mod : @types.Module) -> Array[Int32] {
-@@ -1486 +1553 @@
+@@ -1486 +1556 @@
 -fn encode_start_section(mod : @types.Module) -> Array[Int] {
 +fn encode_start_section(mod : @types.Module) -> Array[Int32] {
-@@ -1499 +1566,3 @@
+@@ -1499 +1569,3 @@
 -fn encode_element_section(mod : @types.Module) -> Array[Int] {
 +fn encode_element_section(
 +  mod : @types.Module,
 +) -> Array[Int32] raise EncodingError {
-@@ -1508 +1577,3 @@
+@@ -1508 +1580,3 @@
 -        if table_idx == 0 && elem.type_ is FuncRef {
 +        if table_idx == 0 &&
 +          elem.type_ is FuncRef &&
 +          elem.init.all(expr => expr is [RefFunc(_)]) {
-@@ -1519 +1590,4 @@
+@@ -1519 +1593,4 @@
 -              _ => w.write_u32(0) // fallback
 +              _ =>
 +                raise EncodingError(
 +                  "invalid compact function element initializer",
 +                )
-@@ -1560 +1634 @@
+@@ -1560 +1637 @@
 -fn encode_code_section(mod : @types.Module) -> Array[Int] {
 +fn encode_code_section(mod : @types.Module) -> Array[Int32] raise EncodingError {
-@@ -1571 +1645 @@
+@@ -1571 +1648 @@
 -    let compressed_locals : Array[(Int, @types.ValueType)] = []
 +    let compressed_locals : Array[(Int32, @types.ValueType)] = []
-@@ -1605 +1679 @@
+@@ -1605 +1682 @@
 -fn encode_data_section(mod : @types.Module) -> Array[Int] {
 +fn encode_data_section(mod : @types.Module) -> Array[Int32] raise EncodingError {
-@@ -1638 +1712 @@
+@@ -1638 +1715 @@
 -fn encode_datacount_section(mod : @types.Module) -> Array[Int] {
 +fn encode_datacount_section(mod : @types.Module) -> Array[Int32] {
-@@ -1649 +1723 @@
+@@ -1649 +1726 @@
 -fn encode_tag_section(mod : @types.Module) -> Array[Int] {
 +fn encode_tag_section(mod : @types.Module) -> Array[Int32] {
-@@ -1666 +1740 @@
+@@ -1666 +1743 @@
 -pub fn encode(mod : @types.Module) -> Array[Int] {
 +pub fn encode(mod : @types.Module) -> Array[Int32] raise EncodingError {
-@@ -1785,0 +1860,7 @@
+@@ -1785,0 +1863,7 @@
 +  if ty.heap() is Some((_, shared, heap)) {
 +    if shared && heap < 0 {
 +      w.write_byte(0x65)
@@ -1800,7 +1818,7 @@
 +    w.write_s32(heap)
 +    return
 +  }
-@@ -1786,0 +1868 @@
+@@ -1786,0 +1871 @@
 +    HeapRef(_, _, index) => index
 --- a/encoder_test.mbt
 +++ b/encoder_test.mbt
@@ -1816,8 +1834,10 @@
 -  "Milky2018/wasm_core/types",
 +  "moonbitlang/core/debug",
 +  "moonrockz/wit/binary/core_model" @types,
-@@ -3,0 +5,4 @@
+@@ -3,0 +5,6 @@
 +
 +import {
 +  "moonrockz/wit/binary/core_encoder",
++  "moonrockz/wit/binary/core_parser",
++  "moonrockz/wit/binary/core_text" @wat,
 +} for "test"

@@ -8,14 +8,19 @@ fn Parser::parse_i32_instruction(
   match kw {
 
     // Memory
-    "i32.load" => parse_mem_arg(self, fn(m, a, o) { I32Load(m, a, o) })
+    "i32.load" =>
+      parse_mem_arg(self, fn(m, a, o) { I32Load(m, a, o) }, default_align=2)
     "i32.load8_s" => parse_mem_arg(self, fn(m, a, o) { I32Load8S(m, a, o) })
     "i32.load8_u" => parse_mem_arg(self, fn(m, a, o) { I32Load8U(m, a, o) })
-    "i32.load16_s" => parse_mem_arg(self, fn(m, a, o) { I32Load16S(m, a, o) })
-    "i32.load16_u" => parse_mem_arg(self, fn(m, a, o) { I32Load16U(m, a, o) })
-    "i32.store" => parse_mem_arg(self, fn(m, a, o) { I32Store(m, a, o) })
+    "i32.load16_s" =>
+      parse_mem_arg(self, fn(m, a, o) { I32Load16S(m, a, o) }, default_align=1)
+    "i32.load16_u" =>
+      parse_mem_arg(self, fn(m, a, o) { I32Load16U(m, a, o) }, default_align=1)
+    "i32.store" =>
+      parse_mem_arg(self, fn(m, a, o) { I32Store(m, a, o) }, default_align=2)
     "i32.store8" => parse_mem_arg(self, fn(m, a, o) { I32Store8(m, a, o) })
-    "i32.store16" => parse_mem_arg(self, fn(m, a, o) { I32Store16(m, a, o) })
+    "i32.store16" =>
+      parse_mem_arg(self, fn(m, a, o) { I32Store16(m, a, o) }, default_align=1)
 
     // Constants
     "i32.const" => I32Const(self.parse_i32())
@@ -77,17 +82,25 @@ fn Parser::parse_i64_instruction(
   kw : String,
 ) -> @types.Instruction raise WatError {
   match kw {
-    "i64.load" => parse_mem_arg(self, fn(m, a, o) { I64Load(m, a, o) })
+    "i64.load" =>
+      parse_mem_arg(self, fn(m, a, o) { I64Load(m, a, o) }, default_align=3)
     "i64.load8_s" => parse_mem_arg(self, fn(m, a, o) { I64Load8S(m, a, o) })
     "i64.load8_u" => parse_mem_arg(self, fn(m, a, o) { I64Load8U(m, a, o) })
-    "i64.load16_s" => parse_mem_arg(self, fn(m, a, o) { I64Load16S(m, a, o) })
-    "i64.load16_u" => parse_mem_arg(self, fn(m, a, o) { I64Load16U(m, a, o) })
-    "i64.load32_s" => parse_mem_arg(self, fn(m, a, o) { I64Load32S(m, a, o) })
-    "i64.load32_u" => parse_mem_arg(self, fn(m, a, o) { I64Load32U(m, a, o) })
-    "i64.store" => parse_mem_arg(self, fn(m, a, o) { I64Store(m, a, o) })
+    "i64.load16_s" =>
+      parse_mem_arg(self, fn(m, a, o) { I64Load16S(m, a, o) }, default_align=1)
+    "i64.load16_u" =>
+      parse_mem_arg(self, fn(m, a, o) { I64Load16U(m, a, o) }, default_align=1)
+    "i64.load32_s" =>
+      parse_mem_arg(self, fn(m, a, o) { I64Load32S(m, a, o) }, default_align=2)
+    "i64.load32_u" =>
+      parse_mem_arg(self, fn(m, a, o) { I64Load32U(m, a, o) }, default_align=2)
+    "i64.store" =>
+      parse_mem_arg(self, fn(m, a, o) { I64Store(m, a, o) }, default_align=3)
     "i64.store8" => parse_mem_arg(self, fn(m, a, o) { I64Store8(m, a, o) })
-    "i64.store16" => parse_mem_arg(self, fn(m, a, o) { I64Store16(m, a, o) })
-    "i64.store32" => parse_mem_arg(self, fn(m, a, o) { I64Store32(m, a, o) })
+    "i64.store16" =>
+      parse_mem_arg(self, fn(m, a, o) { I64Store16(m, a, o) }, default_align=1)
+    "i64.store32" =>
+      parse_mem_arg(self, fn(m, a, o) { I64Store32(m, a, o) }, default_align=2)
     "i64.const" => I64Const(self.parse_i64())
 
     // i64 operations
@@ -149,8 +162,10 @@ fn Parser::parse_f32_instruction(
   kw : String,
 ) -> @types.Instruction raise WatError {
   match kw {
-    "f32.load" => parse_mem_arg(self, fn(m, a, o) { F32Load(m, a, o) })
-    "f32.store" => parse_mem_arg(self, fn(m, a, o) { F32Store(m, a, o) })
+    "f32.load" =>
+      parse_mem_arg(self, fn(m, a, o) { F32Load(m, a, o) }, default_align=2)
+    "f32.store" =>
+      parse_mem_arg(self, fn(m, a, o) { F32Store(m, a, o) }, default_align=2)
     "f32.const" => F32Const(self.parse_f32())
 
     // f32 operations
@@ -190,8 +205,10 @@ fn Parser::parse_f64_instruction(
   kw : String,
 ) -> @types.Instruction raise WatError {
   match kw {
-    "f64.load" => parse_mem_arg(self, fn(m, a, o) { F64Load(m, a, o) })
-    "f64.store" => parse_mem_arg(self, fn(m, a, o) { F64Store(m, a, o) })
+    "f64.load" =>
+      parse_mem_arg(self, fn(m, a, o) { F64Load(m, a, o) }, default_align=3)
+    "f64.store" =>
+      parse_mem_arg(self, fn(m, a, o) { F64Store(m, a, o) }, default_align=3)
     "f64.const" => F64Const(self.parse_f64())
 
     // f64 operations

@@ -63,6 +63,13 @@
 -  "moonbitlang/core/strconv",
 -}
 +} for "test"
+--- a/numeric_memarg_wbtest.mbt
++++ b/numeric_memarg_wbtest.mbt
+@@ -21,2 +21,2 @@
+-      #|  I32Load(1, 0, 0),
+-      #|  I32Store(1, 0, 0),
++      #|  I32Load(1, 2, 0),
++      #|  I32Store(1, 2, 0),
 --- a/parse.mbt
 +++ b/parse.mbt
 @@ -37,2 +37,2 @@
@@ -590,9 +597,154 @@
 @@ -1162 +1182 @@
 -) -> Int {
 +) -> Int32 {
+--- a/parser_instr_scalar.mbt
++++ b/parser_instr_scalar.mbt
+@@ -11 +11,2 @@
+-    "i32.load" => parse_mem_arg(self, fn(m, a, o) { I32Load(m, a, o) })
++    "i32.load" =>
++      parse_mem_arg(self, fn(m, a, o) { I32Load(m, a, o) }, default_align=2)
+@@ -14,3 +15,6 @@
+-    "i32.load16_s" => parse_mem_arg(self, fn(m, a, o) { I32Load16S(m, a, o) })
+-    "i32.load16_u" => parse_mem_arg(self, fn(m, a, o) { I32Load16U(m, a, o) })
+-    "i32.store" => parse_mem_arg(self, fn(m, a, o) { I32Store(m, a, o) })
++    "i32.load16_s" =>
++      parse_mem_arg(self, fn(m, a, o) { I32Load16S(m, a, o) }, default_align=1)
++    "i32.load16_u" =>
++      parse_mem_arg(self, fn(m, a, o) { I32Load16U(m, a, o) }, default_align=1)
++    "i32.store" =>
++      parse_mem_arg(self, fn(m, a, o) { I32Store(m, a, o) }, default_align=2)
+@@ -18 +22,2 @@
+-    "i32.store16" => parse_mem_arg(self, fn(m, a, o) { I32Store16(m, a, o) })
++    "i32.store16" =>
++      parse_mem_arg(self, fn(m, a, o) { I32Store16(m, a, o) }, default_align=1)
+@@ -80 +85,2 @@
+-    "i64.load" => parse_mem_arg(self, fn(m, a, o) { I64Load(m, a, o) })
++    "i64.load" =>
++      parse_mem_arg(self, fn(m, a, o) { I64Load(m, a, o) }, default_align=3)
+@@ -83,5 +89,10 @@
+-    "i64.load16_s" => parse_mem_arg(self, fn(m, a, o) { I64Load16S(m, a, o) })
+-    "i64.load16_u" => parse_mem_arg(self, fn(m, a, o) { I64Load16U(m, a, o) })
+-    "i64.load32_s" => parse_mem_arg(self, fn(m, a, o) { I64Load32S(m, a, o) })
+-    "i64.load32_u" => parse_mem_arg(self, fn(m, a, o) { I64Load32U(m, a, o) })
+-    "i64.store" => parse_mem_arg(self, fn(m, a, o) { I64Store(m, a, o) })
++    "i64.load16_s" =>
++      parse_mem_arg(self, fn(m, a, o) { I64Load16S(m, a, o) }, default_align=1)
++    "i64.load16_u" =>
++      parse_mem_arg(self, fn(m, a, o) { I64Load16U(m, a, o) }, default_align=1)
++    "i64.load32_s" =>
++      parse_mem_arg(self, fn(m, a, o) { I64Load32S(m, a, o) }, default_align=2)
++    "i64.load32_u" =>
++      parse_mem_arg(self, fn(m, a, o) { I64Load32U(m, a, o) }, default_align=2)
++    "i64.store" =>
++      parse_mem_arg(self, fn(m, a, o) { I64Store(m, a, o) }, default_align=3)
+@@ -89,2 +100,4 @@
+-    "i64.store16" => parse_mem_arg(self, fn(m, a, o) { I64Store16(m, a, o) })
+-    "i64.store32" => parse_mem_arg(self, fn(m, a, o) { I64Store32(m, a, o) })
++    "i64.store16" =>
++      parse_mem_arg(self, fn(m, a, o) { I64Store16(m, a, o) }, default_align=1)
++    "i64.store32" =>
++      parse_mem_arg(self, fn(m, a, o) { I64Store32(m, a, o) }, default_align=2)
+@@ -152,2 +165,4 @@
+-    "f32.load" => parse_mem_arg(self, fn(m, a, o) { F32Load(m, a, o) })
+-    "f32.store" => parse_mem_arg(self, fn(m, a, o) { F32Store(m, a, o) })
++    "f32.load" =>
++      parse_mem_arg(self, fn(m, a, o) { F32Load(m, a, o) }, default_align=2)
++    "f32.store" =>
++      parse_mem_arg(self, fn(m, a, o) { F32Store(m, a, o) }, default_align=2)
+@@ -193,2 +208,4 @@
+-    "f64.load" => parse_mem_arg(self, fn(m, a, o) { F64Load(m, a, o) })
+-    "f64.store" => parse_mem_arg(self, fn(m, a, o) { F64Store(m, a, o) })
++    "f64.load" =>
++      parse_mem_arg(self, fn(m, a, o) { F64Load(m, a, o) }, default_align=3)
++    "f64.store" =>
++      parse_mem_arg(self, fn(m, a, o) { F64Store(m, a, o) }, default_align=3)
 --- a/parser_instr_simd.mbt
 +++ b/parser_instr_simd.mbt
-@@ -105 +105 @@
+@@ -16,2 +16,4 @@
+-    "v128.load" => parse_mem_arg(self, fn(m, a, o) { V128Load(m, a, o) })
+-    "v128.store" => parse_mem_arg(self, fn(m, a, o) { V128Store(m, a, o) })
++    "v128.load" =>
++      parse_mem_arg(self, fn(m, a, o) { V128Load(m, a, o) }, default_align=4)
++    "v128.store" =>
++      parse_mem_arg(self, fn(m, a, o) { V128Store(m, a, o) }, default_align=4)
+@@ -19 +21,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load8x8S(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load8x8S(m, a, o) },
++        default_align=3,
++      )
+@@ -21 +27,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load8x8U(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load8x8U(m, a, o) },
++        default_align=3,
++      )
+@@ -23 +33,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load16x4S(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load16x4S(m, a, o) },
++        default_align=3,
++      )
+@@ -25 +39,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load16x4U(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load16x4U(m, a, o) },
++        default_align=3,
++      )
+@@ -27 +45,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load32x2S(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load32x2S(m, a, o) },
++        default_align=3,
++      )
+@@ -29 +51,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load32x2U(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load32x2U(m, a, o) },
++        default_align=3,
++      )
+@@ -33 +59,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load16Splat(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load16Splat(m, a, o) },
++        default_align=1,
++      )
+@@ -35 +65,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load32Splat(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load32Splat(m, a, o) },
++        default_align=2,
++      )
+@@ -37 +71,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load64Splat(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load64Splat(m, a, o) },
++        default_align=3,
++      )
+@@ -39 +77,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load32Zero(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load32Zero(m, a, o) },
++        default_align=2,
++      )
+@@ -41 +83,5 @@
+-      parse_mem_arg(self, fn(m, a, o) { V128Load64Zero(m, a, o) })
++      parse_mem_arg(
++        self,
++        fn(m, a, o) { V128Load64Zero(m, a, o) },
++        default_align=3,
++      )
+@@ -105 +151 @@
 -      let lanes : FixedArray[Int] = FixedArray::make(16, 0)
 +      let lanes : FixedArray[Int32] = FixedArray::make(16, 0)
 --- a/parser_module.mbt

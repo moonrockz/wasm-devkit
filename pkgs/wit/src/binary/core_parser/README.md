@@ -37,3 +37,5 @@ Shared references, `ref.i31_shared`, modern handlers and legacy
 try/catch/catch_all/rethrow/delegate use the same bounded expression reader.
 GC data-segment instructions require the data-count section. Text metadata
 readers retain the module's type graph while reading function bodies.
+
+Typed-select vectors retain their full reference types and nullability.

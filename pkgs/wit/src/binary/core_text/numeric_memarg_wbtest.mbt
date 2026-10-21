@@ -18,8 +18,8 @@ test "numeric memory indices and SIMD lanes have distinct immediate positions" {
     accesses,
     content=(
       #|[
-      #|  I32Load(1, 0, 0),
-      #|  I32Store(1, 0, 0),
+      #|  I32Load(1, 2, 0),
+      #|  I32Store(1, 2, 0),
       #|  V128Load8Lane(0, 0, 0, 0),
       #|  V128Load8Lane(1, 0, 0, 2),
       #|]

@@ -291,19 +291,19 @@ fn encode_valtype(w : BinaryWriter, vt : @types.ValueType) -> Unit {
     }
     RefStruct(idx) => {
       w.write_byte(0x64) // ref
-      w.write_s32(idx)
+      w.write_s32(if idx == -1 { -21 } else { idx })
     }
     RefNullStruct(idx) => {
       w.write_byte(0x63) // ref null
-      w.write_s32(idx)
+      w.write_s32(if idx == -1 { -21 } else { idx })
     }
     RefArray(idx) => {
       w.write_byte(0x64) // ref
-      w.write_s32(idx)
+      w.write_s32(if idx == -1 { -22 } else { idx })
     }
     RefNullArray(idx) => {
       w.write_byte(0x63) // ref null
-      w.write_s32(idx)
+      w.write_s32(if idx == -1 { -22 } else { idx })
     }
   }
 }
@@ -512,11 +512,14 @@ fn encode_block_type(
 /// Encode a memory argument (align, offset)
 fn encode_memarg(
   w : BinaryWriter,
-  _memidx : Int32,
+  memidx : Int32,
   align : Int32,
   offset : Int64,
 ) -> Unit {
-  w.write_u32(align)
+  w.write_u32(align | (if memidx != 0 { 0x40 } else { 0 }))
+  if memidx != 0 {
+    w.write_u32(memidx)
+  }
   w.write_u64(offset)
 }
 

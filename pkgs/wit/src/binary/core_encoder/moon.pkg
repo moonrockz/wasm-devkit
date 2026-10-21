@@ -5,4 +5,6 @@ import {
 
 import {
   "moonrockz/wit/binary/core_encoder",
+  "moonrockz/wit/binary/core_parser",
+  "moonrockz/wit/binary/core_text" @wat,
 } for "test"

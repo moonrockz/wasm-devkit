@@ -1119,3 +1119,103 @@ test "GC reference printer model-abstract-bottom-contracts" {
     "(module\n  (type $f (;0;) (func (param (ref none) (ref nofunc) (ref noextern) (ref noexn) (ref eq) (ref i31))))\n  (import \"env\" \"f\" (func (;0;) (type $f) (param (ref none) (ref nofunc) (ref noextern) (ref noexn) (ref eq) (ref i31))))\n  (table (;0;) 0 exnref)\n  (global (;0;) nullref ref.null none)\n  (export \"exn\" (table 0))\n  (export \"none\" (global 0))\n)\n",
   )
 }
+
+///|
+test "GC reference printer model-encoding-memory32-index" {
+  let input = b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x05\x01\x60\x00\x01\x7f\x03\x02\x01\x00\x05\x05\x02\x00\x01\x00\x02\x07\x11\x02\x06\x74\x61\x72\x67\x65\x74\x02\x01\x04\x6c\x6f\x61\x64\x00\x00\x0a\x0a\x01\x08\x00\x41\x00\x28\x42\x01\x00\x0b"
+  let printed = @decompiler.print_core_module(
+    input,
+    compatibility=Some(@decompiler.Compatibility::WasmTools),
+  )
+  assert_true(
+    printed is Ok(_),
+    msg=match printed {
+      Ok(_) => "printed"
+      Err(e) => e[0].message
+    },
+  )
+  assert_eq(
+    printed.unwrap().root().text,
+    "(module\n  (type (;0;) (func (result i32)))\n  (memory (;0;) 1)\n  (memory (;1;) 2)\n  (export \"target\" (memory 1))\n  (export \"load\" (func 0))\n  (func (;0;) (type 0) (result i32)\n    i32.const 0\n    i32.load 1\n  )\n)\n",
+  )
+}
+
+///|
+test "GC reference printer model-encoding-memory64-index" {
+  let input = b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x06\x01\x60\x01\x7e\x01\x7e\x03\x02\x01\x00\x05\x05\x02\x00\x01\x04\x02\x07\x11\x02\x06\x74\x61\x72\x67\x65\x74\x02\x01\x04\x6c\x6f\x61\x64\x00\x00\x0a\x0e\x01\x0c\x00\x20\x00\x29\x42\x01\x80\x80\x80\x80\x20\x0b"
+  let printed = @decompiler.print_core_module(
+    input,
+    compatibility=Some(@decompiler.Compatibility::WasmTools),
+  )
+  assert_true(
+    printed is Ok(_),
+    msg=match printed {
+      Ok(_) => "printed"
+      Err(e) => e[0].message
+    },
+  )
+  assert_eq(
+    printed.unwrap().root().text,
+    "(module\n  (type (;0;) (func (param i64) (result i64)))\n  (memory (;0;) 1)\n  (memory (;1;) i64 2)\n  (export \"target\" (memory 1))\n  (export \"load\" (func 0))\n  (func (;0;) (type 0) (param i64) (result i64)\n    local.get 0\n    i64.load 1 offset=8589934592 align=4\n  )\n)\n",
+  )
+}
+
+///|
+test "GC reference printer model-encoding-abstract-shorthand" {
+  let input = b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x08\x01\x60\x02\x6b\x6a\x02\x6b\x6a\x03\x02\x01\x00\x07\x06\x01\x02\x69\x64\x00\x00\x0a\x08\x01\x06\x00\x20\x00\x20\x01\x0b"
+  let printed = @decompiler.print_core_module(
+    input,
+    compatibility=Some(@decompiler.Compatibility::WasmTools),
+  )
+  assert_true(
+    printed is Ok(_),
+    msg=match printed {
+      Ok(_) => "printed"
+      Err(e) => e[0].message
+    },
+  )
+  assert_eq(
+    printed.unwrap().root().text,
+    "(module\n  (type (;0;) (func (param structref arrayref) (result structref arrayref)))\n  (export \"id\" (func 0))\n  (func (;0;) (type 0) (param structref arrayref) (result structref arrayref)\n    local.get 0\n    local.get 1\n  )\n)\n",
+  )
+}
+
+///|
+test "GC reference printer model-encoding-abstract-fields-select" {
+  let input = b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x11\x03\x5f\x02\x6b\x00\x6a\x00\x5e\x6a\x00\x60\x03\x6b\x6b\x7f\x01\x6b\x03\x02\x01\x02\x06\x06\x01\x6a\x00\xd0\x6a\x0b\x07\x0a\x02\x02\x69\x64\x00\x00\x01\x67\x03\x00\x0a\x0d\x01\x0b\x00\x20\x00\x20\x01\x20\x02\x1c\x01\x6b\x0b"
+  let printed = @decompiler.print_core_module(
+    input,
+    compatibility=Some(@decompiler.Compatibility::WasmTools),
+  )
+  assert_true(
+    printed is Ok(_),
+    msg=match printed {
+      Ok(_) => "printed"
+      Err(e) => e[0].message
+    },
+  )
+  assert_eq(
+    printed.unwrap().root().text,
+    "(module\n  (type (;0;) (struct (field structref) (field arrayref)))\n  (type (;1;) (array arrayref))\n  (type (;2;) (func (param structref structref i32) (result structref)))\n  (global (;0;) arrayref ref.null array)\n  (export \"id\" (func 0))\n  (export \"g\" (global 0))\n  (func (;0;) (type 2) (param structref structref i32) (result structref)\n    local.get 0\n    local.get 1\n    local.get 2\n    select (result structref)\n  )\n)\n",
+  )
+}
+
+///|
+test "GC reference printer model-encoding-memory64-unsigned-offset" {
+  let input = b"\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x06\x01\x60\x01\x7e\x01\x7e\x03\x02\x01\x00\x05\x05\x02\x00\x01\x04\x02\x07\x11\x02\x06\x74\x61\x72\x67\x65\x74\x02\x01\x04\x6c\x6f\x61\x64\x00\x00\x0a\x13\x01\x11\x00\x20\x00\x29\x43\x01\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01\x0b"
+  let printed = @decompiler.print_core_module(
+    input,
+    compatibility=Some(@decompiler.Compatibility::WasmTools),
+  )
+  assert_true(
+    printed is Ok(_),
+    msg=match printed {
+      Ok(_) => "printed"
+      Err(e) => e[0].message
+    },
+  )
+  assert_eq(
+    printed.unwrap().root().text,
+    "(module\n  (type (;0;) (func (param i64) (result i64)))\n  (memory (;0;) 1)\n  (memory (;1;) i64 2)\n  (export \"target\" (memory 1))\n  (export \"load\" (func 0))\n  (func (;0;) (type 0) (param i64) (result i64)\n    local.get 0\n    i64.load 1 offset=18446744073709551615\n  )\n)\n",
+  )
+}

@@ -178,7 +178,7 @@ async fn main {
     wasm_tools, wac_oracle, "wac-shared-globals", "test:globals", 39,
   )
   package_profile_gate(
-    wasm_tools, wac_oracle, "wac-binary-extensions", "test:extensions", 135,
+    wasm_tools, wac_oracle, "wac-binary-extensions", "test:extensions", 140,
   )
   println(
     "\{count} semantic fixture comparisons and \{models} normalized WIT world summaries passed",

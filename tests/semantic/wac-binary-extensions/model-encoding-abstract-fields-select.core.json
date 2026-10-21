@@ -1,0 +1,49 @@
+{
+  "exports": [
+    {
+      "name": "id",
+      "signature": {
+        "kind": "func",
+        "signature": {
+          "params": [
+            {
+              "heap": "struct",
+              "kind": "reference",
+              "nullable": true
+            },
+            {
+              "heap": "struct",
+              "kind": "reference",
+              "nullable": true
+            },
+            {
+              "kind": "scalar",
+              "name": "i32"
+            }
+          ],
+          "results": [
+            {
+              "heap": "struct",
+              "kind": "reference",
+              "nullable": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "g",
+      "signature": {
+        "kind": "global",
+        "mutable": false,
+        "shared": false,
+        "value": {
+          "heap": "array",
+          "kind": "reference",
+          "nullable": true
+        }
+      }
+    }
+  ],
+  "imports": []
+}

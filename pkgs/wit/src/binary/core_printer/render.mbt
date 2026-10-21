@@ -927,7 +927,7 @@ fn mem_instr(
     sb.write_string(" \{mem}")
   }
   if offset != 0L {
-    sb.write_string(" offset=\{offset}")
+    sb.write_string(" offset=\{offset.reinterpret_as_uint64()}")
   }
   let align_bytes = 1 << align
   sb.write_string(" align=\{align_bytes}")

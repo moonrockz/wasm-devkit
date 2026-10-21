@@ -214,6 +214,7 @@ fn Parser::read_instruction(
     // Parametric instructions
     0x1A => Drop
     0x1B => Select
+    0x1C => SelectTyped(self.read_vec(() => self.read_value_type()))
     // Variable instructions
     0x20 => LocalGet(self.read_u32())
     0x21 => LocalSet(self.read_u32())
