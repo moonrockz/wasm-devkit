@@ -1,9 +1,13 @@
 # wasm-devkit CLI
 
-Syntax tools for WIT and WAC. The CLI parses and diagnoses source, inspects tokens and
+Syntax tools and semantic verification for WIT and WAC, with WebAssembly binary
+inspection and core-WAT comparison. The CLI parses and diagnoses source, inspects tokens and
 immutable AST/CST arenas, prints canonical AST source and formats while retaining comments.
-It performs no package resolution or composition evaluation.
-`decompile` prints a core-module or component `.wasm` binary as one WAT document.
+
+`verify` resolves package dependencies and checks WIT packages and WAC compositions
+within the supported profiles, without executing components. `decompile` prints a
+core-module or component `.wasm` binary as WAT, `inventory` lists module and API
+contracts, and `compare` reports text or semantic differences between core-WAT inputs.
 
 ## Install
 
