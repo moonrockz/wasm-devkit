@@ -235,9 +235,9 @@ through `@component_text.parse_normalized_component_wat`, validates under the
 same profile, and prints again to the same text, except for the omitted
 custom-section comments of core modules. Every prefix of a runtime component and
 arbitrary bytes after a component header either fail with one diagnostic or
-print. 256 nested components print, and 257 fail. Nested component types are
-tested at 64 levels, because the retained validator recurses through type
-declarations (`wasm-devkit-p5m.14`).
+print. 256 nested components and component types print, and 257 fail. Validation
+and printing use explicit stacks. Local text readback tests use smaller depths
+to stay within the retained compiler's parenthesis limit.
 
 The [WIT verifier](../verifier/README.mbt.md) decodes four pinned upstream
 encoded packages, including wasi-http, from binary and from printed WAT, and the

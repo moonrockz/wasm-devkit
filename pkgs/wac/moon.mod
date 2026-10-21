@@ -1,6 +1,6 @@
 name = "moonrockz/wac"
 
-version = "0.2.0"
+version = "0.3.0"
 
 description = "WAC language tooling for MoonBit"
 
@@ -15,7 +15,7 @@ readme = "README.mbt.md"
 source = "src"
 
 import {
-  "moonrockz/wit@0.2.0",
+  "moonrockz/wit@0.3.0",
   "Milky2018/wasm_component@0.16.0",
   "moonbitlang/x@0.5.5",
 }

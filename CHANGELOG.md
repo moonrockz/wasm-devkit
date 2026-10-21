@@ -7,6 +7,47 @@ is 0.x, a minor release can contain breaking changes.
 <!-- git-cliff: end of header -->
 
 
+## [0.3.0] - 2026-10-21
+
+This release adds binary inspection and WAT comparison to the WIT and WAC libraries
+and CLI. `wasm-devkit decompile` prints supported core modules and components as WAT.
+`inventory` lists immutable module and API contracts, and component splitting emits
+WAC compositions and independently compilable WAT dependencies with explicit selection.
+
+Optional compatibility layouts match pinned wasm-tools 1.262.0 and WABT 1.0.42
+printers within their documented profiles. `wasm-devkit compare` adds exact text
+comparison and semantic core-WAT comparison with structured diffs, resolved indices
+and typed numeric-bit equivalence. Semantic comparison does not claim arbitrary
+behavioral equivalence or component-WAT support.
+
+Binary verification now covers additional canonical ABI operations, concrete
+GC/reference types, recursive groups, shared globals and exception instructions.
+Core limits retain full unsigned 64-bit values and memory page sizes. Explicit
+work stacks prevent deep component-type validation from overflowing the Wasm stack.
+Unsupported constructs still fail explicitly under the documented input and
+readback limits. Regression coverage runs on wasm, wasm-gc, JavaScript and native.
+
+### 🚀 Features
+
+- *(wac)* Extend canonical ABI verification ([#8](https://github.com/moonrockz/wasm-devkit/pull/8)) by @DamianReeves
+- *(wit)* Print core-module binaries as WAT ([#9](https://github.com/moonrockz/wasm-devkit/pull/9)) by @DamianReeves
+- *(wit)* Print component binaries as WAT ([#10](https://github.com/moonrockz/wasm-devkit/pull/10)) by @DamianReeves
+- *(wac)* Inventory and split components ([#11](https://github.com/moonrockz/wasm-devkit/pull/11)) by @DamianReeves
+- *(wat)* Match pinned WAT printer layouts ([#12](https://github.com/moonrockz/wasm-devkit/pull/12)) by @DamianReeves
+- *(wit)* Extend nested and concrete core limits ([#14](https://github.com/moonrockz/wasm-devkit/pull/14)) by @DamianReeves
+- *(wit)* Verify shared concrete globals ([#15](https://github.com/moonrockz/wasm-devkit/pull/15)) by @DamianReeves
+- *(binary)* Verify GC and exception profiles ([#16](https://github.com/moonrockz/wasm-devkit/pull/16)) by @DamianReeves
+- *(wat)* Add semantic comparison and diffs ([#17](https://github.com/moonrockz/wasm-devkit/pull/17)) by @DamianReeves
+
+### 🐛 Bug fixes
+
+- *(wit)* Validate deep component types safely ([#13](https://github.com/moonrockz/wasm-devkit/pull/13)) by @DamianReeves
+
+**Full changelog**: https://github.com/moonrockz/wasm-devkit/compare/v0.2.0...v0.3.0
+
+
+
+
 ## [0.2.0] - 2026-10-19
 
 This release adds semantic verification for WIT packages and WAC compositions through

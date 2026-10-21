@@ -8,8 +8,8 @@ A MoonBit monorepo for WebAssembly language tooling, created from the
 The modules work independently. Install both to run the two quickstarts below:
 
 ```shell
-moon add moonrockz/wit@0.2.0
-moon add moonrockz/wac@0.2.0
+moon add moonrockz/wit@0.3.0
+moon add moonrockz/wac@0.3.0
 ```
 
 The snippets below are executable MoonBit tests. In your MoonBit package, put these imports
@@ -122,7 +122,7 @@ binary as one deterministic WAT document, with core modules and nested component
 `moonrockz/wac/decompiler` and the CLI provide API-shape inventories, component
 selection and recursive WAC/WAT splitting. See the [split guide](pkgs/wac/src/decompiler/README.mbt.md).
 Opt-in compatibility modes reproduce the pinned wasm-tools 1.262.0 and WABT 1.0.42 printers.
-See the [compatibility fixtures](tests/decompiler/compatibility/README.md) for exact invocations and measured boundaries. The current release version is `0.2.0`.
+See the [compatibility fixtures](tests/decompiler/compatibility/README.md) for exact invocations and measured boundaries. The current release version is `0.3.0`.
 
 | Module | Path | Intended capabilities |
 |--------|------|-----------------------|
@@ -228,7 +228,7 @@ The Smithy database and tasks are not reused.
 
 ## Releases
 
-The current release is `0.2.0`. All modules share the root version.
+The current release is `0.3.0`. All modules share the root version.
 Version `0.0.0` is reserved for unpublished development.
 
 Run `mise run release:prepare -- X.Y.Z` on clean main. This creates a local release branch,
