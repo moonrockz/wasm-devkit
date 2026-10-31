@@ -28,9 +28,9 @@ pub fn verify_ast(@ast.Tree, source_id? : String, source~ : String, semantic_fea
 // Types and methods
 pub(all) struct Binding {
   name : String
-  scope : Int
-  node : Int
-  target : Int
+  scope : Int32
+  node : Int32
+  target : Int32
 } derive(Eq, @debug.Debug)
 pub fn Binding::equal(Self, Self) -> Bool
 pub fn Binding::not_equal(Self, Self) -> Bool
@@ -74,9 +74,9 @@ pub fn FunctionFlavor::to_repr(Self) -> @debug.Repr
 
 pub(all) enum FunctionKind {
   Freestanding
-  Method(Int)
-  Static(Int)
-  Constructor(Int)
+  Method(Int32)
+  Static(Int32)
+  Constructor(Int32)
 } derive(Eq, @debug.Debug)
 pub fn FunctionKind::equal(Self, Self) -> Bool
 pub fn FunctionKind::not_equal(Self, Self) -> Bool
@@ -94,7 +94,7 @@ pub(all) struct Location {
   source : String
   position : Position
 } derive(Eq, @debug.Debug)
-pub fn Location::binary(String, offset? : Int?) -> Self
+pub fn Location::binary(String, offset? : Int32?) -> Self
 pub fn Location::equal(Self, Self) -> Bool
 pub fn Location::not_equal(Self, Self) -> Bool
 pub fn Location::render(Self) -> String
@@ -104,7 +104,7 @@ pub fn Location::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Origin {
   location : Location
-  node : Int?
+  node : Int32?
 } derive(Eq, @debug.Debug)
 pub fn Origin::equal(Self, Self) -> Bool
 pub fn Origin::not_equal(Self, Self) -> Bool
@@ -128,7 +128,7 @@ pub fn PackageInput::identity(Self) -> Result[PackageIdentity, ReadOnlyArray[Dia
 
 pub(all) enum Position {
   SourceSpan(@span.Span)
-  BinaryOffset(Int?)
+  BinaryOffset(Int32?)
 } derive(Eq, @debug.Debug)
 pub fn Position::equal(Self, Self) -> Bool
 pub fn Position::not_equal(Self, Self) -> Bool
@@ -142,7 +142,7 @@ pub fn Resolution::declarations(Self) -> ReadOnlyArray[Binding]
 pub fn Resolution::functions(Self) -> ReadOnlyArray[ResolvedFunction]
 pub fn Resolution::identities(Self) -> ReadOnlyArray[PackageIdentity]
 pub fn Resolution::interfaces(Self) -> ReadOnlyArray[ResolvedInterface]
-pub fn Resolution::origin(Self, Int) -> Origin?
+pub fn Resolution::origin(Self, Int32) -> Origin?
 pub fn Resolution::root(Self) -> PackageIdentity
 pub fn Resolution::root_location(Self) -> Location
 pub fn Resolution::select_world(Self, name? : String?) -> Result[ResolvedWorld, ReadOnlyArray[Diagnostic]]
@@ -153,12 +153,12 @@ pub fn Resolution::worlds(Self) -> ReadOnlyArray[ResolvedWorld]
 pub fn Resolution::worlds_in_dependency_order(Self) -> ReadOnlyArray[ResolvedWorld]
 
 pub(all) struct ResolvedFunction {
-  id : Int
+  id : Int32
   name : String
   kind : FunctionKind
   flavor : FunctionFlavor
   params : ReadOnlyArray[TypeMember]
-  result : Int?
+  result : Int32?
   asynchronous : Bool
   location : Location
   stability : Stability
@@ -169,7 +169,7 @@ pub fn ResolvedFunction::not_equal(Self, Self) -> Bool
 pub fn ResolvedFunction::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ResolvedInterface {
-  id : Int
+  id : Int32
   name : String?
   package_identity : PackageIdentity
   types : ReadOnlyArray[TypeMember]
@@ -182,8 +182,8 @@ pub fn ResolvedInterface::not_equal(Self, Self) -> Bool
 pub fn ResolvedInterface::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ResolvedType {
-  scope : Int
-  id : Int
+  scope : Int32
+  id : Int32
   name : String?
   kind : TypeKind
   location : Location
@@ -196,7 +196,7 @@ pub fn ResolvedType::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ResolvedWorld {
   package_identity : PackageIdentity
-  id : Int
+  id : Int32
   name : String
   imports : ReadOnlyArray[WorldItem]
   exports : ReadOnlyArray[WorldItem]
@@ -233,7 +233,7 @@ pub fn Stability::to_repr(Self) -> @debug.Repr
 
 pub(all) struct TypeCase {
   name : String
-  payload : Int?
+  payload : Int32?
   location : Location
 } derive(Eq, @debug.Debug)
 pub fn TypeCase::equal(Self, Self) -> Bool
@@ -243,16 +243,16 @@ pub fn TypeCase::to_repr(Self) -> @debug.Repr
 pub(all) enum TypeKind {
   Scalar(String)
   Resource
-  Own(Int)
-  Borrow(Int)
-  Alias(Int)
-  List(Int, UInt?)
-  Tuple(ReadOnlyArray[Int])
-  Option(Int)
-  Result(Int?, Int?)
-  Future(Int?)
-  Stream(Int?)
-  Map(Int, Int)
+  Own(Int32)
+  Borrow(Int32)
+  Alias(Int32)
+  List(Int32, UInt32?)
+  Tuple(ReadOnlyArray[Int32])
+  Option(Int32)
+  Result(Int32?, Int32?)
+  Future(Int32?)
+  Stream(Int32?)
+  Map(Int32, Int32)
   Record(ReadOnlyArray[TypeMember])
   Flags(ReadOnlyArray[String])
   Enum(ReadOnlyArray[String])
@@ -264,7 +264,7 @@ pub fn TypeKind::to_repr(Self) -> @debug.Repr
 
 pub(all) struct TypeMember {
   name : String
-  ty : Int
+  ty : Int32
   location : Location
 } derive(Eq, @debug.Debug)
 pub fn TypeMember::equal(Self, Self) -> Bool
@@ -279,7 +279,7 @@ pub struct Verified {
   resolved_types : ReadOnlyArray[ResolvedType]
   package_identity : PackageIdentity
   resolved_worlds : ReadOnlyArray[ResolvedWorld]
-  world_dependency_order : ReadOnlyArray[Int]
+  world_dependency_order : ReadOnlyArray[Int32]
   resolved_interfaces : ReadOnlyArray[ResolvedInterface]
   resolved_functions : ReadOnlyArray[ResolvedFunction]
 }
@@ -308,9 +308,9 @@ pub fn WorldItem::not_equal(Self, Self) -> Bool
 pub fn WorldItem::to_repr(Self) -> @debug.Repr
 
 pub(all) enum WorldItemKind {
-  Interface(Int)
-  Function(Int)
-  Type(Int)
+  Interface(Int32)
+  Function(Int32)
+  Type(Int32)
 } derive(Eq, @debug.Debug)
 pub fn WorldItemKind::equal(Self, Self) -> Bool
 pub fn WorldItemKind::not_equal(Self, Self) -> Bool

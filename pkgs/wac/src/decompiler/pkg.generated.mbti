@@ -52,7 +52,7 @@ pub struct Entry {
   kind : BinaryKind
   name : String?
   export_names : ReadOnlyArray[String]
-  world : Int?
+  world : Int32?
   core : @core_types.Module?
 }
 

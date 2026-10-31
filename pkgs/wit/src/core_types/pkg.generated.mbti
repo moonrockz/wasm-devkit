@@ -6,13 +6,13 @@ import {
 }
 
 // Values
-pub fn check_external_subtype(External, External, work_limit? : Int) -> Result[Int, CompatibilityError]
+pub fn check_external_subtype(External, External, work_limit? : Int32) -> Result[Int32, CompatibilityError]
 
-pub fn check_module_subtype(Module, Module, work_limit? : Int) -> Result[Int, CompatibilityError]
+pub fn check_module_subtype(Module, Module, work_limit? : Int32) -> Result[Int32, CompatibilityError]
 
-pub fn check_type_subtype(TypeIdentity, TypeIdentity, work_limit? : Int) -> Result[Int, CompatibilityError]
+pub fn check_type_subtype(TypeIdentity, TypeIdentity, work_limit? : Int32) -> Result[Int32, CompatibilityError]
 
-pub fn compare_external(External, External, work_limit? : Int) -> Result[(Bool, Int), CompatibilityError]
+pub fn compare_external(External, External, work_limit? : Int32) -> Result[(Bool, Int32), CompatibilityError]
 
 pub fn decode_declarations(Bytes, current? : ReadOnlyArray[Definition], outers? : ReadOnlyArray[ReadOnlyArray[Definition]]) -> Result[ReadOnlyArray[Definition], Diagnostic]
 
@@ -24,15 +24,15 @@ pub fn decode_type(Bytes, current? : ReadOnlyArray[Definition], outers? : ReadOn
 
 pub fn inspect_module(Bytes) -> Result[ModuleMetadata, Diagnostic]
 
-pub fn scan_declaration(Bytes, Int, Int) -> Result[(Int, Int), Diagnostic]
+pub fn scan_declaration(Bytes, Int32, Int32) -> Result[(Int32, Int32), Diagnostic]
 
-pub fn scan_heap_group(Bytes, Int, Int) -> Result[(Int, Int), Diagnostic]
+pub fn scan_heap_group(Bytes, Int32, Int32) -> Result[(Int32, Int32), Diagnostic]
 
-pub fn scan_type(Bytes, Int, Int, legacy_nested? : Bool) -> Result[Int, Diagnostic]
+pub fn scan_type(Bytes, Int32, Int32, legacy_nested? : Bool) -> Result[Int32, Diagnostic]
 
-pub fn scan_value(Bytes, Int, Int) -> Result[(Int, HeapValue), Diagnostic]
+pub fn scan_value(Bytes, Int32, Int32) -> Result[(Int32, HeapValue), Diagnostic]
 
-pub fn signaling_f32_constants(Bytes) -> Result[ReadOnlyArray[Int], Diagnostic]
+pub fn signaling_f32_constants(Bytes) -> Result[ReadOnlyArray[Int32], Diagnostic]
 
 // Errors
 
@@ -46,7 +46,7 @@ pub fn CompatibilityError::not_equal(Self, Self) -> Bool
 pub fn CompatibilityError::to_repr(Self) -> @debug.Repr
 
 pub(all) enum ContractBinding {
-  Scope(Int)
+  Scope(Int32)
   Module(Module)
   Other
 } derive(Eq, @debug.Debug)
@@ -57,17 +57,17 @@ pub fn ContractBinding::to_repr(Self) -> @debug.Repr
 pub struct ContractGraph {
   // private fields
 }
-pub fn ContractGraph::length(Self) -> Int
+pub fn ContractGraph::length(Self) -> Int32
 pub fn ContractGraph::new(ReadOnlyArray[ContractScope]) -> Self
-pub fn ContractGraph::scope(Self, Int) -> ContractScope?
+pub fn ContractGraph::scope(Self, Int32) -> ContractScope?
 
 pub struct ContractScope {
   // private fields
 }
-pub fn ContractScope::binding(Self, Int, Int) -> ContractBinding?
-pub fn ContractScope::definition(Self, Int) -> Definition?
+pub fn ContractScope::binding(Self, Int32, Int32) -> ContractBinding?
+pub fn ContractScope::definition(Self, Int32) -> Definition?
 pub fn ContractScope::exported(Self, String) -> ContractBinding?
-pub fn ContractScope::new(ReadOnlyArray[Definition], ReadOnlyArray[(Int, ReadOnlyArray[ContractBinding])], ReadOnlyArray[(String, ContractBinding)]) -> Self
+pub fn ContractScope::new(ReadOnlyArray[Definition], ReadOnlyArray[(Int32, ReadOnlyArray[ContractBinding])], ReadOnlyArray[(String, ContractBinding)]) -> Self
 
 pub(all) enum Definition {
   Function(Function)
@@ -79,7 +79,7 @@ pub fn Definition::not_equal(Self, Self) -> Bool
 pub fn Definition::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Diagnostic {
-  offset : Int
+  offset : Int32
   kind : ErrorKind
   message : String
 } derive(Eq, @debug.Debug)
@@ -108,7 +108,7 @@ pub(all) enum External {
   Func(Function)
   TypedFunc(TypeIdentity)
   Table(Value, UInt64, UInt64?, Bool, Bool)
-  Memory(UInt64, UInt64?, Bool, Bool, Int?)
+  Memory(UInt64, UInt64?, Bool, Bool, Int32?)
   Global(Value, Bool, Bool)
   Tag(Function)
   TypedTag(TypeIdentity)
@@ -137,9 +137,9 @@ pub fn HeapComposite::to_repr(Self) -> @debug.Repr
 pub(all) struct HeapDefinition {
   final_ : Bool
   shared : Bool
-  supertype : Int?
-  group_start : Int
-  group_size : Int
+  supertype : Int32?
+  group_start : Int32
+  group_size : Int32
   composite : HeapComposite
 } derive(Eq, @debug.Debug)
 pub fn HeapDefinition::equal(Self, Self) -> Bool
@@ -164,7 +164,7 @@ pub fn HeapStorage::to_repr(Self) -> @debug.Repr
 
 pub(all) enum HeapValue {
   Number(String)
-  Ref(Bool, Bool, Int)
+  Ref(Bool, Bool, Int32)
 } derive(Eq, @debug.Debug)
 pub fn HeapValue::equal(Self, Self) -> Bool
 pub fn HeapValue::not_equal(Self, Self) -> Bool
@@ -189,12 +189,12 @@ pub fn Module::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ModuleMetadata {
   contract : Module
-  validation_work : Int
+  validation_work : Int32
 }
 
 pub(all) struct TypeIdentity {
   types : ReadOnlyArray[HeapDefinition]
-  index : Int
+  index : Int32
 } derive(Eq, @debug.Debug)
 pub fn TypeIdentity::equal(Self, Self) -> Bool
 pub fn TypeIdentity::not_equal(Self, Self) -> Bool

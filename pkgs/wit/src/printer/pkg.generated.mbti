@@ -7,7 +7,7 @@ import {
 }
 
 // Values
-pub fn print(@ast.Tree, indent_width? : Int) -> Result[String, PrintError]
+pub fn print(@ast.Tree, indent_width? : Int32) -> Result[String, PrintError]
 
 // Errors
 
@@ -16,7 +16,7 @@ pub(all) enum PrintError {
   InvalidTree
   InvalidRoot
   InvalidOptions
-  RecoveryNode(Int)
+  RecoveryNode(Int32)
   Unrepresentable
 } derive(Eq, @debug.Debug)
 pub fn PrintError::equal(Self, Self) -> Bool

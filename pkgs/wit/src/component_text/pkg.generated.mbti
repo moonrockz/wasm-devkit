@@ -21,16 +21,16 @@ pub impl Show for ComponentTextError
 
 // Types and methods
 pub(all) struct OuterBinding {
-  distance : Int
-  sort : Int
-  index : Int
+  distance : Int32
+  sort : Int32
+  index : Int32
   name : String
 }
 
 pub struct OuterReference {
-  distance : Int
-  sort : Int
-  index : Int
+  distance : Int32
+  sort : Int32
+  index : Int32
 }
 
 // Type aliases

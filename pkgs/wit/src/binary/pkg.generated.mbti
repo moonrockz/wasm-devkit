@@ -15,7 +15,7 @@ pub fn validate_type_component(Bytes, source_id? : String) -> Result[ValidatedCo
 // Types and methods
 pub(all) struct Diagnostic {
   source : String
-  offset : Int?
+  offset : Int32?
   code : String
   message : String
 } derive(Eq, @debug.Debug)

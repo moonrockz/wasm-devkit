@@ -16,7 +16,7 @@ pub suberror ComponentParseError {
   Leb128TooLarge
   InvalidTypeSection
   InvalidUtf8
-  UnsupportedTypeOpcode(Int)
+  UnsupportedTypeOpcode(Int32)
 }
 pub fn ComponentParseError::output(Self, &Logger) -> Unit
 pub fn ComponentParseError::to_string(Self) -> String
