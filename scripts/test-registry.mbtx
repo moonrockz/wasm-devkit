@@ -1,12 +1,15 @@
-///|
-/// Exercise real Warg authentication, pinned WAC selection and checked cache policy.
+----
 import {
-  "moonbitlang/async@0.22.5",
-  "moonbitlang/async@0.22.5/fs",
-  "moonbitlang/async@0.22.5/process",
+  "moonbitlang/async@0.22.7",
+  "moonbitlang/async@0.22.7/fs",
+  "moonbitlang/async@0.22.7/process",
   "moonbitlang/core/env",
   "moonbitlang/core/json",
 }
+----
+
+///|
+/// Exercise real Warg authentication, pinned WAC selection and checked cache policy.
 
 ///|
 priv struct Runner {

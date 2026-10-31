@@ -35,38 +35,38 @@ pub struct BinaryPackage {
 pub fn BinaryPackage::bytes(Self) -> Bytes
 pub fn BinaryPackage::components(Self) -> ReadOnlyArray[ComponentScope]
 pub fn BinaryPackage::definitions(Self) -> ReadOnlyArray[Extern]
-pub fn BinaryPackage::instance(Self) -> Int
-pub fn BinaryPackage::resource_identity(Self, Int) -> Int?
+pub fn BinaryPackage::instance(Self) -> Int32
+pub fn BinaryPackage::resource_identity(Self, Int32) -> Int32?
 pub fn BinaryPackage::source(Self) -> String
 pub fn BinaryPackage::types(Self) -> ReadOnlyArray[ResolvedType]
-pub fn BinaryPackage::world(Self) -> Int
+pub fn BinaryPackage::world(Self) -> Int32
 
 pub(all) struct Binding {
   name : String
-  scope : Int
-  node : Int
-  target : Int
+  scope : Int32
+  node : Int32
+  target : Int32
 } derive(Eq, @debug.Debug)
 pub fn Binding::equal(Self, Self) -> Bool
 pub fn Binding::not_equal(Self, Self) -> Bool
 pub fn Binding::to_repr(Self) -> @debug.Repr
 
 pub struct ComponentScope {
-  world : Int
-  parent : Int?
-  index : Int
-  types : ReadOnlyArray[Int]
-  functions : ReadOnlyArray[Int]
-  values : ReadOnlyArray[Int]
-  instances : ReadOnlyArray[Int]
-  components : ReadOnlyArray[Int]
-  modules : ReadOnlyArray[Int]
+  world : Int32
+  parent : Int32?
+  index : Int32
+  types : ReadOnlyArray[Int32]
+  functions : ReadOnlyArray[Int32]
+  values : ReadOnlyArray[Int32]
+  instances : ReadOnlyArray[Int32]
+  components : ReadOnlyArray[Int32]
+  modules : ReadOnlyArray[Int32]
   core_types : ReadOnlyArray[@core_types.Definition]
 }
 
 pub(all) struct CompositionExport {
   name : String
-  value : Int
+  value : Int32
   location : Location
 } derive(Eq, @debug.Debug)
 pub fn CompositionExport::equal(Self, Self) -> Bool
@@ -74,7 +74,7 @@ pub fn CompositionExport::not_equal(Self, Self) -> Bool
 pub fn CompositionExport::to_repr(Self) -> @debug.Repr
 
 pub(all) struct CompositionNode {
-  id : Int
+  id : Int32
   operation : CompositionOperation
   kind : ItemKind
   resources : ReadOnlyArray[ResourceBinding]
@@ -87,7 +87,7 @@ pub fn CompositionNode::to_repr(Self) -> @debug.Repr
 pub(all) enum CompositionOperation {
   Definition
   Import(String)
-  Access(Int, String)
+  Access(Int32, String)
   Instantiate(String, String?, ReadOnlyArray[InstantiationArgument])
 } derive(Eq, @debug.Debug)
 pub fn CompositionOperation::equal(Self, Self) -> Bool
@@ -122,7 +122,7 @@ pub fn Extern::to_repr(Self) -> @debug.Repr
 
 pub(all) struct InstantiationArgument {
   name : String
-  value : Int
+  value : Int32
   location : Location
 } derive(Eq, @debug.Debug)
 pub fn InstantiationArgument::equal(Self, Self) -> Bool
@@ -130,12 +130,12 @@ pub fn InstantiationArgument::not_equal(Self, Self) -> Bool
 pub fn InstantiationArgument::to_repr(Self) -> @debug.Repr
 
 pub(all) enum ItemKind {
-  Type(Int)
-  Function(Int)
-  Instance(Int)
-  Component(Int)
-  Module(Int)
-  Value(Int)
+  Type(Int32)
+  Function(Int32)
+  Instance(Int32)
+  Component(Int32)
+  Module(Int32)
+  Value(Int32)
 } derive(Eq, @debug.Debug)
 pub fn ItemKind::equal(Self, Self) -> Bool
 pub fn ItemKind::not_equal(Self, Self) -> Bool
@@ -153,7 +153,7 @@ pub(all) struct Location {
   source : String
   position : Position
 } derive(Eq, @debug.Debug)
-pub fn Location::binary(String, offset? : Int?) -> Self
+pub fn Location::binary(String, offset? : Int32?) -> Self
 pub fn Location::equal(Self, Self) -> Bool
 pub fn Location::not_equal(Self, Self) -> Bool
 pub fn Location::render(Self) -> String
@@ -182,7 +182,7 @@ pub fn PackageSource::to_repr(Self) -> @debug.Repr
 
 pub(all) enum Position {
   SourceSpan(@span.Span)
-  BinaryOffset(Int?)
+  BinaryOffset(Int32?)
 } derive(Eq, @debug.Debug)
 pub fn Position::equal(Self, Self) -> Bool
 pub fn Position::not_equal(Self, Self) -> Bool
@@ -190,8 +190,8 @@ pub fn Position::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ResolvedDeclaration {
   name : String
-  scope : Int
-  node : Int
+  scope : Int32
+  node : Int32
   kind : ItemKind
 } derive(Eq, @debug.Debug)
 pub fn ResolvedDeclaration::equal(Self, Self) -> Bool
@@ -199,7 +199,7 @@ pub fn ResolvedDeclaration::not_equal(Self, Self) -> Bool
 pub fn ResolvedDeclaration::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ResolvedType {
-  id : Int
+  id : Int32
   name : String?
   kind : TypeKind
   location : Location
@@ -209,8 +209,8 @@ pub fn ResolvedType::not_equal(Self, Self) -> Bool
 pub fn ResolvedType::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ResourceBinding {
-  ty : Int
-  identity : Int
+  ty : Int32
+  identity : Int32
 } derive(Eq, @debug.Debug)
 pub fn ResourceBinding::equal(Self, Self) -> Bool
 pub fn ResourceBinding::not_equal(Self, Self) -> Bool
@@ -225,7 +225,7 @@ pub(all) struct SourcePackage {
 
 pub(all) struct TypeCase {
   name : String
-  payload : Int?
+  payload : Int32?
   location : Location
 } derive(Eq, @debug.Debug)
 pub fn TypeCase::equal(Self, Self) -> Bool
@@ -235,23 +235,23 @@ pub fn TypeCase::to_repr(Self) -> @debug.Repr
 pub(all) enum TypeKind {
   Module(@core_types.Module)
   Scalar(String)
-  Alias(Int)
-  Resource(Int?)
-  Own(Int)
-  Borrow(Int)
-  List(Int)
-  FixedList(Int, Int)
-  Map(Int, Int)
-  Tuple(ReadOnlyArray[Int])
-  Option(Int)
-  Result(Int?, Int?)
-  Future(Int?)
-  Stream(Int?)
+  Alias(Int32)
+  Resource(Int32?)
+  Own(Int32)
+  Borrow(Int32)
+  List(Int32)
+  FixedList(Int32, Int32)
+  Map(Int32, Int32)
+  Tuple(ReadOnlyArray[Int32])
+  Option(Int32)
+  Result(Int32?, Int32?)
+  Future(Int32?)
+  Stream(Int32?)
   Record(ReadOnlyArray[TypeMember])
   Flags(ReadOnlyArray[String])
   Enum(ReadOnlyArray[String])
   Variant(ReadOnlyArray[TypeCase])
-  Function(ReadOnlyArray[TypeMember], Int?, Bool)
+  Function(ReadOnlyArray[TypeMember], Int32?, Bool)
   Interface(String?, ReadOnlyArray[UsedType], ReadOnlyArray[Extern])
   World(String?, ReadOnlyArray[UsedType], ReadOnlyArray[Extern], ReadOnlyArray[Extern])
 } derive(Eq, @debug.Debug)
@@ -261,7 +261,7 @@ pub fn TypeKind::to_repr(Self) -> @debug.Repr
 
 pub(all) struct TypeMember {
   name : String
-  ty : Int
+  ty : Int32
   location : Location
 } derive(Eq, @debug.Debug)
 pub fn TypeMember::equal(Self, Self) -> Bool
@@ -271,8 +271,8 @@ pub fn TypeMember::to_repr(Self) -> @debug.Repr
 pub(all) struct UsedType {
   name : String
   original_name : String
-  interface : Int
-  ty : Int
+  interface : Int32
+  ty : Int32
   location : Location
 } derive(Eq, @debug.Debug)
 pub fn UsedType::equal(Self, Self) -> Bool
@@ -289,7 +289,7 @@ pub fn Verified::declarations(Self) -> ReadOnlyArray[Binding]
 pub fn Verified::exports(Self) -> ReadOnlyArray[Extern]
 pub fn Verified::imports(Self) -> ReadOnlyArray[Extern]
 pub fn Verified::items(Self) -> ReadOnlyArray[ResolvedDeclaration]
-pub fn Verified::resource_identity(Self, Int) -> Int?
+pub fn Verified::resource_identity(Self, Int32) -> Int32?
 pub fn Verified::source(Self) -> String
 pub fn Verified::text(Self) -> String
 pub fn Verified::types(Self) -> ReadOnlyArray[ResolvedType]
@@ -298,10 +298,10 @@ pub struct WitPackage {
   // private fields
 }
 pub fn WitPackage::definitions(Self) -> ReadOnlyArray[Extern]
-pub fn WitPackage::instance(Self) -> Int
-pub fn WitPackage::resource_identity(Self, Int) -> Int?
+pub fn WitPackage::instance(Self) -> Int32
+pub fn WitPackage::resource_identity(Self, Int32) -> Int32?
 pub fn WitPackage::types(Self) -> ReadOnlyArray[ResolvedType]
-pub fn WitPackage::world(Self) -> Int
+pub fn WitPackage::world(Self) -> Int32
 
 pub(all) struct WitPackageSource {
   name : String

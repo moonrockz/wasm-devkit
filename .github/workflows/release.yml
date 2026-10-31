@@ -58,8 +58,8 @@ jobs:
           ref: ${{ needs.validate.outputs.sha }}
       - uses: hustcer/setup-moonbit@v1
         with:
-          version: '0.10.15+943464bfa'
-          core-version: '0.10.15+943464bfa'
+          version: '0.10.18+6c83a7f62'
+          core-version: '0.10.18+6c83a7f62'
       - run: moon update
       - run: moon check --deny-warn
       - run: moon build --target native --release
@@ -89,8 +89,8 @@ jobs:
       - uses: hustcer/setup-moonbit@v1
         if: runner.os == 'Windows'
         with:
-          version: '0.10.15+943464bfa'
-          core-version: '0.10.15+943464bfa'
+          version: '0.10.18+6c83a7f62'
+          core-version: '0.10.18+6c83a7f62'
       - uses: actions/setup-node@v4
         if: runner.os == 'Windows'
         with:

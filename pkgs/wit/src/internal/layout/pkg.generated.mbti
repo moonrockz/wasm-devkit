@@ -6,7 +6,7 @@ import {
 }
 
 // Values
-pub fn render(@cst.Tree, Int) -> String?
+pub fn render(@cst.Tree, Int32) -> String?
 
 // Errors
 

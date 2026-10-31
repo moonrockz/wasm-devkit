@@ -1,12 +1,15 @@
-///|
-/// Verify a published CLI using moonx or mise, retrying registry/CDN readiness only.
-/// Usage: verify-cli.mbtx moonx|mise X.Y.Z
+----
 import {
-  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.7",
   "moonbitlang/async/process",
   "moonbitlang/async/stdio",
   "moonbitlang/core/env",
 }
+----
+
+///|
+/// Verify a published CLI using moonx or mise, retrying registry/CDN readiness only.
+/// Usage: verify-cli.mbtx moonx|mise X.Y.Z
 
 ///|
 fn transient(text : String) -> Bool {

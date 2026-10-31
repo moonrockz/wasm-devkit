@@ -1,12 +1,15 @@
+----
+import {
+  "moonbitlang/async@0.22.7",
+  "moonbitlang/async@0.22.7/fs",
+  "moonbitlang/async@0.22.7/process",
+  "moonbitlang/core/env",
+}
+----
+
 ///|
 /// Compare retained WAT with exact pinned invocations and a prebuilt CLI.
 /// Usage: test-decompiler-compatibility.mbtx WASM_TOOLS_1_262_0 WASM2WAT_1_0_42 WASM_DEVKIT
-import {
-  "moonbitlang/async@0.22.5",
-  "moonbitlang/async@0.22.5/fs",
-  "moonbitlang/async@0.22.5/process",
-  "moonbitlang/core/env",
-}
 
 ///|
 // Newlines inside string literals are data. Quotes in comments are not string

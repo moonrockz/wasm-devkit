@@ -1,11 +1,4 @@
-///|
-/// Run the tests of every workspace member for one or more targets.
-///
-/// Usage: `mise run test [-- <target>...]`, or `moonx scripts/test.mbtx <target>...`.
-/// With no target, it tests wasm, wasm-gc, js and native.
-///
-/// `moon test <path>` tests only the package at exactly that path, not its
-/// sub-packages, so packages are discovered from `moon.work` recursively.
+----
 import {
   "moonbitlang/async@0.22.5",
   "moonbitlang/async@0.22.5/process",
@@ -14,6 +7,21 @@ import {
   "moonbitlang/core/env",
   "moonbitlang/x@0.5.5/sys",
 }
+----
+
+///|
+/// Run the tests of every workspace member for one or more targets.
+///
+/// Usage: `mise run test [-- <target>...]`, or `moonx scripts/test.mbtx <target>...`.
+/// With no target, it tests wasm, wasm-gc, js and native.
+///
+/// `moon test <path>` tests only the package at exactly that path, not its
+/// sub-packages, so packages are discovered from `moon.work` recursively.
+///
+/// This script stays on moonbitlang/async 0.22.5, while the other scripts use 0.22.7.
+/// `mise run test:native-zig` compiles it under `zig-cross exec host`. On a Linux glibc host,
+/// zig-cross 0.3.2 adds `-include limits.h` to the async C stubs, and async 0.22.7 `fs.c` then
+/// has no `O_PATH`. Move to 0.22.7 when a zig-cross release has moonrockz/moonx-tools#17.
 
 ///|
 let all_targets : Array[String] = ["wasm", "wasm-gc", "js", "native"]

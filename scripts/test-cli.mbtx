@@ -1,12 +1,15 @@
+----
+import {
+  "moonbitlang/async@0.22.7",
+  "moonbitlang/async@0.22.7/fs",
+  "moonbitlang/async@0.22.7/process",
+  "moonbitlang/core/env",
+}
+----
+
 ///|
 /// Exercise the real CLI over files and redirected stdin.
 /// Usage: test-cli.mbtx [wasm|native|--binary PATH|--moonx VERSION]
-import {
-  "moonbitlang/async@0.22.5",
-  "moonbitlang/async@0.22.5/fs",
-  "moonbitlang/async@0.22.5/process",
-  "moonbitlang/core/env",
-}
 
 ///|
 async fn main {

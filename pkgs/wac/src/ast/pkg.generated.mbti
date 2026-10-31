@@ -12,57 +12,57 @@ import {
 
 // Types and methods
 pub(all) enum Data {
-  File(directive~ : Int?, statements~ : ReadOnlyArray[Int])
-  Package(path~ : Int, targets~ : Int?)
+  File(directive~ : Int32?, statements~ : ReadOnlyArray[Int32])
+  Package(path~ : Int32, targets~ : Int32?)
   Path(namespaces~ : ReadOnlyArray[String], segments~ : ReadOnlyArray[String], version~ : String?)
-  Interface(name~ : String, items~ : ReadOnlyArray[Int])
-  World(name~ : String, items~ : ReadOnlyArray[Int])
-  Resource(name~ : String, methods~ : ReadOnlyArray[Int], has_body~ : Bool)
-  Alias(name~ : String, ty~ : Int)
-  Record(name~ : String, fields~ : ReadOnlyArray[Int])
-  Flags(name~ : String, cases~ : ReadOnlyArray[Int])
-  Enum(name~ : String, cases~ : ReadOnlyArray[Int])
-  Variant(name~ : String, cases~ : ReadOnlyArray[Int])
-  Function(name~ : String, signature~ : Int, is_static~ : Bool)
-  Constructor(params~ : ReadOnlyArray[Int])
-  Signature(asynchronous~ : Bool, params~ : ReadOnlyArray[Int], result~ : Int?)
-  NamedResults(params~ : ReadOnlyArray[Int])
-  Import(binding~ : String, renamed~ : Int?, ty~ : Int)
-  WorldImport(name~ : String?, target~ : Int)
-  WorldExport(name~ : String?, target~ : Int)
-  Use(path~ : Int, names~ : ReadOnlyArray[Int])
-  Include(path~ : Int, renames~ : ReadOnlyArray[Int])
+  Interface(name~ : String, items~ : ReadOnlyArray[Int32])
+  World(name~ : String, items~ : ReadOnlyArray[Int32])
+  Resource(name~ : String, methods~ : ReadOnlyArray[Int32], has_body~ : Bool)
+  Alias(name~ : String, ty~ : Int32)
+  Record(name~ : String, fields~ : ReadOnlyArray[Int32])
+  Flags(name~ : String, cases~ : ReadOnlyArray[Int32])
+  Enum(name~ : String, cases~ : ReadOnlyArray[Int32])
+  Variant(name~ : String, cases~ : ReadOnlyArray[Int32])
+  Function(name~ : String, signature~ : Int32, is_static~ : Bool)
+  Constructor(params~ : ReadOnlyArray[Int32])
+  Signature(asynchronous~ : Bool, params~ : ReadOnlyArray[Int32], result~ : Int32?)
+  NamedResults(params~ : ReadOnlyArray[Int32])
+  Import(binding~ : String, renamed~ : Int32?, ty~ : Int32)
+  WorldImport(name~ : String?, target~ : Int32)
+  WorldExport(name~ : String?, target~ : Int32)
+  Use(path~ : Int32, names~ : ReadOnlyArray[Int32])
+  Include(path~ : Int32, renames~ : ReadOnlyArray[Int32])
   Rename(name~ : String, renamed~ : String?)
-  Field(name~ : String, ty~ : Int)
-  Case(name~ : String, payload~ : Int?)
-  Parameter(name~ : String, ty~ : Int)
+  Field(name~ : String, ty~ : Int32)
+  Case(name~ : String, payload~ : Int32?)
+  Parameter(name~ : String, ty~ : Int32)
   PrimitiveType(name~ : String)
   NamedType(name~ : String)
-  ListType(element~ : Int)
-  TupleType(elements~ : ReadOnlyArray[Int])
-  OptionType(payload~ : Int)
-  ResultType(ok~ : Int?, error~ : Int?)
-  BorrowType(resource~ : Int)
-  FutureType(payload~ : Int?)
-  StreamType(payload~ : Int?)
-  Let(name~ : String, expression~ : Int)
-  Export(expression~ : Int, renamed~ : Int?, spread~ : Bool)
+  ListType(element~ : Int32)
+  TupleType(elements~ : ReadOnlyArray[Int32])
+  OptionType(payload~ : Int32)
+  ResultType(ok~ : Int32?, error~ : Int32?)
+  BorrowType(resource~ : Int32)
+  FutureType(payload~ : Int32?)
+  StreamType(payload~ : Int32?)
+  Let(name~ : String, expression~ : Int32)
+  Export(expression~ : Int32, renamed~ : Int32?, spread~ : Bool)
   Name(value~ : String, quoted~ : Bool)
-  Expression(primary~ : Int, postfix~ : ReadOnlyArray[Int])
+  Expression(primary~ : Int32, postfix~ : ReadOnlyArray[Int32])
   Reference(name~ : String)
-  Group(expression~ : Int)
-  New(component~ : Int, arguments~ : ReadOnlyArray[Int])
+  Group(expression~ : Int32)
+  New(component~ : Int32, arguments~ : ReadOnlyArray[Int32])
   InferredArgument(name~ : String)
   SpreadArgument(name~ : String)
-  NamedArgument(name~ : Int, value~ : Int)
+  NamedArgument(name~ : Int32, value~ : Int32)
   FillArgument
   Access(name~ : String, quoted~ : Bool)
-  Error(text~ : String, recovered~ : ReadOnlyArray[Int])
+  Error(text~ : String, recovered~ : ReadOnlyArray[Int32])
 } derive(Eq, @debug.Debug)
-pub fn Data::children(Self) -> ReadOnlyArray[Int]
+pub fn Data::children(Self) -> ReadOnlyArray[Int32]
 pub fn Data::equal(Self, Self) -> Bool
 pub fn Data::kind(Self) -> Kind
-pub fn Data::map_children(Self, (Int) -> Int) -> Self
+pub fn Data::map_children(Self, (Int32) -> Int32) -> Self
 pub fn Data::not_equal(Self, Self) -> Bool
 pub fn Data::to_repr(Self) -> @debug.Repr
 
@@ -132,7 +132,7 @@ pub(all) struct Tree {
 pub fn Tree::equal(Self, Self) -> Bool
 pub fn Tree::equivalent(Self, Self) -> Bool
 pub fn Tree::not_equal(Self, Self) -> Bool
-pub fn Tree::root(Self) -> Int?
+pub fn Tree::root(Self) -> Int32?
 pub fn Tree::to_repr(Self) -> @debug.Repr
 pub fn Tree::validate(Self) -> Bool
 

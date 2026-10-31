@@ -1,12 +1,15 @@
-///|
-/// Compare the complete pinned WAC resolution corpus and its filesystem providers.
+----
 import {
-  "moonbitlang/async@0.22.5",
-  "moonbitlang/async@0.22.5/fs",
-  "moonbitlang/async@0.22.5/process",
+  "moonbitlang/async@0.22.7",
+  "moonbitlang/async@0.22.7/fs",
+  "moonbitlang/async@0.22.7/process",
   "moonbitlang/core/env",
   "moonbitlang/core/json",
 }
+----
+
+///|
+/// Compare the complete pinned WAC resolution corpus and its filesystem providers.
 
 ///|
 fn corpus_cases(input : Json) -> Array[(String, String, Int32)] raise {

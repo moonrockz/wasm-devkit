@@ -111,7 +111,7 @@ pub(all) struct Options {
   all_features : Bool
   semantic_features : ReadOnlyArray[String]
   all_semantic_features : Bool
-  indent_width : Int
+  indent_width : Int32
   check : Bool
   write : Bool
   base : String?
@@ -128,7 +128,7 @@ pub fn Options::to_repr(Self) -> @debug.Repr
 pub(all) struct Output {
   stdout : String
   stderr : String
-  exit_code : Int
+  exit_code : Int32
   write_text : String?
 } derive(Eq, @debug.Debug)
 pub fn Output::equal(Self, Self) -> Bool

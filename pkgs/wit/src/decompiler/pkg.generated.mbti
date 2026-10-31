@@ -8,9 +8,9 @@ import {
 }
 
 // Values
-pub fn component_fragment(Bytes, ReadOnlyArray[Int], source_id? : String) -> Result[ComponentFragment, ReadOnlyArray[Diagnostic]]
+pub fn component_fragment(Bytes, ReadOnlyArray[Int32], source_id? : String) -> Result[ComponentFragment, ReadOnlyArray[Diagnostic]]
 
-pub fn component_fragment_validated(@binary.ValidatedDeclarativeComponent, ReadOnlyArray[Int], source_id? : String) -> Result[ComponentFragment, ReadOnlyArray[Diagnostic]]
+pub fn component_fragment_validated(@binary.ValidatedDeclarativeComponent, ReadOnlyArray[Int32], source_id? : String) -> Result[ComponentFragment, ReadOnlyArray[Diagnostic]]
 
 pub fn print_binary(Bytes, source_id? : String, compatibility? : @core_printer.Compatibility?) -> Result[WatDocuments, ReadOnlyArray[Diagnostic]]
 
@@ -27,7 +27,7 @@ pub struct ComponentFragment {
 
 pub(all) struct Diagnostic {
   source : String
-  offset : Int?
+  offset : Int32?
   code : String
   message : String
 } derive(Eq, @debug.Debug)

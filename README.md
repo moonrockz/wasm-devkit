@@ -155,8 +155,10 @@ mise run build:cli
 ```
 
 MoonBit, Node.js, yamllint, lefthook, Zig and git-cliff are pinned in
-[.config/mise/config.toml](.config/mise/config.toml). If the mise archive lacks the core library or moonx,
-complete the same pinned installation:
+[.config/mise/config.toml](.config/mise/config.toml). The MoonBit archive lacks the core library and
+moonx. The postinstall hook of `mise install` adds them for the same pinned version: the official installer
+on Linux and macOS, and `tools/bootstrap-moonbit-windows.ps1` on Windows. If an install from before the hook
+is incomplete, run the hook again:
 
 ```shell
 curl -fsSL https://cli.moonbitlang.com/install/unix.sh | MOON_HOME="$(mise where http:moonbit)" bash -s -- "$(mise current http:moonbit)"

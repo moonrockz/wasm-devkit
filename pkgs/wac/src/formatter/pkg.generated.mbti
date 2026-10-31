@@ -9,9 +9,9 @@ import {
 }
 
 // Values
-pub fn format(String, indent_width? : Int, features? : @parser.Features) -> Result[String, FormatError]
+pub fn format(String, indent_width? : Int32, features? : @parser.Features) -> Result[String, FormatError]
 
-pub fn format_cst(@cst.Tree, indent_width? : Int, features? : @parser.Features) -> Result[String, FormatError]
+pub fn format_cst(@cst.Tree, indent_width? : Int32, features? : @parser.Features) -> Result[String, FormatError]
 
 // Errors
 
