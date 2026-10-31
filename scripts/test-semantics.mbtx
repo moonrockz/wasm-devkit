@@ -1,13 +1,16 @@
-///|
-/// Compare identical fixture bytes against pinned semantic reference CLIs.
-/// Usage: test-semantics.mbtx WASM_TOOLS_1_262_0 WAC_0_12_0
+----
 import {
-  "moonbitlang/async@0.22.5",
-  "moonbitlang/async@0.22.5/fs",
-  "moonbitlang/async@0.22.5/process",
+  "moonbitlang/async@0.22.7",
+  "moonbitlang/async@0.22.7/fs",
+  "moonbitlang/async@0.22.7/process",
   "moonbitlang/core/env",
   "moonbitlang/core/json",
 }
+----
+
+///|
+/// Compare identical fixture bytes against pinned semantic reference CLIs.
+/// Usage: test-semantics.mbtx WASM_TOOLS_1_262_0 WAC_0_12_0
 
 ///|
 async fn main {

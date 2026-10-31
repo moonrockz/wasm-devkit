@@ -1,3 +1,12 @@
+----
+import {
+  "moonbitlang/async@0.22.7",
+  "moonbitlang/async@0.22.7/process",
+  "moonbitlang/x@0.5.5/sys",
+  "moonbitlang/core/env",
+}
+----
+
 ///|
 /// Publish the public modules to mooncakes.io (CI only), in dependency order.
 ///
@@ -8,12 +17,6 @@
 ///
 /// Usage: `mise run release:publish`, or `moonx scripts/publish.mbtx`. It needs the credentials that
 /// `scripts/credentials.mbtx` writes.
-import {
-  "moonbitlang/async@0.22.5",
-  "moonbitlang/async@0.22.5/process",
-  "moonbitlang/x@0.5.5/sys",
-  "moonbitlang/core/env",
-}
 
 ///|
 /// The packages to publish, with their module names, in dependency order. Add a line for each public

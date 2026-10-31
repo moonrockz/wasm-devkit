@@ -1,13 +1,16 @@
+----
+import {
+  "moonbitlang/async@0.22.7",
+  "moonbitlang/async@0.22.7/fs",
+  "moonbitlang/async@0.22.7/process",
+  "moonbitlang/async@0.22.7/stdio",
+  "moonbitlang/core/env",
+}
+----
+
 ///|
 /// Build and smoke-test the host native CLI, then produce a mise-compatible archive.
 /// Usage: build-cli.mbtx [linux-x64|macos-arm64|windows-x64]
-import {
-  "moonbitlang/async@0.22.5",
-  "moonbitlang/async@0.22.5/fs",
-  "moonbitlang/async@0.22.5/process",
-  "moonbitlang/async@0.22.5/stdio",
-  "moonbitlang/core/env",
-}
 
 ///|
 fn platform(os : String, arch : String) -> String? {
