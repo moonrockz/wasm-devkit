@@ -11,6 +11,7 @@ import {
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) struct Diagnostic {
   code : String
   severity : Severity
@@ -18,33 +19,36 @@ pub(all) struct Diagnostic {
   primary : Label
   related : ReadOnlyArray[Label]
   recovery : Recovery
-} derive(Eq, @debug.Debug)
+}
 pub fn Diagnostic::equal(Self, Self) -> Bool
 pub fn Diagnostic::error(String, String, @span.Span, recovery? : Recovery) -> Self
 pub fn Diagnostic::not_equal(Self, Self) -> Bool
 pub fn Diagnostic::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Label {
   span : @span.Span
   message : String
-} derive(Eq, @debug.Debug)
+}
 pub fn Label::equal(Self, Self) -> Bool
 pub fn Label::not_equal(Self, Self) -> Bool
 pub fn Label::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Recovery {
   Continue
   SkipToken
   EndOfInput
-} derive(Eq, @debug.Debug)
+}
 pub fn Recovery::equal(Self, Self) -> Bool
 pub fn Recovery::not_equal(Self, Self) -> Bool
 pub fn Recovery::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Severity {
   Error
   Warning
-} derive(Eq, @debug.Debug)
+}
 pub fn Severity::equal(Self, Self) -> Bool
 pub fn Severity::not_equal(Self, Self) -> Bool
 pub fn Severity::to_repr(Self) -> @debug.Repr

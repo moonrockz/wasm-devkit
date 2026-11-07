@@ -24,6 +24,7 @@
 ///   assert_eq(alias_count, 1)
 /// }
 /// ```
+#derive(Eq, Debug)
 pub(all) enum Data {
   File(directive~ : Int32?, statements~ : ReadOnlyArray[Int32])
   Package(path~ : Int32, targets~ : Int32?)
@@ -79,9 +80,10 @@ pub(all) enum Data {
   FillArgument
   Access(name~ : String, quoted~ : Bool)
   Error(text~ : String, recovered~ : ReadOnlyArray[Int32])
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum Kind {
   File
   Package
@@ -129,13 +131,14 @@ pub(all) enum Kind {
   FillArgument
   Access
   Error
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Node {
   data : Data
   span : @span.Span
-} derive(Eq, Debug)
+}
 
 ///|
 ///
@@ -159,9 +162,10 @@ pub(all) struct Node {
 ///   assert_false(empty.validate())
 /// }
 /// ```
+#derive(Eq, Debug)
 pub(all) struct Tree {
   nodes : ReadOnlyArray[Node]
-} derive(Eq, Debug)
+}
 
 ///|
 ///

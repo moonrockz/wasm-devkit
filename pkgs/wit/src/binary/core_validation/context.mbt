@@ -7,12 +7,13 @@ priv struct LabelInfo {
 
 ///|
 /// Kind of control structure for label resolution
+#derive(Eq)
 priv enum LabelKind {
   BlockLabel // br jumps to end, uses results
   LegacyTryLabel
   LegacyCatchLabel
   LoopLabel // br jumps to start, uses params
-} derive(Eq)
+}
 
 ///|
 /// Validation context for a module

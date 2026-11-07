@@ -1,9 +1,10 @@
 ///|
 /// Semantic selection is independent of syntax extensions. Names match exactly.
+#derive(Eq, Debug)
 pub(all) struct SemanticFeatures {
   enabled : ReadOnlyArray[String]
   all_enabled : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn SemanticFeatures::default() -> SemanticFeatures {

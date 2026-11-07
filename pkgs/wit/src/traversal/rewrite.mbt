@@ -36,11 +36,12 @@ pub(all) enum Edit {
 ///|
 /// Reject an invalid input arena, a replacement that breaks tree invariants, or an invalid text edit range.
 /// Invalid syntax after a valid text edit is returned in the successful Parse value instead.
+#derive(Eq, Debug)
 pub(all) enum RewriteError {
   InvalidTree
   InvalidReplacement(Int32)
   InvalidTextEdit(Int32)
-} derive(Eq, Debug)
+}
 
 ///|
 /// A validated immutable output tree and event report. A stopped rewrite returns the original tree.

@@ -1,8 +1,9 @@
 ///|
+#derive(Eq, Debug)
 pub(all) enum BinaryKind {
   Component
   CoreModule
-} derive(Eq, Debug)
+}
 
 ///|
 /// One physical binary definition. Component contracts refer to `types` in

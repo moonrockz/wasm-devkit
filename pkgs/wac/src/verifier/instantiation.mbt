@@ -1,9 +1,10 @@
 ///|
+#derive(Eq, Debug)
 pub(all) struct InstantiationArgument {
   name : String
   value : Int32
   location : Location
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend InstantiationArgument with Eq::{equal, not_equal}

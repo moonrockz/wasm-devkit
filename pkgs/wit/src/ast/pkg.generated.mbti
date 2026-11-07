@@ -11,6 +11,7 @@ import {
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) enum Data {
   File(items~ : ReadOnlyArray[Int32])
   Package(attributes~ : ReadOnlyArray[Int32], path~ : Int32, items~ : ReadOnlyArray[Int32], nested~ : Bool)
@@ -47,7 +48,7 @@ pub(all) enum Data {
   StreamType(payload~ : Int32?)
   MapType(key~ : Int32, value~ : Int32)
   Error(text~ : String, recovered~ : ReadOnlyArray[Int32])
-} derive(Eq, @debug.Debug)
+}
 pub fn Data::children(Self) -> ReadOnlyArray[Int32]
 pub fn Data::equal(Self, Self) -> Bool
 pub fn Data::kind(Self) -> Kind
@@ -55,15 +56,17 @@ pub fn Data::map_children(Self, (Int32) -> Int32) -> Self
 pub fn Data::not_equal(Self, Self) -> Bool
 pub fn Data::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum FunctionFlavor {
   Func
   Get
   Set
-} derive(Eq, @debug.Debug)
+}
 pub fn FunctionFlavor::equal(Self, Self) -> Bool
 pub fn FunctionFlavor::not_equal(Self, Self) -> Bool
 pub fn FunctionFlavor::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Kind {
   File
   Package
@@ -100,22 +103,24 @@ pub(all) enum Kind {
   StreamType
   MapType
   Error
-} derive(Eq, @debug.Debug)
+}
 pub fn Kind::equal(Self, Self) -> Bool
 pub fn Kind::not_equal(Self, Self) -> Bool
 pub fn Kind::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Node {
   data : Data
   span : @span.Span
-} derive(Eq, @debug.Debug)
+}
 pub fn Node::equal(Self, Self) -> Bool
 pub fn Node::not_equal(Self, Self) -> Bool
 pub fn Node::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Tree {
   nodes : ReadOnlyArray[Node]
-} derive(Eq, @debug.Debug)
+}
 pub fn Tree::equal(Self, Self) -> Bool
 pub fn Tree::equivalent(Self, Self) -> Bool
 pub fn Tree::not_equal(Self, Self) -> Bool

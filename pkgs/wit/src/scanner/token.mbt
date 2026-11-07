@@ -2,6 +2,7 @@
 /// Keywords retain their spelling. Percent-prefixed keywords are identifiers.
 /// Minus and Plus are lexical pieces for semantic versions. The parser determines
 /// whether they are allowed at a particular position.
+#derive(Eq, Debug)
 pub(all) enum TokenKind {
   Whitespace
   LineComment
@@ -31,7 +32,7 @@ pub(all) enum TokenKind {
   Underscore
   Invalid
   Eof
-} derive(Eq, Debug)
+}
 
 ///|
 ///
@@ -58,18 +59,20 @@ pub fn TokenKind::is_trivia(self : TokenKind) -> Bool {
 ///|
 /// Raw spelling, including delimiters, percent escapes and malformed text.
 /// There is exactly one zero-width EOF token, after all source-bearing tokens.
+#derive(Eq, Debug)
 pub(all) struct Token {
   kind : TokenKind
   text : String
   span : @span.Span
-} derive(Eq, Debug)
+}
 
 ///|
 /// No mutable backing collection escapes through either field.
+#derive(Eq, Debug)
 pub(all) struct Scan {
   tokens : ReadOnlyArray[Token]
   diagnostics : ReadOnlyArray[@diagnostic.Diagnostic]
-} derive(Eq, Debug)
+}
 
 ///|
 ///

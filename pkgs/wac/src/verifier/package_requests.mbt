@@ -1,10 +1,11 @@
 ///|
 /// A dependency key and the last requesting path, in first-use key order.
+#derive(Eq, Debug)
 pub(all) struct PackageRequest {
   name : String
   version : String?
   location : Location
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend PackageRequest with Eq::{equal, not_equal}

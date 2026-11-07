@@ -1,12 +1,13 @@
 ///|
 /// A caller-supplied dependency. Lookup identity is independent of the encoded
 /// interface identities. Versioned and unversioned keys are distinct.
+#derive(Eq, Debug)
 pub(all) struct PackageSource {
   name : String
   version : String?
   source : String
   bytes : Bytes
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend PackageSource with Eq::{equal, not_equal}

@@ -25,11 +25,12 @@ pub fn walk(Syntax, (Event) -> Control) -> Report?
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) enum Control {
   Continue
   Prune
   Stop
-} derive(Eq, @debug.Debug)
+}
 pub fn Control::equal(Self, Self) -> Bool
 pub fn Control::not_equal(Self, Self) -> Bool
 pub fn Control::to_repr(Self) -> @debug.Repr
@@ -54,18 +55,20 @@ pub(all) enum Edit {
   Subtree(@ast.Tree)
 }
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Event {
   phase : Phase
   view : View
-} derive(Eq, @debug.Debug)
+}
 pub fn Event::equal(Self, Self) -> Bool
 pub fn Event::not_equal(Self, Self) -> Bool
 pub fn Event::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Phase {
   Enter
   Leave
-} derive(Eq, @debug.Debug)
+}
 pub fn Phase::equal(Self, Self) -> Bool
 pub fn Phase::not_equal(Self, Self) -> Bool
 pub fn Phase::to_repr(Self) -> @debug.Repr
@@ -83,19 +86,21 @@ pub(all) struct Reduction[A] {
   report : Report
 }
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Report {
   events : Int32
   stopped : Bool
-} derive(Eq, @debug.Debug)
+}
 pub fn Report::equal(Self, Self) -> Bool
 pub fn Report::not_equal(Self, Self) -> Bool
 pub fn Report::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum RewriteError {
   InvalidTree
   InvalidReplacement(Int32)
   InvalidTextEdit(Int32)
-} derive(Eq, @debug.Debug)
+}
 pub fn RewriteError::equal(Self, Self) -> Bool
 pub fn RewriteError::not_equal(Self, Self) -> Bool
 pub fn RewriteError::to_repr(Self) -> @debug.Repr
@@ -115,13 +120,14 @@ pub(all) struct TextEdit {
   text : String
 }
 
+#derive(Eq, @debug.Debug)
 pub(all) struct View {
   index : Int32
   kind : @ast.Kind
   span : @span.Span
   depth : Int32
   parent : Int32?
-} derive(Eq, @debug.Debug)
+}
 pub fn View::equal(Self, Self) -> Bool
 pub fn View::not_equal(Self, Self) -> Bool
 pub fn View::to_repr(Self) -> @debug.Repr

@@ -42,10 +42,11 @@ pub fn WatPrintError::to_string(Self) -> String
 pub impl Show for WatPrintError
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) enum Compatibility {
   WasmTools
   Wabt
-} derive(Eq, @debug.Debug)
+}
 pub fn Compatibility::equal(Self, Self) -> Bool
 pub fn Compatibility::not_equal(Self, Self) -> Bool
 pub fn Compatibility::to_repr(Self) -> @debug.Repr

@@ -14,10 +14,11 @@
 ///   assert_false(selection.contains({ start: 0, end: 1, }))
 /// }
 /// ```
+#derive(Eq, Debug)
 pub(all) struct Span {
   start : Int32
   end : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 /// Return `end - start` in UTF-16 code units. Validate external ranges with `Source::slice`.
@@ -33,10 +34,11 @@ pub fn Span::contains(self : Span, other : Span) -> Bool {
 
 ///|
 /// Zero-based line and UTF-16 column, suitable for editor protocols.
+#derive(Eq, Debug)
 pub(all) struct Position {
   line : Int32
   column : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 /// Immutable source text with an indexed line table. LF and CRLF end lines;

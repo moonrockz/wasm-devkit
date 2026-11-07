@@ -34,6 +34,7 @@ pub fn version() -> String
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) enum Action {
   Help
   Version
@@ -42,11 +43,12 @@ pub(all) enum Action {
   Split(SplitOptions)
   Inventory(InventoryOptions)
   Compare(CompareOptions)
-} derive(Eq, @debug.Debug)
+}
 pub fn Action::equal(Self, Self) -> Bool
 pub fn Action::not_equal(Self, Self) -> Bool
 pub fn Action::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Command {
   Parse
   Verify
@@ -55,55 +57,61 @@ pub(all) enum Command {
   Tokens
   Print
   Format
-} derive(Eq, @debug.Debug)
+}
 pub fn Command::equal(Self, Self) -> Bool
 pub fn Command::not_equal(Self, Self) -> Bool
 pub fn Command::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct CompareOptions {
   left : String
   right : String
   mode : @wat_compare.Mode
   json : Bool
-} derive(Eq, @debug.Debug)
+}
 pub fn CompareOptions::equal(Self, Self) -> Bool
 pub fn CompareOptions::not_equal(Self, Self) -> Bool
 pub fn CompareOptions::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct DecompileOptions {
   compatibility : @core_printer.Compatibility?
   path : String
   output : String?
-} derive(Eq, @debug.Debug)
+}
 pub fn DecompileOptions::equal(Self, Self) -> Bool
 pub fn DecompileOptions::not_equal(Self, Self) -> Bool
 pub fn DecompileOptions::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct DependencyMapping {
   name : String
   path : String
-} derive(Eq, @debug.Debug)
+}
 pub fn DependencyMapping::equal(Self, Self) -> Bool
 pub fn DependencyMapping::not_equal(Self, Self) -> Bool
 pub fn DependencyMapping::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct InventoryOptions {
   path : String
   output : String?
   json : Bool
-} derive(Eq, @debug.Debug)
+}
 pub fn InventoryOptions::equal(Self, Self) -> Bool
 pub fn InventoryOptions::not_equal(Self, Self) -> Bool
 pub fn InventoryOptions::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Language {
   Wit
   Wac
-} derive(Eq, @debug.Debug)
+}
 pub fn Language::equal(Self, Self) -> Bool
 pub fn Language::not_equal(Self, Self) -> Bool
 pub fn Language::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Options {
   command : Command
   language : Language
@@ -120,21 +128,23 @@ pub(all) struct Options {
   world : String?
   json : Bool
   registry : RegistryOptions?
-} derive(Eq, @debug.Debug)
+}
 pub fn Options::equal(Self, Self) -> Bool
 pub fn Options::not_equal(Self, Self) -> Bool
 pub fn Options::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Output {
   stdout : String
   stderr : String
   exit_code : Int32
   write_text : String?
-} derive(Eq, @debug.Debug)
+}
 pub fn Output::equal(Self, Self) -> Bool
 pub fn Output::not_equal(Self, Self) -> Bool
 pub fn Output::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct RegistryOptions {
   url : String
   cache_dir : String?
@@ -143,16 +153,17 @@ pub(all) struct RegistryOptions {
   config : String?
   offline : Bool
   refresh : Bool
-} derive(Eq, @debug.Debug)
+}
 pub fn RegistryOptions::equal(Self, Self) -> Bool
 pub fn RegistryOptions::not_equal(Self, Self) -> Bool
 pub fn RegistryOptions::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct SplitOptions {
   path : String
   directory : String
   select : ReadOnlyArray[String]?
-} derive(Eq, @debug.Debug)
+}
 pub fn SplitOptions::equal(Self, Self) -> Bool
 pub fn SplitOptions::not_equal(Self, Self) -> Bool
 pub fn SplitOptions::to_repr(Self) -> @debug.Repr

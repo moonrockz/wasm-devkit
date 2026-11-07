@@ -3,6 +3,7 @@ package "moonrockz/wit/verifier"
 
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/core/json",
   "moonrockz/wit/ast",
   "moonrockz/wit/binary",
   "moonrockz/wit/diagnostic",
@@ -26,22 +27,24 @@ pub fn verify_ast(@ast.Tree, source_id? : String, source~ : String, semantic_fea
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) struct Binding {
   name : String
   scope : Int32
   node : Int32
   target : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn Binding::equal(Self, Self) -> Bool
 pub fn Binding::not_equal(Self, Self) -> Bool
 pub fn Binding::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Diagnostic {
   code : String
   message : String
   primary : Label
   related : ReadOnlyArray[Label]
-} derive(Eq, @debug.Debug)
+}
 pub fn Diagnostic::equal(Self, Self) -> Bool
 pub fn Diagnostic::from_binary(@binary.Diagnostic) -> Self
 pub fn Diagnostic::not_equal(Self, Self) -> Bool
@@ -63,37 +66,41 @@ pub fn EncodedPackage::bytes(Self) -> Bytes
 pub fn EncodedPackage::identity(Self) -> PackageIdentity
 pub fn EncodedPackage::source(Self) -> String
 
+#derive(Eq, @debug.Debug)
 pub(all) enum FunctionFlavor {
   Plain
   Getter
   Setter
-} derive(Eq, @debug.Debug)
+}
 pub fn FunctionFlavor::equal(Self, Self) -> Bool
 pub fn FunctionFlavor::not_equal(Self, Self) -> Bool
 pub fn FunctionFlavor::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum FunctionKind {
   Freestanding
   Method(Int32)
   Static(Int32)
   Constructor(Int32)
-} derive(Eq, @debug.Debug)
+}
 pub fn FunctionKind::equal(Self, Self) -> Bool
 pub fn FunctionKind::not_equal(Self, Self) -> Bool
 pub fn FunctionKind::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Label {
   location : Location
   message : String
-} derive(Eq, @debug.Debug)
+}
 pub fn Label::equal(Self, Self) -> Bool
 pub fn Label::not_equal(Self, Self) -> Bool
 pub fn Label::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Location {
   source : String
   position : Position
-} derive(Eq, @debug.Debug)
+}
 pub fn Location::binary(String, offset? : Int32?) -> Self
 pub fn Location::equal(Self, Self) -> Bool
 pub fn Location::not_equal(Self, Self) -> Bool
@@ -102,19 +109,21 @@ pub fn Location::span(Self) -> @span.Span?
 pub fn Location::text(String, @span.Span) -> Self
 pub fn Location::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Origin {
   location : Location
   node : Int32?
-} derive(Eq, @debug.Debug)
+}
 pub fn Origin::equal(Self, Self) -> Bool
 pub fn Origin::not_equal(Self, Self) -> Bool
 pub fn Origin::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct PackageIdentity {
   namespace_name : String
   name : String
   version : String?
-} derive(Eq, @debug.Debug)
+}
 pub fn PackageIdentity::equal(Self, Self) -> Bool
 pub fn PackageIdentity::key(Self) -> String
 pub fn PackageIdentity::not_equal(Self, Self) -> Bool
@@ -126,10 +135,11 @@ pub(all) enum PackageInput {
 }
 pub fn PackageInput::identity(Self) -> Result[PackageIdentity, ReadOnlyArray[Diagnostic]]
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Position {
   SourceSpan(@span.Span)
   BinaryOffset(Int32?)
-} derive(Eq, @debug.Debug)
+}
 pub fn Position::equal(Self, Self) -> Bool
 pub fn Position::not_equal(Self, Self) -> Bool
 pub fn Position::to_repr(Self) -> @debug.Repr
@@ -148,10 +158,11 @@ pub fn Resolution::root_location(Self) -> Location
 pub fn Resolution::select_world(Self, name? : String?) -> Result[ResolvedWorld, ReadOnlyArray[Diagnostic]]
 pub fn Resolution::sources(Self) -> ReadOnlyArray[Document]
 pub fn Resolution::types(Self) -> ReadOnlyArray[ResolvedType]
-pub fn Resolution::world_summary(Self) -> Json
+pub fn Resolution::world_summary(Self) -> @json.Json
 pub fn Resolution::worlds(Self) -> ReadOnlyArray[ResolvedWorld]
 pub fn Resolution::worlds_in_dependency_order(Self) -> ReadOnlyArray[ResolvedWorld]
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ResolvedFunction {
   id : Int32
   name : String
@@ -163,11 +174,12 @@ pub(all) struct ResolvedFunction {
   location : Location
   stability : Stability
   external_id : String?
-} derive(Eq, @debug.Debug)
+}
 pub fn ResolvedFunction::equal(Self, Self) -> Bool
 pub fn ResolvedFunction::not_equal(Self, Self) -> Bool
 pub fn ResolvedFunction::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ResolvedInterface {
   id : Int32
   name : String?
@@ -176,11 +188,12 @@ pub(all) struct ResolvedInterface {
   functions : ReadOnlyArray[ResolvedFunction]
   location : Location
   stability : Stability
-} derive(Eq, @debug.Debug)
+}
 pub fn ResolvedInterface::equal(Self, Self) -> Bool
 pub fn ResolvedInterface::not_equal(Self, Self) -> Bool
 pub fn ResolvedInterface::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ResolvedType {
   scope : Int32
   id : Int32
@@ -189,11 +202,12 @@ pub(all) struct ResolvedType {
   location : Location
   stability : Stability
   external_id : String?
-} derive(Eq, @debug.Debug)
+}
 pub fn ResolvedType::equal(Self, Self) -> Bool
 pub fn ResolvedType::not_equal(Self, Self) -> Bool
 pub fn ResolvedType::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ResolvedWorld {
   package_identity : PackageIdentity
   id : Int32
@@ -202,15 +216,16 @@ pub(all) struct ResolvedWorld {
   exports : ReadOnlyArray[WorldItem]
   location : Location
   stability : Stability
-} derive(Eq, @debug.Debug)
+}
 pub fn ResolvedWorld::equal(Self, Self) -> Bool
 pub fn ResolvedWorld::not_equal(Self, Self) -> Bool
 pub fn ResolvedWorld::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct SemanticFeatures {
   enabled : ReadOnlyArray[String]
   all_enabled : Bool
-} derive(Eq, @debug.Debug)
+}
 pub fn SemanticFeatures::all() -> Self
 pub fn SemanticFeatures::default() -> Self
 pub fn SemanticFeatures::equal(Self, Self) -> Bool
@@ -222,24 +237,27 @@ pub(all) struct SourcePackage {
 }
 pub fn SourcePackage::identity(Self) -> Result[PackageIdentity, ReadOnlyArray[Diagnostic]]
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Stability {
   Unknown
   Stable(String, String?)
   Unstable(String, String?)
-} derive(Eq, @debug.Debug)
+}
 pub fn Stability::equal(Self, Self) -> Bool
 pub fn Stability::not_equal(Self, Self) -> Bool
 pub fn Stability::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct TypeCase {
   name : String
   payload : Int32?
   location : Location
-} derive(Eq, @debug.Debug)
+}
 pub fn TypeCase::equal(Self, Self) -> Bool
 pub fn TypeCase::not_equal(Self, Self) -> Bool
 pub fn TypeCase::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum TypeKind {
   Scalar(String)
   Resource
@@ -257,16 +275,17 @@ pub(all) enum TypeKind {
   Flags(ReadOnlyArray[String])
   Enum(ReadOnlyArray[String])
   Variant(ReadOnlyArray[TypeCase])
-} derive(Eq, @debug.Debug)
+}
 pub fn TypeKind::equal(Self, Self) -> Bool
 pub fn TypeKind::not_equal(Self, Self) -> Bool
 pub fn TypeKind::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct TypeMember {
   name : String
   ty : Int32
   location : Location
-} derive(Eq, @debug.Debug)
+}
 pub fn TypeMember::equal(Self, Self) -> Bool
 pub fn TypeMember::not_equal(Self, Self) -> Bool
 pub fn TypeMember::to_repr(Self) -> @debug.Repr
@@ -292,9 +311,10 @@ pub fn Verified::select_world(Self, name? : String?) -> Result[ResolvedWorld, Re
 pub fn Verified::source(Self) -> String
 pub fn Verified::text(Self) -> String
 pub fn Verified::types(Self) -> ReadOnlyArray[ResolvedType]
-pub fn Verified::world_summary(Self) -> Json
+pub fn Verified::world_summary(Self) -> @json.Json
 pub fn Verified::worlds(Self) -> ReadOnlyArray[ResolvedWorld]
 
+#derive(Eq, @debug.Debug)
 pub(all) struct WorldItem {
   external_id : String?
   name : String
@@ -302,16 +322,17 @@ pub(all) struct WorldItem {
   kind : WorldItemKind
   location : Location
   stability : Stability
-} derive(Eq, @debug.Debug)
+}
 pub fn WorldItem::equal(Self, Self) -> Bool
 pub fn WorldItem::not_equal(Self, Self) -> Bool
 pub fn WorldItem::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum WorldItemKind {
   Interface(Int32)
   Function(Int32)
   Type(Int32)
-} derive(Eq, @debug.Debug)
+}
 pub fn WorldItemKind::equal(Self, Self) -> Bool
 pub fn WorldItemKind::not_equal(Self, Self) -> Bool
 pub fn WorldItemKind::to_repr(Self) -> @debug.Repr

@@ -23,6 +23,7 @@
 ///   assert_eq(alias_count, 1)
 /// }
 /// ```
+#derive(Eq, Debug)
 pub(all) enum Data {
   File(items~ : ReadOnlyArray[Int32])
   Package(
@@ -120,9 +121,10 @@ pub(all) enum Data {
   StreamType(payload~ : Int32?)
   MapType(key~ : Int32, value~ : Int32)
   Error(text~ : String, recovered~ : ReadOnlyArray[Int32])
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum Kind {
   File
   Package
@@ -159,20 +161,22 @@ pub(all) enum Kind {
   StreamType
   MapType
   Error
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum FunctionFlavor {
   Func
   Get
   Set
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Node {
   data : Data
   span : @span.Span
-} derive(Eq, Debug)
+}
 
 ///|
 /// Immutable arena. Parser output is a tree rooted at the final node.
@@ -198,9 +202,10 @@ pub(all) struct Node {
 ///   assert_false(empty.validate())
 /// }
 /// ```
+#derive(Eq, Debug)
 pub(all) struct Tree {
   nodes : ReadOnlyArray[Node]
-} derive(Eq, Debug)
+}
 
 ///|
 ///

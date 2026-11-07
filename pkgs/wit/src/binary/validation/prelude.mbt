@@ -12,6 +12,7 @@
 /// into a full spec-compliant validator.
 
 ///|
+#derive(Debug, Eq)
 pub(all) suberror ComponentValidationError {
   InvalidTypeIndex(Int32)
   TypeIndexNotFuncType(Int32)
@@ -64,7 +65,7 @@ pub(all) suberror ComponentValidationError {
   AliasTargetMismatch(String)
   SectionParseError(Int32, String)
   CoreModuleError(String)
-} derive(Debug, Eq)
+}
 
 ///|
 /// Keep `Show` behavior while migrating from deprecated `derive(Show)` to
@@ -192,10 +193,11 @@ priv struct InstanceSig {
 }
 
 ///|
+#derive(Eq)
 priv struct ParamShape {
   name : String
   ty : TypeSig
-} derive(Eq)
+}
 
 ///|
 priv struct FuncSigShape {
@@ -220,6 +222,7 @@ priv enum ExportedTypeInfo {
 
 ///|
 /// Structural signature for type imports (used to validate instantiation args).
+#derive(Debug, Eq)
 priv enum TypeSig {
   Prim(@component.PrimValType)
   Tuple(Array[TypeSig])
@@ -234,19 +237,21 @@ priv enum TypeSig {
   Own(Int32)
   Borrow(Int32)
   Other
-} derive(Debug, Eq)
+}
 
 ///|
+#derive(Debug, Eq)
 priv struct TypeFieldSig {
   name : String
   ty : TypeSig
-} derive(Debug, Eq)
+}
 
 ///|
+#derive(Debug, Eq)
 priv struct TypeCaseSig {
   name : String
   ty : TypeSig?
-} derive(Debug, Eq)
+}
 
 ///|
 fn typeidx_of_typesig(

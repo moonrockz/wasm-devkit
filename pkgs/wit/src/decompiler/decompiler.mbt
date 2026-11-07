@@ -3,17 +3,19 @@ pub using @core_printer {type Compatibility}
 
 ///|
 /// One named WAT document. Text is complete and ends with a newline.
+#derive(Eq, Debug)
 pub struct WatDocument {
   name : String
   text : String
-} derive(Eq, Debug)
+}
 
 ///|
 /// Ordered named WAT documents printed from one binary. Core-module printing
 /// returns exactly one document, named `root`.
+#derive(Eq, Debug)
 pub struct WatDocuments {
   documents : ReadOnlyArray[WatDocument]
-} derive(Eq, Debug)
+}
 
 ///|
 /// Return the first document. Every successful result contains one.
@@ -23,12 +25,13 @@ pub fn WatDocuments::root(self : WatDocuments) -> WatDocument {
 
 ///|
 /// A print failure. Offsets count bytes from the start of the binary.
+#derive(Eq, Debug)
 pub(all) struct Diagnostic {
   source : String
   offset : Int32?
   code : String
   message : String
-} derive(Eq, Debug)
+}
 
 ///|
 fn problem(

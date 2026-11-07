@@ -1,28 +1,31 @@
 ///|
 /// Operations in a verified composition. Type identities refer to types();
 /// alias sources refer to composition() and always precede their aliases.
+#derive(Eq, Debug)
 pub(all) enum CompositionOperation {
   Definition
   Import(String)
   Access(Int32, String)
   Instantiate(String, String?, ReadOnlyArray[InstantiationArgument])
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CompositionNode {
   id : Int32
   operation : CompositionOperation
   kind : ItemKind
   resources : ReadOnlyArray[ResourceBinding]
   location : Location
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CompositionExport {
   name : String
   value : Int32
   location : Location
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Verified::composition(self : Verified) -> ReadOnlyArray[CompositionNode] {

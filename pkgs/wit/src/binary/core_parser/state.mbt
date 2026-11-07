@@ -3,6 +3,7 @@
 // ============================================================
 
 ///|
+#derive(Debug)
 struct Parser {
   data : Bytes
   mut pos : Int32
@@ -10,7 +11,7 @@ struct Parser {
   types : Array[@types.SubType]
   mut capture_text : Bool
   text_values : Array[(Int32, String)]
-} derive(Debug)
+}
 
 ///|
 /// Create a new parser from bytes

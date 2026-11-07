@@ -63,12 +63,14 @@ pub let help : String =
   #|
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum Language {
   Wit
   Wac
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum Command {
   Parse
   Verify
@@ -77,15 +79,17 @@ pub(all) enum Command {
   Tokens
   Print
   Format
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct DependencyMapping {
   name : String
   path : String
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct RegistryOptions {
   url : String
   cache_dir : String?
@@ -94,9 +98,10 @@ pub(all) struct RegistryOptions {
   config : String?
   offline : Bool
   refresh : Bool
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Options {
   command : Command
   language : Language
@@ -113,17 +118,19 @@ pub(all) struct Options {
   world : String?
   json : Bool
   registry : RegistryOptions?
-} derive(Eq, Debug)
+}
 
 ///|
 /// Arguments for printing one binary as WAT.
+#derive(Eq, Debug)
 pub(all) struct DecompileOptions {
   compatibility : @wit_decompiler.Compatibility?
   path : String
   output : String?
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum Action {
   Help
   Version
@@ -132,21 +139,23 @@ pub(all) enum Action {
   Split(SplitOptions)
   Inventory(InventoryOptions)
   Compare(CompareOptions)
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct SplitOptions {
   path : String
   directory : String
   select : ReadOnlyArray[String]?
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct InventoryOptions {
   path : String
   output : String?
   json : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 fn decompile_arguments(args : ArrayView[String]) -> Result[Action, String] {
@@ -563,12 +572,13 @@ pub extend InventoryOptions with Eq::{equal, not_equal}
 pub extend InventoryOptions with @debug.Debug::{to_repr}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CompareOptions {
   left : String
   right : String
   mode : @wat_compare.Mode
   json : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 fn compare_arguments(args : ArrayView[String]) -> Result[Action, String] {

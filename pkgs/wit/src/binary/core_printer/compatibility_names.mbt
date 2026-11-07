@@ -1,10 +1,11 @@
 ///|
 /// Exact output conventions of the pinned external printers. These options
 /// affect rendering only; the decompiler checks its existing input profile.
+#derive(Eq, Debug)
 pub(all) enum Compatibility {
   WasmTools
   Wabt
-} derive(Eq, Debug)
+}
 
 ///|
 priv struct Naming {

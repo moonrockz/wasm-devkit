@@ -1,21 +1,23 @@
 ///|
 /// Concrete grammar node. Token ranges are half-open indices into Tree::tokens,
 /// including internal trivia. Child indices are postorder, matching the AST arena.
+#derive(Eq, Debug)
 pub(all) struct Node {
   kind : @ast.Kind
   span : @span.Span
   first_token : Int32
   last_token : Int32
   children : ReadOnlyArray[Int32]
-} derive(Eq, Debug)
+}
 
 ///|
 /// Tokens own every input code unit, including text skipped during recovery.
 /// Root is the last node. No tree operation recurses through syntax nesting.
+#derive(Eq, Debug)
 pub(all) struct Tree {
   tokens : ReadOnlyArray[@scanner.Token]
   nodes : ReadOnlyArray[Node]
-} derive(Eq, Debug)
+}
 
 ///|
 ///

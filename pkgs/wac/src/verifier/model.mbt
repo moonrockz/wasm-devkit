@@ -1,16 +1,18 @@
 ///|
 /// Text coordinates count UTF-16 code units; binary coordinates count bytes.
 /// A binary offset can be unavailable without inventing a textual position.
+#derive(Eq, Debug)
 pub(all) enum Position {
   SourceSpan(@span.Span)
   BinaryOffset(Int32?)
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Location {
   source : String
   position : Position
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Location::text(source : String, span : @span.Span) -> Location {
@@ -40,29 +42,32 @@ pub fn Location::render(self : Location) -> String {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Label {
   location : Location
   message : String
-} derive(Eq, Debug)
+}
 
 ///|
 /// Semantic errors use stable WAC-S codes. Related locations may refer to
 /// another file. All collections are immutable and ordered deterministically.
+#derive(Eq, Debug)
 pub(all) struct Diagnostic {
   code : String
   message : String
   primary : Label
   related : ReadOnlyArray[Label]
-} derive(Eq, Debug)
+}
 
 ///|
 /// A resolved declaration identity within its source and lexical scope.
+#derive(Eq, Debug)
 pub(all) struct Binding {
   name : String
   scope : Int32
   node : Int32
   target : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 /// Construction is private. A value exists only after the entire supported
