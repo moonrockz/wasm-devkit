@@ -1,24 +1,27 @@
 ///|
 /// Classify a diagnostic independently of its code. A warning does not make `Parse::is_valid` false.
+#derive(Eq, Debug)
 pub(all) enum Severity {
   Error
   Warning
-} derive(Eq, Debug)
+}
 
 ///|
 /// Associate a message with a UTF-16 source range. Related labels can point to earlier declarations.
+#derive(Eq, Debug)
 pub(all) struct Label {
   span : @span.Span
   message : String
-} derive(Eq, Debug)
+}
 
 ///|
 /// What the frontend did after reporting a diagnostic.
+#derive(Eq, Debug)
 pub(all) enum Recovery {
   Continue
   SkipToken
   EndOfInput
-} derive(Eq, Debug)
+}
 
 ///|
 /// Diagnostic codes are stable strings, independent of rendered messages.
@@ -44,6 +47,7 @@ pub(all) enum Recovery {
 ///   assert_true(base.related.is_empty())
 /// }
 /// ```
+#derive(Eq, Debug)
 pub(all) struct Diagnostic {
   code : String
   severity : Severity
@@ -51,7 +55,7 @@ pub(all) struct Diagnostic {
   primary : Label
   related : ReadOnlyArray[Label]
   recovery : Recovery
-} derive(Eq, Debug)
+}
 
 ///|
 ///

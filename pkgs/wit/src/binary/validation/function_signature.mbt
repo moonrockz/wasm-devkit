@@ -4,10 +4,11 @@
 // Origins identify declarations, including distinct named aliases with equal
 // bodies. Scope zero is the concrete component's type index space; private
 // metadata scopes receive separate identities from the validation operation.
+#derive(Eq, Hash)
 priv struct TypeOrigin {
   scope : Int32
   index : Int32
-} derive(Eq, Hash)
+}
 
 ///|
 priv struct CompleteFunctionSignature {

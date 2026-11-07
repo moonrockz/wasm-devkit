@@ -15,12 +15,13 @@
 ///   assert_eq(@formatter.format(source, indent_width=-1), Err(InvalidOptions))
 /// }
 /// ```
+#derive(Eq, Debug)
 pub(all) enum FormatError {
   InvalidOptions
   InvalidTree
   InvalidSyntax(ReadOnlyArray[@diagnostic.Diagnostic])
   InvariantViolation
-} derive(Eq, Debug)
+}
 
 ///|
 fn retained(

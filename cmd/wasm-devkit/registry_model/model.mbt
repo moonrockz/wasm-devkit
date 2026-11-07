@@ -1,4 +1,5 @@
 ///|
+#derive(Eq, Debug)
 pub(all) struct Artifact {
   registry : String
   name : String
@@ -6,7 +7,7 @@ pub(all) struct Artifact {
   version : String
   resolved_registry : String
   digest : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn digest(bytes : Bytes) -> String {

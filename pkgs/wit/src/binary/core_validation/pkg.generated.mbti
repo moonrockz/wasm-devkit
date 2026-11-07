@@ -14,6 +14,7 @@ pub fn validate_module(@core_model.Module, bulk_memory? : Bool, stack_switching?
 pub fn validate_module_with_context(@core_model.Module, bulk_memory? : Bool, stack_switching? : Bool) -> Unit raise ValidationError
 
 // Errors
+#derive(@debug.Debug)
 pub(all) suberror ValidationError {
   TypeWorkLimit
   TypeMismatch(String)
@@ -45,19 +46,20 @@ pub(all) suberror ValidationError {
   UndeclaredFunctionReference(Int32)
   UnsupportedInstruction(String)
   WithContext(ValidationErrorContext)
-} derive(@debug.Debug)
+}
 pub fn ValidationError::output(Self, &Logger) -> Unit
 pub fn ValidationError::to_repr(Self) -> @debug.Repr
 pub fn ValidationError::to_string(Self) -> String
 pub impl Show for ValidationError
 
 // Types and methods
+#derive(@debug.Debug)
 pub(all) struct ValidationErrorContext {
   error_msg : String
   func_idx : Int32?
   instr_offset : Int32?
   instruction : String?
-} derive(@debug.Debug)
+}
 pub fn ValidationErrorContext::ValidationErrorContext(String) -> Self
 pub fn ValidationErrorContext::format(Self) -> String
 pub fn ValidationErrorContext::from_error(ValidationError) -> Self

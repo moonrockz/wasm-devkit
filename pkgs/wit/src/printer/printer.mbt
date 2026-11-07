@@ -16,13 +16,14 @@
 ///   assert_eq(@printer.print(empty), Err(InvalidTree))
 /// }
 /// ```
+#derive(Eq, Debug)
 pub(all) enum PrintError {
   InvalidTree
   InvalidRoot
   InvalidOptions
   RecoveryNode(Int32)
   Unrepresentable
-} derive(Eq, Debug)
+}
 
 ///|
 priv enum Scope {

@@ -1,8 +1,9 @@
 ///|
 /// An encoding failure returns no partial module bytes.
+#derive(Debug)
 pub(all) suberror EncodingError {
   EncodingError(String)
-} derive(Debug)
+}
 
 ///|
 pub impl Show for EncodingError with fn output(self, logger) {

@@ -1,6 +1,7 @@
 ///|
 /// Edges use deterministic closure-local node identities. A named type points to
 /// its resolved declaration, rather than retaining an unresolved name string.
+#derive(Eq, Debug)
 pub(all) enum TypeKind {
   Scalar(String)
   Resource
@@ -18,23 +19,26 @@ pub(all) enum TypeKind {
   Flags(ReadOnlyArray[String])
   Enum(ReadOnlyArray[String])
   Variant(ReadOnlyArray[TypeCase])
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct TypeMember {
   name : String
   ty : Int32
   location : Location
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct TypeCase {
   name : String
   payload : Int32?
   location : Location
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct ResolvedType {
   scope : Int32
   id : Int32
@@ -43,7 +47,7 @@ pub(all) struct ResolvedType {
   location : Location
   stability : Stability
   external_id : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Verified::types(self : Verified) -> ReadOnlyArray[ResolvedType] {

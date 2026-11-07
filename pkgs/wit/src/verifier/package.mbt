@@ -27,10 +27,11 @@ pub(all) struct SourcePackage {
 
 ///|
 /// Original syntax index is present only when the provider supplied a source AST.
+#derive(Eq, Debug)
 pub(all) struct Origin {
   location : Location
   node : Int32?
-} derive(Eq, Debug)
+}
 
 ///|
 /// Verified closure with the original per-file ASTs and source provenance.
@@ -644,13 +645,15 @@ fn Prepared::foreign_package(self : Prepared, path : Int32) -> Int32? {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum WorldItemKind {
   Interface(Int32)
   Function(Int32)
   Type(Int32)
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct WorldItem {
   external_id : String?
   name : String
@@ -658,9 +661,10 @@ pub(all) struct WorldItem {
   kind : WorldItemKind
   location : Location
   stability : Stability
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct ResolvedWorld {
   package_identity : PackageIdentity
   id : Int32
@@ -669,7 +673,7 @@ pub(all) struct ResolvedWorld {
   exports : ReadOnlyArray[WorldItem]
   location : Location
   stability : Stability
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Resolution::worlds(self : Resolution) -> ReadOnlyArray[ResolvedWorld] {

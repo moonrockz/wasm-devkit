@@ -1,8 +1,9 @@
 ///|
+#derive(Eq, Debug)
 pub(all) enum DocumentKind {
   Wat
   Wac
-} derive(Eq, Debug)
+}
 
 ///|
 /// A complete document at a portable, relative path. Package names are valid

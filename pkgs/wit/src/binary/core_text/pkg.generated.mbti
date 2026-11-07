@@ -39,12 +39,14 @@ pub fn SourceLoc::output(Self, &Logger) -> Unit
 pub fn SourceLoc::to_string(Self) -> String
 pub impl Show for SourceLoc
 
+#derive(@debug.Debug)
 pub enum WastAction {
   Invoke(String?, String, Array[WastValue])
   Get(String?, String)
-} derive(@debug.Debug)
+}
 pub fn WastAction::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub enum WastCommand {
   Module(@core_model.Module, String?)
   ModuleDefinition(@core_model.Module, String?)
@@ -64,9 +66,10 @@ pub enum WastCommand {
   Action(WastAction)
   Thread(String, String?, Array[(WastCommand, Int32)])
   Wait(String)
-} derive(@debug.Debug)
+}
 pub fn WastCommand::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub enum WastLaneValue {
   F32(Float)
   F64(Double)
@@ -74,21 +77,23 @@ pub enum WastLaneValue {
   F32ArithmeticNan
   F64CanonicalNan
   F64ArithmeticNan
-} derive(@debug.Debug)
+}
 pub fn WastLaneValue::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub enum WastModuleSource {
   Binary(Bytes)
   Quote(Array[String])
   Inline(@core_model.Module)
   FailedToParse(String)
-} derive(@debug.Debug)
+}
 pub fn WastModuleSource::to_repr(Self) -> @debug.Repr
 
 pub struct WastScript {
   commands : Array[(WastCommand, Int32)]
 }
 
+#derive(@debug.Debug)
 pub enum WastValue {
   I32(Int32)
   I64(Int64)
@@ -112,7 +117,7 @@ pub enum WastValue {
   RefI31
   RefAny
   Either(Array[WastValue])
-} derive(@debug.Debug)
+}
 pub fn WastValue::output(Self, &Logger) -> Unit
 pub fn WastValue::to_repr(Self) -> @debug.Repr
 pub fn WastValue::to_string(Self) -> String

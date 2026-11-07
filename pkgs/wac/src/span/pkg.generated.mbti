@@ -10,10 +10,11 @@ import {
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) struct Position {
   line : Int32
   column : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn Position::equal(Self, Self) -> Bool
 pub fn Position::not_equal(Self, Self) -> Bool
 pub fn Position::to_repr(Self) -> @debug.Repr
@@ -28,10 +29,11 @@ pub fn Source::slice(Self, Span) -> String?
 pub fn Source::span(Self) -> Span
 pub fn Source::text(Self) -> String
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Span {
   start : Int32
   end : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn Span::contains(Self, Self) -> Bool
 pub fn Span::equal(Self, Self) -> Bool
 pub fn Span::length(Self) -> Int32

@@ -1,19 +1,22 @@
 ///|
+#derive(Eq, Debug)
 pub(all) enum FunctionKind {
   Freestanding
   Method(Int32)
   Static(Int32)
   Constructor(Int32)
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum FunctionFlavor {
   Plain
   Getter
   Setter
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct ResolvedFunction {
   id : Int32
   name : String
@@ -25,9 +28,10 @@ pub(all) struct ResolvedFunction {
   location : Location
   stability : Stability
   external_id : String?
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct ResolvedInterface {
   id : Int32
   name : String?
@@ -36,7 +40,7 @@ pub(all) struct ResolvedInterface {
   functions : ReadOnlyArray[ResolvedFunction]
   location : Location
   stability : Stability
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Verified::worlds(self : Verified) -> ReadOnlyArray[ResolvedWorld] {

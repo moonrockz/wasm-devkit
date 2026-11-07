@@ -13,24 +13,27 @@ pub fn scan(String) -> Scan
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) struct Scan {
   tokens : ReadOnlyArray[Token]
   diagnostics : ReadOnlyArray[@diagnostic.Diagnostic]
-} derive(Eq, @debug.Debug)
+}
 pub fn Scan::equal(Self, Self) -> Bool
 pub fn Scan::not_equal(Self, Self) -> Bool
 pub fn Scan::to_repr(Self) -> @debug.Repr
 pub fn Scan::to_source(Self) -> String
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Token {
   kind : TokenKind
   text : String
   span : @span.Span
-} derive(Eq, @debug.Debug)
+}
 pub fn Token::equal(Self, Self) -> Bool
 pub fn Token::not_equal(Self, Self) -> Bool
 pub fn Token::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum TokenKind {
   Whitespace
   LineComment
@@ -60,7 +63,7 @@ pub(all) enum TokenKind {
   Underscore
   Invalid
   Eof
-} derive(Eq, @debug.Debug)
+}
 pub fn TokenKind::equal(Self, Self) -> Bool
 pub fn TokenKind::is_trivia(Self) -> Bool
 pub fn TokenKind::not_equal(Self, Self) -> Bool

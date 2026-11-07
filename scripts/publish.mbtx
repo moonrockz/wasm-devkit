@@ -33,12 +33,13 @@ let duplicated : String = "is duplicated with an existing version"
 
 ///|
 /// What a `moon publish` run means.
+#derive(Eq, Debug)
 enum Outcome {
   Published
   AlreadyPublished
   Transient
   Failed
-} derive(Eq, Debug)
+}
 
 ///|
 fn classify(exit_code : Int32, output : String) -> Outcome {

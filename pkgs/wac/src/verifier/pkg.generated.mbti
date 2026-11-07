@@ -41,12 +41,13 @@ pub fn BinaryPackage::source(Self) -> String
 pub fn BinaryPackage::types(Self) -> ReadOnlyArray[ResolvedType]
 pub fn BinaryPackage::world(Self) -> Int32
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Binding {
   name : String
   scope : Int32
   node : Int32
   target : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn Binding::equal(Self, Self) -> Bool
 pub fn Binding::not_equal(Self, Self) -> Bool
 pub fn Binding::to_repr(Self) -> @debug.Repr
@@ -64,32 +65,35 @@ pub struct ComponentScope {
   core_types : ReadOnlyArray[@core_types.Definition]
 }
 
+#derive(Eq, @debug.Debug)
 pub(all) struct CompositionExport {
   name : String
   value : Int32
   location : Location
-} derive(Eq, @debug.Debug)
+}
 pub fn CompositionExport::equal(Self, Self) -> Bool
 pub fn CompositionExport::not_equal(Self, Self) -> Bool
 pub fn CompositionExport::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct CompositionNode {
   id : Int32
   operation : CompositionOperation
   kind : ItemKind
   resources : ReadOnlyArray[ResourceBinding]
   location : Location
-} derive(Eq, @debug.Debug)
+}
 pub fn CompositionNode::equal(Self, Self) -> Bool
 pub fn CompositionNode::not_equal(Self, Self) -> Bool
 pub fn CompositionNode::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum CompositionOperation {
   Definition
   Import(String)
   Access(Int32, String)
   Instantiate(String, String?, ReadOnlyArray[InstantiationArgument])
-} derive(Eq, @debug.Debug)
+}
 pub fn CompositionOperation::equal(Self, Self) -> Bool
 pub fn CompositionOperation::not_equal(Self, Self) -> Bool
 pub fn CompositionOperation::to_repr(Self) -> @debug.Repr
@@ -100,35 +104,39 @@ pub(all) struct CompositionPackage {
   model : Verified
 }
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Diagnostic {
   code : String
   message : String
   primary : Label
   related : ReadOnlyArray[Label]
-} derive(Eq, @debug.Debug)
+}
 pub fn Diagnostic::equal(Self, Self) -> Bool
 pub fn Diagnostic::not_equal(Self, Self) -> Bool
 pub fn Diagnostic::render(Self) -> String
 pub fn Diagnostic::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Extern {
   name : String
   kind : ItemKind
   location : Location
-} derive(Eq, @debug.Debug)
+}
 pub fn Extern::equal(Self, Self) -> Bool
 pub fn Extern::not_equal(Self, Self) -> Bool
 pub fn Extern::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct InstantiationArgument {
   name : String
   value : Int32
   location : Location
-} derive(Eq, @debug.Debug)
+}
 pub fn InstantiationArgument::equal(Self, Self) -> Bool
 pub fn InstantiationArgument::not_equal(Self, Self) -> Bool
 pub fn InstantiationArgument::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ItemKind {
   Type(Int32)
   Function(Int32)
@@ -136,23 +144,25 @@ pub(all) enum ItemKind {
   Component(Int32)
   Module(Int32)
   Value(Int32)
-} derive(Eq, @debug.Debug)
+}
 pub fn ItemKind::equal(Self, Self) -> Bool
 pub fn ItemKind::not_equal(Self, Self) -> Bool
 pub fn ItemKind::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Label {
   location : Location
   message : String
-} derive(Eq, @debug.Debug)
+}
 pub fn Label::equal(Self, Self) -> Bool
 pub fn Label::not_equal(Self, Self) -> Bool
 pub fn Label::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Location {
   source : String
   position : Position
-} derive(Eq, @debug.Debug)
+}
 pub fn Location::binary(String, offset? : Int32?) -> Self
 pub fn Location::equal(Self, Self) -> Bool
 pub fn Location::not_equal(Self, Self) -> Bool
@@ -161,57 +171,63 @@ pub fn Location::span(Self) -> @span.Span?
 pub fn Location::text(String, @span.Span) -> Self
 pub fn Location::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct PackageRequest {
   name : String
   version : String?
   location : Location
-} derive(Eq, @debug.Debug)
+}
 pub fn PackageRequest::equal(Self, Self) -> Bool
 pub fn PackageRequest::not_equal(Self, Self) -> Bool
 pub fn PackageRequest::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct PackageSource {
   name : String
   version : String?
   source : String
   bytes : Bytes
-} derive(Eq, @debug.Debug)
+}
 pub fn PackageSource::equal(Self, Self) -> Bool
 pub fn PackageSource::not_equal(Self, Self) -> Bool
 pub fn PackageSource::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Position {
   SourceSpan(@span.Span)
   BinaryOffset(Int32?)
-} derive(Eq, @debug.Debug)
+}
 pub fn Position::equal(Self, Self) -> Bool
 pub fn Position::not_equal(Self, Self) -> Bool
 pub fn Position::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ResolvedDeclaration {
   name : String
   scope : Int32
   node : Int32
   kind : ItemKind
-} derive(Eq, @debug.Debug)
+}
 pub fn ResolvedDeclaration::equal(Self, Self) -> Bool
 pub fn ResolvedDeclaration::not_equal(Self, Self) -> Bool
 pub fn ResolvedDeclaration::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ResolvedType {
   id : Int32
   name : String?
   kind : TypeKind
   location : Location
-} derive(Eq, @debug.Debug)
+}
 pub fn ResolvedType::equal(Self, Self) -> Bool
 pub fn ResolvedType::not_equal(Self, Self) -> Bool
 pub fn ResolvedType::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ResourceBinding {
   ty : Int32
   identity : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn ResourceBinding::equal(Self, Self) -> Bool
 pub fn ResourceBinding::not_equal(Self, Self) -> Bool
 pub fn ResourceBinding::to_repr(Self) -> @debug.Repr
@@ -223,15 +239,17 @@ pub(all) struct SourcePackage {
   text : String
 }
 
+#derive(Eq, @debug.Debug)
 pub(all) struct TypeCase {
   name : String
   payload : Int32?
   location : Location
-} derive(Eq, @debug.Debug)
+}
 pub fn TypeCase::equal(Self, Self) -> Bool
 pub fn TypeCase::not_equal(Self, Self) -> Bool
 pub fn TypeCase::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum TypeKind {
   Module(@core_types.Module)
   Scalar(String)
@@ -254,27 +272,29 @@ pub(all) enum TypeKind {
   Function(ReadOnlyArray[TypeMember], Int32?, Bool)
   Interface(String?, ReadOnlyArray[UsedType], ReadOnlyArray[Extern])
   World(String?, ReadOnlyArray[UsedType], ReadOnlyArray[Extern], ReadOnlyArray[Extern])
-} derive(Eq, @debug.Debug)
+}
 pub fn TypeKind::equal(Self, Self) -> Bool
 pub fn TypeKind::not_equal(Self, Self) -> Bool
 pub fn TypeKind::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct TypeMember {
   name : String
   ty : Int32
   location : Location
-} derive(Eq, @debug.Debug)
+}
 pub fn TypeMember::equal(Self, Self) -> Bool
 pub fn TypeMember::not_equal(Self, Self) -> Bool
 pub fn TypeMember::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct UsedType {
   name : String
   original_name : String
   interface : Int32
   ty : Int32
   location : Location
-} derive(Eq, @debug.Debug)
+}
 pub fn UsedType::equal(Self, Self) -> Bool
 pub fn UsedType::not_equal(Self, Self) -> Bool
 pub fn UsedType::to_repr(Self) -> @debug.Repr

@@ -1,20 +1,23 @@
 ///|
 /// Core values used by module signatures. Concrete references retain a flat
 /// immutable type graph, including sharedness and recursive-group identity.
+#derive(Eq, Debug)
 pub(all) enum Value {
   Scalar(String)
   Reference(Bool, String)
   SharedReference(Bool, String)
   Concrete(Bool, TypeIdentity)
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Function {
   params : ReadOnlyArray[Value]
   results : ReadOnlyArray[Value]
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum External {
   Func(Function)
   TypedFunc(TypeIdentity)
@@ -23,47 +26,53 @@ pub(all) enum External {
   Global(Value, Bool, Bool)
   Tag(Function)
   TypedTag(TypeIdentity)
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Import {
   module_name : String
   name : String
   kind : External
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Export {
   name : String
   kind : External
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Module {
   imports : ReadOnlyArray[Import]
   exports : ReadOnlyArray[Export]
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum Definition {
   Function(Function)
   Heap(TypeIdentity)
   Module(Module)
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum ErrorKind {
   Malformed
   Invalid
   Unsupported
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Diagnostic {
   offset : Int32
   kind : ErrorKind
   message : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Value with Eq::{equal, not_equal}

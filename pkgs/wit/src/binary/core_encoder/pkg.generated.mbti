@@ -10,9 +10,10 @@ import {
 pub fn encode(@core_model.Module) -> Array[Int32] raise EncodingError
 
 // Errors
+#derive(@debug.Debug)
 pub(all) suberror EncodingError {
   EncodingError(String)
-} derive(@debug.Debug)
+}
 pub fn EncodingError::output(Self, &Logger) -> Unit
 pub fn EncodingError::to_repr(Self) -> @debug.Repr
 pub fn EncodingError::to_string(Self) -> String

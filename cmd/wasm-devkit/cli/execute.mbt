@@ -1,10 +1,11 @@
 ///|
+#derive(Eq, Debug)
 pub(all) struct Output {
   stdout : String
   stderr : String
   exit_code : Int32
   write_text : String?
-} derive(Eq, Debug)
+}
 
 ///|
 fn output(text : String, errors : String, code : Int32) -> Output {

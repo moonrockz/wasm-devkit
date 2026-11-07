@@ -1,10 +1,11 @@
 ///|
 /// Semantic release/feature metadata, independent of parser grammar switches.
+#derive(Eq, Debug)
 pub(all) enum Stability {
   Unknown
   Stable(String, String?)
   Unstable(String, String?)
-} derive(Eq, Debug)
+}
 
 ///|
 priv struct StabilityInfo {

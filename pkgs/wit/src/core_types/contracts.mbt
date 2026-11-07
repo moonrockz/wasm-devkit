@@ -2,11 +2,12 @@
 /// A module contract or a link to an enclosing decoder's flat scope table.
 /// Other bindings carry no core contract. These values are metadata, not proof
 /// that caller-constructed component declarations have been validated.
+#derive(Eq, Debug)
 pub(all) enum ContractBinding {
   Scope(Int32)
   Module(Module)
   Other
-} derive(Eq, Debug)
+}
 
 ///|
 /// Immutable core contracts associated with one component or instance scope.

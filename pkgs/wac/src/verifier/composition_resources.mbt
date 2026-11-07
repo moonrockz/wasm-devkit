@@ -1,9 +1,10 @@
 ///|
 /// A static resource parameter bound to a nominal identity in one graph value.
+#derive(Eq, Debug)
 pub(all) struct ResourceBinding {
   ty : Int32
   identity : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ResourceBinding with Eq::{equal, not_equal}

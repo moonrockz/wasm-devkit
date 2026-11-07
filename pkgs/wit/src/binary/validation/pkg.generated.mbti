@@ -19,6 +19,7 @@ pub fn validate_component_for_instantiation_with_config(@wasm_component.Componen
 pub fn validate_component_with_config(@wasm_component.Component, ComponentValidationConfig, core_contracts? : @core_types.ContractGraph?) -> Unit raise ComponentValidationError
 
 // Errors
+#derive(Eq, @debug.Debug)
 pub(all) suberror ComponentValidationError {
   InvalidTypeIndex(Int32)
   TypeIndexNotFuncType(Int32)
@@ -71,7 +72,7 @@ pub(all) suberror ComponentValidationError {
   AliasTargetMismatch(String)
   SectionParseError(Int32, String)
   CoreModuleError(String)
-} derive(Eq, @debug.Debug)
+}
 pub fn ComponentValidationError::equal(Self, Self) -> Bool
 pub fn ComponentValidationError::not_equal(Self, Self) -> Bool
 pub fn ComponentValidationError::output(Self, &Logger) -> Unit

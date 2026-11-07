@@ -43,7 +43,8 @@ pub struct ModuleTextMetadata {
 }
 pub fn ModuleTextMetadata::map_value_spellings(Self, (String) -> String) -> Self
 
-type Parser derive(@debug.Debug)
+#derive(@debug.Debug)
+type Parser
 pub fn Parser::Parser(Bytes) -> Self
 pub fn Parser::to_repr(Self) -> @debug.Repr
 

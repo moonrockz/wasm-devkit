@@ -2,6 +2,7 @@
 
 ///|
 /// Validation error types
+#derive(Debug)
 pub(all) suberror ValidationError {
   TypeWorkLimit
   TypeMismatch(String) // Expected vs actual type mismatch
@@ -34,7 +35,7 @@ pub(all) suberror ValidationError {
   UnsupportedInstruction(String) // Instruction missing from validator dispatch
   // Error with location context
   WithContext(ValidationErrorContext)
-} derive(Debug)
+}
 
 ///|
 /// Keep `Show` behavior while migrating from deprecated `derive(Show)` to
@@ -45,12 +46,13 @@ pub impl Show for ValidationError with fn output(self, logger) {
 
 ///|
 /// Validation error with location context for debugging
+#derive(Debug)
 pub(all) struct ValidationErrorContext {
   error_msg : String // The original error message
   func_idx : Int32? // The function index where validation failed
   instr_offset : Int32? // The instruction offset within the function body
   instruction : String? // The instruction that caused the error
-} derive(Debug)
+}
 
 ///|
 pub fn ValidationErrorContext::ValidationErrorContext(

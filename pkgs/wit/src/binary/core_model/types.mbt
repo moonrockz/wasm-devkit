@@ -6,6 +6,7 @@
 
 ///|
 /// WebAssembly value types
+#derive(Eq, Debug)
 pub(all) enum ValueType {
   I32
   I64
@@ -51,7 +52,7 @@ pub(all) enum ValueType {
   NullFuncRef // bottom type for func (ref null nofunc)
   NullExnRef // bottom type for exn (ref null noexn)
   NullExternRef // bottom type for extern (ref null noextern)
-} derive(Eq, Debug)
+}
 
 ///|
 /// Check if a reference type is nullable
@@ -90,39 +91,45 @@ pub fn ValueType::is_nullable(self : ValueType) -> Bool {
 
 ///|
 /// Packed storage types for struct/array fields
+#derive(Eq, Debug)
 pub(all) enum PackedType {
   I8
   I16
-} derive(Eq, Debug)
+}
 
 ///|
 /// Storage type for struct/array fields
+#derive(Eq, Debug)
 pub(all) enum StorageType {
   Val(ValueType) // unpacked value type
   Packed(PackedType) // packed i8 or i16
-} derive(Eq, Debug)
+}
 
 ///|
 /// Field type with mutability
+#derive(Eq, Debug)
 pub(all) struct FieldType {
   storage_type : StorageType
   mutable : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 /// Struct type definition
+#derive(Eq, Debug)
 pub(all) struct StructType {
   fields : Array[FieldType]
-} derive(Eq, Debug)
+}
 
 ///|
 /// Array type definition
+#derive(Eq, Debug)
 pub(all) struct ArrayType {
   element : FieldType
-} derive(Eq, Debug)
+}
 
 ///|
 /// Composite type, including a continuation's underlying function type index.
+#derive(Eq, Debug)
 pub(all) enum CompositeType {
   Func(FuncType)
   Struct(StructType)
@@ -131,15 +138,16 @@ pub(all) enum CompositeType {
   SharedFunc(FuncType)
   SharedStruct(StructType)
   SharedArray(ArrayType)
-} derive(Eq, Debug)
+}
 
 ///|
 /// Subtype definition with optional supertype
+#derive(Eq, Debug)
 pub(all) struct SubType {
   final_ : Bool // true if type cannot be subtyped further
   supertypes : Array[Int32] // indices of supertypes (0 or 1 for MVP)
   composite : CompositeType
-} derive(Eq, Debug)
+}
 
 ///|
 /// Create a simple subtype without inheritance
@@ -174,6 +182,7 @@ pub fn func_types_to_subtypes(func_types : Array[FuncType]) -> Array[SubType] {
 
 ///|
 /// Runtime values
+#derive(Eq, Debug)
 pub(all) enum Value {
   I32(Int32)
   I64(Int64)
@@ -189,7 +198,7 @@ pub(all) enum Value {
   ArrayRef(Int32) // array reference (index into GC heap)
   I31(Int32) // i31ref value (31-bit integer, stored directly)
   Null
-} derive(Eq, Debug)
+}
 
 // ============================================================
 // Instructions
@@ -197,6 +206,7 @@ pub(all) enum Value {
 
 ///|
 /// WebAssembly instructions
+#derive(Eq, Debug)
 pub(all) enum Instruction {
   // Control instructions
   Unreachable
@@ -802,39 +812,43 @@ pub(all) enum Instruction {
   I16x8RelaxedQ15mulrS
   I16x8RelaxedDotI8x16I7x16S
   I32x4RelaxedDotI8x16I7x16AddS
-} derive(Eq, Debug)
+}
 
 ///|
 /// Block type
+#derive(Eq, Debug)
 pub(all) enum BlockType {
   Empty
   Value(ValueType)
   MultiValue(Array[ValueType]) // Multi-value results only (e.g., result i32 i64)
   InlineType(Array[ValueType], Array[ValueType]) // (params, results) for blocks with params
   TypeIndex(Int32)
-} derive(Eq, Debug)
+}
 
 ///|
 /// A legacy catch arm. A missing tag is catch_all.
+#derive(Eq, Debug)
 pub(all) struct LegacyCatch {
   tag : Int32?
   body : Array[Instruction]
-} derive(Eq, Debug)
+}
 
 ///|
 /// Catch handler for try_table instruction
+#derive(Eq, Debug)
 pub(all) enum CatchHandler {
   Catch(Int32, Int32) // (tag_idx, label_idx) - catch specific tag
   CatchRef(Int32, Int32) // (tag_idx, label_idx) - catch specific tag with exnref
   CatchAll(Int32) // (label_idx) - catch any exception
   CatchAllRef(Int32) // (label_idx) - catch any exception with exnref
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum ResumeHandler {
   OnLabel(Int32, Int32) // tag index and branch label
   OnSwitch(Int32) // switch tag index
-} derive(Eq, Debug)
+}
 
 // ============================================================
 // Module Structures
@@ -842,10 +856,11 @@ pub(all) enum ResumeHandler {
 
 ///|
 /// Function type
+#derive(Eq, Debug)
 pub(all) struct FuncType {
   params : Array[ValueType]
   results : Array[ValueType]
-} derive(Eq, Debug)
+}
 
 ///|
 /// Compute a hash for structural type equivalence.
@@ -1021,19 +1036,21 @@ fn ValueType::structurally_equal(
 ///|
 /// Limits for memory and tables
 /// Uses Int64 to support memory64 proposal (limits up to 2^48 pages)
+#derive(Eq, Debug)
 pub(all) struct Limits {
   min : Int64
   max : Int64?
-} derive(Eq, Debug)
+}
 
 ///|
 /// Memory type
+#derive(Eq, Debug)
 pub(all) struct MemoryType {
   limits : Limits
   is_memory64 : Bool // true for i64-indexed memory (memory64 proposal)
   is_shared : Bool
   page_size_log2 : Int32 // custom-page-sizes proposal (default: 16 for 64KiB)
-} derive(Eq, Debug)
+}
 
 ///|
 /// Get the address type for this memory (I32 for 32-bit, I64 for 64-bit)
@@ -1047,86 +1064,97 @@ pub fn MemoryType::addr_type(self : MemoryType) -> ValueType {
 
 ///|
 /// Table type
+#derive(Eq, Debug)
 pub(all) struct TableType {
   elem_type : ValueType
   limits : Limits
   is_table64 : Bool // true for table64 (i64-indexed table)
   is_shared : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 /// Table definition with optional init expression
+#derive(Eq, Debug)
 pub(all) struct Table {
   type_ : TableType
   init : Array[Instruction]? // Optional init expression for all elements
-} derive(Eq, Debug)
+}
 
 ///|
 /// Global type
+#derive(Eq, Debug)
 pub(all) struct GlobalType {
   value_type : ValueType
   mutable : Bool
   is_shared : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 /// Tag type (for exception handling)
 /// Tags define the signature of exceptions - they can only have parameters, not results
+#derive(Eq, Debug)
 pub(all) struct TagType {
   type_idx : Int32 // Index into the types array (must be a function type with no results)
-} derive(Eq, Debug)
+}
 
 ///|
 /// Import descriptor
+#derive(Eq, Debug)
 pub(all) enum ImportDesc {
   Func(Int32) // type index
   Table(TableType)
   Memory(MemoryType)
   Global(GlobalType)
   Tag(Int32) // type index for exception tag
-} derive(Eq, Debug)
+}
 
 ///|
 /// Import entry
+#derive(Eq, Debug)
 pub(all) struct Import {
   mod_name : String
   name : String
   desc : ImportDesc
-} derive(Eq, Debug)
+}
 
 ///|
 /// Export descriptor
+#derive(Eq, Debug)
 pub(all) enum ExportDesc {
   Func(Int32) // function index
   Table(Int32) // table index
   Memory(Int32) // memory index
   Global(Int32) // global index
   Tag(Int32) // tag index
-} derive(Eq, Debug)
+}
 
 ///|
 /// Export entry
+#derive(Eq, Debug)
 pub(all) struct Export {
   name : String
   desc : ExportDesc
-} derive(Eq, Debug)
+}
 
 ///|
 /// Function code
+#derive(Eq, Debug)
 pub(all) struct FunctionCode {
   locals : Array[ValueType]
   body : Array[Instruction]
-} derive(Eq, Debug)
+}
 
 ///|
 /// Global definition
+#derive(Eq, Debug)
 pub(all) struct Global {
   type_ : GlobalType
   init : Array[Instruction]
-} derive(Eq, Debug)
+}
 
 ///|
 /// Element segment mode
+#derive(Eq, Debug)
 pub(all) enum ElemMode {
   /// Active segment: copied to table at instantiation
   Active(Int32, Array[Instruction]) // table_idx, offset_expr
@@ -1134,26 +1162,29 @@ pub(all) enum ElemMode {
   Passive
   /// Declarative segment: only for validation
   Declarative
-} derive(Eq, Debug)
+}
 
 ///|
 /// Element segment
+#derive(Eq, Debug)
 pub(all) struct Element {
   mode : ElemMode
   type_ : ValueType // element type (funcref or externref)
   init : Array[Array[Instruction]] // init expressions (each evaluates to a ref)
-} derive(Eq, Debug)
+}
 
 ///|
 /// Data segment
+#derive(Eq, Debug)
 pub(all) struct Data {
   memory_idx : Int32
   offset : Array[Instruction]
   init : Bytes
-} derive(Eq, Debug)
+}
 
 ///|
 /// WebAssembly module
+#derive(Debug)
 pub(all) struct Module {
   types : Array[SubType] // GC: now stores SubType instead of FuncType
   /// For each type, stores the rec group ID it belongs to.
@@ -1174,7 +1205,7 @@ pub(all) struct Module {
   /// Function index -> internal name (e.g., 0 -> "some_func" from $some_func)
   /// Populated from WAT parsing, empty for binary modules without name section
   func_names : Map[Int32, String]
-} derive(Debug)
+}
 
 ///|
 fn is_show_whitespace(c : Char) -> Bool {

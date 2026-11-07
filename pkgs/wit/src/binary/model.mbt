@@ -1,12 +1,13 @@
 ///|
 /// Binary positions count bytes. None means the semantic validator supplied no
 /// precise offset. These positions are never rendered as source UTF-16 spans.
+#derive(Eq, Debug)
 pub(all) struct Diagnostic {
   source : String
   offset : Int32?
   code : String
   message : String
-} derive(Eq, Debug)
+}
 
 ///|
 /// Evidence for a validated type-only component encoding. This does not claim

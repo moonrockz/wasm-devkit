@@ -1,47 +1,53 @@
 ///|
 /// Text compares every UTF-16 code unit. Semantic compares validated decoded
 /// core-module structure with typed numeric literals, as described in README.
+#derive(Eq, @debug.Debug)
 pub(all) enum Mode {
   Text
   Semantic
-} derive(Eq, @debug.Debug)
+}
 
 ///|
+#derive(Eq, @debug.Debug)
 pub(all) enum Side {
   Left
   Right
-} derive(Eq, @debug.Debug)
+}
 
 ///|
+#derive(Eq, @debug.Debug)
 pub(all) enum ErrorKind {
   Malformed
   Invalid
   Unsupported
-} derive(Eq, @debug.Debug)
+}
 
 ///|
+#derive(Eq, @debug.Debug)
 pub struct Diagnostic {
   side : Side
   kind : ErrorKind
   span : @span.Span?
   message : String
-} derive(Eq, @debug.Debug)
+}
 
 ///|
 /// A changed canonical section/body or floating point literal. Values are
 /// canonical binary bytes, or exact floating point bits, in little endian order. Spans refer to original source.
+#derive(Eq, @debug.Debug)
 pub struct Difference {
   path : String
   left : Bytes?
   right : Bytes?
   left_span : @span.Span?
   right_span : @span.Span?
-} derive(Eq, @debug.Debug)
+}
 
 ///|
+#derive(Eq, @debug.Debug)
 pub struct Comparison {
   differences : ReadOnlyArray[Difference]
-} derive(Eq, @debug.Debug)
+}
 
 ///|
 pub fn Comparison::is_equal(self : Comparison) -> Bool {

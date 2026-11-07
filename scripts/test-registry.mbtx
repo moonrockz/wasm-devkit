@@ -60,7 +60,7 @@ async fn cleanup_fixture(root : String) -> Unit {
 ///|
 async test "registry fixture cleanup handles long paths and is idempotent" {
   let root = @fs.tmpdir(prefix="wasm-devkit-cleanup-test")
-  defer cleanup_fixture(root)
+  defer @async.protect_from_cancel(() => cleanup_fixture(root))
   checked(
     "node",
     [
@@ -194,7 +194,7 @@ async fn main {
       )
   }
   let root = @fs.tmpdir(prefix="wasm-devkit-registry-test")
-  defer cleanup_fixture(root)
+  defer @async.protect_from_cancel(() => cleanup_fixture(root))
   @async.with_task_group(async fn(group) {
     let log = @process.redirect_to_file(root + "/server.log")
     defer log.close()

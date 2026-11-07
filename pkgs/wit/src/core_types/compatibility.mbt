@@ -1,9 +1,10 @@
 ///|
 /// A mismatch between validated core contracts, or exhausted comparison work.
+#derive(Eq, Debug)
 pub(all) enum CompatibilityError {
   Mismatch(String)
   WorkLimit
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend CompatibilityError with Eq::{equal, not_equal}

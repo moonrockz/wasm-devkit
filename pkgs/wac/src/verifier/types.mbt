@@ -1,5 +1,6 @@
 ///|
 /// A component item refers to a type in the verified model's immutable arena.
+#derive(Eq, Debug)
 pub(all) enum ItemKind {
   Type(Int32)
   Function(Int32)
@@ -7,42 +8,47 @@ pub(all) enum ItemKind {
   Component(Int32)
   Module(Int32)
   Value(Int32)
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct TypeMember {
   name : String
   ty : Int32
   location : Location
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct TypeCase {
   name : String
   payload : Int32?
   location : Location
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Extern {
   name : String
   kind : ItemKind
   location : Location
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct UsedType {
   name : String
   original_name : String
   interface : Int32
   ty : Int32
   location : Location
-} derive(Eq, Debug)
+}
 
 ///|
 /// Type references are arena indices, including nominal resource aliases.
 /// A Resource with no alias introduces a new identity; Own and Borrow retain
 /// the referenced resource declaration even when it is an alias.
+#derive(Eq, Debug)
 pub(all) enum TypeKind {
   Module(@core_types.Module)
   Scalar(String)
@@ -70,23 +76,25 @@ pub(all) enum TypeKind {
     ReadOnlyArray[Extern],
     ReadOnlyArray[Extern]
   )
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct ResolvedType {
   id : Int32
   name : String?
   kind : TypeKind
   location : Location
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct ResolvedDeclaration {
   name : String
   scope : Int32
   node : Int32
   kind : ItemKind
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Verified::types(self : Verified) -> ReadOnlyArray[ResolvedType] {

@@ -7,44 +7,49 @@ pub(all) enum Syntax {
 
 ///|
 /// A complete visit enters a node, visits its children in field order, and leaves it.
+#derive(Eq, Debug)
 pub(all) enum Phase {
   Enter
   Leave
-} derive(Eq, Debug)
+}
 
 ///|
 /// Continue visits children; Prune on Enter skips them but emits Leave. Stop includes the current event
 /// and ends the stream without synthetic ancestor leaves. Prune on Leave acts like Continue.
+#derive(Eq, Debug)
 pub(all) enum Control {
   Continue
   Prune
   Stop
-} derive(Eq, Debug)
+}
 
 ///|
 /// Immutable metadata for a source arena node. index and parent refer to that
 /// arena, not a rewritten output arena. Depth is absolute, including for cursors.
+#derive(Eq, Debug)
 pub(all) struct View {
   index : Int32
   kind : @ast.Kind
   span : @span.Span
   depth : Int32
   parent : Int32?
-} derive(Eq, Debug)
+}
 
 ///|
 /// One immutable traversal event. Inspect `view.index` in the selected source arena to read typed node data.
+#derive(Eq, Debug)
 pub(all) struct Event {
   phase : Phase
   view : View
-} derive(Eq, Debug)
+}
 
 ///|
 /// A snapshot of emitted Enter/Leave events and whether a callback requested Stop.
+#derive(Eq, Debug)
 pub(all) struct Report {
   events : Int32
   stopped : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 priv struct Navigation {
