@@ -7,6 +7,28 @@ is 0.x, a minor release can contain breaking changes.
 <!-- git-cliff: end of header -->
 
 
+## [0.4.0] - 2026-11-08
+
+This release moves the WIT and WAC libraries and the CLI to MoonBit 0.10.20.
+It adds no features, and the public APIs do not change.
+
+The minimum supported toolchain is now MoonBit 0.10.20 (moonc v0.10.20+65efd5b93,
+moon 0.1.20261104). MoonBit 0.10.18 and older are no longer supported. The source
+now uses the `#derive(...)` attribute, and MoonBit 0.10.18 ignores this attribute.
+Use MoonBit 0.10.20 or newer to build `moonrockz/wit@0.4.0`, `moonrockz/wac@0.4.0`
+and `moonx moonrockz/wasm-devkit@0.4.0`. The native CLI archives do not need a
+MoonBit toolchain.
+
+### 🏗️ Build and CI
+
+- Upgrade MoonBit to 0.10.18 ([#20](https://github.com/moonrockz/wasm-devkit/pull/20)) by @DamianReeves
+- Upgrade MoonBit to 0.10.20 ([#21](https://github.com/moonrockz/wasm-devkit/pull/21)) by @DamianReeves
+
+**Full changelog**: https://github.com/moonrockz/wasm-devkit/compare/v0.3.0...v0.4.0
+
+
+
+
 ## [0.3.0] - 2026-10-21
 
 This release adds binary inspection and WAT comparison to the WIT and WAC libraries

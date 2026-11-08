@@ -1,6 +1,6 @@
 name = "wasm-devkit-monorepo"
 
-version = "0.3.0"
+version = "0.4.0"
 
 description = "MoonBit tooling for WebAssembly interfaces and composition: workspace root"
 
